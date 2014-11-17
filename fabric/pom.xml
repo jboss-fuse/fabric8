@@ -61,9 +61,6 @@
         <module>fabric-cxf</module>
         <module>fabric-cxf-registry</module>
         <module>fabric-cxf-plugins</module>
-        <module>fabric-dns</module>
-        <module>fabric-docker-api</module>
-        <module>fabric-docker-provider</module>
         <module>fabric-dosgi</module>
         <module>fabric-dynamic-jaxb</module>
         <module>fabric-examples</module>
@@ -78,14 +75,11 @@
         <module>fabric-jaas</module>
         <module>fabric-jolokia</module>
         <module>fabric-jolokia-client</module>
-        <module>fabric-kubernetes-api</module>
-        <module>fabric-kubernetes-provider</module>
         <module>fabric-ldap</module>
         <module>fabric-maven-proxy</module>
         <module>fabric-openshift</module>
         <module>fabric-osgimetadata</module>
         <module>fabric-partition</module>
-        <module>fabric-process-container</module>
         <module>fabric-project-deployer</module>
         <module>fabric-rest</module>
         <module>fabric-redirect</module>
