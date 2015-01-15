@@ -15,6 +15,7 @@
  */
 package io.fabric8.git.http;
 
+import io.fabric8.api.Constants;
 import io.fabric8.api.FabricService;
 import io.fabric8.api.RuntimeProperties;
 import io.fabric8.api.jcip.ThreadSafe;
@@ -47,6 +48,7 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.eclipse.jgit.api.Git;
+import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.http.HttpContext;
 import org.osgi.service.http.HttpService;
@@ -209,13 +211,34 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
         }
     }
 
+    private String readExternalGitUrl() {
+        String result = null;
+        try {
+            Configuration conf = configAdmin.get().getConfiguration(Constants.DATASTORE_PID);
+            if (conf == null) {
+                LOGGER.warn("No configuration for pid " + Constants.DATASTORE_PID);
+            } else {
+                Object o = conf.getProperties().get(Constants.GIT_REMOTE_URL);
+                result = o != null ? o.toString() : null;
+            }
+        } catch (Throwable e) {
+            LOGGER.error("Could not load config admin for pid " + Constants.DATASTORE_PID + ". Reason: " + e, e);
+        }
+        return result;
+    }
+
     private GitNode createState() {
         RuntimeProperties sysprops = runtimeProperties.get();
         String runtimeIdentity = sysprops.getRuntimeIdentity();
         GitNode state = new GitNode("fabric-repo", runtimeIdentity);
         if (group != null && group.isMaster()) {
-            String fabricRepoUrl = "${zk:" + runtimeIdentity + "/http}/git/fabric/";
-            state.setUrl(fabricRepoUrl);
+            String externalGitUrl = readExternalGitUrl();
+            if( externalGitUrl!= null){
+                state.setUrl( externalGitUrl);
+            } else {
+	        String fabricRepoUrl = "${zk:" + runtimeIdentity + "/http}/git/fabric/";
+        	state.setUrl(fabricRepoUrl);
+            }
         }
         return state;
     }
