@@ -45,7 +45,6 @@ import com.google.common.base.Strings;
 @Command(name = "create", scope = "fabric", description = "Creates a new fabric ensemble (ZooKeeper ensemble)", detailedDescription = "classpath:create.txt")
 class CreateAction extends AbstractAction {
 
-    private static final String GIT_REMOTE_URL = Constants.GIT_REMOTE_URL;
     private static final String GIT_REMOTE_USER = "gitRemoteUser";
     private static final String GIT_REMOTE_PASSWORD = "gitRemotePassword";
 
@@ -206,7 +205,7 @@ class CreateAction extends AbstractAction {
 
         //Configure External Git Repository.
         if (externalGitUrl != null) {
-            builder.dataStoreProperty(GIT_REMOTE_URL, externalGitUrl);
+            builder.dataStoreProperty(Constants.GIT_REMOTE_URL, externalGitUrl);
         }
         if (externalGitUser != null) {
             builder.dataStoreProperty(GIT_REMOTE_USER, externalGitUser);
