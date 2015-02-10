@@ -26,6 +26,7 @@ import static io.fabric8.zookeeper.curator.Constants.ZOOKEEPER_URL;
 
 import java.io.IOException;
 import java.sql.Time;
+import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -33,6 +34,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import io.fabric8.api.scr.Configurer;
@@ -42,6 +44,7 @@ import org.apache.curator.ensemble.fixed.FixedEnsembleProvider;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.api.ACLProvider;
+import org.apache.curator.framework.api.UnhandledErrorListener;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.framework.state.ConnectionStateListener;
 import org.apache.curator.retry.RetryNTimes;
@@ -56,6 +59,7 @@ import io.fabric8.zookeeper.bootstrap.BootstrapConfiguration;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
+import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,11 +97,12 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
 
     private AtomicReference<State> state = new AtomicReference<State>();
 
-    class State implements ConnectionStateListener, Runnable {
+    class State implements ConnectionStateListener, UnhandledErrorListener, Runnable {
         final CuratorConfig configuration;
         final AtomicBoolean closed = new AtomicBoolean();
         ServiceRegistration<CuratorFramework> registration;
         CuratorFramework curator;
+        final AtomicInteger retryCount = new AtomicInteger(0);
 
         State(CuratorConfig configuration) {
             this.configuration = configuration;
@@ -124,7 +129,13 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
                 if (!closed.get()) {
                     curator = buildCuratorFramework(configuration);
                     curator.getConnectionStateListenable().addListener(this, executor);
-                    curator.start();
+                    curator.getUnhandledErrorListenable().addListener(this, executor);
+
+                        try {
+                            curator.start();
+                        } catch (Exception e){
+                            LOGGER.warn("Unable to start ZookeeperClient", e);
+                        }
                     CuratorFrameworkLocator.bindCurator(curator);
                 }
             } catch (Throwable th) {
@@ -135,6 +146,7 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
         @Override
         public void stateChanged(CuratorFramework client, ConnectionState newState) {
             if (newState == ConnectionState.CONNECTED || newState == ConnectionState.READ_ONLY || newState == ConnectionState.RECONNECTED) {
+                retryCount.set(0);
                 if (registration == null) {
                     registration = bundleContext.registerService(CuratorFramework.class, curator, null);
                 }
@@ -143,8 +155,14 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
                 listener.stateChanged(client, newState);
             }
             if (newState == ConnectionState.LOST) {
-                run();
+                try {
+                    run();
+                } catch (Exception e){
+                    // this should never occurr
+                    LOGGER.debug("Error starting Zookeeper Client", e);
+                }
             }
+
         }
 
         public void close() {
@@ -163,6 +181,27 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
             }
         }
 
+        @Override
+        public void unhandledError(String message, Throwable e) {
+            if(e instanceof IllegalArgumentException){
+                // narrows down the scope of the catched IllegalArgumentException since cause and suppressedException are empty
+                for(StackTraceElement s : e.getStackTrace() ){
+                    if(s.getClassName().equals("org.apache.zookeeper.client.StaticHostProvider")){
+                        if(retryCount.getAndIncrement() < configuration.getZookeeperRetryMax()){
+                            try {
+                                LOGGER.warn("Retry attempt " + (retryCount.get()) + " of " + configuration.getZookeeperRetryMax() + ", as per " + Constants.ZOOKEEPER_CLIENT_PID  + "/zookeeper.retry.max" , e);
+                                Thread.currentThread().sleep(configuration.getZookeeperRetryInterval());
+                            } catch (InterruptedException e1) {
+                                LOGGER.debug("Sleep call interrupted", e1);
+                            }
+                            this.run();
+                        }
+                    }
+                }
+            }  else{
+                LOGGER.error("Unhandled error in Zookeeper layer", e);
+            }
+        }
     }
 
     @Activate
