@@ -74,6 +74,7 @@ public final class FabricGitServiceImpl extends AbstractComponent implements Git
     void deactivate() {
         deactivateComponent();
         RepositoryCache.clear();
+        git.status().getRepository().close();
     }
 
 
