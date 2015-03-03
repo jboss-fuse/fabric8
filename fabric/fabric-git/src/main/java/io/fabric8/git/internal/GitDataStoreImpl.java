@@ -99,6 +99,7 @@ import org.apache.felix.scr.annotations.Service;
 import org.apache.zookeeper.KeeperException;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.internal.storage.file.LockFile;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
@@ -116,6 +117,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+
 
 /**
  * A git based implementation of {@link DataStore} which stores the profile
@@ -187,6 +189,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     @Activate
     @VisibleForExternal
     public void activate(Map<String, ?> configuration) throws Exception {
+        LockFile.unlock(getGit().getRepository().getIndexFile());
         configurer.configure(configuration, this);
 
         // Remove non-String values from the configuration
