@@ -8,10 +8,6 @@ function validate_requirements() {
   else
     check_java_version
   fi
-  if ! which telnet &> /dev/null; then
-        echo "Command Failed:Telnet is not installed.";
-        exit -1;
-  fi
 }
 
 function check_java_version() {
