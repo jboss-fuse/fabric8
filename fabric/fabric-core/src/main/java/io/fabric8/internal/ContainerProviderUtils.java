@@ -463,7 +463,7 @@ public final class ContainerProviderUtils {
         sb.append("cp /tmp/" + file + " " + file).append("\n");
 
         for (String repo : allRepos) {
-            sb.append("if [ ! -f " + file + " ] && [ ! -s " + file + "] ; then ").append("maven_download ").append(repo).append(" ")
+            sb.append("if [ ! -f " + file + " ] && [ ! -s " + file + " ] ; then ").append("maven_download ").append(repo).append(" ")
                     .append(groupId).append(" ")
                     .append(artifactId).append(" ")
                     .append(version).append(" ")
