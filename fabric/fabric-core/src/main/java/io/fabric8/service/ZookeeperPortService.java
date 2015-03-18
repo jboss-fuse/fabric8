@@ -131,7 +131,9 @@ public final class ZookeeperPortService extends AbstractComponent implements Por
         } catch (Exception ex) {
             throw FabricException.launderThrowable(ex);
         } finally {
-            releaseLock(lease);
+            if(existingLease == null) {
+                releaseLock(lease);
+            }
         }
     }
 
@@ -185,7 +187,9 @@ public final class ZookeeperPortService extends AbstractComponent implements Por
         } catch (Exception ex) {
             throw FabricException.launderThrowable(ex);
         } finally {
-            releaseLock(lease);
+            if(existingLease == null) {
+                releaseLock(lease);
+            }
         }
 
     }
@@ -220,7 +224,9 @@ public final class ZookeeperPortService extends AbstractComponent implements Por
         } catch (Exception ex) {
             throw FabricException.launderThrowable(ex);
         } finally {
-            releaseLock(lease);
+            if(existingLease == null) {
+                releaseLock(lease);
+            }
         }
     }
 
@@ -332,7 +338,9 @@ public final class ZookeeperPortService extends AbstractComponent implements Por
         } catch (Exception ex) {
             throw FabricException.launderThrowable(ex);
         } finally {
-            releaseLock(lease);
+            if(existingLease == null) {
+                releaseLock(lease);
+            }
         }
         return ports;
     }
