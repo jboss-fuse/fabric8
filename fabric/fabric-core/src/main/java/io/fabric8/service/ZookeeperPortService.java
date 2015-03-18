@@ -22,7 +22,6 @@ import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getChildren;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getStringData;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.setData;
 
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -30,8 +29,8 @@ import java.util.concurrent.TimeUnit;
 import io.fabric8.api.scr.support.Strings;
 import io.fabric8.internal.Objects;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.recipes.locks.InterProcessLock;
-import org.apache.curator.framework.recipes.locks.InterProcessMultiLock;
+import org.apache.curator.framework.recipes.locks.InterProcessSemaphoreV2;
+import org.apache.curator.framework.recipes.locks.Lease;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -44,43 +43,50 @@ import io.fabric8.api.jcip.ThreadSafe;
 import io.fabric8.api.scr.AbstractComponent;
 import io.fabric8.api.scr.ValidatingReference;
 import io.fabric8.zookeeper.ZkPath;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @ThreadSafe
 @Component(name = "io.fabric8.portservice.zookeeper", label = "Fabric8 ZooKeeper Port Service", metatype = false)
 @Service(PortService.class)
 public final class ZookeeperPortService extends AbstractComponent implements PortService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ZookeeperPortService.class);
+
+
     @Reference(referenceInterface = CuratorFramework.class)
     private final ValidatingReference<CuratorFramework> curator = new ValidatingReference<CuratorFramework>();
 
-    private InterProcessLock interProcessLock;
+    private InterProcessSemaphoreV2 interProcessLock;
 
     @Activate
     void activate() {
-        interProcessLock = new InterProcessMultiLock(curator.get(), Arrays.asList(ZkPath.PORTS_LOCK.getPath()));
+        interProcessLock = new InterProcessSemaphoreV2(curator.get(), ZkPath.PORTS_LOCK.getPath(), 1);
         activateComponent();
     }
 
     @Deactivate
     void deactivate() {
         deactivateComponent();
-        releaseLock();
     }
 
     @Override
     public int registerPort(Container container, String pid, String key, int fromPort, int toPort, Set<Integer> excludes) {
         assertValid();
+        Lease lease = null;
         try {
-            if (interProcessLock.acquire(60, TimeUnit.SECONDS)) {
+            lease = interProcessLock.acquire(60, TimeUnit.SECONDS);
+            if (lease != null) {
                 int port = lookupPort(container, pid, key);
                 if (port > 0) {
                     return port;
                 }
-                Set<Integer> boundPorts = findUsedPortByHost(container);
+                Set<Integer> boundPorts = findUsedPortByHost(container, lease);
                 boundPorts.addAll(excludes);
 
                 for (port = fromPort; port <= toPort; port++) {
                     if (!boundPorts.contains(port)) {
-                        registerPort(container, pid, key, port);
+                        registerPort(container, pid, key, port, lease);
                         return port;
                     }
                 }
@@ -91,20 +97,26 @@ public final class ZookeeperPortService extends AbstractComponent implements Por
         } catch (Exception ex) {
             throw FabricException.launderThrowable(ex);
         } finally {
-            releaseLock();
+            releaseLock(lease);
         }
     }
 
-    @Override
-    public void registerPort(Container container, String pid, String key, int port) {
+    private void registerPort(Container container, String pid, String key, int port, Lease existingLease) {
         assertValid();
         String portAsString = String.valueOf(port);
         String containerPortsPath = ZkPath.PORTS_CONTAINER_PID_KEY.getPath(container.getId(), pid, key);
+
         String ip = container.getIp();
         assertValidIp(container, ip);
         String ipPortsPath = ZkPath.PORTS_IP.getPath(ip);
+        Lease lease = null;
         try {
-            if (interProcessLock.acquire(60, TimeUnit.SECONDS)) {
+            if(existingLease!=null){
+                lease = existingLease;
+            }else{
+                lease = interProcessLock.acquire(60, TimeUnit.SECONDS);
+            }
+            if (lease != null) {
                 createDefault(curator.get(), containerPortsPath, portAsString);
                 createDefault(curator.get(), ipPortsPath, portAsString);
 
@@ -119,7 +131,7 @@ public final class ZookeeperPortService extends AbstractComponent implements Por
         } catch (Exception ex) {
             throw FabricException.launderThrowable(ex);
         } finally {
-            releaseLock();
+            releaseLock(lease);
         }
     }
 
@@ -130,19 +142,30 @@ public final class ZookeeperPortService extends AbstractComponent implements Por
     }
 
     @Override
-    public void unregisterPort(Container container, String pid, String key) {
+    public void registerPort(Container container, String pid, String key, int port) {
+        registerPort(container, pid, key, port, null);
+    }
+
+    private void unregisterPort(Container container, String pid, String key, Lease existingLease) {
         assertValid();
         String containerPortsPidKeyPath = ZkPath.PORTS_CONTAINER_PID_KEY.getPath(container.getId(), pid, key);
         String ip = container.getIp();
         assertValidIp(container, ip);
         String ipPortsPath = ZkPath.PORTS_IP.getPath(ip);
-        try {
-            if (interProcessLock.acquire(60, TimeUnit.SECONDS)) {
+	Lease lease = null;        
+	try {
+            if(existingLease != null){
+                lease = existingLease;
+            }else{
+                lease = interProcessLock.acquire(60, TimeUnit.SECONDS);
+            }
+
+            if (lease != null) {
                 if (exists(curator.get(), containerPortsPidKeyPath) != null) {
                     int port = lookupPort(container, pid, key);
                     deleteSafe(curator.get(), containerPortsPidKeyPath);
 
-                    Set<Integer> allPorts = findUsedPortByHost(container);
+                    Set<Integer> allPorts = findUsedPortByHost(container, lease);
                     allPorts.remove(port);
                     StringBuilder sb = new StringBuilder();
                     boolean first = true;
@@ -162,19 +185,32 @@ public final class ZookeeperPortService extends AbstractComponent implements Por
         } catch (Exception ex) {
             throw FabricException.launderThrowable(ex);
         } finally {
-            releaseLock();
+            releaseLock(lease);
         }
+
     }
 
     @Override
-    public void unregisterPort(Container container, String pid) {
+    public void unregisterPort(Container container, String pid, String key) {
+        unregisterPort(container, pid, key, (Lease)null);
+
+    }
+
+    private void unregisterPort(Container container, String pid, Lease existingLease) {
         assertValid();
         String containerPortsPidPath = ZkPath.PORTS_CONTAINER_PID.getPath(container.getId(), pid);
+        Lease lease = null;
         try {
-            if (interProcessLock.acquire(60, TimeUnit.SECONDS)) {
+            if(existingLease != null){
+                lease = existingLease;
+            }else{
+                lease = interProcessLock.acquire(60, TimeUnit.SECONDS);
+            }
+
+            if (lease != null) {
                 if (exists(curator.get(), containerPortsPidPath) != null) {
                     for (String key : getChildren(curator.get(), containerPortsPidPath)) {
-                        unregisterPort(container, pid, key);
+                        unregisterPort(container, pid, key, lease);
                     }
                     deleteSafe(curator.get(), containerPortsPidPath);
                 }
@@ -184,19 +220,26 @@ public final class ZookeeperPortService extends AbstractComponent implements Por
         } catch (Exception ex) {
             throw FabricException.launderThrowable(ex);
         } finally {
-            releaseLock();
+            releaseLock(lease);
         }
+    }
+
+    @Override
+    public void unregisterPort(Container container, String pid) {
+        unregisterPort(container, pid, (Lease)null);
     }
 
     @Override
     public void unregisterPort(Container container) {
         assertValid();
         String containerPortsPath = ZkPath.PORTS_CONTAINER.getPath(container.getId());
+        Lease lease = null;
         try {
-            if (interProcessLock.acquire(60, TimeUnit.SECONDS)) {
+            lease = interProcessLock.acquire(60, TimeUnit.SECONDS);
+            if (lease != null) {
                 if (exists(curator.get(), containerPortsPath) != null) {
                     for (String pid : getChildren(curator.get(), containerPortsPath)) {
-                        unregisterPort(container, pid);
+                        unregisterPort(container, pid, lease);
                     }
                     deleteSafe(curator.get(), containerPortsPath);
                 }
@@ -206,7 +249,7 @@ public final class ZookeeperPortService extends AbstractComponent implements Por
         } catch (Exception ex) {
             throw FabricException.launderThrowable(ex);
         } finally {
-            releaseLock();
+            releaseLock(lease);
         }
     }
 
@@ -230,8 +273,10 @@ public final class ZookeeperPortService extends AbstractComponent implements Por
         assertValid();
         Set<Integer> ports = new HashSet<Integer>();
         String path = ZkPath.PORTS_CONTAINER.getPath(container.getId());
+        Lease lease = null;
         try {
-            if (interProcessLock.acquire(60, TimeUnit.SECONDS)) {
+            lease = interProcessLock.acquire(60, TimeUnit.SECONDS);
+            if (lease != null) {
                 if (exists(curator.get(), path) != null) {
 
                     for (String pid : getChildren(curator.get(), path)) {
@@ -251,20 +296,25 @@ public final class ZookeeperPortService extends AbstractComponent implements Por
         } catch (Exception ex) {
             throw FabricException.launderThrowable(ex);
         } finally {
-            releaseLock();
+            releaseLock(lease);
         }
         return ports;
     }
 
-    @Override
-    public Set<Integer> findUsedPortByHost(Container container) {
+    private Set<Integer> findUsedPortByHost(Container container, Lease existingLease) {
         assertValid();
         String ip = container.getIp();
         assertValidIp(container, ip);
         Set<Integer> ports = new HashSet<Integer>();
         String path = ZkPath.PORTS_IP.getPath(ip);
+        Lease lease = null;
         try {
-            if (interProcessLock.acquire(60, TimeUnit.SECONDS)) {
+            if(existingLease != null){
+                lease = existingLease;
+            } else{
+                lease = interProcessLock.acquire(60, TimeUnit.SECONDS);
+            }
+            if (lease != null) {
                 createDefault(curator.get(), path, "");
                 String boundPorts = getStringData(curator.get(), path);
                 if (boundPorts != null && !boundPorts.isEmpty()) {
@@ -282,17 +332,23 @@ public final class ZookeeperPortService extends AbstractComponent implements Por
         } catch (Exception ex) {
             throw FabricException.launderThrowable(ex);
         } finally {
-            releaseLock();
+            releaseLock(lease);
         }
         return ports;
     }
 
-    private void releaseLock() {
+    @Override
+    public Set<Integer> findUsedPortByHost(Container container) {
+        return findUsedPortByHost(container, null);
+    }
+
+    private void releaseLock(Lease lease) {
         try {
-            if (interProcessLock != null)
-                interProcessLock.release();
+            if (interProcessLock != null) {
+                interProcessLock.returnLease(lease);
+            }
         } catch (Exception e) {
-            //ignore?
+            LOGGER.debug("Couldn't realease lock for " + ZkPath.PORTS_LOCK.getPath(), e);
         }
     }
 
@@ -303,4 +359,5 @@ public final class ZookeeperPortService extends AbstractComponent implements Por
     void unbindCurator(CuratorFramework curator) {
         this.curator.unbind(curator);
     }
+
 }
