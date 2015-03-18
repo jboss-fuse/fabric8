@@ -54,7 +54,7 @@ public class RestJsonSchemaJMXTest extends AbstractBusClientServerTestBase {
     
     private static MBeanServerConnection mbsc;
     private static final String DEFAULT_JMXSERVICE_URL = 
-        "service:jmx:rmi:///jndi/rmi://localhost:9914/jmxrmi";
+        "service:jmx:rmi:///jndi/rmi://127.0.0.1:9914/jmxrmi";
     private static final Logger LOG = LogUtils.getL7dLogger(RestJsonSchemaJMXTest.class);
     
     

@@ -27,7 +27,7 @@
     <cxf:bus bus="cxf">
       <cxf:properties>
           <entry key="bus.jmx.enabled" value="true"/>
-          <entry key="bus.jmx.JMXServiceURL" value="service:jmx:rmi:///jndi/rmi://localhost:9914/jmxrmi" />
+          <entry key="bus.jmx.JMXServiceURL" value="service:jmx:rmi:///jndi/rmi://127.0.0.1:9914/jmxrmi" />
       </cxf:properties>
     </cxf:bus>
 </beans>
