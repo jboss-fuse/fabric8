@@ -270,7 +270,7 @@ public class FabricDiscoveryAgent implements DiscoveryAgent, Callable {
                 }
             }
             // If there is error talking the the central server, then activeServices == null
-            if( members !=null ) {
+            if( members !=null && members.size() > 0 ) {
                 synchronized(discoveredServices) {
                     
                     HashSet<String> removedServices = new HashSet<String>(discoveredServices.keySet());
