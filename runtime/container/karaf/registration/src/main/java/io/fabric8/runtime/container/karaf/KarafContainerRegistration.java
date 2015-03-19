@@ -237,14 +237,15 @@ public final class KarafContainerRegistration extends AbstractComponent implemen
         int rmiRegistryPort = getRmiRegistryPort(container);
         int rmiRegistryConnectionPort = getRmiRegistryConnectionPort(container);
         int rmiServerPort = getRmiServerPort(container);
-        int rmiServerConenctionPort = getRmiServerConnectionPort(container);
-        String jmxUrl = getJmxUrl(container.getId(), rmiServerConenctionPort, rmiRegistryConnectionPort);
+        int rmiServerConnenctionPort = getRmiServerConnectionPort(container);
+        String jmxUrl = getJmxUrl(container.getId(), rmiServerConnenctionPort, rmiRegistryConnectionPort);
         setData(curator.get(), CONTAINER_JMX.getPath(container.getId()), jmxUrl);
         portService.get().registerPort(container, MANAGEMENT_PID, RMI_REGISTRY_BINDING_PORT_KEY, rmiRegistryPort);
         portService.get().registerPort(container, MANAGEMENT_PID, RMI_SERVER_BINDING_PORT_KEY, rmiServerPort);
         Configuration configuration = configAdmin.get().getConfiguration(MANAGEMENT_PID, null);
         updateIfNeeded(configuration, RMI_REGISTRY_BINDING_PORT_KEY, rmiRegistryPort);
         updateIfNeeded(configuration, RMI_SERVER_BINDING_PORT_KEY, rmiServerPort);
+        updateIfNeeded(configuration, JMX_SERVICE_URL, String.format("service:jmx:rmi://${rmiServerHost}:%d/jndi/rmi://${rmiRegistryHost}:%d/karaf-%s", rmiServerPort, rmiRegistryPort, runtimeIdentity));
     }
 
     private int getRmiRegistryPort(Container container) throws IOException, KeeperException, InterruptedException {
