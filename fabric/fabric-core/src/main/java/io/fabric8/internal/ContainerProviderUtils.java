@@ -200,7 +200,8 @@ public final class ContainerProviderUtils {
         replacePropertyValue(sb, "etc/org.apache.karaf.management.cfg", "rmiServerPort", "$RMI_SERVER_PORT");
         replacePropertyValue(sb, "etc/org.apache.karaf.management.cfg", "rmiServerHost" , "$BIND_ADDRESS");
         replacePropertyValue(sb, "etc/org.apache.karaf.management.cfg", "rmiRegistryHost" , "$BIND_ADDRESS");
-        replacePropertyValue(sb, "etc/org.apache.karaf.management.cfg", "serviceUrl", "$JMX_SERVER_URL");
+        // ENTESB-2733: do not change serviceUrl, let's leave it with placeholders
+        //replacePropertyValue(sb, "etc/org.apache.karaf.management.cfg", "serviceUrl", "$JMX_SERVER_URL");
         replacePropertyValue(sb, "etc/org.ops4j.pax.web.cfg", "org.osgi.service.http.port", "$HTTP_PORT");
 		replaceLineInFile(sb, "etc/jetty.xml", String.valueOf(DEFAULT_HTTP_PORT), "$HTTP_PORT");
         appendFile(sb, "etc/system.properties", Arrays.asList(ZkDefs.MINIMUM_PORT + "=" + options.getMinimumPort()));
