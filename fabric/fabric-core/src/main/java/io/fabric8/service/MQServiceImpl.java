@@ -78,6 +78,7 @@ public class MQServiceImpl implements MQService {
         // lets check we have a config value
 
         ProfileBuilder builder;
+        Profile overlay;
         
         // create a profile if it doesn't exist
         Map<String, String> config = null;
@@ -87,10 +88,12 @@ public class MQServiceImpl implements MQService {
             if (parentProfile != null) {
                 builder.addParent(parentProfile.getId());
             }
+            overlay = profileService.getOverlayProfile(parentProfile);
         } else {
             Profile profile = version.getRequiredProfile(profileId);
             builder = ProfileBuilder.Factory.createFrom(profile);
             config = new HashMap<>(builder.getConfiguration(pidName));
+            overlay = profileService.getOverlayProfile(profile);
         }
         
         Map<String, String> parentProfileConfig = parentProfile.getConfiguration(MQ_PID_TEMPLATE);
@@ -102,7 +105,7 @@ public class MQServiceImpl implements MQService {
 
             // Only generate the keystore file if it does not exist.
             // [TOOD] Fix direct data access! This should be part of the ProfileBuilder
-            byte[] keystore  = builder.getFileConfiguration("keystore.jks");
+            byte[] keystore  = overlay.getFileConfiguration("keystore.jks");
             if( keystore==null ) {
                 try {
 
@@ -153,8 +156,8 @@ public class MQServiceImpl implements MQService {
             }
 
             // [TOOD] Fix direct data access! This should be part of the ProfileBuilder
-            byte[] truststore = builder.getFileConfiguration("truststore.jks");
-            if (truststore == null) {
+            byte[] truststore = overlay.getFileConfiguration("truststore.jks");
+            if (truststore == null && configs.get("keystore.password")!=null) {
                try {
                     String password = configs.get("truststore.password");
                     if( password == null ) {
