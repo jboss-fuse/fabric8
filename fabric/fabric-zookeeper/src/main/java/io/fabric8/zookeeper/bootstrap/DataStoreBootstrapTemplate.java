@@ -279,6 +279,7 @@ public class DataStoreBootstrapTemplate implements DataStoreTemplate {
         }
 
         StringBuilder sb = new StringBuilder();
+        sb.append("\n");
         for (Map.Entry<String, String> entry : users.entrySet()) {
             String user = entry.getKey();
             Matcher m = p.matcher(entry.getValue());
@@ -293,7 +294,7 @@ public class DataStoreBootstrapTemplate implements DataStoreTemplate {
                 sb.append(user).append("=").append(password).append(",").append(roles).append("\n");
             }
         }
-        sb.append("_g_:admin=admin,manager,viewer,Operator,Maintainer,Deployer,Auditor,Administrator,SuperUser\n");
+        sb.append("_g_\\:admin=admin,manager,viewer,Operator,Maintainer,Deployer,Auditor,Administrator,SuperUser\n");
         String allUsers = sb.toString();
         ZooKeeperUtils.createDefault(curator, "/fabric/authentication/users", allUsers);
 
