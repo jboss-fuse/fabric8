@@ -162,6 +162,9 @@ public class SubsystemResolver {
     }
 
     public Set<String> collectPrerequisites() throws Exception {
+        if (root == null) {
+            return Collections.emptySet();
+        }
         return root.collectPrerequisites();
     }
 
