@@ -108,7 +108,7 @@ class CreateAction extends AbstractAction {
     @Option(name = "--external-git-password", multiValued = false, description = "Specify an external git password.")
     private String externalGitPassword;
     @Option(name = "--new-user-role", multiValued = false, description = "The role of the new user. The option refers to karaf user (ssh, http, jmx).")
-    private String newUserRole = "admin";
+    private String newUserRole = "admin,manager,viewer,Operator,Maintainer,Deployer,Auditor,Administrator,SuperUser";
 
     @Argument(required = false, multiValued = true, description = "List of containers. Empty list assumes current container only.")
     private List<String> containers;
