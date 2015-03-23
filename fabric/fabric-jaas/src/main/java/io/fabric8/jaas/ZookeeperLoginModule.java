@@ -110,6 +110,10 @@ public class ZookeeperLoginModule implements LoginModule {
             if (user == null)
                 throw new FailedLoginException("user name is null");
 
+            if( user.startsWith(BackingEngine.GROUP_PREFIX) ) {
+                throw new IllegalArgumentException("Prefix not permitted in user names: " + BackingEngine.GROUP_PREFIX);
+            }
+
             char[] tmpPassword = ((PasswordCallback) callbacks[1]).getPassword();
             if (tmpPassword == null) {
                 tmpPassword = new char[0];
