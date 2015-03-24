@@ -29,6 +29,7 @@
            http://cxf.apache.org/blueprint/jaxws.xsd
            ">
 
+    <ext:property-placeholder placeholder-prefix="$[" placeholder-suffix="]" />
     <reference id="curator" interface="org.apache.curator.framework.CuratorFramework" />
 
     <!-- The FabricFailOverFeature will try to access other service endpoint with round rad -->
@@ -58,13 +59,13 @@
     -->
 
     <!-- publish the service with the address of fail, cxf client will get the simulated IOException -->
-    <jaxws:server id="service1" serviceClass="io.fabric8.demo.cxf.Hello" address="http://localhost:9000/server/server1">
+    <jaxws:server id="service1" serviceClass="io.fabric8.demo.cxf.Hello" address="http://$[bind.address]:$[app1.port]/server/server1">
         <jaxws:serviceBean>
              <ref component-id="hello1" />
         </jaxws:serviceBean>
     </jaxws:server>
 
-    <jaxws:server id="service2" serviceClass="io.fabric8.demo.cxf.Hello" address="http://localhost:9000/server/server2">
+    <jaxws:server id="service2" serviceClass="io.fabric8.demo.cxf.Hello" address="http://$[bind.address]:$[app1.port]/server/server2">
         <jaxws:serviceBean>
             <ref component-id="hello2" />
         </jaxws:serviceBean>
