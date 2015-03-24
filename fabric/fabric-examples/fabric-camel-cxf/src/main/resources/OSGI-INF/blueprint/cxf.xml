@@ -27,12 +27,13 @@
 
     <cm:property-placeholder id="placeholder" persistent-id="io.fabric8.examples.camel.cxf" update-strategy="reload">
         <cm:default-properties>
+            <cm:property name="bindAddress" value="0.0.0.0"/>
             <cm:property name="greeterPort" value="9090"/>
         </cm:default-properties>
     </cm:property-placeholder>
 
     <cxf:cxfEndpoint id="greeterEndpoint"
-                     address="http://localhost:${greeterPort}/greeter"
+                     address="http://${bindAddress}:${greeterPort}/greeter"
                      serviceClass="io.fabric8.examples.camelcxf.Greeter">
       <cxf:features>
         <bean class="io.fabric8.cxf.endpoint.ManagedApiFeature"/>
