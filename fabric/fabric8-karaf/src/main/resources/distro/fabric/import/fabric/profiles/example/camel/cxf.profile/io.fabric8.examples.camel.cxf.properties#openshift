@@ -14,4 +14,4 @@
 #  permissions and limitations under the License.
 #
 
-greeterPort=${app1.port}
+greeterPort=${port:19090,19190}
