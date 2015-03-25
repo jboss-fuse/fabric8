@@ -18,10 +18,7 @@ package io.fabric8.mq.fabric;
 import java.beans.PropertyEditorManager;
 import java.net.URI;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Dictionary;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -35,7 +32,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import javax.jms.ConnectionFactory;
 
 import io.fabric8.api.Container;
@@ -56,16 +52,8 @@ import org.apache.xbean.classloader.MultiParentClassLoader;
 import org.apache.xbean.spring.context.ResourceXmlApplicationContext;
 import org.apache.xbean.spring.context.impl.URIEditor;
 import org.osgi.framework.BundleContext;
-import org.osgi.framework.Filter;
-import org.osgi.framework.FrameworkUtil;
-import org.osgi.framework.InvalidSyntaxException;
-import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.cm.ConfigurationException;
-import org.osgi.service.cm.ManagedServiceFactory;
-import org.osgi.service.url.URLStreamHandlerService;
-import org.osgi.util.tracker.ServiceTracker;
-import org.osgi.util.tracker.ServiceTrackerCustomizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
@@ -73,12 +61,12 @@ import org.springframework.core.io.Resource;
 
 import static io.fabric8.mq.fabric.discovery.FabricDiscoveryAgent.ActiveMQNode;
 
-public class ActiveMQServiceFactory implements ManagedServiceFactory, ServiceTrackerCustomizer<CuratorFramework, CuratorFramework> {
+public class ActiveMQServiceFactory  {
 
     public static final Logger LOG = LoggerFactory.getLogger(ActiveMQServiceFactory.class);
     public static final ThreadLocal<Properties> CONFIG_PROPERTIES = new ThreadLocal<Properties>();
 
-    private BundleContext bundleContext;
+    BundleContext bundleContext;
 
     // Pool management
 
@@ -87,36 +75,15 @@ public class ActiveMQServiceFactory implements ManagedServiceFactory, ServiceTra
     // Maintain a registry of configuration based on ManagedServiceFactory events.
     private Map<String, ClusteredConfiguration> configurations = new HashMap<String, ClusteredConfiguration>();
 
-    // Curator and FabricService tracking
-
-    private ServiceTracker<FabricService, FabricService> fabricService;
-
+    volatile FabricService fabricService;
     private ConfigThread config_thread;
+    CuratorFramework curator;
 
-    private CuratorFramework curator;
-    private final List<ServiceReference<CuratorFramework>> boundCuratorRefs = new ArrayList<ServiceReference<CuratorFramework>>();
-    private ServiceTracker<CuratorFramework, CuratorFramework> curatorService;
-
-    private Filter filter;
-    private ServiceTracker<URLStreamHandlerService, URLStreamHandlerService> urlHandlerService;
-
-    public ActiveMQServiceFactory(BundleContext bundleContext) throws InvalidSyntaxException {
-        this.bundleContext = bundleContext;
-
+    public ActiveMQServiceFactory() {
         // code that was inlined through all Scala ActiveMQServiceFactory class
         config_thread = new ConfigThread();
         config_thread.setName("ActiveMQ Configuration Watcher");
         config_thread.start();
-
-        fabricService = new ServiceTracker<FabricService, FabricService>(this.bundleContext, FabricService.class, null);
-        fabricService.open();
-        curatorService = new ServiceTracker<CuratorFramework, CuratorFramework>(this.bundleContext, CuratorFramework.class, this);
-        curatorService.open();
-
-        // we need to make sure "profile" url handler is available
-        filter = FrameworkUtil.createFilter("(&(objectClass=org.osgi.service.url.URLStreamHandlerService)(url.handler.protocol=profile))");
-        urlHandlerService = new ServiceTracker<URLStreamHandlerService, URLStreamHandlerService>(this.bundleContext, filter, null);
-        urlHandlerService.open();
     }
 
     /* statics - from Scala object */
@@ -169,17 +136,6 @@ public class ActiveMQServiceFactory implements ManagedServiceFactory, ServiceTra
         return answer;
     }
 
-    public static Properties toProperties(Dictionary<?, ?> properties) {
-        Properties props = new Properties();
-        Enumeration<?> keys = properties.keys();
-        while (keys.hasMoreElements()) {
-            Object key = keys.nextElement();
-            Object value = properties.get(key);
-            props.put(key.toString(), value != null ? value.toString() : "");
-        }
-        return props;
-    }
-
     public static <T> T arg_error(String msg) {
         throw new IllegalArgumentException(msg);
     }
@@ -204,7 +160,7 @@ public class ActiveMQServiceFactory implements ManagedServiceFactory, ServiceTra
             String[] names = ctx.getBeanNamesForType(BrokerService.class);
             BrokerService broker = null;
             for (String name : names) {
-                broker = ctx.getBean(name, BrokerService.class);
+                broker = (BrokerService) ctx.getBean(name, BrokerService.class);
                 if (broker != null) {
                     break;
                 }
@@ -291,16 +247,10 @@ public class ActiveMQServiceFactory implements ManagedServiceFactory, ServiceTra
 
     // ManagedServiceFactory implementation
 
-    @Override
-    public String getName() {
-        return "ActiveMQ Server Controller";
-    }
-
-    @Override
-    public synchronized void updated(String pid, Dictionary<String, ?> properties) throws ConfigurationException {
+    public synchronized void updated(String pid, Properties properties) throws ConfigurationException {
         try {
             deleted(pid);
-            configurations.put(pid, new ClusteredConfiguration(toProperties(properties)));
+            configurations.put(pid, new ClusteredConfiguration(properties));
         } catch (Exception e) {
             ConfigurationException configurationException = new ConfigurationException(null, "Unable to parse ActiveMQ configuration: " + e.getMessage());
             configurationException.initCause(e);
@@ -308,7 +258,6 @@ public class ActiveMQServiceFactory implements ManagedServiceFactory, ServiceTra
         }
     }
 
-    @Override
     public synchronized void deleted(String pid) {
         ClusteredConfiguration cc = configurations.remove(pid);
         if (cc != null) {
@@ -320,55 +269,8 @@ public class ActiveMQServiceFactory implements ManagedServiceFactory, ServiceTra
         }
     }
 
-    // ServiceTrackerCustomizer implementation
-
-    @Override
-    public CuratorFramework addingService(ServiceReference<CuratorFramework> reference) {
-        final CuratorFramework curator = bundleContext.getService(reference);
-        boundCuratorRefs.add(reference);
-        Collections.sort(boundCuratorRefs);
-        ServiceReference<CuratorFramework> bind = boundCuratorRefs.get(0);
-        try {
-            if (bind == reference) {
-                bindCurator(curator);
-            } else {
-                bindCurator(curatorService.getService(bind));
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e.getMessage(), e);
-        }
-        return curator;
-    }
-
-    @Override
-    public void modifiedService(ServiceReference<CuratorFramework> reference, CuratorFramework service) {
-    }
-
-    @Override
-    public void removedService(ServiceReference<CuratorFramework> reference, CuratorFramework service) {
-        boundCuratorRefs.remove(reference);
-        try {
-            if (boundCuratorRefs.isEmpty()) {
-                bindCurator(null);
-            } else {
-                bindCurator(curatorService.getService(boundCuratorRefs.get(0)));
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e.getMessage(), e);
-        }
-    }
-
-    private void bindCurator(CuratorFramework curator) throws Exception {
-        this.curator = curator;
-        synchronized (ActiveMQServiceFactory.this) {
-            for (ClusteredConfiguration c : configurations.values()) {
-                c.updateCurator(curator);
-            }
-        }
-    }
 
     // Lifecycle
-
     public synchronized void destroy() throws InterruptedException {
         config_thread.running = false;
         config_thread.interrupt();
@@ -376,9 +278,6 @@ public class ActiveMQServiceFactory implements ManagedServiceFactory, ServiceTra
         for (String pid : configurations.keySet()) {
             deleted(pid);
         }
-        fabricService.close();
-        curatorService.close();
-        urlHandlerService.close();
     }
 
     /**
@@ -482,7 +381,6 @@ public class ActiveMQServiceFactory implements ManagedServiceFactory, ServiceTra
                     start();
                 }
             } else {
-                urlHandlerService.waitForService(60000L);
                 updateCurator(curator);
             }
         }
@@ -569,7 +467,7 @@ public class ActiveMQServiceFactory implements ManagedServiceFactory, ServiceTra
 
         private void doStart() throws Exception {
             // If we are in a fabric, let pass along the zk password in the props.
-            FabricService fs = fabricService.getService();
+            FabricService fs = fabricService;
             if (fs != null) {
                 Container container = fs.getCurrentContainer();
                 if (!properties.containsKey("container.id")) {
@@ -817,7 +715,7 @@ public class ActiveMQServiceFactory implements ManagedServiceFactory, ServiceTra
                             if (lm != c.lastModified) {
                                 c.lastModified = lm;
                                 info("updating " + c.properties);
-                                updated((String) c.properties.get("service.pid"), toDictionary(c.properties));
+                                updated((String) c.properties.get("service.pid"), c.properties);
                             }
                         }
                     } catch (Throwable t) {
