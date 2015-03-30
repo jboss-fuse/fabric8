@@ -74,13 +74,13 @@ public class ProfileEditAction extends AbstractAction {
     static final String FILE_INSTALL_FILENAME_PROPERTY = "felix.fileinstall.filename";
 
 
-    @Option(name = "-r", aliases = {"--repository"}, description = "Edit the features repositories. To specify multiple repositories, use this flag multiple times.", required = false, multiValued = true)
+    @Option(name = "-r", aliases = {"--repository", "--repositories"}, description = "Edit the features repositories. To specify multiple repositories, use this flag multiple times.", required = false, multiValued = true)
     private String[] repositories;
 
-    @Option(name = "-f", aliases = {"--feature"}, description = "Edit features. To specify multiple features, use this flag multiple times. For example, --feature foo --feature bar.", required = false, multiValued = true)
+    @Option(name = "-f", aliases = {"--feature", "--features"}, description = "Edit features. To specify multiple features, use this flag multiple times. For example, --feature foo --feature bar.", required = false, multiValued = true)
     private String[] features;
 
-    @Option(name = "-l", aliases = {"--lib"}, description = "Edit libraries. To specify multiple libraries, use this flag multiple times.", required = false, multiValued = true)
+    @Option(name = "-l", aliases = {"--lib", "--libs"}, description = "Edit libraries. To specify multiple libraries, use this flag multiple times.", required = false, multiValued = true)
     private String[] libs;
 
     @Option(name = "-n", aliases = {"--endorsed"}, description = "Edit endorsed libraries. To specify multiple libraries, use this flag multiple times.", required = false, multiValued = true)
@@ -89,7 +89,7 @@ public class ProfileEditAction extends AbstractAction {
     @Option(name = "-x", aliases = {"--extension"}, description = "Edit extension libraries. To specify multiple libraries, use this flag multiple times.", required = false, multiValued = true)
     private String[] extension;
 
-    @Option(name = "-b", aliases = {"--bundle"}, description = "Edit bundles. To specify multiple bundles, use this flag multiple times.", required = false, multiValued = true)
+    @Option(name = "-b", aliases = {"--bundle", "--bundles"}, description = "Edit bundles. To specify multiple bundles, use this flag multiple times.", required = false, multiValued = true)
     private String[] bundles;
 
     @Option(name = "--fabs", description = "Edit fabs. To specify multiple fabs, use this flag multiple times.", required = false, multiValued = true)

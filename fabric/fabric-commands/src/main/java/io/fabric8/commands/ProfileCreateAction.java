@@ -34,7 +34,7 @@ public class ProfileCreateAction extends AbstractAction {
 
     @Option(name = "--version", description = "The profile version. Defaults to the current default version.")
     private String versionId;
-    @Option(name = "--parent", multiValued = true, required = false, description = "Optionally specifies one or multiple parent profiles. To specify multiple parent profiles, use this flag multiple times on the command line. For example, --parent foo --parent bar.")
+    @Option(name = "--parent", aliases = "--parents", multiValued = true, required = false, description = "Optionally specifies one or multiple parent profiles. To specify multiple parent profiles, use this flag multiple times on the command line. For example, --parent foo --parent bar.")
     private List<String> parents;
     @Argument(index = 0)
     private String profileId;

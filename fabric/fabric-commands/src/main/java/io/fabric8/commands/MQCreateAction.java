@@ -68,13 +68,13 @@ public class MQCreateAction extends AbstractAction {
     @Option(name = "--data", description = "Data directory for the broker")
     protected String data;
 
-    @Option(name = "--port", multiValued = true, description = "Port number for the transport connectors. To specify multiple ports, use this flag multiple times.")
+    @Option(name = "--port", aliases = "--ports", multiValued = true, description = "Port number for the transport connectors. To specify multiple ports, use this flag multiple times.")
     protected String[] ports;
 
     @Option(name = "--group", description = "Broker group")
     protected String group;
 
-    @Option(name = "--network", multiValued = true, description = "Broker networks. To specify multiple networks, use this flag multiple times.")
+    @Option(name = "--network", aliases = "--networks", multiValued = true, description = "Broker networks. To specify multiple networks, use this flag multiple times.")
     protected String[] networks;
 
     @Option(name = "--networks-username", description = "Broker networks UserName")
