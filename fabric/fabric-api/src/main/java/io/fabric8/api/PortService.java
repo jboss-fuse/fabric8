@@ -41,6 +41,15 @@ public interface PortService {
      */
     void registerPort(Container container, String pid, String key, int port);
 
+    /**
+     * Registers a port to the registry.
+     * @param container     The {@link Container} under which the port will be registered.
+     * @param pid           The pid that is using the registered port.
+     * @param key           The key of the pid that requires the port.
+     * @param port          The actual port number.
+     * @param lock          Externally controller PortService.Lock
+     */
+    void registerPort(Container container, String pid, String key, int port, Lock lock);
 
     /**
      * Un-register the port bound to the specified pid and key.
@@ -72,7 +81,6 @@ public interface PortService {
      */
     int lookupPort(Container container, String pid, String key);
 
-
     /**
      * Returns all the registered ports for the address of the {@link Container}.
      * The method takes into consideration ports of other containers co-located with the target.
@@ -82,9 +90,38 @@ public interface PortService {
     Set<Integer> findUsedPortByHost(Container container);
 
     /**
+     * Returns all the registered ports for the address of the {@link Container}.
+     * The method takes into consideration ports of other containers co-located with the target.
+     * This method, after acquiring a lock, may be used as part of broader <em>transaction</em> related
+     * to port manipulation.
+     * @param container
+     * @param lock
+     * @return
+     */
+    Set<Integer> findUsedPortByHost(Container container, Lock lock);
+
+    /**
      * Returns all the registered ports of the {@link Container}.
      * @param container
      * @return
      */
     Set<Integer> findUsedPortByContainer(Container container);
+
+    /**
+     * May be used to group several operations related to port query/release/lookup
+     * @return
+     */
+    Lock acquirePortLock() throws Exception;
+
+    /**
+     * Releases lock obtained by {@code acquirePortLock()}
+     * @param lock
+     */
+    void releasePortLock(Lock lock);
+
+    /**
+     * Interface used to mark boundaries of <em>transactions</em> grouping several atomic PortService operations.
+     */
+    interface Lock {}
+
 }

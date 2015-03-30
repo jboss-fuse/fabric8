@@ -234,41 +234,63 @@ public final class KarafContainerRegistration extends AbstractComponent implemen
     }
 
     private void registerJmx(Container container) throws Exception {
-        int rmiRegistryPort = getRmiRegistryPort(container);
-        int rmiRegistryConnectionPort = getRmiRegistryConnectionPort(container);
-        int rmiServerPort = getRmiServerPort(container);
-        int rmiServerConenctionPort = getRmiServerConnectionPort(container);
+        // first atomic scope = finding rmiRegistryPort
+        PortService.Lock lock = null;
+        int rmiRegistryPort, rmiRegistryConnectionPort;
+        int rmiServerPort, rmiServerConenctionPort;
+        try {
+            lock = portService.get().acquirePortLock();
+            rmiRegistryPort = getRmiRegistryPort(container, lock);
+            rmiRegistryConnectionPort = getRmiRegistryConnectionPort(container, rmiRegistryPort);
+            portService.get().registerPort(container, MANAGEMENT_PID, RMI_REGISTRY_BINDING_PORT_KEY, rmiRegistryPort, lock);
+        } finally {
+            portService.get().releasePortLock(lock);
+        }
+        try {
+            lock = portService.get().acquirePortLock();
+            rmiServerPort = getRmiServerPort(container, lock);
+            rmiServerConenctionPort = getRmiServerConnectionPort(container, rmiServerPort);
+            portService.get().registerPort(container, MANAGEMENT_PID, RMI_SERVER_BINDING_PORT_KEY, rmiServerPort, lock);
+        } finally {
+            portService.get().releasePortLock(lock);
+        }
+        // second atomic scope = finding rmiServerPort
         String jmxUrl = getJmxUrl(container.getId(), rmiServerConenctionPort, rmiRegistryConnectionPort);
         setData(curator.get(), CONTAINER_JMX.getPath(container.getId()), jmxUrl);
-        portService.get().registerPort(container, MANAGEMENT_PID, RMI_REGISTRY_BINDING_PORT_KEY, rmiRegistryPort);
-        portService.get().registerPort(container, MANAGEMENT_PID, RMI_SERVER_BINDING_PORT_KEY, rmiServerPort);
         Configuration configuration = configAdmin.get().getConfiguration(MANAGEMENT_PID, null);
-        updateIfNeeded(configuration, RMI_REGISTRY_BINDING_PORT_KEY, rmiRegistryPort);
-        updateIfNeeded(configuration, RMI_SERVER_BINDING_PORT_KEY, rmiServerPort);
+        Dictionary<String, Object> dictionary = configuration == null ? null : configuration.getProperties();
+        String rmiServerHost = "${rmiServerHost}";
+        String rmiRegistryHost = "${rmiRegistryHost}";
+
+        if (configuration != null) {
+            rmiServerHost = (String) dictionary.get("rmiServerHost");
+            rmiRegistryHost = (String) dictionary.get("rmiRegistryHost");
+        }
+        String serviceUrl = String.format("service:jmx:rmi://%s:%d/jndi/rmi://%s:%d/karaf-%s",
+                rmiServerHost, rmiServerPort, rmiRegistryHost, rmiRegistryPort, runtimeIdentity);
+
+        boolean changed = updateIfNeeded(dictionary, RMI_REGISTRY_BINDING_PORT_KEY, rmiRegistryPort);
+        changed |= updateIfNeeded(dictionary, RMI_SERVER_BINDING_PORT_KEY, rmiServerPort);
+        changed |= updateIfNeeded(dictionary, JMX_SERVICE_URL, serviceUrl);
+        if (configuration != null && changed) {
+            configuration.update(dictionary);
+        }
     }
 
-    private int getRmiRegistryPort(Container container) throws IOException, KeeperException, InterruptedException {
-        return getOrAllocatePortForKey(container, MANAGEMENT_PID, RMI_REGISTRY_BINDING_PORT_KEY, Ports.DEFAULT_RMI_REGISTRY_PORT);
+    private int getRmiRegistryPort(Container container, PortService.Lock lock) throws IOException, KeeperException, InterruptedException {
+        return getOrAllocatePortForKey(container, MANAGEMENT_PID, RMI_REGISTRY_BINDING_PORT_KEY, Ports.DEFAULT_RMI_REGISTRY_PORT, lock);
     }
 
     private int getRmiRegistryConnectionPort(Container container, int defaultValue) throws IOException, KeeperException, InterruptedException {
         return getPortForKey(container, MANAGEMENT_PID, RMI_REGISTRY_CONNECTION_PORT_KEY, defaultValue);
     }
 
-    private int getRmiRegistryConnectionPort(Container container) throws IOException, KeeperException, InterruptedException {
-        return getRmiRegistryConnectionPort(container, getRmiRegistryPort(container));
-    }
-
-    private int getRmiServerPort(Container container) throws IOException, KeeperException, InterruptedException {
-        return getOrAllocatePortForKey(container, MANAGEMENT_PID, RMI_SERVER_BINDING_PORT_KEY, Ports.DEFAULT_RMI_SERVER_PORT);
+    private int getRmiServerPort(Container container, PortService.Lock lock) throws IOException, KeeperException, InterruptedException {
+        return getOrAllocatePortForKey(container, MANAGEMENT_PID, RMI_SERVER_BINDING_PORT_KEY, Ports.DEFAULT_RMI_SERVER_PORT, lock);
     }
 
     private int getRmiServerConnectionPort(Container container, int defaultValue) throws IOException, KeeperException, InterruptedException {
         return getPortForKey(container, MANAGEMENT_PID, RMI_SERVER_CONNECTION_PORT_KEY, defaultValue);
-    }
-
-    private int getRmiServerConnectionPort(Container container) throws IOException, KeeperException, InterruptedException {
-        return getRmiServerConnectionPort(container, getRmiServerPort(container));
     }
 
     private String getJmxUrl(String name, int serverConnectionPort, int registryConnectionPort) throws IOException, KeeperException, InterruptedException {
@@ -276,21 +298,29 @@ public final class KarafContainerRegistration extends AbstractComponent implemen
     }
 
     private void registerSsh(Container container) throws Exception {
-        int sshPort = getSshPort(container);
-        int sshConnectionPort = getSshConnectionPort(container);
+        PortService.Lock lock = null;
+        int sshPort, sshConnectionPort;
+        try {
+            lock = portService.get().acquirePortLock();
+            sshPort = getSshPort(container, lock);
+            sshConnectionPort = getSshConnectionPort(container, sshPort);
+            portService.get().registerPort(container, SSH_PID, SSH_BINDING_PORT_KEY, sshPort, lock);
+        } finally {
+            portService.get().releasePortLock(lock);
+        }
+
         String sshUrl = getSshUrl(container.getId(), sshConnectionPort);
         setData(curator.get(), CONTAINER_SSH.getPath(container.getId()), sshUrl);
-        portService.get().registerPort(container, SSH_PID, SSH_BINDING_PORT_KEY, sshPort);
         Configuration configuration = configAdmin.get().getConfiguration(SSH_PID, null);
-        updateIfNeeded(configuration, SSH_BINDING_PORT_KEY, sshPort);
+        if (configuration != null) {
+            Dictionary<String, Object> dictionary = configuration.getProperties();
+            updateIfNeeded(dictionary, SSH_BINDING_PORT_KEY, sshPort);
+            configuration.update(dictionary);
+        }
     }
 
-    private int getSshPort(Container container) throws IOException, KeeperException, InterruptedException {
-        return getOrAllocatePortForKey(container, SSH_PID, SSH_BINDING_PORT_KEY, Ports.DEFAULT_KARAF_SSH_PORT);
-    }
-
-    private int getSshConnectionPort(Container container) throws IOException, KeeperException, InterruptedException {
-        return getSshConnectionPort(container, getSshPort(container));
+    private int getSshPort(Container container, PortService.Lock lock) throws IOException, KeeperException, InterruptedException {
+        return getOrAllocatePortForKey(container, SSH_PID, SSH_BINDING_PORT_KEY, Ports.DEFAULT_KARAF_SSH_PORT, lock);
     }
 
     private int getSshConnectionPort(Container container, int defaultValue) throws IOException, KeeperException, InterruptedException {
@@ -304,20 +334,46 @@ public final class KarafContainerRegistration extends AbstractComponent implemen
     private void registerHttp(Container container) throws Exception {
         boolean httpEnabled = isHttpEnabled();
         boolean httpsEnabled = isHttpsEnabled();
+
+        Configuration configuration = configAdmin.get().getConfiguration(HTTP_PID, null);
+        Dictionary<String, Object> dictionary = configuration == null ? null : configuration.getProperties();
+        boolean changed = false;
+
+        PortService.Lock lock = null;
+        int httpPort = 0;
+        int httpsPort = 0;
+
+        if (httpEnabled) {
+            try {
+                lock = portService.get().acquirePortLock();
+                httpPort = getHttpPort(container, lock);
+                portService.get().registerPort(container, HTTP_PID, HTTP_BINDING_PORT_KEY, httpPort, lock);
+            } finally {
+                portService.get().releasePortLock(lock);
+            }
+            if (configuration != null) {
+                changed = updateIfNeeded(dictionary, HTTP_BINDING_PORT_KEY, httpPort);
+            }
+
+        }
+        if (httpsEnabled) {
+            try {
+                lock = portService.get().acquirePortLock();
+                httpsPort = getHttpsPort(container, lock);
+                portService.get().registerPort(container, HTTP_PID, HTTPS_BINDING_PORT_KEY, httpsPort, lock);
+            } finally {
+                portService.get().releasePortLock(lock);
+            }
+            changed |= updateIfNeeded(dictionary, HTTPS_BINDING_PORT_KEY, httpsPort);
+        }
+
         String protocol = httpsEnabled && !httpEnabled ? "https" : "http";
-        int httpConnectionPort = httpsEnabled && !httpEnabled ? getHttpsConnectionPort(container) : getHttpConnectionPort(container);
+        int httpConnectionPort = httpsEnabled && !httpEnabled ? getHttpsConnectionPort(container, httpsPort) : getHttpConnectionPort(container, httpPort);
         String httpUrl = getHttpUrl(protocol, container.getId(), httpConnectionPort);
         setData(curator.get(), CONTAINER_HTTP.getPath(container.getId()), httpUrl);
-        Configuration configuration = configAdmin.get().getConfiguration(HTTP_PID, null);
-        if(httpEnabled){
-        	int httpPort = getHttpPort(container);
-        	portService.get().registerPort(container, HTTP_PID, HTTP_BINDING_PORT_KEY, httpPort);
-        	updateIfNeeded(configuration, HTTP_BINDING_PORT_KEY, httpPort);
-        }
-        if(httpsEnabled){
-        	int httpsPort = getHttpsPort(container);
-        	portService.get().registerPort(container, HTTP_PID, HTTPS_BINDING_PORT_KEY, httpsPort);
-        	updateIfNeeded(configuration, HTTPS_BINDING_PORT_KEY, httpsPort);
+
+        if (configuration != null && changed) {
+            configuration.update(dictionary);
         }
     }
 
@@ -341,32 +397,28 @@ public final class KarafContainerRegistration extends AbstractComponent implemen
         }
     }
 
-    private int getHttpPort(Container container) throws KeeperException, InterruptedException, IOException {
+    private int getHttpPort(Container container, PortService.Lock lock) throws KeeperException, InterruptedException, IOException {
         String portProperty = runtimeProperties.get().getProperty(HTTP_BINDING_PORT_KEY);
         int defaultPort = portProperty != null ? Integer.parseInt(portProperty) : Ports.DEFAULT_HTTP_PORT;
-        return getOrAllocatePortForKey(container, HTTP_PID, HTTP_BINDING_PORT_KEY, defaultPort);
+        return getOrAllocatePortForKey(container, HTTP_PID, HTTP_BINDING_PORT_KEY, defaultPort, lock);
     }
 
     private int getHttpConnectionPort(Container container, int defaultValue) throws KeeperException, InterruptedException, IOException {
         return getPortForKey(container, HTTP_PID, HTTP_CONNECTION_PORT_KEY, defaultValue);
     }
 
-    private int getHttpConnectionPort(Container container) throws KeeperException, InterruptedException, IOException {
-        return getHttpConnectionPort(container, getHttpPort(container));
+    private int getHttpsPort(Container container, PortService.Lock lock) throws KeeperException, InterruptedException, IOException {
+        String portProperty = runtimeProperties.get().getProperty(HTTPS_BINDING_PORT_KEY);
+        int defaultPort = portProperty != null ? Integer.parseInt(portProperty) : Ports.DEFAULT_HTTPS_PORT;
+        return getOrAllocatePortForKey(container, HTTP_PID, HTTPS_BINDING_PORT_KEY, defaultPort, lock);
+    }
+
+    private int getHttpsConnectionPort(Container container, int defaultValue) throws KeeperException, InterruptedException, IOException {
+        return getPortForKey(container, HTTP_PID, HTTPS_CONNECTION_PORT_KEY, defaultValue);
     }
 
     private String getHttpUrl(String protocol, String name, int httpConnectionPort) throws IOException, KeeperException, InterruptedException {
         return protocol + "://${zk:" + name + "/ip}:" + httpConnectionPort;
-    }
-
-    private int getHttpsPort(Container container) throws KeeperException, InterruptedException, IOException {
-        String portProperty = runtimeProperties.get().getProperty(HTTPS_BINDING_PORT_KEY);
-        int defaultPort = portProperty != null ? Integer.parseInt(portProperty) : Ports.DEFAULT_HTTPS_PORT;
-        return getOrAllocatePortForKey(container, HTTP_PID, HTTPS_BINDING_PORT_KEY, defaultPort);
-    }
-
-    private int getHttpsConnectionPort(Container container) throws KeeperException, InterruptedException, IOException {
-        return getPortForKey(container, HTTP_PID, HTTPS_CONNECTION_PORT_KEY, getHttpsPort(container));
     }
 
     /**
@@ -374,9 +426,9 @@ public final class KarafContainerRegistration extends AbstractComponent implemen
      * If the port is already registered it is directly returned. Else the {@link ConfigurationAdmin} or a default value is used.
      * In the later case, the port will be checked against the already registered ports and will be increased, till it doesn't match the used ports.
      */
-    private int getOrAllocatePortForKey(Container container, String pid, String key, int defaultValue) throws IOException, KeeperException, InterruptedException {
+    private int getOrAllocatePortForKey(Container container, String pid, String key, int defaultValue, PortService.Lock lock) throws IOException, KeeperException, InterruptedException {
         Configuration config = configAdmin.get().getConfiguration(pid, null);
-        Set<Integer> unavailable = portService.get().findUsedPortByHost(container);
+        Set<Integer> unavailable = portService.get().findUsedPortByHost(container, lock);
         int port = portService.get().lookupPort(container, pid, key);
         if (port > 0) {
             return port;
@@ -414,17 +466,26 @@ public final class KarafContainerRegistration extends AbstractComponent implemen
         return port;
     }
 
-    private void updateIfNeeded(Configuration configuration, String key, Object value) throws IOException {
-        if (configuration != null) {
-            Dictionary dictionary = configuration.getProperties();
-            if (dictionary != null) {
-                if (!String.valueOf(value).equals(dictionary.get(key))) {
-                    dictionary.put(key, String.valueOf(value));
-                    configuration.setBundleLocation(null);
-                    configuration.update(dictionary);
-                }
+    /**
+     * Changes the value in Dictionary if different than existing one. Returns <code>true</code> if the update was needed.
+     * @param dictionary
+     * @param key
+     * @param value
+     * @return
+     * @throws IOException
+     */
+    private boolean updateIfNeeded(Dictionary<String, Object> dictionary, String key, Object value) throws IOException {
+        if (dictionary != null) {
+            if (!String.valueOf(value).equals(dictionary.get(key))) {
+                dictionary.put(key, String.valueOf(value));
+                // this causes the configuration to be saved, and later configuration.update() may cause old values to rewrite
+                // the new ones!
+                // see: https://issues.jboss.org/browse/FABRIC-1078?focusedCommentId=12998688&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-12998688
+//                configuration.setBundleLocation(null);
+                return true;
             }
         }
+        return false;
     }
 
     private String getContainerResolutionPolicy(CuratorFramework zooKeeper, String container) throws Exception {
@@ -480,20 +541,20 @@ public final class KarafContainerRegistration extends AbstractComponent implemen
                     boolean httpsEnabled = isHttpsEnabled();
                     String protocol = httpsEnabled && !httpEnabled ? "https" : "http";
                     int httpConnectionPort = -1;
-                    if(httpEnabled){
-                    	int httpPort = Integer.parseInt((String) config.getProperties().get(HTTP_BINDING_PORT_KEY));
-                    	httpConnectionPort = getHttpConnectionPort(current, httpPort);
-                    	if (portService.get().lookupPort(current, HTTP_PID, HTTP_BINDING_PORT_KEY) != httpPort) {
+                    if (httpEnabled) {
+                        int httpPort = Integer.parseInt((String) config.getProperties().get(HTTP_BINDING_PORT_KEY));
+                        httpConnectionPort = getHttpConnectionPort(current, httpPort);
+                        if (portService.get().lookupPort(current, HTTP_PID, HTTP_BINDING_PORT_KEY) != httpPort) {
                             portService.get().unregisterPort(current, HTTP_PID, HTTP_BINDING_PORT_KEY);
                             portService.get().registerPort(current, HTTP_PID, HTTP_BINDING_PORT_KEY, httpPort);
                         }
                     }
-                    if(httpsEnabled){
-                    	int httpsPort = Integer.parseInt((String) config.getProperties().get(HTTPS_BINDING_PORT_KEY));
-                    	if(httpConnectionPort == -1){
-                    		httpConnectionPort = getHttpsConnectionPort(current);
-                    	}
-                    	if (portService.get().lookupPort(current, HTTP_PID, HTTPS_BINDING_PORT_KEY) != httpsPort) {
+                    if (httpsEnabled) {
+                        int httpsPort = Integer.parseInt((String) config.getProperties().get(HTTPS_BINDING_PORT_KEY));
+                        if (httpConnectionPort == -1) {
+                            httpConnectionPort = getHttpsConnectionPort(current, httpsPort);
+                        }
+                        if (portService.get().lookupPort(current, HTTP_PID, HTTPS_BINDING_PORT_KEY) != httpsPort) {
                             portService.get().unregisterPort(current, HTTP_PID, HTTPS_BINDING_PORT_KEY);
                             portService.get().registerPort(current, HTTP_PID, HTTPS_BINDING_PORT_KEY, httpsPort);
                         }
