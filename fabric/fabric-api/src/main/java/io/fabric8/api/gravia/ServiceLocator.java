@@ -19,11 +19,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import io.fabric8.api.gravia.IllegalStateAssertion;
-
+import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
-import org.osgi.framework.BundleReference;
 import org.osgi.framework.Filter;
+import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
 import org.osgi.util.tracker.ServiceTracker;
@@ -43,15 +42,30 @@ public final class ServiceLocator {
     }
 
     public static BundleContext getSystemContext() {
-        BundleContext result = null;
-        ClassLoader classLoader = ServiceLocator.class.getClassLoader();
-        if (classLoader instanceof BundleReference) {
-            BundleReference bndref = (BundleReference) classLoader;
-            result = bndref.getBundle().getBundleContext().getBundle(0).getBundleContext();
+        try {
+            for (Class clazz : SecurityManagerEx.findClassContext()) {
+                Bundle bundle = FrameworkUtil.getBundle(clazz);
+                // In case the fabric-api bundle is stopped, do not use its bundle context
+                if (bundle != null) {
+                    BundleContext context = bundle.getBundleContext();
+                    if (context != null) {
+                        return context.getBundle(0).getBundleContext();
+                    }
+                }
+            }
+        } catch (Throwable t) {
+            // Ignore
         }
-        return result;
+        return null;
     }
-    
+
+    static class SecurityManagerEx extends SecurityManager {
+        static SecurityManagerEx sm = new SecurityManagerEx();
+        static Class[] findClassContext() {
+            return sm.getClassContext();
+        }
+    }
+
     public static <T> T getService(Class<T> type) {
         BundleContext bundleContext = getSystemContext();
         ServiceReference<T> sref = bundleContext.getServiceReference(type);
@@ -131,4 +145,5 @@ public final class ServiceLocator {
             tracker.close();
         }
     }
+
 }
