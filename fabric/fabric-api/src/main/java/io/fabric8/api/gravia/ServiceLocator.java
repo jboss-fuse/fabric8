@@ -21,9 +21,11 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import io.fabric8.api.gravia.IllegalStateAssertion;
 
+import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleReference;
 import org.osgi.framework.Filter;
+import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
 import org.osgi.util.tracker.ServiceTracker;
@@ -44,10 +46,12 @@ public final class ServiceLocator {
 
     public static BundleContext getSystemContext() {
         BundleContext result = null;
-        ClassLoader classLoader = ServiceLocator.class.getClassLoader();
-        if (classLoader instanceof BundleReference) {
-            BundleReference bndref = (BundleReference) classLoader;
-            result = bndref.getBundle().getBundleContext().getBundle(0).getBundleContext();
+        Bundle bundle = FrameworkUtil.getBundle(ServiceLocator.class);
+        // In case the fabric-api bundle is stopped, do not use its bundle context
+        if (bundle != null) {
+            // This should always return the system bundle context
+            bundle = FrameworkUtil.getBundle(bundle.getClass());
+            result = bundle.getBundleContext();
         }
         return result;
     }
