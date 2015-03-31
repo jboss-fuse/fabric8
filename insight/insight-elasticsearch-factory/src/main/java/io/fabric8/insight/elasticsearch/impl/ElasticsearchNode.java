@@ -88,6 +88,6 @@ public class ElasticsearchNode implements Node {
 
     @Override
     public boolean isClosed() {
-        return false;
+        return nodeDelegate.isClosed();
     }
 }
