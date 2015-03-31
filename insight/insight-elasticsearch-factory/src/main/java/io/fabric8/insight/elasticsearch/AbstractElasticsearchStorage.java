@@ -20,16 +20,20 @@ import io.fabric8.insight.metrics.model.QueryResult;
 import io.fabric8.insight.metrics.mvel.MetricsStorageServiceImpl;
 import io.fabric8.insight.storage.StorageService;
 import org.elasticsearch.action.ActionRequest;
+import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
+import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequestBuilder;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.client.IndicesAdminClient;
 import org.elasticsearch.node.Node;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Scanner;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -48,6 +52,18 @@ public abstract class AbstractElasticsearchStorage implements StorageService, Me
     private BlockingQueue<ActionRequest> queue = new LinkedBlockingQueue<ActionRequest>();
 
     private MetricsStorageService metricsStorage = new MetricsStorageServiceImpl(this);
+
+    protected void putInsightTemplate() {
+        IndicesAdminClient indicesAdminClient = getNode().client().admin().indices();
+
+        String templateText = new Scanner(AbstractElasticsearchStorage.class.getResourceAsStream("/elasticsearch-index-template.json"), "UTF-8").useDelimiter("\\A").next();
+
+        PutIndexTemplateRequest putInsightTemplateRequest = new PutIndexTemplateRequestBuilder(indicesAdminClient, "insight")
+                .setSource(templateText)
+                .request();
+
+        indicesAdminClient.putTemplate(putInsightTemplateRequest).actionGet();
+    }
 
     @Override
     public void store(String type, long timestamp, QueryResult queryResult) {

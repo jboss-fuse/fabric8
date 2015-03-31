@@ -31,6 +31,7 @@ public class ElasticsearchLogStorage extends AbstractElasticsearchStorage {
     @Activate
     public void activate() {
         running = true;
+        putInsightTemplate();
         thread = new Thread(this, "ElasticStorage");
         thread.start();
     }
