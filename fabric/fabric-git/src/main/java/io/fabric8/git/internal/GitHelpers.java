@@ -28,9 +28,14 @@ import org.eclipse.jgit.api.CheckoutResult;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.NoHeadException;
+import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.treewalk.TreeWalk;
+import org.eclipse.jgit.treewalk.filter.PathFilter;
 import org.gitective.core.CommitUtils;
 import io.fabric8.api.gravia.IllegalStateAssertion;
 import org.slf4j.Logger;
@@ -231,4 +236,31 @@ public class GitHelpers {
             return versionId;
         }
     }
+
+    /**
+     * Fetches the content of a file from Git repository without checking out the branch
+     * @param git
+     * @param branch short branch name
+     * @param fileName name of the file to fetch
+     * @return content of file or <code>null</code> if no such file exists
+     */
+    public static byte[] getContentOfObject(Git git, String branch, String fileName) throws IOException {
+        Ref ref = git.getRepository().getRef("refs/heads/" + branch);
+        if (ref == null) {
+            return null;
+        }
+        RevCommit rw = new RevWalk(git.getRepository()).parseCommit(ref.getObjectId());
+        TreeWalk tw = new TreeWalk(git.getRepository());
+        tw.addTree(rw.getTree());
+        tw.setRecursive(true);
+        tw.setFilter(PathFilter.create(fileName));
+        if (tw.next()) {
+            ObjectId objectId = tw.getObjectId(0);
+            ObjectLoader loader = git.getRepository().open(objectId);
+            return loader.getBytes();
+        } else {
+            return null;
+        }
+    }
+
 }

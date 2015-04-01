@@ -1130,12 +1130,11 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     }
     
     private Map<String, String> getVersionAttributes(Git git, GitContext context, String versionId) throws IOException {
-        File rootDirectory = GitHelpers.getRootGitDirectory(git);
-        File file = new File(rootDirectory, GitHelpers.VERSION_ATTRIBUTES);
-        if (!file.exists()) {
+        byte[] content = GitHelpers.getContentOfObject(git, versionId, GitHelpers.VERSION_ATTRIBUTES);
+        if (content == null) {
             return Collections.emptyMap();
         }
-        return DataStoreUtils.toMap(Files.readBytes(file));
+        return DataStoreUtils.toMap(content);
     }
 
     private void setVersionAttributes(Git git, GitContext context, String versionId, Map<String, String> attributes) throws IOException, GitAPIException {
