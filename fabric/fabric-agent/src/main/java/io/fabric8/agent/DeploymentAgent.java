@@ -548,7 +548,7 @@ public class DeploymentAgent implements ManagedService {
             if(overriddenTimeout != null)
                 bundleStartTimeout = Integer.parseInt(overriddenTimeout);
         }catch(Exception e){
-            LOGGER.warn(String.format("Failed to set %s value: [%s], applying default value: %s", Constants.BUNDLE_START_TIMEOUT_PID_KEY, overriddenTimeout, Constants.BUNDLE_START_TIMEOUT));
+            LOGGER.warn("Failed to set {} value: [{}], applying default value: {}", Constants.BUNDLE_START_TIMEOUT_PID_KEY, overriddenTimeout, Constants.BUNDLE_START_TIMEOUT);
         }
         Agent agent = new Agent(
                 bundleContext.getBundle(),

@@ -408,7 +408,7 @@ public class Deployer {
         // Compute bundle all start levels and start levels to update
         //
         Map<Resource, Integer> startLevels = new HashMap<>();
-        Map<Bundle, Integer> toUpdateStartLevel = new HashMap<>();
+        final Map<Bundle, Integer> toUpdateStartLevel = new HashMap<>();
         for (Map.Entry<String, Set<Resource>> entry : resolver.getBundlesPerRegions().entrySet()) {
             String region = entry.getKey();
             for (Resource resource : entry.getValue()) {
@@ -558,11 +558,33 @@ public class Deployer {
             print("Stopping bundles:", display);
             while (!toStop.isEmpty()) {
                 List<Bundle> bs = getBundlesToStop(toStop);
-                for (Bundle bundle : bs) {
+                for (final Bundle bundle : bs) {
                     print("  " + bundle.getSymbolicName() + " / " + bundle.getVersion(), display);
-                    // If the bundle start level will be changed, stop it persistently to
-                    // avoid a restart when the start level is actually changed
-                    callback.stopBundle(bundle, toUpdateStartLevel.containsKey(bundle) ? 0 : STOP_TRANSIENT);
+                    List<Future<Void>> futures = deploymentsExecutor.invokeAll(
+                            Arrays.asList(
+                                    new Callable<Void>() {
+                                        @Override
+                                        public Void call() throws Exception {
+                                            try {
+                                                LOGGER.info("Scheduled stop for bundle:" + bundle.getSymbolicName() + " with a timeout limit of " + request.bundleStartTimeout + " seconds");
+                                                // If the bundle start level will be changed, stop it persistently to
+                                                // avoid a restart when the start level is actually changed
+                                                callback.stopBundle(bundle, toUpdateStartLevel.containsKey(bundle) ? 0 : STOP_TRANSIENT);
+                                            } catch (BundleException e) {
+                                                LOGGER.warn("Error while trying to stop bundle {}", bundle.getSymbolicName(), e);
+                                            }
+                                            return null;
+                                        }
+                                    }
+                            ), request.bundleStartTimeout, TimeUnit.SECONDS);
+                    // synch on Future's output, limited by the TimeUnit above
+                    for (Future<Void> f : futures) {
+                        try {
+                            f.get();
+                        } catch (CancellationException e) {
+                            LOGGER.warn("Error while trying to stop bundle {}", bundle.getSymbolicName(), e);
+                        }
+                    }
                     toStop.remove(bundle);
                 }
             }
@@ -757,9 +779,33 @@ public class Deployer {
                 print("Stopping bundles:", display);
                 while (!toStop.isEmpty()) {
                     List<Bundle> bs = getBundlesToStop(toStop);
-                    for (Bundle bundle : bs) {
+                    for (final Bundle bundle : bs) {
                         print("  " + bundle.getSymbolicName() + " / " + bundle.getVersion(), display);
-                        callback.stopBundle(bundle, STOP_TRANSIENT);
+
+                        List<Future<Void>> futures = deploymentsExecutor.invokeAll(
+                                Arrays.asList(
+                                        new Callable<Void>() {
+                                            @Override
+                                            public Void call() throws Exception {
+                                                try {
+                                                    LOGGER.info("Scheduled stop for bundle:" + bundle.getSymbolicName() + " with a timeout limit of " + request.bundleStartTimeout + " seconds");
+                                                    callback.stopBundle(bundle, STOP_TRANSIENT);
+
+                                                } catch (BundleException e) {
+                                                    LOGGER.warn("Error while trying to stop bundle {}", bundle.getSymbolicName(), e);
+                                                }
+                                                return null;
+                                            }
+                                        }
+                                ), request.bundleStartTimeout, TimeUnit.SECONDS);
+                        // synch on Future's output, limited by the TimeUnit above
+                        for (Future<Void> f : futures) {
+                            try {
+                                f.get();
+                            } catch (CancellationException e) {
+                                LOGGER.warn("Error while trying to stop bundle {}", bundle.getSymbolicName(), e);
+                            }
+                        }
                         toStop.remove(bundle);
                         toStart.add(bundle);
                     }
@@ -793,45 +839,44 @@ public class Deployer {
             final List<Throwable> exceptions = new ArrayList<>();
             callback.phase("finalizing (starting bundles)");
             print("Starting bundles:", display);
-            try {
-                while (!toStart.isEmpty()) {
-                    List<Bundle> bs = getBundlesToStart(toStart, dstate.serviceBundle);
 
-                    for (final Bundle bundle : bs) {
-                        print("  " + bundle.getSymbolicName() + " / " + bundle.getVersion(), display);
+            while (!toStart.isEmpty()) {
+                List<Bundle> bs = getBundlesToStart(toStart, dstate.serviceBundle);
 
-                        List<Future<Void>> futures = deploymentsExecutor.invokeAll(
-                                Arrays.asList(
-                                        new Callable<Void>() {
-                                            @Override
-                                            public Void call() throws Exception {
-                                                try {
-                                                    LOGGER.info("Scheduled start for bundle:" + bundle.getSymbolicName() + " with a timeout limit of " + request.bundleStartTimeout + " seconds");
-                                                    callback.startBundle(bundle);
+                for (final Bundle bundle : bs) {
+                    print("  " + bundle.getSymbolicName() + " / " + bundle.getVersion(), display);
 
-                                                } catch (BundleException e) {
-                                                    exceptions.add(e);
-                                                }
-                                                return null;
+                    List<Future<Void>> futures = deploymentsExecutor.invokeAll(
+                            Arrays.asList(
+                                    new Callable<Void>() {
+                                        @Override
+                                        public Void call() throws Exception {
+                                            try {
+                                                LOGGER.info("Scheduled start for bundle:" + bundle.getSymbolicName() + " with a timeout limit of " + request.bundleStartTimeout + " seconds");
+                                                callback.startBundle(bundle);
+
+                                            } catch (BundleException e) {
+                                                exceptions.add(e);
                                             }
+                                            return null;
                                         }
-                                ), request.bundleStartTimeout, TimeUnit.SECONDS);
-                        // synch on Future's output, limited by the TimeUnit above
-                        for (Future<Void> f : futures) {
-                            try {
-                                f.get();
-                            } catch (CancellationException e) {
-                                exceptions.add(new BundleException("Unable to start bundle [" + bundle.getSymbolicName() + "] within " + request.bundleStartTimeout + " seconds"));
-                            }
+                                    }
+                            ), request.bundleStartTimeout, TimeUnit.SECONDS);
+                    // synch on Future's output, limited by the TimeUnit above
+                    for (Future<Void> f : futures) {
+                        try {
+                            f.get();
+                        } catch (CancellationException e) {
+                            exceptions.add(new BundleException("Unable to start bundle [" + bundle.getSymbolicName() + "] within " + request.bundleStartTimeout + " seconds"));
                         }
-
-                        toStart.remove(bundle);
                     }
 
+                    toStart.remove(bundle);
                 }
-            } finally {
-                deploymentsExecutor.shutdown();
+
             }
+            deploymentsExecutor.shutdown();
+
             if (!exceptions.isEmpty()) {
                 throw new MultiException("Error restarting bundles", exceptions);
             }
