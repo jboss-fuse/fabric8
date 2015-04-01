@@ -47,5 +47,7 @@ public interface Constants {
         Started
     }
 
+    int BUNDLE_START_TIMEOUT = 60;
+    String BUNDLE_START_TIMEOUT_PID_KEY = "io.fabric8.agent.bundle.start.timeout";
 
 }

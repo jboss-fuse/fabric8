@@ -18,20 +18,8 @@ package io.fabric8.agent.service;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.TreeSet;
+import java.util.*;
+import java.util.concurrent.*;
 
 import io.fabric8.agent.download.DownloadManager;
 import io.fabric8.agent.download.Downloader;
@@ -158,6 +146,7 @@ public class Deployer {
         Map<String, Set<String>> requirements;
         Map<String, Map<String, Constants.RequestedState>> stateChanges;
         EnumSet<Constants.Option> options;
+        int bundleStartTimeout;
     }
 
     static class Deployment {
@@ -188,7 +177,9 @@ public class Deployer {
      * @param request deployment request
      * @throws Exception
      */
-    public void deploy(DeploymentState dstate, DeploymentRequest request) throws Exception {
+    public void deploy(DeploymentState dstate, final DeploymentRequest request) throws Exception {
+
+        ExecutorService deploymentsExecutor = Executors.newSingleThreadExecutor();
 
         boolean noRefreshUnmanaged = request.options.contains(Constants.Option.NoAutoRefreshUnmanagedBundles);
         boolean noRefreshManaged = request.options.contains(Constants.Option.NoAutoRefreshManagedBundles);
@@ -799,20 +790,47 @@ public class Deployer {
         removeFragmentsAndBundlesInState(toStart, UNINSTALLED | ACTIVE | STARTING);
         if (!toStart.isEmpty()) {
             // Compute correct start order
-            List<Throwable> exceptions = new ArrayList<>();
+            final List<Throwable> exceptions = new ArrayList<>();
             callback.phase("finalizing (starting bundles)");
             print("Starting bundles:", display);
-            while (!toStart.isEmpty()) {
-                List<Bundle> bs = getBundlesToStart(toStart, dstate.serviceBundle);
-                for (Bundle bundle : bs) {
-                    print("  " + bundle.getSymbolicName() + " / " + bundle.getVersion(), display);
-                    try {
-                        callback.startBundle(bundle);
-                    } catch (BundleException e) {
-                        exceptions.add(e);
+            try {
+                while (!toStart.isEmpty()) {
+                    List<Bundle> bs = getBundlesToStart(toStart, dstate.serviceBundle);
+
+                    for (final Bundle bundle : bs) {
+                        print("  " + bundle.getSymbolicName() + " / " + bundle.getVersion(), display);
+
+                        List<Future<Void>> futures = deploymentsExecutor.invokeAll(
+                                Arrays.asList(
+                                        new Callable<Void>() {
+                                            @Override
+                                            public Void call() throws Exception {
+                                                try {
+                                                    LOGGER.info("Scheduled start for bundle:" + bundle.getSymbolicName() + " with a timeout limit of " + request.bundleStartTimeout + " seconds");
+                                                    callback.startBundle(bundle);
+
+                                                } catch (BundleException e) {
+                                                    exceptions.add(e);
+                                                }
+                                                return null;
+                                            }
+                                        }
+                                ), request.bundleStartTimeout, TimeUnit.SECONDS);
+                        // synch on Future's output, limited by the TimeUnit above
+                        for (Future<Void> f : futures) {
+                            try {
+                                f.get();
+                            } catch (CancellationException e) {
+                                exceptions.add(new BundleException("Unable to start bundle [" + bundle.getSymbolicName() + "] within " + request.bundleStartTimeout + " seconds"));
+                            }
+                        }
+
+                        toStart.remove(bundle);
                     }
-                    toStart.remove(bundle);
+
                 }
+            } finally {
+                deploymentsExecutor.shutdown();
             }
             if (!exceptions.isEmpty()) {
                 throw new MultiException("Error restarting bundles", exceptions);

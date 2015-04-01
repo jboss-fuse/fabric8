@@ -71,10 +71,8 @@ import org.osgi.framework.wiring.BundleCapability;
 import org.osgi.framework.wiring.BundleRequirement;
 import org.osgi.framework.wiring.BundleRevision;
 import org.osgi.framework.wiring.FrameworkWiring;
-import org.osgi.resource.Requirement;
 import org.osgi.resource.Resource;
 import org.osgi.resource.Wire;
-import org.osgi.service.url.URLStreamHandlerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,6 +93,7 @@ public class Agent {
     private final DownloadManager manager;
     private final FeatureConfigInstaller configInstaller;
     private final RegionDigraph digraph;
+    private final int bundleStartTimeout;
 
     /**
      * Range to use when a version is specified on a feature dependency.
@@ -120,7 +119,7 @@ public class Agent {
     private EnumSet<Option> options = EnumSet.noneOf(Option.class);
 
     public Agent(Bundle serviceBundle, BundleContext systemBundleContext, DownloadManager manager) {
-        this(serviceBundle, systemBundleContext, manager, null, null, DEFAULT_FEATURE_RESOLUTION_RANGE, DEFAULT_BUNDLE_UPDATE_RANGE, UPDATE_SNAPSHOTS_CRC, null);
+        this(serviceBundle, systemBundleContext, manager, null, null, DEFAULT_FEATURE_RESOLUTION_RANGE, DEFAULT_BUNDLE_UPDATE_RANGE, UPDATE_SNAPSHOTS_CRC, null, Constants.BUNDLE_START_TIMEOUT);
     }
 
     public Agent(
@@ -132,7 +131,8 @@ public class Agent {
             String featureResolutionRange,
             String bundleUpdateRange,
             String updateSnaphots,
-            File stateFile) {
+            File stateFile,
+            int bundleStartTimeout) {
         this.serviceBundle = serviceBundle;
         this.systemBundleContext = systemBundleContext;
         this.manager = manager;
@@ -141,6 +141,7 @@ public class Agent {
         this.featureResolutionRange = featureResolutionRange;
         this.bundleUpdateRange = bundleUpdateRange;
         this.updateSnaphots = updateSnaphots;
+        this.bundleStartTimeout = bundleStartTimeout;
 
         final File file = stateFile;
         storage = new StateStorage() {
@@ -227,6 +228,7 @@ public class Agent {
         request.stateChanges = Collections.emptyMap();
         request.options = options;
         request.metadata = metadata;
+        request.bundleStartTimeout = bundleStartTimeout;
 
         Deployer.DeploymentState dstate = new Deployer.DeploymentState();
         // Service bundle

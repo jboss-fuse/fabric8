@@ -22,13 +22,11 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -46,6 +44,7 @@ import io.fabric8.agent.download.Downloader;
 import io.fabric8.agent.download.StreamProvider;
 import io.fabric8.agent.internal.Macro;
 import io.fabric8.agent.service.Agent;
+import io.fabric8.agent.service.Constants;
 import io.fabric8.agent.service.FeatureConfigInstaller;
 import io.fabric8.agent.service.State;
 import io.fabric8.api.Container;
@@ -56,7 +55,6 @@ import io.fabric8.maven.MavenResolver;
 import io.fabric8.maven.MavenResolvers;
 import org.apache.felix.utils.properties.Properties;
 import org.apache.felix.utils.version.VersionRange;
-import org.apache.maven.settings.Mirror;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
@@ -74,7 +72,6 @@ import static io.fabric8.agent.service.Constants.DEFAULT_BUNDLE_UPDATE_RANGE;
 import static io.fabric8.agent.service.Constants.DEFAULT_FEATURE_RESOLUTION_RANGE;
 import static io.fabric8.agent.service.Constants.DEFAULT_UPDATE_SNAPSHOTS;
 import static io.fabric8.agent.utils.AgentUtils.addMavenProxies;
-import static io.fabric8.agent.utils.AgentUtils.getMavenProxy;
 
 public class DeploymentAgent implements ManagedService {
 
@@ -545,6 +542,14 @@ public class DeploymentAgent implements ManagedService {
             configInstaller = new FeatureConfigInstaller(configAdmin, manager);
         }
 
+        int bundleStartTimeout = Constants.BUNDLE_START_TIMEOUT;
+        String overriddenTimeout = properties.get(Constants.BUNDLE_START_TIMEOUT_PID_KEY);
+        try{
+            if(overriddenTimeout != null)
+                bundleStartTimeout = Integer.parseInt(overriddenTimeout);
+        }catch(Exception e){
+            LOGGER.warn(String.format("Failed to set %s value: [%s], applying default value: %s", Constants.BUNDLE_START_TIMEOUT_PID_KEY, overriddenTimeout, Constants.BUNDLE_START_TIMEOUT));
+        }
         Agent agent = new Agent(
                 bundleContext.getBundle(),
                 systemBundleContext,
@@ -554,7 +559,8 @@ public class DeploymentAgent implements ManagedService {
                 DEFAULT_FEATURE_RESOLUTION_RANGE,
                 DEFAULT_BUNDLE_UPDATE_RANGE,
                 DEFAULT_UPDATE_SNAPSHOTS,
-                bundleContext.getDataFile(STATE_FILE)
+                bundleContext.getDataFile(STATE_FILE),
+                bundleStartTimeout
         ) {
             @Override
             public void updateStatus(String status) {
