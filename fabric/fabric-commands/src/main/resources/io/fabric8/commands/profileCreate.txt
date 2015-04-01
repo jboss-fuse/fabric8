@@ -4,4 +4,4 @@ The newly created profile is initially empty, apart from the settings inherited 
 
 For example, to add the new profile, test, which has the current default version and inherits from the parent profiles, mq and camel, enter the following console command:
 
-fabric:profile-create --parents mq --parents camel test
+fabric:profile-create --parent mq --parent camel test
