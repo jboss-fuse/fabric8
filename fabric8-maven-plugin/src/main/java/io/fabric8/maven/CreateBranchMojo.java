@@ -23,6 +23,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import io.fabric8.common.util.Files;
 import io.fabric8.common.util.Strings;
@@ -38,6 +40,7 @@ import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.InitCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
@@ -55,6 +58,8 @@ import static io.fabric8.git.internal.GitHelpers.createOrCheckoutBranch;
 @Mojo(name = "branch", defaultPhase = LifecyclePhase.PACKAGE, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
 @Execute(phase = LifecyclePhase.PACKAGE)
 public class CreateBranchMojo extends AbstractProfileMojo {
+
+    private static final String CREDS_IN_GITURL_REGEX = ".*//([^:]+):([^@]+)@.+";
 
     /**
      * Name of the directory used to clone the git repository
@@ -93,6 +98,12 @@ public class CreateBranchMojo extends AbstractProfileMojo {
     private boolean pullOnStartup;
 
     /**
+     * Should we perform a git pull before creating the new branch
+     */
+    @Parameter(property = "fabric8.branch.pushOnSuccess", defaultValue = "false")
+    private boolean pushOnSuccess;
+
+    /**
      * Name of the remote git repository
      */
     @Parameter(property = "fabric8.branch.remoteName", defaultValue = "origin")
@@ -109,11 +120,18 @@ public class CreateBranchMojo extends AbstractProfileMojo {
             addProfileZips();
             removeSelectedFiles();
             commit("Branch created by fabric8 maven plugin");
+            if (pushOnSuccess) {
+                pushOnSuccess();
+            }
         } catch (MojoExecutionException e) {
             throw e;
         } catch (Exception e) {
             throw new MojoExecutionException("Error executing", e);
         }
+    }
+
+    private void pushOnSuccess() throws GitAPIException {
+        git.push().setRemote(remoteName).setCredentialsProvider(getCredentials()).call();
     }
 
     /**
@@ -162,10 +180,16 @@ public class CreateBranchMojo extends AbstractProfileMojo {
             String repo = gitUrl;
             if (Strings.isNotBlank(repo)) {
                 getLog().info("Cloning git repo " + repo + " into directory " + getGitBuildPathDescription() + " cloneAllBranches: " + cloneAll);
-                CloneCommand command = Git.cloneRepository().
-                        setCloneAllBranches(cloneAll).setURI(repo).setDirectory(buildDir).setRemote(remoteName);
-                // .setCredentialsProvider(getCredentials()).
+                CloneCommand command = Git.cloneRepository()
+                        .setCloneAllBranches(cloneAll)
+                        .setURI(repo)
+                        .setDirectory(buildDir)
+                        .setRemote(remoteName)
+                        .setBranch(oldBranchName)
+                        .setCredentialsProvider(getCredentials());
                 try {
+
+
                     git = command.call();
                     return;
                 } catch (Throwable e) {
@@ -205,6 +229,36 @@ public class CreateBranchMojo extends AbstractProfileMojo {
         }
     }
 
+    private CredentialsProvider getCredentials() {
+        CredentialsProvider rc = null;
+        if (gitUrlContainsCredentials()) {
+            String[] credentials = parseCredentials();
+            if (credentials.length == 2) {
+                rc = new UsernamePasswordCredentialsProvider(credentials[0], credentials[1]);
+            }
+        }else {
+            // we should try adding a SSH credential provider
+        }
+
+        if(rc == null) {
+            getLog().info("NO matching credentials");
+        }
+        return rc;
+    }
+
+    private String[] parseCredentials() {
+        Pattern p = Pattern.compile(CREDS_IN_GITURL_REGEX);
+        Matcher m = p.matcher(gitUrl);
+        if (m.matches()) {
+            return new String[]{m.group(1), m.group(2)};
+        }
+        return new String[0];
+    }
+
+    private boolean gitUrlContainsCredentials() {
+        return this.gitUrl.matches(CREDS_IN_GITURL_REGEX);
+    }
+
     protected void configureBranch(String branch) {
         // lets update the merge config
         if (Strings.isNotBlank(branch) && hasRemoteRepo()) {
@@ -239,8 +293,7 @@ public class CreateBranchMojo extends AbstractProfileMojo {
     }
 
     protected void doPull() throws MojoExecutionException {
-        //CredentialsProvider cp = getCredentials();
-        CredentialsProvider cp = null;
+        CredentialsProvider cp = getCredentials();
         try {
             Repository repository = git.getRepository();
             StoredConfig config = repository.getConfig();
@@ -259,9 +312,6 @@ public class CreateBranchMojo extends AbstractProfileMojo {
 
             git.pull().setCredentialsProvider(cp).setRebase(true).call();
         } catch (Throwable e) {
-            String credText = "";
-            if (cp instanceof UsernamePasswordCredentialsProvider) {
-            }
             String message = "Failed to pull from the remote git repo with credentials " + cp + " due: " + e.getMessage() + ". This exception is ignored.";
             getLog().error(message, e);
             throw new MojoExecutionException(message, e);
