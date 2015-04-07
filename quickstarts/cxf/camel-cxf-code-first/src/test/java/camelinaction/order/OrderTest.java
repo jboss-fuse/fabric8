@@ -16,52 +16,70 @@
  */
 package camelinaction.order;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.camel.test.AvailablePortFinder;
-import org.apache.camel.test.blueprint.CamelBlueprintTestSupport;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
+import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class OrderTest extends CamelBlueprintTestSupport {
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URL;
+import java.net.URLConnection;
 
-    private boolean canTest = true;
+public class OrderTest {
+    private static final Logger LOG = LoggerFactory.getLogger(OrderTest.class);
 
-    @Override
-    public void setUp() throws Exception {
+    /**
+     * Helper method to copy bytes from an InputStream to an OutputStream.
+     */
+    private static void copyInputStream(InputStream in, OutputStream out) throws Exception {
+        int c = 0;
         try {
-            super.setUp();
-        } catch (Exception e) {
-            // ignore if we fail during setup due OSGi issue
-            canTest = false;
+            while ((c = in.read()) != -1) {
+                out.write(c);
+            }
+        } finally {
+            in.close();
         }
     }
 
-    @BeforeClass
-    public static void setupPort() {
-        int port = AvailablePortFinder.getNextAvailable(10000);
-        System.setProperty("port", "" + port);
-    }
-
-    @Override
-    protected String getBlueprintDescriptor() {
-        return "camel-route-test.xml";
+    /**
+     * Helper method to read bytes from an InputStream and return them as a String.
+     */
+    private static String getStringFromInputStream(InputStream in) throws Exception {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        copyInputStream(in, bos);
+        bos.close();
+        return bos.toString();
     }
 
     @Test
-    public void testOrderOk() throws Exception {
-        if (!canTest) {
-            return;
-        }
+    public void sendRequest() throws Exception {
 
-        List<Object> params = new ArrayList<Object>();
-        params.add("motor");
-        params.add(1);
-        params.add("honda");
+        String res;
+        /*
+         * Set up the URL connection to the web service address
+         */
+        URLConnection connection = new URL("http://localhost:8181/cxf/order").openConnection();
+        connection.setDoInput(true);
+        connection.setDoOutput(true);
 
-        String reply = template.requestBody("cxf:bean:orderEndpoint", params, String.class);
-        assertEquals("OK", reply);
+        /*
+         * We have prepared a SOAP request in an XML file, so we send the contents of that file to our web service...
+         */
+        OutputStream os = connection.getOutputStream();
+        InputStream fis = OrderTest.class.getResourceAsStream("/request.xml");
+        copyInputStream(fis, os);
+
+        /*
+         * ... and afterwards, we just read the SOAP response message that is sent back by the server.
+         */
+        InputStream is = connection.getInputStream();
+        LOG.info("the response is ====> ");
+        res = getStringFromInputStream(is);
+        LOG.info(res);
+        Assert.assertTrue(res.contains("OK"));
     }
+
 }
