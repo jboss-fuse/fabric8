@@ -294,6 +294,8 @@ public final class ContainerProviderUtils {
         String zipEntryName = fileToZip.getName();
         if (parent != null && !parent.isEmpty()) {
             zipEntryName = parent + File.separator + fileToZip.getName();
+        } else {
+            zipEntryName = String.format("fabric8-karaf-%s", FabricConstants.FABRIC_VERSION);
         }
 
         if (zipFileExcludes.contains(fileToZip.getName())) {
