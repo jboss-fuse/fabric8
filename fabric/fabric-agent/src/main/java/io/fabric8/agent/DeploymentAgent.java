@@ -20,6 +20,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Dictionary;
@@ -27,15 +28,20 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import io.fabric8.agent.download.DownloadCallback;
 import io.fabric8.agent.download.DownloadManager;
@@ -114,6 +120,16 @@ public class DeploymentAgent implements ManagedService {
     private volatile Collection<Resource> provisionList;
     private volatile boolean fabricNotAvailableLogged;
 
+    private volatile String httpUrl;
+    private volatile List<URI> mavenRepoURIs = new ArrayList<URI>();
+
+    // lock to operate on fabricService.getCurrentContainer().getHttpUrl()
+    // and service.getMavenRepoURIs()
+    // see ENTESB-2370: OSE Maven artifacts uploaded to fabric proxy cannot be resolved by containers
+    private Lock fabricServiceOperations = new ReentrantLock();
+    // after this latch goes to 0, we *should* have httpUrl and mavenRepoURIs available
+    private CountDownLatch fabricServiceAvailable = new CountDownLatch(1);
+
     private final State state = new State();
 
     public DeploymentAgent(BundleContext bundleContext) throws IOException {
@@ -138,6 +154,12 @@ public class DeploymentAgent implements ManagedService {
                 if (provisioningStatus != null) {
                     updateStatus(service, provisioningStatus, provisioningError);
                 }
+                if (service != null) {
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("FabricService found, getting httpUrl and repositoryURIs");
+                    }
+                    updateMavenRepositoryConfiguration(service);
+                }
                 return service;
             }
 
@@ -146,13 +168,32 @@ public class DeploymentAgent implements ManagedService {
                 if (provisioningStatus != null) {
                     updateStatus(service, provisioningStatus, provisioningError);
                 }
+                if (service != null) {
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("FabricService modified, getting httpUrl and repositoryURIs");
+                    }
+                    updateMavenRepositoryConfiguration(service);
+                }
             }
 
             @Override
             public void removedService(ServiceReference<FabricService> reference, FabricService service) {
+                // TODO: what if Config Admin causes invocation of doUpdate()? should we keep old httpUrl and mavenRepoURIs?
             }
         });
         fabricService.open();
+    }
+
+    private void updateMavenRepositoryConfiguration(FabricService service) {
+        try {
+            fabricServiceOperations.lock();
+            httpUrl = service.getCurrentContainer().getHttpUrl();
+            mavenRepoURIs = service.getMavenRepoURIs();
+            // one time operation - after this, we have httpUrl and mavenRepoURIs
+            fabricServiceAvailable.countDown();
+        } finally {
+            fabricServiceOperations.unlock();
+        }
     }
 
     protected ScheduledExecutorService createDownloadExecutor() {
@@ -317,7 +358,18 @@ public class DeploymentAgent implements ManagedService {
         updateStatus("analyzing", null);
 
         // Building configuration
-        addMavenProxies(properties, fabricService.getService());
+        fabricServiceAvailable.await(30, TimeUnit.SECONDS);
+        String httpUrl;
+        List<URI> mavenRepoURIs;
+        try {
+            fabricServiceOperations.lock();
+            // no one will change the members now
+            httpUrl = this.httpUrl;
+            mavenRepoURIs = this.mavenRepoURIs;
+        } finally {
+            fabricServiceOperations.unlock();
+        }
+        addMavenProxies(properties, httpUrl, mavenRepoURIs);
         MavenResolver resolver = MavenResolvers.createMavenResolver(properties, "org.ops4j.pax.url.mvn");
         final DownloadManager manager = DownloadManagers.createDownloadManager(resolver, getDownloadExecutor());
         manager.addListener(new DownloadCallback() {

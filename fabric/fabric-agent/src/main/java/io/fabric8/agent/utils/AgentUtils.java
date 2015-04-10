@@ -305,12 +305,11 @@ public class AgentUtils {
         return null;
     }
 
-    public static void addMavenProxies(Dictionary<String, String> props, FabricService fabricService) {
+    public static void addMavenProxies(Dictionary<String, String> props, String httpUrl, List<URI> mavenRepoUris) {
         try {
-            if (fabricService != null) {
-                String httpUrl = fabricService.getCurrentContainer().getHttpUrl();
+            if (httpUrl != null && mavenRepoUris != null) {
                 StringBuilder sb = new StringBuilder();
-                for (URI uri : fabricService.getMavenRepoURIs()) {
+                for (URI uri : mavenRepoUris) {
                     String mavenRepo = uri.toString();
                     if (mavenRepo.startsWith(httpUrl)) {
                         continue;
@@ -324,7 +323,7 @@ public class AgentUtils {
                     sb.append(mavenRepo);
                     sb.append("@snapshots@snapshotsUpdate=always");
                 }
-                String existingRepos = (String) props.get("org.ops4j.pax.url.mvn.repositories");
+                String existingRepos = props.get("org.ops4j.pax.url.mvn.repositories");
                 if (existingRepos != null) {
                     if (sb.length() > 0) {
                         sb.append(",");
@@ -332,6 +331,13 @@ public class AgentUtils {
                     sb.append(existingRepos);
                 }
                 props.put("org.ops4j.pax.url.mvn.repositories", sb.toString());
+            } else {
+                if (httpUrl == null) {
+                    LOGGER.warn("Could not get httpUrl from fabricService");
+                }
+                if (mavenRepoUris == null) {
+                    LOGGER.warn("Could not get mavenRepoUris from fabricService");
+                }
             }
         } catch (Exception e) {
             LOGGER.warn("Unable to retrieve maven proxy urls: " + e.getMessage());
