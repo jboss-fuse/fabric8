@@ -399,6 +399,7 @@ public class MQManager implements MQManagerMXBean {
 
         List<String> properties = dto.getProperties();
         String version = dto.version();
+        requirements.setVersion(version);
 
         if (properties != null) {
             for (String entry : properties) {
