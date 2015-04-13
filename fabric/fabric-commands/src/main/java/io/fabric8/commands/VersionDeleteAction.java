@@ -54,7 +54,7 @@ public class VersionDeleteAction extends AbstractAction {
                 sb.append(container.getId());
             }
         }
-        IllegalStateAssertion.assertTrue(sb.length() == 0, "Version " + versionId + " is still in used by the following containers: " + sb.toString());
+        IllegalStateAssertion.assertTrue(sb.length() == 0, "Version " + versionId + " is still used by the following containers: " + sb.toString());
         Version currentDefault = fabricService.getDefaultVersion();
         if (version.compareTo(currentDefault) == 0) {
             System.out.println("Default Version " + version + " can't get deleted.");

@@ -357,6 +357,17 @@ public final class FabricManager implements FabricManagerMBean {
 
     @Override
     public void deleteVersion(String versionId) {
+        Container[] containers = fabricService.getContainers();
+        StringBuilder sb = new StringBuilder();
+        for (Container container : fabricService.getContainers()) {
+            if (versionId.equals(container.getVersionId())) {
+                if (sb.length() > 0) {
+                    sb.append(", ");
+                }
+                sb.append(container.getId());
+            }
+        }
+        IllegalStateAssertion.assertTrue(sb.length() == 0, "Version " + versionId + " is still used by the following containers: " + sb.toString());
         profileService.deleteVersion(versionId);
     }
 
