@@ -28,6 +28,9 @@ import org.eclipse.jgit.api.CheckoutResult;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.NoHeadException;
+import org.eclipse.jgit.errors.CorruptObjectException;
+import org.eclipse.jgit.errors.IncorrectObjectTypeException;
+import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.Ref;
@@ -242,22 +245,53 @@ public class GitHelpers {
      * @param git
      * @param branch short branch name
      * @param fileName name of the file to fetch
+     * @param onlyFromTheCommit if <code>true</code>, return content only if the file is different than in parent commit(s)
      * @return content of file or <code>null</code> if no such file exists
      */
-    public static byte[] getContentOfObject(Git git, String branch, String fileName) throws IOException {
+    public static byte[] getContentOfObject(Git git, String branch, String fileName, boolean onlyFromTheCommit) throws IOException {
         Ref ref = git.getRepository().getRef("refs/heads/" + branch);
         if (ref == null) {
             return null;
         }
         RevCommit rw = new RevWalk(git.getRepository()).parseCommit(ref.getObjectId());
+        ObjectId objectId = objectIdOfResource(git, rw, fileName);
+        if (objectId != null) {
+            if (!onlyFromTheCommit) {
+                ObjectLoader loader = git.getRepository().open(objectId);
+                return loader.getBytes();
+            } else {
+                // if the objectId is the same as in *all* parent commits, than this resource is actually
+                // not created in the branch itself - it comes from parent branch (version)
+                RevCommit[] parents = rw.getParents();
+                boolean change = false;
+                if (parents != null && parents.length > 0) {
+                    for (RevCommit parent : parents) {
+                        RevCommit prc = new RevWalk(git.getRepository()).parseCommit(parent.getId());
+                        ObjectId parentObjectId = objectIdOfResource(git, prc, fileName);
+                        if (parentObjectId == null || !parentObjectId.equals(objectId)) {
+                            change = true;
+                            break;
+                        }
+                    }
+                } else {
+                    change = true;
+                }
+                return change ? git.getRepository().open(objectId).getBytes() : null;
+            }
+        } else {
+            return null;
+        }
+    }
+
+    private static ObjectId objectIdOfResource(Git git, RevCommit rw, String fileName) throws IOException {
         TreeWalk tw = new TreeWalk(git.getRepository());
+        if (rw.getTree() == null)
+            return null;
         tw.addTree(rw.getTree());
         tw.setRecursive(true);
         tw.setFilter(PathFilter.create(fileName));
         if (tw.next()) {
-            ObjectId objectId = tw.getObjectId(0);
-            ObjectLoader loader = git.getRepository().open(objectId);
-            return loader.getBytes();
+            return tw.getObjectId(0);
         } else {
             return null;
         }

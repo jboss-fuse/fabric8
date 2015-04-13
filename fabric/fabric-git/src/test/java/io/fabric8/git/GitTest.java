@@ -75,6 +75,12 @@ public class GitTest {
         git.add().addFilepattern(".").call();
         git.commit().setMessage("Create version 1.0, new branch").call();
 
+        // 1.1 branch
+        git.checkout().setName("1.0").setForce(false).call();
+        git.checkout().setCreateBranch(true).setName("1.1").call();
+        git.add().addFilepattern(".").call();
+        git.commit().setMessage("Create version 1.1, new branch").call();
+
         LOG.info("Branches");
         List<Ref> refs = git.branchList().call();
         for (Ref ref : refs) {
@@ -103,10 +109,11 @@ public class GitTest {
         String content = FileUtils.readFileToString(new File(dir, "version.attributes"));
         assertThat(content, equalTo("1.0"));
 
-        byte[] bytesMaster = GitHelpers.getContentOfObject(git, "master", "version.attributes");
-        byte[] bytesMaster2 = GitHelpers.getContentOfObject(git, "master", "subdir/version.attributes");
-        byte[] bytes1_0 = GitHelpers.getContentOfObject(git, "1.0", "version.attributes");
-        byte[] bytes1_1 = GitHelpers.getContentOfObject(git, "1.1", "version.attributes");
+        byte[] bytesMaster = GitHelpers.getContentOfObject(git, "master", "version.attributes", true);
+        byte[] bytesMaster2 = GitHelpers.getContentOfObject(git, "master", "subdir/version.attributes", true);
+        byte[] bytes1_0 = GitHelpers.getContentOfObject(git, "1.0", "version.attributes", true);
+        byte[] bytes1_1 = GitHelpers.getContentOfObject(git, "1.1", "version.attributes", true);
+        byte[] bytes1_1checkParent = GitHelpers.getContentOfObject(git, "1.1", "version.attributes", false);
         assertNotNull(bytesMaster);
         assertNotNull(bytesMaster2);
         assertNotNull(bytes1_0);
@@ -114,6 +121,7 @@ public class GitTest {
         assertThat(new String(bytesMaster2), equalTo("irrelevant-master"));
         assertThat(new String(bytes1_0), equalTo("1.0"));
         assertThat(bytes1_1, nullValue());
+        assertThat(new String(bytes1_1checkParent), equalTo("1.0"));
     }
 
 }

@@ -1130,7 +1130,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     }
     
     private Map<String, String> getVersionAttributes(Git git, GitContext context, String versionId) throws IOException {
-        byte[] content = GitHelpers.getContentOfObject(git, versionId, GitHelpers.VERSION_ATTRIBUTES);
+        byte[] content = GitHelpers.getContentOfObject(git, versionId, GitHelpers.VERSION_ATTRIBUTES, true);
         if (content == null) {
             return Collections.emptyMap();
         }
