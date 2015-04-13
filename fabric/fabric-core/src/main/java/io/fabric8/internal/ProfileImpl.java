@@ -350,7 +350,7 @@ final class ProfileImpl implements Profile {
         if (!configurations.equals(other.configurations))
             return false;
 
-        if (!fileConfigurations.keySet().equals(other.fileConfigurations.keySet()))
+        if (!fileConfigurations.equals(other.fileConfigurations))
             return false;
 
         return true;

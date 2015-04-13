@@ -227,6 +227,8 @@ public class ProfileEditAction extends AbstractAction {
             editInLine = true;
             handleConfigProperties(builder, configProperties, profile);
         }
+        
+        profileService.updateProfile(builder.getProfile());
 
         if (!editInLine) {
             resource = resource != null ? resource : "io.fabric8.agent.properties";
@@ -238,7 +240,7 @@ public class ProfileEditAction extends AbstractAction {
             openInEditor(profile, resource);
         }
         
-        profileService.updateProfile(builder.getProfile());
+        
     }
 
     /**
