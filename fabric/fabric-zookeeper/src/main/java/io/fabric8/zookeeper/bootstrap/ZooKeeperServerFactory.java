@@ -153,11 +153,11 @@ public class ZooKeeperServerFactory extends AbstractComponent {
             quorumPeer.setLearnerType(peerConfig.getPeerType());
 
             try {
-                LOGGER.debug("Starting quorum peer \"%s\" on address %s", quorumPeer.getMyid(), peerConfig.getClientPortAddress());
+                LOGGER.debug("Starting quorum peer \"{}\" on address {}", quorumPeer.getMyid(), peerConfig.getClientPortAddress());
                 quorumPeer.start();
-                LOGGER.debug("Started quorum peer \"%s\"", quorumPeer.getMyid());
+                LOGGER.debug("Started quorum peer \"{}\"", quorumPeer.getMyid());
             } catch (Exception e) {
-                LOGGER.warn(String.format("Failed to start quorum peer \"%s\", reason : %s ", quorumPeer.getMyid(), e.getMessage()));
+                LOGGER.warn("Failed to start quorum peer \"{}\", reason : {} ", quorumPeer.getMyid(), e.getMessage());
                 quorumPeer.shutdown();
                 throw e;
             }
@@ -183,11 +183,11 @@ public class ZooKeeperServerFactory extends AbstractComponent {
             cnxnFactory.configure(serverConfig.getClientPortAddress(), serverConfig.getMaxClientCnxns());
 
             try {
-                LOGGER.debug("Starting ZooKeeper server on address %s", peerConfig.getClientPortAddress());
+                LOGGER.debug("Starting ZooKeeper server on address {}", peerConfig.getClientPortAddress());
                 cnxnFactory.startup(zkServer);
                 LOGGER.debug("Started ZooKeeper server");
             } catch (Exception e) {
-                LOGGER.warn(String.format("Failed to start ZooKeeper server, reason : %s", e));
+                LOGGER.warn("Failed to start ZooKeeper server, reason : {}", e);
                 cnxnFactory.shutdown();
                 throw e;
             }
