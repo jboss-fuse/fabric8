@@ -1,4 +1,4 @@
-/*! redhat_access_angular_ui - v0.9.78 - 2015-02-24
+/*! redhat_access_angular_ui - v0.9.85 - 2015-04-13
  * Copyright (c) 2015 ;
  * Licensed 
  */
@@ -406,6 +406,14 @@ app.service('RHAUtils', function () {
     this.isNotEmpty = function (object) {
         return !this.isEmpty(object);
     };
+    this.isEmailValid = function (object) {
+        var mailformat = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+        if (object.match(mailformat)) {
+            return true;
+        } else {
+            return false;
+        }
+    };
 });
 //Wrapper service for translations
 app.service('translate', [
@@ -650,13 +658,8 @@ app.directive('rhaResizable', [
 
 'use strict';
 angular.module('RedhatAccess.escalation', [
-    'ui.router',
-    'ui.bootstrap',
-    'localytics.directives',
-    'ngTable',
     'RedhatAccess.template',
     'RedhatAccess.security',
-    'RedhatAccess.search',
     'RedhatAccess.ui-utils',
     'RedhatAccess.common',
     'RedhatAccess.header'
@@ -665,12 +668,18 @@ angular.module('RedhatAccess.escalation', [
     function($stateProvider) {
         $stateProvider.state('partnerEscalation', {
             url: '/partnerEscalationRequest',
-            controller: 'PartnerEscalation',
-            templateUrl: 'escalation/views/partnerEscalationForm.html'
+            controller: 'EscalationRequest',
+            templateUrl: 'escalation/views/partnerEscalation.html'
+        });
+        $stateProvider.state('iceEscalation', {
+            url: '/iceEscalationRequest',
+            controller: 'EscalationRequest',
+            templateUrl: 'escalation/views/iceEscalation.html'
         });
     }
 ]).constant('ESCALATION_TYPE', {
     partner: 'Partner Escalation',
+    ice: 'ICE',
     sales: 'Sales Escalation'
 });
 //var testURL = 'http://localhost:8080/LogCollector/';
@@ -1518,6 +1527,7 @@ angular.module('RedhatAccess.security').factory('securityService', [
     'AlertService',
     'RHAUtils',
     function($rootScope, $modal, AUTH_EVENTS, $q, LOGIN_VIEW_CONFIG, SECURITY_CONFIG, strataService, AlertService, RHAUtils) {
+        var isLoginDisplayed = false;
         var service = {
             loginStatus: {
                 isLoggedIn: false,
@@ -1659,7 +1669,14 @@ angular.module('RedhatAccess.security').factory('securityService', [
                 $rootScope.$broadcast(AUTH_EVENTS.logoutSuccess);
             },
             showLogin: function(customModalDefaults, customModalOptions) {
-                //var that = this;
+                if (isLoginDisplayed) {
+                    // We already have a login dialog up, no need to show another
+                    var defer = $q.defer();
+                    defer.reject();
+                    return defer.promise;
+                }
+                isLoginDisplayed = true;
+
                 //Create temp objects to work with since we're in a singleton service
                 var tempModalDefaults = {};
                 var tempModalOptions = {};
@@ -1680,7 +1697,16 @@ angular.module('RedhatAccess.security').factory('securityService', [
                                 authenticating: false
                             };
                             $scope.useVerboseLoginView = LOGIN_VIEW_CONFIG.verbose;
+                            function resetStatus() {
+                                $scope.status.authenticating = false;
+                                isLoginDisplayed = false;
+                            }
                             $scope.modalOptions = tempModalOptions;
+                            $scope.modalOptions.keyDown = function($event, onEnter) {
+                                if ($event.keyCode === 13) {
+                                    onEnter();
+                                }
+                            };
                             $scope.modalOptions.ok = function(result) {
                                 //Hack below is needed to handle autofill issues
                                 //@see https://github.com/angular/angular.js/issues/1460
@@ -1698,7 +1724,7 @@ angular.module('RedhatAccess.security').factory('securityService', [
                                             try {
                                                 $modalInstance.close(authedUser);
                                             } catch (err) {}
-                                            $scope.status.authenticating = false;
+                                            resetStatus();
                                         },
                                         function(error) {
                                             if ($scope.$root.$$phase !== '$apply' && $scope.$root.$$phase !== '$digest') {
@@ -1708,16 +1734,16 @@ angular.module('RedhatAccess.security').factory('securityService', [
                                             } else {
                                                 $scope.authError = 'Login Failed!';
                                             }
-                                            $scope.status.authenticating = false;
+                                            resetStatus();
                                         }
                                     );
                                 }else {
                                     $scope.authError = 'Login Failed!';
-                                    $scope.status.authenticating = false;
+                                    resetStatus();
                                 }
                             };
                             $scope.modalOptions.close = function() {
-                                $scope.status.authenticating = false;
+                                resetStatus();
                                 $modalInstance.dismiss('User Canceled Login');
                             };
                         }
@@ -2405,11 +2431,26 @@ angular.module('RedhatAccess.cases').controller('AttachLocalFile', [
         $scope.getFile = function () {
             $('#fileUploader').click();
         };
+
+        function truncateFileName(name) {
+            var maxLength = 80;
+            if (name.length <= maxLength) {
+                return name;
+            }
+            var parts = name.split('.'),
+                ext = parts.pop(),
+                other = parts.join('.');
+
+            var newLength = (maxLength - (ext.length + 1));
+            var newName = (other.substr(0, newLength) + '.' + ext);
+            return newName;
+        }
+
         $scope.selectFile = function () {
             if($('#fileUploader')[0].files[0].size < maxFileSize){
                 $scope.fileObj = $('#fileUploader')[0].files[0];
                 $scope.fileSize = $scope.fileObj.size;
-                $scope.fileName = $scope.fileObj.name;
+                $scope.fileName = truncateFileName($scope.fileObj.name);
                 $scope.$apply();
             } else {
                 AlertService.addDangerMessage($('#fileUploader')[0].files[0].name + translate(' cannot be attached because it is larger the 1 GB. Please FTP large files to dropbox.redhat.com.'));
@@ -2419,6 +2460,7 @@ angular.module('RedhatAccess.cases').controller('AttachLocalFile', [
         $scope.clearSelectedFile();
     }
 ]);
+
 'use strict';
 /*jshint camelcase: false */
 angular.module('RedhatAccess.cases').controller('AttachmentsSection', [
@@ -3469,7 +3511,8 @@ angular.module('RedhatAccess.cases').controller('EditGroup', [
     'RHAUtils',
     'AUTH_EVENTS',
     'translate',
-    function ($scope, $rootScope, strataService, CaseService, AlertService, $filter, ngTableParams, GroupUserService, SearchBoxService, $location, securityService, RHAUtils, AUTH_EVENTS, translate) {
+    'CASE_EVENTS',
+    function ($scope, $rootScope, strataService, CaseService, AlertService, $filter, ngTableParams, GroupUserService, SearchBoxService, $location, securityService, RHAUtils, AUTH_EVENTS, translate, CASE_EVENTS) {
         $scope.GroupUserService = GroupUserService;
         $scope.CaseService = CaseService;
         $scope.listEmpty = false;
@@ -3505,6 +3548,9 @@ angular.module('RedhatAccess.cases').controller('EditGroup', [
             };
             tableBuilt = true;
         };
+        $scope.$on(CASE_EVENTS.searchBoxChange, function () {
+            $scope.tableParams.reload();
+        });
         $scope.init = function() {
             if(securityService.userAllowedToManageGroups()){
                 SearchBoxService.searchTerm='';
@@ -5377,7 +5423,10 @@ angular.module('RedhatAccess.cases').directive('rhaSearchbox', function () {
         templateUrl: 'cases/views/searchBox.html',
         restrict: 'A',
         controller: 'SearchBox',
-        scope: { placeholder: '=' }
+        scope: {
+			placeholder: '=',
+			hidebutton: '=?'
+        }
     };
 });
 'use strict';
@@ -5548,7 +5597,7 @@ angular.module('RedhatAccess.cases').service('AttachmentsService', [
                             errorMsg = ' : Internal server error';
                             break;
                         }
-                        AlertService.addDangerMessage(translate('Failed to upload attachment ') + jsonData.attachment + translate(' to case ') + caseId + errorMsg);
+                        AlertService.addDangerMessage(translate('Failed to upload attachment') + ' ' + jsonData.attachment + ' ' + translate('to case') +' '+ caseId + ' '+errorMsg);
                         deferred.reject(data);
                     });
                     promises.push(deferred.promise);
@@ -5573,7 +5622,7 @@ angular.module('RedhatAccess.cases').service('AttachmentsService', [
                             promise.then(function (uri) {
                                 attachment.uri = uri;
                                 attachment.uuid = uri.slice(uri.lastIndexOf('/') + 1);
-                                AlertService.addSuccessMessage(translate('Successfully uploaded attachment ') + attachment.file_name + ' to case ' + caseId);
+                                AlertService.addSuccessMessage(translate('Successfully uploaded attachment') + ' '+attachment.file_name + ' '+translate('to case') + ' '+caseId);
                             }, function (error) {
                                 AlertService.addStrataErrorMessage(error);
                             });
@@ -5596,6 +5645,7 @@ angular.module('RedhatAccess.cases').service('AttachmentsService', [
         };
     }
 ]);
+
 'use strict';
 angular.module('RedhatAccess.cases').service('CaseListService', [function () {
         this.cases = [];
@@ -6919,22 +6969,42 @@ angular.module('RedhatAccess.logViewer').factory('files', function () {
 });
 
 'use strict';
-angular.module('RedhatAccess.cases').controller('PartnerEscalation', [
+angular.module('RedhatAccess.cases').controller('EscalationRequest', [
     '$scope',
     'EscalationRequestService',
     '$rootScope',
+    '$location',
     'RHAUtils',
+    'ESCALATION_TYPE',
     'AUTH_EVENTS',
     'AlertService',
-    function ($scope, EscalationRequestService, $rootScope, RHAUtils, AUTH_EVENTS, AlertService) {
+    'securityService',
+    'translate',
+    function ($scope, EscalationRequestService, $rootScope, $location, RHAUtils, ESCALATION_TYPE, AUTH_EVENTS, AlertService , securityService , translate) {
         $scope.EscalationRequestService = EscalationRequestService;
+        $scope.securityService = securityService;
         $scope.disableSendRequest = true;
-        $scope.geoList = ['NA','EMEA','LATAM','APAC','None'];
+        $scope.ESCALATION_TYPE = ESCALATION_TYPE;
+        $scope.partnerGeoList = ['NA','EMEA','LATAM','APAC'];
+        $scope.iceGeoList = ['NA','EMEA','LATAM','APAC','Combo'];
         
-        $scope.submitEscalationRequest = function() {
-            EscalationRequestService.sendEscalationRequest();
+        $scope.submitEscalationRequest = function(escalationType) {
+            var recordType = '';
+            var emailCheck = true;
+            if (escalationType === ESCALATION_TYPE.partner) {
+                recordType = ESCALATION_TYPE.partner;
+            } else if (escalationType === ESCALATION_TYPE.ice) {
+                recordType = ESCALATION_TYPE.ice;
+                emailCheck = $scope.validateEmailField();
+            } else if (escalationType === ESCALATION_TYPE.sales) {
+                recordType = ESCALATION_TYPE.sales;
+            }
+            if (emailCheck) {
+                $scope.disableSendRequest = true;
+                EscalationRequestService.sendEscalationRequest(recordType);
+            }
         };
-        $scope.mandatoryFieldCheck = function() {
+        $scope.partnerMandatoryFieldCheck = function() {
             if (RHAUtils.isNotEmpty(EscalationRequestService.accountNumber) && RHAUtils.isNotEmpty(EscalationRequestService.caseNumber)
                 && RHAUtils.isNotEmpty(EscalationRequestService.geo) && RHAUtils.isNotEmpty(EscalationRequestService.issueDescription)) {
                 $scope.disableSendRequest = false;
@@ -6942,12 +7012,43 @@ angular.module('RedhatAccess.cases').controller('PartnerEscalation', [
                 $scope.disableSendRequest = true;
             }
         };
-        
+        $scope.iceMandatoryFieldCheck = function() {
+            if (RHAUtils.isNotEmpty(EscalationRequestService.accountNumber) && RHAUtils.isNotEmpty(EscalationRequestService.caseNumber)
+                && RHAUtils.isNotEmpty(EscalationRequestService.geo) && RHAUtils.isNotEmpty(EscalationRequestService.issueDescription)
+                && RHAUtils.isNotEmpty(EscalationRequestService.requestorEmail) && RHAUtils.isNotEmpty(EscalationRequestService.requestorPhone)
+                && RHAUtils.isNotEmpty(EscalationRequestService.customerName) && RHAUtils.isNotEmpty(EscalationRequestService.customerEmail)
+                && RHAUtils.isNotEmpty(EscalationRequestService.customerPhone) && RHAUtils.isNotEmpty(EscalationRequestService.expectations)) {
+                $scope.disableSendRequest = false;
+            } else {
+                $scope.disableSendRequest = true;
+            }
+        };
+        $scope.validateEmailField = function() {
+            if (RHAUtils.isEmailValid(EscalationRequestService.requestorEmail) && RHAUtils.isEmailValid(EscalationRequestService.customerEmail)) {
+                if (EscalationRequestService.requestorEmail.search('redhat.com') > 0) {
+                    return true;
+                } else {
+                    AlertService.addWarningMessage(translate('Please check the requestor email address'));
+                }
+            } else {
+                AlertService.addWarningMessage(translate('Email address is incorrect'));
+            }
+            return false;
+        };
         $rootScope.$on(AUTH_EVENTS.loginSuccess, function () {
             AlertService.clearAlerts();
         });
     }
 ]);
+'use strict';
+/*jshint unused:vars */
+angular.module('RedhatAccess.escalation').directive('rha403escalationerror', function () {
+    return {
+        templateUrl: 'escalation/views/403.html',
+        restrict: 'A'
+    };
+});
+
 'use strict';
 /*jshint camelcase: false */
 angular.module('RedhatAccess.cases').service('EscalationRequestService', [
@@ -6970,6 +7071,7 @@ angular.module('RedhatAccess.cases').service('EscalationRequestService', [
 	    this.geo = '';
 	    this.expectations = '';
 	    this.issueDescription = '';
+        this.notPartnerLogin = false;
 
 	    this.clearEscalationFields = function() {
             this.accountNumber = '';
@@ -6985,12 +7087,18 @@ angular.module('RedhatAccess.cases').service('EscalationRequestService', [
             this.issueDescription = '';
         };
 
-	    this.sendEscalationRequest = function() {
-	    	var escalationJSON = {
-	    		'record_type': ESCALATION_TYPE.partner,
-                'subject': 'Partner Escalation through Portal Case Management'
-	    	};
-	    	var isObjectNothing = function (object) {
+	    this.sendEscalationRequest = function(recordType) {
+            var subject = '';
+            if (recordType === ESCALATION_TYPE.partner) {
+                subject = 'Partner Escalation through Portal Case Management';
+            } else {
+                subject = 'Ice Escalation through Portal Case Management';
+            }
+            var escalationJSON = {
+                'record_type': recordType,
+                'subject': subject
+            };
+            var isObjectNothing = function (object) {
                 if (object === '' || object === undefined || object === null) {
                     return true;
                 } else {
@@ -7031,20 +7139,31 @@ angular.module('RedhatAccess.cases').service('EscalationRequestService', [
             if (!isObjectNothing(this.expectations)) {
                 escalationJSON.expectations = this.expectations;
             }
-
-	    	strataService.escalationRequest.create(escalationJSON).then(angular.bind(this,function (escalationNum) {
+            if (recordType === ESCALATION_TYPE.partner) {
+                AlertService.addSuccessMessage(translate('Creating Partner Escalation request .....'));
+            } else {
+                AlertService.addSuccessMessage(translate('Creating Ice Escalation request .....'));
+            }
+            strataService.escalationRequest.create(escalationJSON).then(angular.bind(this,function (escalationNum) {
                 AlertService.clearAlerts();
                 if (escalationNum !== undefined) {
-                	AlertService.addSuccessMessage(translate('Your Partner Escalation request has been sent successfully'));
-                	this.clearEscalationFields();
+                    if (recordType === ESCALATION_TYPE.partner) {
+                        AlertService.addSuccessMessage(translate('Your Partner Escalation request has been sent successfully'));
+                    } else {
+                        AlertService.addSuccessMessage(translate('Your Ice Escalation request has been sent successfully'));
+                    }
+                    this.clearEscalationFields();
                 }
-            }, function (error) {
+            }), angular.bind(this, function (error) {
+                if (error.xhr.status === 403) {
+                    this.notPartnerLogin = true;
+                }
                 AlertService.addStrataErrorMessage(error);
             }));
 	    };
 	}
 ]);
-angular.module('RedhatAccess.template', ['common/views/alert.html', 'common/views/header.html', 'common/views/title.html', 'common/views/treenode.html', 'common/views/treeview-selector.html', 'security/views/login_form.html', 'security/views/login_status.html', 'search/views/accordion_search.html', 'search/views/accordion_search_results.html', 'search/views/list_search_results.html', 'search/views/resultDetail.html', 'search/views/search.html', 'search/views/search_form.html', 'search/views/standard_search.html', 'cases/views/403.html', 'cases/views/404.html', 'cases/views/accountSelect.html', 'cases/views/addCommentSection.html', 'cases/views/attachLocalFile.html', 'cases/views/attachProductLogs.html', 'cases/views/attachmentsSection.html', 'cases/views/chatButton.html', 'cases/views/commentsSection.html', 'cases/views/compact.html', 'cases/views/compactCaseList.html', 'cases/views/compactEdit.html', 'cases/views/createGroupButton.html', 'cases/views/createGroupModal.html', 'cases/views/defaultGroup.html', 'cases/views/deleteGroupButton.html', 'cases/views/descriptionSection.html', 'cases/views/detailsSection.html', 'cases/views/edit.html', 'cases/views/editGroup.html', 'cases/views/emailNotifySelect.html', 'cases/views/entitlementSelect.html', 'cases/views/exportCSVButton.html', 'cases/views/group.html', 'cases/views/groupList.html', 'cases/views/groupSelect.html', 'cases/views/list.html', 'cases/views/listAttachments.html', 'cases/views/listBugzillas.html', 'cases/views/listFilter.html', 'cases/views/listNewAttachments.html', 'cases/views/new.html', 'cases/views/newRecommendationsSection.html', 'cases/views/ownerSelect.html', 'cases/views/productSelect.html', 'cases/views/recommendationsSection.html', 'cases/views/requestManagementEscalationModal.html', 'cases/views/search.html', 'cases/views/searchBox.html', 'cases/views/searchResult.html', 'cases/views/selectLoadingIndicator.html', 'cases/views/severitySelect.html', 'cases/views/statusSelect.html', 'cases/views/typeSelect.html', 'log_viewer/views/logTabs.html', 'log_viewer/views/log_viewer.html', 'log_viewer/views/logsInstructionPane.html', 'log_viewer/views/navSideBar.html', 'log_viewer/views/recommendations.html', 'escalation/views/partnerEscalationForm.html']);
+angular.module('RedhatAccess.template', ['common/views/alert.html', 'common/views/header.html', 'common/views/title.html', 'common/views/treenode.html', 'common/views/treeview-selector.html', 'security/views/login_form.html', 'security/views/login_status.html', 'search/views/accordion_search.html', 'search/views/accordion_search_results.html', 'search/views/list_search_results.html', 'search/views/resultDetail.html', 'search/views/search.html', 'search/views/search_form.html', 'search/views/standard_search.html', 'cases/views/403.html', 'cases/views/404.html', 'cases/views/accountSelect.html', 'cases/views/addCommentSection.html', 'cases/views/attachLocalFile.html', 'cases/views/attachProductLogs.html', 'cases/views/attachmentsSection.html', 'cases/views/chatButton.html', 'cases/views/commentsSection.html', 'cases/views/compact.html', 'cases/views/compactCaseList.html', 'cases/views/compactEdit.html', 'cases/views/createGroupButton.html', 'cases/views/createGroupModal.html', 'cases/views/defaultGroup.html', 'cases/views/deleteGroupButton.html', 'cases/views/descriptionSection.html', 'cases/views/detailsSection.html', 'cases/views/edit.html', 'cases/views/editGroup.html', 'cases/views/emailNotifySelect.html', 'cases/views/entitlementSelect.html', 'cases/views/exportCSVButton.html', 'cases/views/group.html', 'cases/views/groupList.html', 'cases/views/groupSelect.html', 'cases/views/list.html', 'cases/views/listAttachments.html', 'cases/views/listBugzillas.html', 'cases/views/listFilter.html', 'cases/views/listNewAttachments.html', 'cases/views/new.html', 'cases/views/newRecommendationsSection.html', 'cases/views/ownerSelect.html', 'cases/views/productSelect.html', 'cases/views/recommendationsSection.html', 'cases/views/requestManagementEscalationModal.html', 'cases/views/search.html', 'cases/views/searchBox.html', 'cases/views/searchResult.html', 'cases/views/selectLoadingIndicator.html', 'cases/views/severitySelect.html', 'cases/views/statusSelect.html', 'cases/views/typeSelect.html', 'log_viewer/views/logTabs.html', 'log_viewer/views/log_viewer.html', 'log_viewer/views/logsInstructionPane.html', 'log_viewer/views/navSideBar.html', 'log_viewer/views/recommendations.html', 'escalation/views/403.html', 'escalation/views/iceEscalation.html', 'escalation/views/partnerEscalation.html']);
 
 angular.module("common/views/alert.html", []).run(["$templateCache", function($templateCache) {
   $templateCache.put("common/views/alert.html",
@@ -7116,43 +7235,42 @@ angular.module("security/views/login_form.html", []).run(["$templateCache", func
     "    </h3>\n" +
     "</div>\n" +
     "<div class=\"container-fluid\">\n" +
-    "    <div class=\"modal-body form-horizontal\" id=\"rha-login-modal-body\">\n" +
-    "        <!--form ng-submit=\"modalOptions.ok()\"  method=\"post\"-->\n" +
+    "    <div class=\"modal-body form-horizontal\" ng-keydown=\"modalOptions.keyDown($event, modalOptions.ok)\" id=\"rha-login-modal-body\">\n" +
     "        <div class=\"form-group\" ng-show='useVerboseLoginView'>\n" +
     "        {{'Red Hat Access makes it easy for you to self-solve issues, diagnose problems, and engage with us via the Red Hat Customer Portal. To access Red Hat Customer Portal resources, you must enter valid portal credentials.'|translate}}\n" +
     "        </div>\n" +
     "\n" +
-    "        <div class=\"alert alert-danger\" ng-show=\"authError\">\n" +
-    "            {{authError}}\n" +
-    "        </div>\n" +
-    "        <div class=\"form-group\" id=\"rha-login-modal-user-id\">\n" +
-    "            <label for=\"rha-login-user-id\" class=\" control-label\" translate>Red Hat Login</label>\n" +
-    "            <div>\n" +
-    "                <input type=\"text\" class=\"form-control\" id=\"rha-login-user-id\" placeholder=\"{{'Red Hat Login'|translate}}\"  ng-model=\"user.user\" required autofocus>\n" +
+    "            <div class=\"alert alert-danger\" ng-show=\"authError\">\n" +
+    "                {{authError}}\n" +
     "            </div>\n" +
-    "        </div>\n" +
-    "        <div class=\"form-group\" id=\"rha-login-modal-user-pass\">\n" +
-    "            <label for=\"rha-login-password\" class=\"control-label\" translate>Password</label>\n" +
-    "            <div>\n" +
-    "                <input type=\"password\" class=\"form-control\" id=\"rha-login-password\" placeholder=\"{{'Password'|translate}}\" ng-model=\"user.password\" required>\n" +
+    "            <div class=\"form-group\" id=\"rha-login-modal-user-id\">\n" +
+    "                <label for=\"rha-login-user-id\" class=\" control-label\" translate>Red Hat Login</label>\n" +
+    "                <div>\n" +
+    "                    <input type=\"text\" class=\"form-control\" id=\"rha-login-user-id\" placeholder=\"{{'Red Hat Login'|translate}}\"  ng-model=\"user.user\" required autofocus>\n" +
+    "                </div>\n" +
     "            </div>\n" +
-    "        </div>\n" +
-    "        <div class=\"form-group\" style=\"font-size:smaller\" ng-show='useVerboseLoginView'>\n" +
-    "            <strong>{{'Note:'|translate}}\n" +
-    "                &nbsp;</strong>{{'Red Hat Customer Portal credentials differ from the credentials used to log into this product.'|translate}}\n" +
-    "        </div>\n" +
+    "            <div class=\"form-group\" id=\"rha-login-modal-user-pass\">\n" +
+    "                <label for=\"rha-login-password\" class=\"control-label\" translate>Password</label>\n" +
+    "                <div>\n" +
+    "                    <input type=\"password\" class=\"form-control\" id=\"rha-login-password\" placeholder=\"{{'Password'|translate}}\" ng-model=\"user.password\" required>\n" +
+    "                </div>\n" +
+    "            </div>\n" +
+    "            <div class=\"form-group\" style=\"font-size:smaller\" ng-show='useVerboseLoginView'>\n" +
+    "                <strong>{{'Note:'|translate}}\n" +
+    "                    &nbsp;</strong>{{'Red Hat Customer Portal credentials differ from the credentials used to log into this product.'|translate}}\n" +
+    "            </div>\n" +
     "\n" +
-    "        <!--/form-->\n" +
     "    </div>\n" +
     "    <div class=\"modal-footer\">\n" +
     "        <div class=\"form-group\" id=\"rha-login-modal-buttons\">\n" +
     "            <span class=\"pull-right\">\n" +
-    "                <button class=\"btn  btn-md cancel\" ng-click=\"modalOptions.close()\" type=\"submit\" translate>Cancel</button>\n" +
-    "                <button class=\"btn btn-primary btn-md login\" ng-click=\"modalOptions.ok()\" type=\"submit\" translate ng-disabled=\"status.authenticating\">Sign in</button>\n" +
+    "                <button class=\"btn  btn-md cancel\" ng-click=\"modalOptions.close()\" type=\"button\" translate>Cancel</button>\n" +
+    "                <button class=\"btn btn-primary btn-md login\" ng-click=\"modalOptions.ok()\" type=\"button\" translate ng-disabled=\"status.authenticating\">Sign in</button>\n" +
     "            </span>\n" +
     "        </div>\n" +
     "    </div>\n" +
-    "</div>");
+    "</div>\n" +
+    "");
 }]);
 
 angular.module("security/views/login_status.html", []).run(["$templateCache", function($templateCache) {
@@ -7362,7 +7480,7 @@ angular.module("cases/views/attachProductLogs.html", []).run(["$templateCache", 
 
 angular.module("cases/views/attachmentsSection.html", []).run(["$templateCache", function($templateCache) {
   $templateCache.put("cases/views/attachmentsSection.html",
-    "<h4 translate=\"\" class=\"rha-section-header\">Attachments</h4><span ng-show=\"loading\" class=\"rha-search-spinner\"></span><div class=\"container-fluid rha-side-padding\"><div class=\"row rha-side-padding\"><div class=\"col-xs-12 rha-col-no-padding\"><div rha-listattachments=\"\"></div></div></div></div><div ng-hide=\"loading || ie8 || ie9  &amp;&amp; isPCM\"><div style=\"border-top: 1px solid #cccccc; padding-top: 10px; margin: 0;\" class=\"row\"></div><div ng-hide=\"AttachmentsService.updatedAttachments.length &lt;= 0 &amp;&amp; TreeViewSelectorUtils.getSelectedLeaves(AttachmentsService.backendAttachments).length &lt;= 0\"><div class=\"row rha-side-padding\"><div class=\"col-xs-12 rha-col-no-padding\"><div rha-listnewattachments=\"rha-listnewattachments\"></div></div></div><div class=\"row rha-side-padding\"><div style=\"padding-bottom: 14px;\" class=\"col-xs-12 rha-col-no-padding\"><div style=\"float: right\"><span ng-show=\"updatingAttachments\" class=\"rha-search-spinner\"></span><button ng-hide=\"updatingAttachments\" ng-click=\"doUpdate()\" translate=\"\" class=\"btn btn-primary\">Upload Attachments</button></div></div></div><div style=\"border-top: 1px solid #cccccc; padding-top: 10px; margin: 0;\" class=\"row\"></div></div><div class=\"row\"><div class=\"col-xs-12\"><div rha-attachlocalfile=\"\"></div></div></div><div ng-show=\"showServerSideAttachments\"><div class=\"row\"><div class=\"col-xs-12\"><div class=\"server-attach-header\">{{'Server File(s) To Attach:'|translate}}</div><div rha-choicetree=\"\" ng-model=\"attachmentTree\" ng-controller=\"BackEndAttachmentsCtrl\" rhaDisabled=\"rhaDisabled\"></div></div></div></div></div><div ng-show=\"!loading &amp;&amp; ie8 || ie9 &amp;&amp; isPCM\"><form id=\"fileUploaderForm\" enctype=\"multipart/form-data\" method=\"post\" target=\"upload_target\"><div class=\"container-fluid\"><div class=\"row rha-create-field\"><div class=\"col-xs-6\"><input id=\"fileUploader\" type=\"file\" value=\"upload\" name=\"file\"/></div><div class=\"col-xs-6\"><div style=\"float: left; word-wrap: break-word; width: 100%;\">{{fileName}}</div></div></div><div class=\"row rha-create-field\"><div style=\"font-size: 80%;\" class=\"col-xs-12\"><div ng-bind-html=\"parseArtifactHtml()\"></div></div><div style=\"font-size: 80%;\" class=\"col-xs-12\"><span>{{'File names must be less than 80 characters. Maximum file size for web-uploaded attachments is 1 GB. Please FTP larger files to dropbox.redhat.com.'|translate}}&nbsp;</span><span><a href=\"https://access.redhat.com/knowledge/solutions/2112\" target=\"_blank\">{{'(More info)'|translate}}</a></span></div></div><div class=\"row rha-create-field\"><div class=\"col-xs-12\"><input id=\"fileDescription\" style=\"float: left;\" type=\"text\" name=\"description\" ng-model=\"ieFileDescription\" placeholder=\"{{'File description'|translate}}\" class=\"form-control\"/></div><div class=\"row rha-create-field\"></div><div class=\"col-xs-12\"><button style=\"float: right;\" ng-click=\"ieUpload($event)\" translate=\"\" class=\"btn btn-add\">Upload Attachments</button></div></div></div></form><iframe id=\"upload_target\" name=\"upload_target\" src=\"#\" style=\"width: 0; height: 0; border: 0px solid #fff;\"></iframe></div>");
+    "<h4 translate=\"\" class=\"rha-section-header\">Attachments</h4><span ng-show=\"loading\" class=\"rha-search-spinner\"></span><div class=\"container-fluid rha-side-padding\"><div class=\"row rha-side-padding\"><div class=\"col-xs-12 rha-col-no-padding\"><div rha-listattachments=\"\"></div></div></div></div><div ng-hide=\"loading || ie8 || ie9  &amp;&amp; isPCM\"><div style=\"border-top: 1px solid #cccccc; padding-top: 10px; margin: 0;\" class=\"row\"></div><div ng-hide=\"AttachmentsService.updatedAttachments.length &lt;= 0 &amp;&amp; TreeViewSelectorUtils.getSelectedLeaves(AttachmentsService.backendAttachments).length &lt;= 0\"><div class=\"row rha-side-padding\"><div class=\"col-xs-12 rha-col-no-padding\"><div rha-listnewattachments=\"rha-listnewattachments\"></div></div></div><div class=\"row rha-side-padding\"><div style=\"padding-bottom: 14px;\" class=\"col-xs-12 rha-col-no-padding\"><div style=\"float: right\"><span ng-show=\"updatingAttachments\" class=\"rha-search-spinner\"></span><button ng-hide=\"updatingAttachments\" ng-click=\"doUpdate()\" translate=\"\" class=\"btn btn-primary\">Upload Attachments</button></div></div></div><div style=\"border-top: 1px solid #cccccc; padding-top: 10px; margin: 0;\" class=\"row\"></div></div><div class=\"row\"><div class=\"col-xs-12\"><div rha-attachlocalfile=\"\"></div></div></div><div ng-show=\"showServerSideAttachments\"><div class=\"row\"><div class=\"col-xs-12\"><div class=\"server-attach-header\">{{'Server File(s) To Attach:'|translate}}</div><div rha-choicetree=\"\" ng-model=\"attachmentTree\" ng-controller=\"BackEndAttachmentsCtrl\" rhaDisabled=\"rhaDisabled\"></div></div></div></div></div><div ng-show=\"!loading &amp;&amp; ie8 || ie9 &amp;&amp; isPCM\"><form id=\"fileUploaderForm\" enctype=\"multipart/form-data\" method=\"post\" target=\"upload_target\"><div class=\"container-fluid\"><div class=\"row rha-create-field\"><div class=\"col-xs-6\"><input id=\"fileUploader\" type=\"file\" value=\"upload\" name=\"file\"/></div><div class=\"col-xs-6\"><div style=\"float: left; word-wrap: break-word; width: 100%;\">{{fileName}}</div></div></div><div class=\"row rha-create-field\"><div style=\"font-size: 80%;\" class=\"col-xs-12\"><div ng-bind-html=\"parseArtifactHtml()\"></div></div><div style=\"font-size: 80%;\" class=\"col-xs-12\"><span>{{'File names must be less than 80 characters. Maximum file size for web-uploaded attachments is 1 GB. Please FTP larger files to dropbox.redhat.com.'|translate}}&nbsp;</span><span><a href=\"https://access.redhat.com/knowledge/solutions/2112\" target=\"_blank\">{{'(More info)'|translate}}</a></span></div></div><div class=\"row rha-create-field\"><div class=\"col-xs-12\"><input id=\"fileDescription\" style=\"float: left;\" type=\"text\" name=\"description\" ng-model=\"ieFileDescription\" placeholder=\"{{'File description'|translate}}\" class=\"form-control\"/></div><div class=\"row rha-create-field\"></div><div class=\"col-xs-12\"><button style=\"float: right;\" ng-click=\"ieUpload($event)\" translate=\"\" class=\"btn btn-add\">Upload Attachments</button></div></div></div></form><iframe id=\"upload_target\" name=\"upload_target\" style=\"width: 0; height: 0; border: 0px solid #fff;\"></iframe></div>");
 }]);
 
 angular.module("cases/views/chatButton.html", []).run(["$templateCache", function($templateCache) {
@@ -7446,7 +7564,7 @@ angular.module("cases/views/edit.html", []).run(["$templateCache", function($tem
 
 angular.module("cases/views/editGroup.html", []).run(["$templateCache", function($templateCache) {
   $templateCache.put("cases/views/editGroup.html",
-    "<div id=\"redhat-access-case\" class=\"container-offset\"><div rha-header=\"\" page=\"editGroup\" ng-controller=\"EditGroup\"></div><div ng-show=\"CaseService.sfdcIsHealthy\" class=\"container-fluid rha-side-padding\"><div style=\"padding-bottom: 20px;\" class=\"row\"><div style=\"padding-bottom: 20px;\" class=\"container-fluid\"><div class=\"col-xs-1\"><label>Group Name: </label></div><div class=\"col-xs-6\"><input type=\"text\" ng-model=\"selectedGroup.name\" ng-change=\"toggleGroupPrestine()\" class=\"form-control\"/></div></div><span ng-show=\"usersLoading\" class=\"rha-search-spinner\"></span><div ng-hide=\"usersLoading\"><div style=\"padding-bottom: 20px;\" class=\"row\"></div><div class=\"col-xs-6\"><div rha-searchbox=\"\" placeholder=\"&quot;Search Users&quot;\"></div></div><div style=\"padding-bottom: 20px;\" class=\"row\"></div><div class=\"col-xs-12\"><table ng-table=\"tableParams\" class=\"table table-bordered table-striped\"><thead style=\"text-align: center\"><th><label>Read Access</label><input type=\"checkbox\" style=\"width: 25px;\" ng-model=\"masterReadSelected\" ng-change=\"onMasterReadCheckboxClicked(masterReadSelected)\"/></th><th><label>Write Access</label><input type=\"checkbox\" style=\"width: 25px;\" ng-model=\"masterWriteSelected\" ng-change=\"onMasterWriteCheckboxClicked(masterWriteSelected)\"/></th><th ng-class=\"{&quot;sort-asc&quot;: table-params.isSortBy(&quot;sso_username&quot;, &quot;asc&quot;), &quot;sort-desc&quot;: tableParams.isSortBy(&quot;sso_username&quot;, &quot;desc&quot;)}\" ng-click=\"tableParams.sorting({&quot;sso_username&quot;: tableParams.isSortBy(&quot;sso_username&quot;, &quot;asc&quot;) ? &quot;desc&quot; : &quot;asc&quot;})\" class=\"sortable\"><div>{{'User Name'|translate}}</div></th><th ng-class=\"{&quot;sort-asc&quot;: table-params.isSortBy(&quot;first_name&quot;, &quot;asc&quot;), &quot;sort-desc&quot;: tableParams.isSortBy(&quot;first_name&quot;, &quot;desc&quot;)}\" ng-click=\"tableParams.sorting({&quot;first_name&quot;: tableParams.isSortBy(&quot;first_name&quot;, &quot;asc&quot;) ? &quot;desc&quot; : &quot;asc&quot;})\" class=\"sortable\"><div>{{'First Name'|translate}}</div></th><th ng-class=\"{&quot;sort-asc&quot;: table-params.isSortBy(&quot;last_name&quot;, &quot;asc&quot;), &quot;sort-desc&quot;: tableParams.isSortBy(&quot;last_name&quot;, &quot;desc&quot;)}\" ng-click=\"tableParams.sorting({&quot;last_name&quot;: tableParams.isSortBy(&quot;last_name&quot;, &quot;asc&quot;) ? &quot;desc&quot; : &quot;asc&quot;})\" class=\"sortable\"><div>{{'Last Name'|translate}}</div></th></thead><tbody><tr ng-repeat=\"user in usersOnScreen\"><td style=\"text-align: center; width: 25px;\"><input type=\"checkbox\" ng-disabled=\"user.write || user.org_admin\" ng-model=\"user.access\" ng-change=\"toggleUsersPrestine()\"/></td><td style=\"text-align: center; width: 25px;\"><input type=\"checkbox\" ng-disabled=\"user.org_admin\" ng-model=\"user.write\" ng-change=\"writeAccessToggle(user)\"/></td><td data-title=\"&quot;user.sso_username&quot;\" sortable=\"&quot;sso_username&quot;\">{{user.sso_username}}</td><td data-title=\"&quot;user.first_name&quot;\" sortable=\"&quot;first_name&quot;\">{{user.first_name}}</td><td data-title=\"&quot;lastName&quot;\" sortable=\"&quot;last_name&quot;\">{{user.last_name}}</td></tr></tbody></table><button ng-click=\"saveGroup()\" ng-disabled=\"isGroupPrestine &amp;&amp; isUsersPrestine\" translate=\"\" class=\"btn btn-primary\">Save Group</button><button ng-click=\"cancel()\" translate=\"\" class=\"btn btn-primary\">Cancel</button></div></div></div></div></div>");
+    "<div id=\"redhat-access-case\" class=\"container-offset\"><div rha-header=\"\" page=\"editGroup\" ng-controller=\"EditGroup\"></div><div ng-show=\"CaseService.sfdcIsHealthy\" class=\"container-fluid rha-side-padding\"><div style=\"padding-bottom: 20px;\" class=\"row\"><div style=\"padding-bottom: 20px;\" class=\"container-fluid\"><div class=\"col-xs-1\"><label>Group Name: </label></div><div class=\"col-xs-6\"><input type=\"text\" ng-model=\"selectedGroup.name\" ng-change=\"toggleGroupPrestine()\" class=\"form-control\"/></div></div><span ng-show=\"usersLoading\" class=\"rha-search-spinner\"></span><div ng-hide=\"usersLoading\"><div style=\"padding-bottom: 20px;\" class=\"row\"></div><div class=\"col-xs-6\"><div rha-searchbox=\"\" placeholder=\"&quot;Filter Users&quot;\" hidebutton=\"true\"></div></div><div style=\"padding-bottom: 20px;\" class=\"row\"></div><div class=\"col-xs-12\"><table ng-table=\"tableParams\" class=\"table table-bordered table-striped\"><thead style=\"text-align: center\"><th><label>Read Access</label><input type=\"checkbox\" style=\"width: 25px;\" ng-model=\"masterReadSelected\" ng-change=\"onMasterReadCheckboxClicked(masterReadSelected)\"/></th><th><label>Write Access</label><input type=\"checkbox\" style=\"width: 25px;\" ng-model=\"masterWriteSelected\" ng-change=\"onMasterWriteCheckboxClicked(masterWriteSelected)\"/></th><th ng-class=\"{&quot;sort-asc&quot;: table-params.isSortBy(&quot;sso_username&quot;, &quot;asc&quot;), &quot;sort-desc&quot;: tableParams.isSortBy(&quot;sso_username&quot;, &quot;desc&quot;)}\" ng-click=\"tableParams.sorting({&quot;sso_username&quot;: tableParams.isSortBy(&quot;sso_username&quot;, &quot;asc&quot;) ? &quot;desc&quot; : &quot;asc&quot;})\" class=\"sortable\"><div>{{'User Name'|translate}}</div></th><th ng-class=\"{&quot;sort-asc&quot;: table-params.isSortBy(&quot;first_name&quot;, &quot;asc&quot;), &quot;sort-desc&quot;: tableParams.isSortBy(&quot;first_name&quot;, &quot;desc&quot;)}\" ng-click=\"tableParams.sorting({&quot;first_name&quot;: tableParams.isSortBy(&quot;first_name&quot;, &quot;asc&quot;) ? &quot;desc&quot; : &quot;asc&quot;})\" class=\"sortable\"><div>{{'First Name'|translate}}</div></th><th ng-class=\"{&quot;sort-asc&quot;: table-params.isSortBy(&quot;last_name&quot;, &quot;asc&quot;), &quot;sort-desc&quot;: tableParams.isSortBy(&quot;last_name&quot;, &quot;desc&quot;)}\" ng-click=\"tableParams.sorting({&quot;last_name&quot;: tableParams.isSortBy(&quot;last_name&quot;, &quot;asc&quot;) ? &quot;desc&quot; : &quot;asc&quot;})\" class=\"sortable\"><div>{{'Last Name'|translate}}</div></th></thead><tbody><tr ng-repeat=\"user in usersOnScreen\"><td style=\"text-align: center; width: 25px;\"><input type=\"checkbox\" ng-disabled=\"user.write || user.org_admin\" ng-model=\"user.access\" ng-change=\"toggleUsersPrestine()\"/></td><td style=\"text-align: center; width: 25px;\"><input type=\"checkbox\" ng-disabled=\"user.org_admin\" ng-model=\"user.write\" ng-change=\"writeAccessToggle(user)\"/></td><td data-title=\"&quot;user.sso_username&quot;\" sortable=\"&quot;sso_username&quot;\">{{user.sso_username}}</td><td data-title=\"&quot;user.first_name&quot;\" sortable=\"&quot;first_name&quot;\">{{user.first_name}}</td><td data-title=\"&quot;lastName&quot;\" sortable=\"&quot;last_name&quot;\">{{user.last_name}}</td></tr></tbody></table><button ng-click=\"saveGroup()\" ng-disabled=\"isGroupPrestine &amp;&amp; isUsersPrestine\" translate=\"\" class=\"btn btn-primary\">Save Group</button><button ng-click=\"cancel()\" translate=\"\" class=\"btn btn-primary\">Cancel</button></div></div></div></div></div>");
 }]);
 
 angular.module("cases/views/emailNotifySelect.html", []).run(["$templateCache", function($templateCache) {
@@ -7506,7 +7624,7 @@ angular.module("cases/views/listNewAttachments.html", []).run(["$templateCache",
 
 angular.module("cases/views/new.html", []).run(["$templateCache", function($templateCache) {
   $templateCache.put("cases/views/new.html",
-    "<div id=\"redhat-access-case\" ng-show=\"!securityService.loginStatus.userAllowedToManageCases\" class=\"container-offset\"><div rha-403error=\"\"></div></div><div id=\"redhat-access-case\" ng-hide=\"!securityService.loginStatus.userAllowedToManageCases\"><div rha-header=\"\" page=\"newCase\"></div><div ng-show=\"securityService.loginStatus.isLoggedIn &amp;&amp; securityService.loginStatus.authedUser.has_chat &amp;&amp; CaseService.sfdcIsHealthy\" class=\"row\"><div class=\"pull-right\"><div rha-chatbutton=\"\" style=\"margin-right: 10px;\"></div></div></div><div ng-show=\"securityService.loginStatus.isLoggedIn &amp;&amp; securityService.loginStatus.authedUser.has_chat &amp;&amp; CaseService.sfdcIsHealthy\" class=\"rha-bottom-border\"></div><!-- start--><div style=\"margin: 0; padding-top: 12px; padding-bottom: 24px\" ng-hide=\"!NEW_CASE_CONFIG.isPCM || !CaseService.sfdcIsHealthy\" class=\"row no-margin-bottom full-border clearfix\"><div class=\"col-md-4 center\"><label>{{'Product & Topic'|translate}}</label><div ng-attr-class=\"{{isPage1 &amp;&amp; 'no-fun' || 'fun' }}\"></div></div><div class=\"col-md-4 center\"><label>{{'Case Details'|translate}}</label><div ng-attr-class=\"{{(isPage2 &amp;&amp; !submittingCase) &amp;&amp; 'no-fun' || 'fun' }}\"></div></div><div class=\"col-md-4 center\"><label>{{'Creating Case'|translate}}</label><div ng-attr-class=\"{{submittingCase &amp;&amp; 'no-fun' || 'fun' }}\"></div></div></div><!-- start--><div style=\"margin: 0;\" ng-class=\"{'partial-border': NEW_CASE_CONFIG.isPCM}\" ng-hide=\"!CaseService.sfdcIsHealthy\" class=\"row clearfix\"><div ng-class=\"{&quot;col-xs-6&quot;: showRecommendationPanel , &quot;col-xs-12&quot;: !showRecommendationPanel}\" style=\"border-right: 1px solid; padding-top: 24px; border-color: #cccccc;\"><div ng-class=\"{&quot;hidden&quot;: isPage2}\" id=\"rha-case-wizard-page-1\" class=\"rha-create-case-section\"><div ng-if=\"securityService.loginStatus.authedUser.is_internal\"><div class=\"row rha-create-field\"><div class=\"col-md-3\"><label for=\"rha-account-number\">{{'Account:'|translate}}</label></div><div class=\"col-md-9\"><div rha-accountselect=\"\"></div></div></div><div class=\"row rha-create-field\"><div class=\"col-md-3\"><label for=\"rha-owners-select\">{{'Owner:'|translate}}</label></div><div class=\"col-md-9\"><div rha-ownerselect=\"\"></div></div></div></div><div class=\"row rha-create-field\"><div class=\"col-md-3\"><label for=\"rha-product-select\">{{'Product:'|translate}}</label></div><div class=\"col-md-9\"><div rha-selectloadingindicator=\"\" loading=\"productsLoading\" type=\"bootstrap\"><select id=\"rha-product-select\" ng-disabled=\"!securityService.loginStatus.isLoggedIn || submittingCase\" style=\"width: 100%;\" ng-model=\"CaseService.kase.product\" ng-change=\"getProductVersions(CaseService.kase.product);getRecommendations();makeRecommendationPanelVisible();CaseService.updateLocalStorageForNewCase()\" ng-options=\"p.value as p.label for p in products\" options-disabled=\"p.isDisabled for p in products\" class=\"form-control\"></select></div></div></div><div class=\"row rha-create-field\"><div class=\"col-md-3\"><label for=\"rha-product-version-select\">{{'Product Version:'|translate}}</label></div><div class=\"col-md-9\"><div><div rha-selectloadingindicator=\"\" loading=\"versionLoading\" type=\"bootstrap\"><select id=\"rha-product-version-select\" style=\"width: 100%;\" ng-model=\"CaseService.kase.version\" ng-options=\"v for v in versions\" ng-change=\"CaseService.validateNewCasePage1();getRecommendations();makeRecommendationPanelVisible();CaseService.updateLocalStorageForNewCase()\" ng-disabled=\"versionDisabled || !securityService.loginStatus.isLoggedIn || submittingCase\" class=\"form-control\"></select></div><div ng-show=\"CaseService.showVersionSunset()\" class=\"versionSunsetMessage\"><span>{{'This release is now retired, please refer to the recommended FAQ prior to filing a case'|translate}}</span></div></div></div></div><div class=\"row rha-create-field\"><div class=\"col-md-3\"><label for=\"rha-case-summary\">{{'Summary:'|translate}}</label></div><div class=\"col-md-9\"><input id=\"rha-case-summary\" style=\"width: 100%;\" maxlength=\"255\" ng-disabled=\"!securityService.loginStatus.isLoggedIn\" ng-change=\"CaseService.validateNewCasePage1();CaseService.updateLocalStorageForNewCase()\" ng-model=\"CaseService.kase.summary\" class=\"form-control\"/></div></div><div class=\"row rha-create-field\"><div class=\"col-md-3\"><label for=\"rha-case-description\">{{'Description:'|translate}}</label></div><div class=\"col-md-9\"><textarea id=\"rha-case-description\" style=\"width: 100%; height: 200px; max-width: 100%;\" ng-model=\"CaseService.kase.description\" ng-change=\"CaseService.validateNewCasePage1();CaseService.updateLocalStorageForDesc();CaseService.updateLocalStorageForNewCase()\" ng-disabled=\"!securityService.loginStatus.isLoggedIn || submittingCase\" class=\"form-control description-box\"></textarea></div></div><div class=\"row\"><div ng-class=\"{&quot;hidden&quot;: isPage2}\" class=\"col-xs-12\"><button style=\"float: right\" ng-click=\"doNext()\" ng-disabled=\"CaseService.newCasePage1Incomplete\" translate=\"\" class=\"btn btn-primary btn-next\">Next</button></div></div></div><div ng-class=\"{hidden: isPage1}\" id=\"rha-case-wizard-page-2\" class=\"rha-create-case-section\"><div class=\"rha-bottom-border\"><div class=\"row\"><div class=\"col-xs-12\"><div id=\"rha-newPage2-productVersion\" style=\"margin-bottom: 10px;\" class=\"rha-bold\">{{CaseService.kase.product}} {{CaseService.kase.version}}</div></div></div><div class=\"row\"><div class=\"col-xs-12\"><div id=\"rha-newPage2-caseSummary\" style=\"font-size: 90%; margin-bottom: 4px;word-wrap: break-word\" class=\"rha-bold\">{{CaseService.kase.summary}}</div></div></div><div class=\"row\"><div class=\"col-xs-12\"><div id=\"rha-newPage2-caseDescription\" style=\"font-size: 85%; white-space:pre-wrap;word-wrap: break-word\">{{CaseService.kase.description}}</div></div></div></div><div class=\"row rha-create-field\"><div class=\"col-md-4\"><label for=\"rha-entitlement-select\">{{'Support Level:'|translate}}</label></div><div ng-show=\"CaseService.entitlements.length &lt;= 1\" class=\"col-md-8\">{{CaseService.entitlements[0]}}</div><div ng-hide=\"CaseService.entitlements.length &lt;= 1\" class=\"col-md-8\"><div rha-entitlementselect=\"\"></div></div></div><div class=\"row rha-create-field\"><div class=\"col-md-4\"><div style=\"vertical-align: 50%; display: inline-block;\"><label for=\"rha-case-severity\">{{'Severity:'|translate}}</label><span tooltip-html-unsafe=\"{{&quot;Different support-level options might be available based on your account subscriptions. Your support level determines the type of response you can expect for your support case.&quot; |translate }}&lt;br&gt;&lt;/br&gt;&lt;a href='/support/offerings/production/sla.html' target='_blank'&gt;{{&quot;View Production Support Service Level Agreement&quot;|translate}}&lt;/a&gt;\" tabindex=\"0\" tooltip-trigger=\"focus\" class=\"glyphicon glyphicon-question-sign pull-right\"></span></div></div><div class=\"col-md-8\"><div rha-loadingindicator=\"\" loading=\"severitiesLoading\"><select id=\"rha-severity\" style=\"width: 100%;\" ng-model=\"CaseService.kase.severity\" ng-change=\"CaseService.onChangeFTSCheck()\" ng-disabled=\"submittingCase\" ng-options=\"s.name for s in CaseService.severities track by s.name\" class=\"form-control\"></select></div></div></div><div ng-show=\"CaseService.showFts()\"><div class=\"row rha-create-field\"><div class=\"col-md-4\"><label for=\"rha-ftsCheck\">{{'24x7 Support:'|translate}}</label></div><div class=\"col-md-8\"><input id=\"rha-ftsCheck\" type=\"checkbox\" ng-model=\"CaseService.fts\" style=\"display: inline-block;\"/></div></div><div ng-show=\"CaseService.fts\" class=\"row rha-create-field\"><div class=\"col-md-4\"><label for=\"rha-ftsContact\">{{'24x7 Contact:'|translate}}</label></div><div class=\"col-md-8\"><input id=\"rha-ftsContact\" ng-model=\"CaseService.fts_contact\" style=\"display: inline-block;\" class=\"form-control\"/></div></div></div><div class=\"row rha-create-field\"><div class=\"col-md-4\"><label for=\"rha-group-select\">{{'Case Group:'|translate}}</label></div><div class=\"col-md-8\"><div rha-groupselect=\"\" ng-init=\"setSearchOptions('false')\"></div></div></div><div ng-show=\"NEW_CASE_CONFIG.showAttachments &amp;&amp; securityService.loginStatus.authedUser.can_add_attachments\"><div class=\"row rha-create-field\"><div class=\"col-xs-12\"><label>{{'Attachments:'|translate}}</label></div></div><div ng-hide=\"ie8 &amp;&amp; NEW_CASE_CONFIG.isPCM || ie9 &amp;&amp; NEW_CASE_CONFIG.isPCM\" class=\"rha-bottom-border\"><div style=\"overflow: auto\" class=\"row rha-create-field\"><div class=\"col-xs-12\"><div rha-listnewattachments=\"\"></div></div></div><div ng-hide=\"submittingCase\" class=\"row rha-create-field\"><div class=\"col-xs-12\"><div rha-attachlocalfile=\"\" disabled=\"submittingCase\"></div></div></div><div ng-hide=\"submittingCase\" class=\"row rha-create-field\"><div class=\"col-xs-12\"><div ng-show=\"NEW_CASE_CONFIG.showServerSideAttachments\"><div class=\"server-attach-header\">Server File(s) To Attach:<div rha-choicetree=\"\" ng-model=\"attachmentTree\" ng-controller=\"BackEndAttachmentsCtrl\"></div></div></div></div></div></div><div ng-show=\"ie8 &amp;&amp; NEW_CASE_CONFIG.isPCM || ie9 &amp;&amp; NEW_CASE_CONFIG.isPCM\"><form id=\"fileUploaderForm\" enctype=\"multipart/form-data\" method=\"post\" target=\"upload_target\"><div class=\"container-fluid\"><div class=\"row rha-create-field\"><div class=\"col-xs-6\"><input id=\"fileUploader\" type=\"file\" value=\"upload\" name=\"file\"/></div><div class=\"col-xs-6\"><div style=\"float: left; word-wrap: break-word; width: 100%;\">{{fileName}}</div></div></div><div class=\"row rha-create-field\"><div style=\"font-size: 80%;\" class=\"col-xs-12\"><div ng-bind-html=\"parseArtifactHtml()\"></div></div><div style=\"font-size: 80%;\" class=\"col-xs-12\"><span>{{'File names must be less than 80 characters. Maximum file size for web-uploaded attachments is 1 GB. Please FTP larger files to dropbox.redhat.com.'|translate}}&nbsp;</span><span><a href=\"https://access.redhat.com/knowledge/solutions/2112\" target=\"_blank\">{{'(More info)'|translate}}</a></span></div></div><div class=\"row rha-create-field\"><div class=\"col-xs-12\"><input id=\"fileDescription\" style=\"float: left;\" type=\"text\" name=\"description\" ng-model=\"ieFileDescription\" placeholder=\"{{'File description'|translate}}\" class=\"form-control\"/></div></div></div></form><iframe id=\"upload_target\" name=\"upload_target\" src=\"#\" style=\"width: 0; height: 0; border: 0px solid #fff;\"></iframe></div></div><div style=\"margin-top: 20px;\" class=\"row\"><div class=\"col-xs-6\"><button style=\"float: left\" ng-click=\"doPrevious()\" ng-disabled=\"submittingCase\" translate=\"\" class=\"btn btn-primary btn-previous\">Previous</button></div><div class=\"col-xs-6\"><button style=\"float: right\" ng-disabled=\"submittingCase\" ng-hide=\"submittingCase\" ng-click=\"doSubmit($event)\" translate=\"\" class=\"btn btn-primary btn-submit\">Submit</button><span ng-show=\"submittingCase\" style=\"float: right\" class=\"rha-search-spinner\"></span></div></div></div></div><div id=\"rha-new-recommendations\" ng-class=\"{&quot;col-xs-6&quot;: showRecommendationPanel}\" style=\"overflow: auto; padding-top: 24px\" ng-show=\"NEW_CASE_CONFIG.showRecommendations\"><div ng-controller=\"SearchController\" style=\"overflow: vertical;\"><div ng-hide=\"!NEW_CASE_CONFIG.isPCM &amp;&amp; showRecommendationPanel\" rha-newrecommendations=\"\"></div><div ng-hide=\"NEW_CASE_CONFIG.isPCM\" rha-accordionsearchresults=\"\"></div></div></div></div></div>");
+    "<div id=\"redhat-access-case\" ng-show=\"!securityService.loginStatus.userAllowedToManageCases\" class=\"container-offset\"><div rha-403error=\"\"></div></div><div id=\"redhat-access-case\" ng-hide=\"!securityService.loginStatus.userAllowedToManageCases\"><div rha-header=\"\" page=\"newCase\"></div><div ng-show=\"securityService.loginStatus.isLoggedIn &amp;&amp; securityService.loginStatus.authedUser.has_chat &amp;&amp; CaseService.sfdcIsHealthy\" class=\"row\"><div class=\"pull-right\"><div rha-chatbutton=\"\" style=\"margin-right: 10px;\"></div></div></div><div ng-show=\"securityService.loginStatus.isLoggedIn &amp;&amp; securityService.loginStatus.authedUser.has_chat &amp;&amp; CaseService.sfdcIsHealthy\" class=\"rha-bottom-border\"></div><!-- start--><div style=\"margin: 0; padding-top: 12px; padding-bottom: 24px\" ng-hide=\"!NEW_CASE_CONFIG.isPCM || !CaseService.sfdcIsHealthy\" class=\"row no-margin-bottom full-border clearfix\"><div class=\"col-md-4 center\"><label>{{'Product & Topic'|translate}}</label><div ng-attr-class=\"{{isPage1 &amp;&amp; 'no-fun' || 'fun' }}\"></div></div><div class=\"col-md-4 center\"><label>{{'Case Details'|translate}}</label><div ng-attr-class=\"{{(isPage2 &amp;&amp; !submittingCase) &amp;&amp; 'no-fun' || 'fun' }}\"></div></div><div class=\"col-md-4 center\"><label>{{'Creating Case'|translate}}</label><div ng-attr-class=\"{{submittingCase &amp;&amp; 'no-fun' || 'fun' }}\"></div></div></div><!-- start--><div style=\"margin: 0;\" ng-class=\"{'partial-border': NEW_CASE_CONFIG.isPCM}\" ng-hide=\"!CaseService.sfdcIsHealthy\" class=\"row clearfix\"><div ng-class=\"{&quot;col-xs-6&quot;: showRecommendationPanel , &quot;col-xs-12&quot;: !showRecommendationPanel}\" style=\"border-right: 1px solid; padding-top: 24px; border-color: #cccccc;\"><div ng-class=\"{&quot;hidden&quot;: isPage2}\" id=\"rha-case-wizard-page-1\" class=\"rha-create-case-section\"><div ng-if=\"securityService.loginStatus.authedUser.is_internal\"><div class=\"row rha-create-field\"><div class=\"col-md-3\"><label for=\"rha-account-number\">{{'Account:'|translate}}</label></div><div class=\"col-md-9\"><div rha-accountselect=\"\"></div></div></div><div class=\"row rha-create-field\"><div class=\"col-md-3\"><label for=\"rha-owners-select\">{{'Owner:'|translate}}</label></div><div class=\"col-md-9\"><div rha-ownerselect=\"\"></div></div></div></div><div class=\"row rha-create-field\"><div class=\"col-md-3\"><label for=\"rha-product-select\">{{'Product:'|translate}}</label></div><div class=\"col-md-9\"><div rha-selectloadingindicator=\"\" loading=\"productsLoading\" type=\"bootstrap\"><select id=\"rha-product-select\" ng-disabled=\"!securityService.loginStatus.isLoggedIn || submittingCase\" style=\"width: 100%;\" ng-model=\"CaseService.kase.product\" ng-change=\"getProductVersions(CaseService.kase.product);getRecommendations();makeRecommendationPanelVisible();CaseService.updateLocalStorageForNewCase()\" ng-options=\"p.value as p.label for p in products\" options-disabled=\"p.isDisabled for p in products\" class=\"form-control\"></select></div></div></div><div class=\"row rha-create-field\"><div class=\"col-md-3\"><label for=\"rha-product-version-select\">{{'Product Version:'|translate}}</label></div><div class=\"col-md-9\"><div><div rha-selectloadingindicator=\"\" loading=\"versionLoading\" type=\"bootstrap\"><select id=\"rha-product-version-select\" style=\"width: 100%;\" ng-model=\"CaseService.kase.version\" ng-options=\"v for v in versions\" ng-change=\"CaseService.validateNewCasePage1();getRecommendations();makeRecommendationPanelVisible();CaseService.updateLocalStorageForNewCase()\" ng-disabled=\"versionDisabled || !securityService.loginStatus.isLoggedIn || submittingCase\" class=\"form-control\"></select></div><div ng-show=\"CaseService.showVersionSunset()\" class=\"versionSunsetMessage\"><span>{{'This release is now retired, please refer to the recommended FAQ prior to filing a case'|translate}}</span></div></div></div></div><div class=\"row rha-create-field\"><div class=\"col-md-3\"><label for=\"rha-case-summary\">{{'Summary:'|translate}}</label></div><div class=\"col-md-9\"><input id=\"rha-case-summary\" style=\"width: 100%;\" maxlength=\"255\" ng-disabled=\"!securityService.loginStatus.isLoggedIn\" ng-change=\"CaseService.validateNewCasePage1();CaseService.updateLocalStorageForNewCase()\" ng-model=\"CaseService.kase.summary\" class=\"form-control\"/></div></div><div class=\"row rha-create-field\"><div class=\"col-md-3\"><label for=\"rha-case-description\">{{'Description:'|translate}}</label></div><div class=\"col-md-9\"><textarea id=\"rha-case-description\" style=\"width: 100%; height: 200px; max-width: 100%;\" ng-model=\"CaseService.kase.description\" ng-change=\"CaseService.validateNewCasePage1();CaseService.updateLocalStorageForDesc();CaseService.updateLocalStorageForNewCase()\" ng-disabled=\"!securityService.loginStatus.isLoggedIn || submittingCase\" class=\"form-control description-box\"></textarea></div></div><div class=\"row\"><div ng-class=\"{&quot;hidden&quot;: isPage2}\" class=\"col-xs-12\"><button style=\"float: right\" ng-click=\"doNext()\" ng-disabled=\"CaseService.newCasePage1Incomplete\" translate=\"\" class=\"btn btn-primary btn-next\">Next</button></div></div></div><div ng-class=\"{hidden: isPage1}\" id=\"rha-case-wizard-page-2\" class=\"rha-create-case-section\"><div class=\"rha-bottom-border\"><div class=\"row\"><div class=\"col-xs-12\"><div id=\"rha-newPage2-productVersion\" style=\"margin-bottom: 10px;\" class=\"rha-bold\">{{CaseService.kase.product}} {{CaseService.kase.version}}</div></div></div><div class=\"row\"><div class=\"col-xs-12\"><div id=\"rha-newPage2-caseSummary\" style=\"font-size: 90%; margin-bottom: 4px;word-wrap: break-word\" class=\"rha-bold\">{{CaseService.kase.summary}}</div></div></div><div class=\"row\"><div class=\"col-xs-12\"><div id=\"rha-newPage2-caseDescription\" style=\"font-size: 85%; white-space:pre-wrap;word-wrap: break-word\">{{CaseService.kase.description}}</div></div></div></div><div class=\"row rha-create-field\"><div class=\"col-md-4\"><label for=\"rha-entitlement-select\">{{'Support Level:'|translate}}</label></div><div ng-show=\"CaseService.entitlements.length &lt;= 1\" class=\"col-md-8\">{{CaseService.entitlements[0]}}</div><div ng-hide=\"CaseService.entitlements.length &lt;= 1\" class=\"col-md-8\"><div rha-entitlementselect=\"\"></div></div></div><div class=\"row rha-create-field\"><div class=\"col-md-4\"><div style=\"vertical-align: 50%; display: inline-block;\"><label for=\"rha-case-severity\">{{'Severity:'|translate}}</label><span tooltip-html-unsafe=\"{{&quot;Different support-level options might be available based on your account subscriptions. Your support level determines the type of response you can expect for your support case.&quot; |translate }}&lt;br&gt;&lt;/br&gt;&lt;a href='/support/offerings/production/sla.html' target='_blank'&gt;{{&quot;View Production Support Service Level Agreement&quot;|translate}}&lt;/a&gt;\" tabindex=\"0\" tooltip-trigger=\"focus\" class=\"glyphicon glyphicon-question-sign pull-right\"></span></div></div><div class=\"col-md-8\"><div rha-loadingindicator=\"\" loading=\"severitiesLoading\"><select id=\"rha-severity\" style=\"width: 100%;\" ng-model=\"CaseService.kase.severity\" ng-change=\"CaseService.onChangeFTSCheck()\" ng-disabled=\"submittingCase\" ng-options=\"s.name for s in CaseService.severities track by s.name\" class=\"form-control\"></select></div></div></div><div ng-show=\"CaseService.showFts()\"><div class=\"row rha-create-field\"><div class=\"col-md-4\"><label for=\"rha-ftsCheck\">{{'24x7 Support:'|translate}}</label></div><div class=\"col-md-8\"><input id=\"rha-ftsCheck\" type=\"checkbox\" ng-model=\"CaseService.fts\" style=\"display: inline-block;\"/></div></div><div ng-show=\"CaseService.fts\" class=\"row rha-create-field\"><div class=\"col-md-4\"><label for=\"rha-ftsContact\">{{'24x7 Contact:'|translate}}</label></div><div class=\"col-md-8\"><input id=\"rha-ftsContact\" ng-model=\"CaseService.fts_contact\" style=\"display: inline-block;\" class=\"form-control\"/></div></div></div><div class=\"row rha-create-field\"><div class=\"col-md-4\"><label for=\"rha-group-select\">{{'Case Group:'|translate}}</label></div><div class=\"col-md-8\"><div rha-groupselect=\"\" ng-init=\"setSearchOptions('false')\"></div></div></div><div ng-show=\"NEW_CASE_CONFIG.showAttachments &amp;&amp; securityService.loginStatus.authedUser.can_add_attachments\"><div class=\"row rha-create-field\"><div class=\"col-xs-12\"><label>{{'Attachments:'|translate}}</label></div></div><div ng-hide=\"ie8 &amp;&amp; NEW_CASE_CONFIG.isPCM || ie9 &amp;&amp; NEW_CASE_CONFIG.isPCM\" class=\"rha-bottom-border\"><div style=\"overflow: auto\" class=\"row rha-create-field\"><div class=\"col-xs-12\"><div rha-listnewattachments=\"\"></div></div></div><div ng-hide=\"submittingCase\" class=\"row rha-create-field\"><div class=\"col-xs-12\"><div rha-attachlocalfile=\"\" disabled=\"submittingCase\"></div></div></div><div ng-hide=\"submittingCase\" class=\"row rha-create-field\"><div class=\"col-xs-12\"><div ng-show=\"NEW_CASE_CONFIG.showServerSideAttachments\"><div class=\"server-attach-header\">Server File(s) To Attach:<div rha-choicetree=\"\" ng-model=\"attachmentTree\" ng-controller=\"BackEndAttachmentsCtrl\"></div></div></div></div></div></div><div ng-show=\"ie8 &amp;&amp; NEW_CASE_CONFIG.isPCM || ie9 &amp;&amp; NEW_CASE_CONFIG.isPCM\"><form id=\"fileUploaderForm\" enctype=\"multipart/form-data\" method=\"post\" target=\"upload_target\"><div class=\"container-fluid\"><div class=\"row rha-create-field\"><div class=\"col-xs-6\"><input id=\"fileUploader\" type=\"file\" value=\"upload\" name=\"file\"/></div><div class=\"col-xs-6\"><div style=\"float: left; word-wrap: break-word; width: 100%;\">{{fileName}}</div></div></div><div class=\"row rha-create-field\"><div style=\"font-size: 80%;\" class=\"col-xs-12\"><div ng-bind-html=\"parseArtifactHtml()\"></div></div><div style=\"font-size: 80%;\" class=\"col-xs-12\"><span>{{'File names must be less than 80 characters. Maximum file size for web-uploaded attachments is 1 GB. Please FTP larger files to dropbox.redhat.com.'|translate}}&nbsp;</span><span><a href=\"https://access.redhat.com/knowledge/solutions/2112\" target=\"_blank\">{{'(More info)'|translate}}</a></span></div></div><div class=\"row rha-create-field\"><div class=\"col-xs-12\"><input id=\"fileDescription\" style=\"float: left;\" type=\"text\" name=\"description\" ng-model=\"ieFileDescription\" placeholder=\"{{'File description'|translate}}\" class=\"form-control\"/></div></div></div></form><iframe id=\"upload_target\" name=\"upload_target\" style=\"width: 0; height: 0; border: 0px solid #fff;\"></iframe></div></div><div style=\"margin-top: 20px;\" class=\"row\"><div class=\"col-xs-6\"><button style=\"float: left\" ng-click=\"doPrevious()\" ng-disabled=\"submittingCase\" translate=\"\" class=\"btn btn-primary btn-previous\">Previous</button></div><div class=\"col-xs-6\"><button style=\"float: right\" ng-disabled=\"submittingCase\" ng-hide=\"submittingCase\" ng-click=\"doSubmit($event)\" translate=\"\" class=\"btn btn-primary btn-submit\">Submit</button><span ng-show=\"submittingCase\" style=\"float: right\" class=\"rha-search-spinner\"></span></div></div></div></div><div id=\"rha-new-recommendations\" ng-class=\"{&quot;col-xs-6&quot;: showRecommendationPanel}\" style=\"overflow: auto; padding-top: 24px\" ng-show=\"NEW_CASE_CONFIG.showRecommendations\"><div ng-controller=\"SearchController\" style=\"overflow: vertical;\"><div ng-hide=\"!NEW_CASE_CONFIG.isPCM &amp;&amp; showRecommendationPanel\" rha-newrecommendations=\"\"></div><div ng-hide=\"NEW_CASE_CONFIG.isPCM\" rha-accordionsearchresults=\"\"></div></div></div></div></div>");
 }]);
 
 angular.module("cases/views/newRecommendationsSection.html", []).run(["$templateCache", function($templateCache) {
@@ -7531,7 +7649,7 @@ angular.module("cases/views/recommendationsSection.html", []).run(["$templateCac
 
 angular.module("cases/views/requestManagementEscalationModal.html", []).run(["$templateCache", function($templateCache) {
   $templateCache.put("cases/views/requestManagementEscalationModal.html",
-    "<div class=\"modal-header\"><h3 translate=\"\">Request Management Escalation</h3></div><div style=\"padding: 20px;\" class=\"container-fluid\"><div class=\"row\"><div class=\"col-sm-12\"><span>{{'If you feel the issue has become more severe or the case should be a higher priority, please provide a detailed comment, and the case will be reviewed by a support manager.'|translate}}</span><a href=\"https://access.redhat.com/site/support/policy/mgt_escalation\" target=\"_blank\">{{'Learn more'|translate}}</a></div></div><div style=\"padding-top: 10px;\" class=\"row\"><div class=\"col-sm-12\"><div>{{'Comment:'|translate}}</div><textarea style=\"width: 100%; max-width: 100%; height: 200px;\" maxlength=\"32000\" ng-model=\"CaseService.escalationCommentText\" ng-disabled=\"submittingRequest\" ng-change=\"onNewEscalationComment()\"></textarea></div></div><div style=\"border-top: 1px; solid #cccccc; padding-top: 10px;\" class=\"row\"><div class=\"col-sm-12\"><div class=\"pull-right\"><button id=\"rha-case-escalation-submitbutton\" style=\"margin-left: 10px;\" ng-click=\"submitRequestClick(CaseService.escalationCommentText)\" ng-disabled=\"submittingRequest || disableSubmitRequest\" class=\"btn-secondary btn\"><span>{{'Submit Request'|translate}}</span></button></div><button ng-click=\"closeModal()\" ng-disabled=\"submittingRequest\" class=\"btn-secondary btn pull-right\">Cancel</button><span ng-show=\"submittingRequest\" class=\"rha-search-spinner\"></span></div></div></div>");
+    "<div class=\"modal-header\"><h3 translate=\"\">Request Management Escalation</h3></div><div style=\"padding: 20px;\" class=\"container-fluid\"><div class=\"row\"><div class=\"col-sm-12\"><span>{{'If you feel the issue has become more severe or the case should be a higher priority, please provide a detailed comment, and the case will be reviewed by a support manager.'|translate}}</span><a href=\"https://access.redhat.com/site/support/policy/mgt_escalation\" target=\"_blank\">{{'Learn more'|translate}}</a></div></div><div style=\"padding-top: 10px;\" class=\"row\"><div class=\"col-sm-12\"><div>{{'Comment:'|translate}}</div><textarea style=\"width: 100%; max-width: 100%; height: 200px;\" maxlength=\"32000\" ng-model=\"CaseService.escalationCommentText\" ng-disabled=\"submittingRequest\" ng-change=\"onNewEscalationComment()\"></textarea></div></div><div style=\"border-top: 1px; solid #cccccc; padding-top: 10px;\" class=\"row\"><div class=\"col-sm-12\"><div class=\"pull-right\"><button id=\"rha-case-escalation-submitbutton\" style=\"margin-left: 10px;\" ng-click=\"submitRequestClick(CaseService.escalationCommentText)\" ng-disabled=\"submittingRequest || disableSubmitRequest\" class=\"btn-secondary btn\"><span>{{'Submit Request'|translate}}</span></button></div><button ng-click=\"closeModal()\" ng-disabled=\"submittingRequest\" class=\"btn-secondary btn pull-right\">{{'Cancel'|translate}}</button><span ng-show=\"submittingRequest\" class=\"rha-search-spinner\"></span></div></div></div>");
 }]);
 
 angular.module("cases/views/search.html", []).run(["$templateCache", function($templateCache) {
@@ -7541,7 +7659,7 @@ angular.module("cases/views/search.html", []).run(["$templateCache", function($t
 
 angular.module("cases/views/searchBox.html", []).run(["$templateCache", function($templateCache) {
   $templateCache.put("cases/views/searchBox.html",
-    "<div class=\"input-group\"><input id=\"rha-searchform-searchbox\" ng-disabled=\"!securityService.loginStatus.isLoggedIn\" placeholder=\"{{placeholder}}\" ng-model=\"SearchBoxService.searchTerm\" ng-keypress=\"onFilterKeyPress($event)\" ng-change=\"SearchBoxService.onChange()\" class=\"form-control\"/><span class=\"input-group-btn\"><button id=\"rha-searchform-searchbutton\" ng-click=\"SearchBoxService.doSearch()\" ng-disabled=\"!securityService.loginStatus.isLoggedIn\" class=\"btn btn-default btn-primary\"><i class=\"glyphicon glyphicon-search\"></i> {{'Search'|translate}}</button></span></div>");
+    "<div class=\"input-group\"><input id=\"rha-searchform-searchbox\" ng-disabled=\"!securityService.loginStatus.isLoggedIn\" placeholder=\"{{placeholder}}\" ng-model=\"SearchBoxService.searchTerm\" ng-keypress=\"onFilterKeyPress($event)\" ng-change=\"SearchBoxService.onChange()\" class=\"form-control\"/><span ng-hide=\"hidebutton\" class=\"input-group-btn\"><button id=\"rha-searchform-searchbutton\" ng-click=\"SearchBoxService.doSearch()\" ng-disabled=\"!securityService.loginStatus.isLoggedIn\" class=\"btn btn-default btn-primary\"><i class=\"glyphicon glyphicon-search\"></i> {{'Search'|translate}}</button></span></div>");
 }]);
 
 angular.module("cases/views/searchResult.html", []).run(["$templateCache", function($templateCache) {
@@ -7711,131 +7829,17 @@ angular.module("log_viewer/views/recommendations.html", []).run(["$templateCache
     "</div>");
 }]);
 
-angular.module("escalation/views/partnerEscalationForm.html", []).run(["$templateCache", function($templateCache) {
-  $templateCache.put("escalation/views/partnerEscalationForm.html",
-    "<!DOCTYPE html>\n" +
-    "<div id=\"redhat-access-escalations\" class=\"container-offset\">\n" +
-    "<div rha-header=\"\" page=\"escalationView\"/>\n" +
-    "<h1>{{'Priority Customer Support Routing'|translate}}</h1>\n" +
-    "<span>{{'Red Hat Global Support Services (GSS) and Red Hat Global Partner Enablement have  established Partner Escalation to enable our strategic partners to escalate unresolved or mission critical customer support cases to GSS leadership. This process will help you and Red Hat to better manage your customers issues and provide a process for driving these issues to resolution.'|translate}}</span>\n" +
-    "<p>{{'Once your request is submitted, a partner escalation case will be opened with GSS and the GSS leadership team will be notified. You will then receive an email at the email address provided below with the partner escalation case number and additional information on how to track progress.'|translate}}</p>\n" +
-    "\n" +
-    "<p>Please <a target=\"_blank\" href=\"https://access.redhat.com/site/articles/546553\">click here</a> for more information.</p><p>{{'Please provide as much information as possible in the form.'|translate}}</p> <span id=\"requireFieldInfo\"><p> <b>* {{'marked fields are mandatory fields.'|translate}} </b></p></span>\n" +
-    "\n" +
-    "	\n" +
-    "<form id=\"rha-partner-case-escalation\" class=\"form-horizontal\" enctype=\"application/x-www-form-urlencoded\">	\n" +
-    "	<div class=\"row ng-scope\" ng-controller = 'PartnerEscalation' id=\"rha-escalation\">\n" +
-    "		<div class=\"col-md-7 col-md-offset-1 push-bottom\">\n" +
-    "			<fieldset>\n" +
-    "				<legend><span class=\"number\">1</span>{{'Requestor'|translate}}</legend>\n" +
-    "	    			\n" +
-    "	    			<div class=\"form-group\">\n" +
-    "	    				<label class=\"col-sm-5 control-label\" for=\"rha-requestor-email\">{{'Your Email Address'|translate}}</label>\n" +
-    "	    				<div class=\"col-sm-7\">\n" +
-    "		    				<input id=\"rha-requestor-email\" ng-model='EscalationRequestService.requestorEmail' class=\"form-control nonEmpty\" type=\"text\">\n" +
-    "							<span class=\"help-block\">{{'This should be the email address associated with your Red Hat Customer Portal or Partner Center login'|translate}}\n" +
-    "							</span>\n" +
-    "						</div>							 \n" +
-    "	    			</div>\n" +
-    "	    			<div class=\"form-group\">\n" +
-    "	    				<label class=\"col-sm-5 control-label\" for=\"rha-requestor-phone\">{{'Your Phone Number'|translate}}</label>\n" +
-    "	    				<div class=\"col-sm-7\">\n" +
-    "	    					<input id=\"rha-requestor-phone\" ng-model='EscalationRequestService.requestorPhone' class=\"form-control nonEmpty\" type=\"text\">\n" +
-    "	    				</div>\n" +
-    "	    			</div>\n" +
-    "\n" +
-    "			</fieldset>\n" +
-    "		</div>\n" +
-    "\n" +
-    "		<div class=\"col-md-7 col-md-offset-1 push-bottom\">\n" +
-    "			<fieldset>\n" +
-    "				<legend><span class=\"number\">2</span>{{'Customer'|translate}}</legend>\n" +
-    "\n" +
-    "	    			<div class=\"form-group\">\n" +
-    "	    				<label class=\"col-sm-5 control-label\" for=\"rha-account-number\">{{'Customer Account Number *'|translate}}</label>\n" +
-    "						<div class=\"col-sm-7\">\n" +
-    "		    				<input id=\"rha-account-number\" ng-model='EscalationRequestService.accountNumber' class=\"form-control nonEmpty\" type=\"text\" ng-change=\"mandatoryFieldCheck()\">\n" +
-    "							<span class=\"help-block\">{{'Please request the account number from \n" +
-    "							the customer if possible, otherwise use your Red Hat account number.  \n" +
-    "							The account number can be found by clicking on the username in the top \n" +
-    "							right corner of this page.'|translate}}</span>\n" +
-    "						</div>\n" +
-    "	    			</div>\n" +
-    "	    			<div class=\"form-group\">\n" +
-    "	    				<label class=\"col-sm-5 control-label\" for=\"rha-customer-name\">{{'Customer Contact Name'|translate}}</label>\n" +
-    "	    				<div class=\"col-sm-7\">\n" +
-    "	    					<input id=\"rha-customer-name\" class=\"form-control nonEmpty\" ng-model='EscalationRequestService.customerName' type=\"text\">\n" +
-    "	    				</div>\n" +
-    "	    			</div>\n" +
-    "\n" +
-    "	    			<div class=\"form-group\">\n" +
-    "	    				<label class=\"col-sm-5 control-label\" for=\"rha-customer-contact-email\">{{'Customer Contact Email'|translate}}</label>\n" +
-    "	    				<div class=\"col-sm-7\">\n" +
-    "	    					<input id=\"rha-customer-contact-email\" ng-model='EscalationRequestService.customerEmail' class=\"form-control nonEmpty\" type=\"text\">\n" +
-    "	    				</div>\n" +
-    "	    			</div>\n" +
-    "	    			<div class=\"form-group\">\n" +
-    "	    				<label class=\"col-sm-5 control-label\" for=\"rha-customer-contact-phone-number\">{{'Customer Contact Number'|translate}}</label>\n" +
-    "	    				<div class=\"col-sm-7\">\n" +
-    "	    					<input id=\"rha-customer-contact-phone-number\" ng-model='EscalationRequestService.customerPhone' class=\"form-control nonEmpty\" type=\"text\">\n" +
-    "							<span class=\"help-block\">{{'For example: 1-888-467-3342'|translate}}</span>\n" +
-    "						</div>\n" +
-    "	    			</div>\n" +
-    "	    			<div class=\"form-group\">\n" +
-    "	    				<label class=\"col-sm-5 control-label\" for=\"rha-geo\">{{'Customer GEO *'|translate}}</label>\n" +
-    "	    				<div class=\"col-sm-7\">\n" +
-    "	    					<select id=\"rha-geo\" class=\"productSelect nonEmpty\"\n" +
-    "	    					ng-options='geo for geo in geoList' ng-model=\"EscalationRequestService.geo\" ng-change=\"mandatoryFieldCheck()\">\n" +
-    "							</select>\n" +
-    "							<span class=\"help-block\">NA-North America, EMEA-Europe,the Middle East and Africa, LATAM-Latin America, APAC-Asia Pacific</span>\n" +
-    "						</div>\n" +
-    "	    			</div>\n" +
-    "\n" +
-    "			</fieldset>\n" +
-    "		</div>\n" +
-    "\n" +
-    "		<div class=\"col-md-7 col-md-offset-1 push-bottom\">\n" +
-    "			<fieldset>\n" +
-    "				<legend><span class=\"number\">3</span>{{'Case Information'|translate}}</legend>\n" +
-    "	    			<div class=\"form-group\">\n" +
-    "	    				<label class=\"col-sm-5 control-label\" for=\"rha-case-number\">{{'Red Hat Support Ticket Number *'|translate}}</label>\n" +
-    "	    				<div class=\"col-sm-7\"> \n" +
-    "		    				<input id=\"rha-case-number\" ng-model='EscalationRequestService.caseNumber' class=\"form-control nonEmpty\" type=\"text\" ng-change=\"mandatoryFieldCheck()\">\n" +
-    "							<span class=\"help-block\">{{'This is your 8 digit Red Hat Support ticket number'|translate}}</span>\n" +
-    "						</div>\n" +
-    "	    			</div>\n" +
-    "\n" +
-    "	    			<div class=\"form-group\">\n" +
-    "						<label class=\"col-sm-5 control-label\" for=\"rha-already-escalated\">{{'Already Escalated?'|translate}}</label>\n" +
-    "						<div class=\"col-sm-7\">\n" +
-    "							<input id=\"rha-already-escalated\" name=\"AlreadyEscalated\" class=\"nonEmpty\" ng-model='EscalationRequestService.alreadyEscalated' type=\"checkbox\">\n" +
-    "	    				</div>	    				\n" +
-    "					</div>\n" +
-    "					<div class=\"clear\"></div>\n" +
-    "	    			<div class=\"form-group\">\n" +
-    "	    				<label class=\"col-sm-5 control-label\" for=\"rha-issue-description\">{{'Issue Description *'|translate}}</label>\n" +
-    "	    				<div class=\"col-sm-7\">\n" +
-    "	    					<textarea ng-model='EscalationRequestService.issueDescription' id=\"rha-issue-description\" class=\"form-control nonEmpty\" ng-change=\"mandatoryFieldCheck()\"></textarea>\n" +
-    "	    					<span class=\"help-block\">{{'Please provide as much detail as possible to help us understand the issue, for example:Reason for the escalation, the business context, the competitive situation, past support experience'|translate}}</span>\n" +
-    "	    				</div>\n" +
-    "	    			</div>\n" +
-    "	    			<div class=\"form-group\">\n" +
-    "	    				<label class=\"col-sm-5 control-label\" for=\"rha-expectations\">{{'Expectation'|translate}}</label>\n" +
-    "	    				<div class=\"col-sm-7\">\n" +
-    "	    					<textarea ng-model='EscalationRequestService.expectations' id=\"rha-expectations\" class=\"form-control nonEmpty\"></textarea>\n" +
-    "	    					<span class=\"help-block\">{{'Please provide expectations and desired outcomes from yourself and from the customer'|translate}}</span>\n" +
-    "	    				</div>\n" +
-    "	    			</div>\n" +
-    "	    			\n" +
-    "			</fieldset>\n" +
-    "		</div>\n" +
-    "\n" +
-    "		<div class=\"clear\"></div>\n" +
-    "		<div class=\"col-md-7 col-md-offset-1 push-bottom\">\n" +
-    "			<input id=\"sendRequest\" value=\"Send Request\" class=\"btn btn-primary\" ng-click=\"submitEscalationRequest()\" ng-disabled=\"disableSendRequest\">\n" +
-    "		</div>	\n" +
-    "	</div>\n" +
-    "</form>\n" +
-    "</div>\n" +
-    "						");
+angular.module("escalation/views/403.html", []).run(["$templateCache", function($templateCache) {
+  $templateCache.put("escalation/views/403.html",
+    "<div id=\"outageHead\"><div id=\"errornoDirectSupport403\"><h1 translate=\"\">Support Subscription Required</h1><p translate=\"\">The credentials you provided are valid, but you do not have <b>direct support from Red Hat.</b></p><p translate=\"\">If you believe you should have permission to view this resource, please <a href=\"/support/contact/customerService.html\">contact Customer Service</a> for assistance. Your Red Hat login might not be associated with the right account for your organization, or there might be an issue with your subscription. Either way, Customer Service should be able to help you resolve the problem.</p></div></div>");
+}]);
+
+angular.module("escalation/views/iceEscalation.html", []).run(["$templateCache", function($templateCache) {
+  $templateCache.put("escalation/views/iceEscalation.html",
+    "<div id=\"redhat-access-case\" ng-show=\"!securityService.loginStatus.authedUser.is_internal\" class=\"container-offset\"><div rha-403escalationerror=\"\"></div></div><div id=\"redhat-access-escalations\" ng-show=\"securityService.loginStatus.authedUser.is_internal\" class=\"container-offset\"><div rha-header=\"\" page=\"iceEscalationView\"></div><h1><span class=\"rha-bold\">{{'GSS ICE Form'|translate}}</span></h1><p><span>{{'This Internal Customer Escalation submission form can be used by any Red Hat associate to obtain management support for issues that require attention outside of the standard support process. Please visit the '|translate}}</span><a target=\"_blank\" href=\"https://home.corp.redhat.com/node/66782\">{{'GSS ICE FAQ'|translate}}</a><span> {{'for more information about the ICE process.'|translate}}    </span></p><p><span>{{'Once the request is submitted, and ICE ticket will be raised in the GSS case management system and brought to the attention of the GSS leadership team.'|translate}}</span></p><p><span>{{'The requestor will then receive an email (at the email address provided below) with the ICE ticket number and additional information on how to track the progress of their issue.'|translate}}</span></p><p><span>{{'Please provide as much information/detail as possible in the form.'|translate}}</span></p><p><span>{{'GSS is currently working on enhancing the ICE process through the use of email. Watch this space for more details as they become available.'|translate}}</span></p><p><span>{{'If this form is not working for any reason please submit a ticket at helpdesk@redhat.com noting a problem with GSS Ticketing and the ICE form'|translate}}</span></p><p><span id=\"requireFieldInfo\" class=\"rha-bold\">{{'* All fields are mandatory.'|translate}}</span></p><form id=\"rha-case-escalation\" class=\"form-horizontal\"><div id=\"rha-escalation\" ng-controller=\"EscalationRequest\" class=\"row ng-scope\"><div class=\"col-md-7 col-md-offset-1 push-bottom\"><fieldset><legend><span class=\"number\">1</span>{{'Requestor'|translate}}</legend><div class=\"form-group\"><label for=\"rha-requestor-email\" class=\"col-sm-5 control-label\">{{'Your Email address'|translate}}</label><div class=\"col-sm-7\"><input id=\"rha-requestor-email\" ng-model=\"EscalationRequestService.requestorEmail\" ng-change=\"iceMandatoryFieldCheck()\" class=\"form-control nonEmpty\"/><span class=\"help-block\">{{'Your Red Hat Email Address'|translate}}</span></div></div><div class=\"form-group\"><label for=\"rha-requestor-phone\" class=\"col-sm-5 control-label\">{{'Your Phone Number'|translate}}</label><div class=\"col-sm-7\"><input id=\"rha-requestor-phone\" ng-model=\"EscalationRequestService.requestorPhone\" ng-change=\"iceMandatoryFieldCheck()\" class=\"form-control nonEmpty\"/><span class=\"help-block\">{{'Your Red Hat Contact Phone Number'|translate}}</span></div></div></fieldset></div><div class=\"col-md-7 col-md-offset-1 push-bottom\"><fieldset><legend><span class=\"number\">2</span>{{'Customer'|translate}}</legend><div class=\"form-group\"><label for=\"rha-account-number\" class=\"col-sm-5 control-label\">{{'Customer Account Number'|translate}}</label><div class=\"col-sm-7\"><input id=\"rha-account-number\" ng-model=\"EscalationRequestService.accountNumber\" ng-change=\"iceMandatoryFieldCheck()\" class=\"form-control nonEmpty\"/><span class=\"help-block\">{{'Please request the account number from the customer if possible, otherwise use your Red Hat account number.The account number can be found by clicking on the username in the top right corner of this page.'|translate}}</span></div></div><div class=\"form-group\"><label for=\"rha-customer-name\" class=\"col-sm-5 control-label\">{{'Customer Contact Name'|translate}}</label><div class=\"col-sm-7\"><input id=\"rha-customer-name\" ng-model=\"EscalationRequestService.customerName\" ng-change=\"iceMandatoryFieldCheck()\" class=\"form-control nonEmpty\"/></div></div><div class=\"form-group\"><label for=\"rha-customer-contact-email\" class=\"col-sm-5 control-label\">{{'Customer Contact Email'|translate}}</label><div class=\"col-sm-7\"><input id=\"rha-customer-contact-email\" ng-model=\"EscalationRequestService.customerEmail\" ng-change=\"iceMandatoryFieldCheck()\" class=\"form-control nonEmpty\"/></div></div><div class=\"form-group\"><label for=\"rha-customer-contact-phone-number\" class=\"col-sm-5 control-label\">{{'Customer Contact Number'|translate}}</label><div class=\"col-sm-7\"><input id=\"rha-customer-contact-phone-number\" ng-model=\"EscalationRequestService.customerPhone\" ng-change=\"iceMandatoryFieldCheck()\" class=\"form-control nonEmpty\"/><span class=\"help-block\">{{'For example: 1-888-467-3342'|translate}}</span></div></div><div class=\"form-group\"><label for=\"rha-geo\" class=\"col-sm-5 control-label\">{{'Customer GEO'|translate}}</label><div class=\"col-sm-7\"><select id=\"rha-geo\" ng-model=\"EscalationRequestService.geo\" ng-options=\"geo for geo in iceGeoList\" ng-change=\"iceMandatoryFieldCheck()\" class=\"form-control productSelect nonEmpty\"></select><span class=\"help-block\">NA-North America, EMEA-Europe,the Middle East and Africa, LATAM-Latin America, APAC-Asia Pacific</span></div></div></fieldset></div><div class=\"col-md-7 col-md-offset-1 push-bottom\"><fieldset><legend><span class=\"number\">3</span>{{'Case Information'|translate}}</legend><div class=\"form-group\"><label for=\"rha-case-number\" class=\"col-sm-5 control-label\">{{'Red Hat Support Ticket Number'|translate}}</label><div class=\"col-sm-7\"><input id=\"rha-case-number\" ng-model=\"EscalationRequestService.caseNumber\" ng-change=\"iceMandatoryFieldCheck()\" class=\"form-control nonEmpty\"/><span class=\"help-block\">{{'This is your 8 digit Red Hat Support ticket number'|translate}}</span></div></div><div class=\"form-group\"><label for=\"rha-already-escalated\" class=\"col-sm-5 control-label\">{{'Already Escalated?'|translate}}</label><div class=\"col-sm-7\"><input id=\"rha-already-escalated\" type=\"checkbox\" ng-model=\"EscalationRequestService.alreadyEscalated\" class=\"nonEmpty\"/></div></div><div class=\"form-group\"><label for=\"rha-issue-description\" class=\"col-sm-5 control-label\">{{'Issue Description'|translate}}</label><div class=\"col-sm-7\"><textarea id=\"rha-issue-description\" ng-model=\"EscalationRequestService.issueDescription\" ng-change=\"iceMandatoryFieldCheck()\" class=\"form-control nonEmpty\"></textarea><span class=\"help-block\">{{'Please provide as much detail as possible to help us understand the issue, for example:'|translate}}<p><span>{{'Reason for the escalation, the business context, the competitive situation, past support experience'|translate}}</span></p><p><span>{{'If you are requesting an account review, if this is related to aspecific problem/ticket or a series of problems/tickets or if this is a general or generic complain'|translate}}</span></p><p><span>{{'If this is a request for information from you or the customer and if you need us to contact you to discuss the issues.'|translate}}</span></p></span></div></div><div class=\"form-group\"><label for=\"rha-expectations\" class=\"col-sm-5 control-label\">{{'Expectation'|translate}}</label><div class=\"col-sm-7\"><textarea id=\"rha-expectations\" ng-model=\"EscalationRequestService.expectations\" ng-change=\"iceMandatoryFieldCheck()\" class=\"form-control nonEmpty\"></textarea><span class=\"help-block\">{{'Please provide expectations and desired outcomes from yourself and from the customer'|translate}}</span></div></div></fieldset></div><div class=\"clear\"></div><div class=\"col-md-7 col-md-offset-1 push-bottom\"><button ng-click=\"submitEscalationRequest(ESCALATION_TYPE.ice)\" ng-disabled=\"disableSendRequest\" translate=\"\" class=\"btn btn-primary\">Send Request</button></div></div></form></div>");
+}]);
+
+angular.module("escalation/views/partnerEscalation.html", []).run(["$templateCache", function($templateCache) {
+  $templateCache.put("escalation/views/partnerEscalation.html",
+    "<div id=\"redhat-access-case\" ng-show=\"EscalationRequestService.notPartnerLogin\" class=\"container-offset\"><div rha-403escalationerror=\"\"></div></div><div id=\"redhat-access-escalations\" ng-hide=\"EscalationRequestService.notPartnerLogin\" class=\"container-offset\"><div rha-header=\"\" page=\"partnerEscalationView\"></div><h1><span class=\"rha-bold\">{{'Priority Customer Support Routing'|translate}}</span></h1><span>{{'Red Hat Global Support Services (GSS) and Red Hat Global Partner Enablement have  established Partner Escalation to enable our strategic partners to escalate unresolved or mission critical customer support cases to GSS leadership. This process will help you and Red Hat to better manage your customers issues and provide a process for driving these issues to resolution.'|translate}}</span><p>{{'Once your request is submitted, a partner escalation case will be opened with GSS and the GSS leadership team will be notified. You will then receive an email at the email address provided below with the partner escalation case number and additional information on how to track progress.'|translate}}</p><p> <span>{{'Please'|translate}}</span><a target=\"_blank\" href=\"https://access.redhat.com/site/articles/546553\">{{' click here '|translate}}</a><span>{{'for more information.'|translate}}</span></p><p><span>{{'Please provide as much information as possible in the form.'|translate}}  </span></p><p><span id=\"requireFieldInfo\" class=\"rha-bold\">{{'* marked fields are mandatory fields.'|translate}} </span></p><form id=\"rha-case-escalation\" class=\"form-horizontal\"><div id=\"rha-escalation\" ng-controller=\"EscalationRequest\" class=\"row ng-scope\"><div class=\"col-md-7 col-md-offset-1 push-bottom\"><fieldset><legend><span class=\"number\">1</span>{{'Requestor'|translate}}</legend><div class=\"form-group\"><label for=\"rha-requestor-email\" class=\"col-sm-5 control-label\">{{'Your Email address'|translate}}</label><div class=\"col-sm-7\"><input id=\"rha-requestor-email\" ng-model=\"EscalationRequestService.requestorEmail\" class=\"form-control nonEmpty\"/><span class=\"help-block\">{{'This should be the email address associated with your Red Hat Customer Portal or Partner Center login'|translate}}</span></div></div><div class=\"form-group\"><label for=\"rha-requestor-phone\" class=\"col-sm-5 control-label\">{{'Your Phone Number'|translate}}</label><div class=\"col-sm-7\"><input id=\"rha-requestor-phone\" ng-model=\"EscalationRequestService.requestorPhone\" class=\"form-control nonEmpty\"/></div></div></fieldset></div><div class=\"col-md-7 col-md-offset-1 push-bottom\"><fieldset><legend><span class=\"number\">2</span>{{'Customer'|translate}}</legend><div class=\"form-group\"><label for=\"rha-account-number\" class=\"col-sm-5 control-label\">{{'Customer Account Number'|translate}} *</label><div class=\"col-sm-7\"><input id=\"rha-account-number\" ng-model=\"EscalationRequestService.accountNumber\" ng-change=\"partnerMandatoryFieldCheck()\" class=\"form-control nonEmpty\"/><span class=\"help-block\">{{'Please request the account number from the customer if possible, otherwise use your Red Hat account number.The account number can be found by clicking on the username in the top right corner of this page.'|translate}}</span></div></div><div class=\"form-group\"><label for=\"rha-customer-name\" class=\"col-sm-5 control-label\">{{'Customer Contact Name'|translate}}</label><div class=\"col-sm-7\"><input id=\"rha-customer-name\" ng-model=\"EscalationRequestService.customerName\" class=\"form-control nonEmpty\"/></div></div><div class=\"form-group\"><label for=\"rha-customer-contact-email\" class=\"col-sm-5 control-label\">{{'Customer Contact Email'|translate}}</label><div class=\"col-sm-7\"><input id=\"rha-customer-contact-email\" ng-model=\"EscalationRequestService.customerEmail\" class=\"form-control nonEmpty\"/></div></div><div class=\"form-group\"><label for=\"rha-customer-contact-phone-number\" class=\"col-sm-5 control-label\">{{'Customer Contact Number'|translate}}</label><div class=\"col-sm-7\"><input id=\"rha-customer-contact-phone-number\" ng-model=\"EscalationRequestService.customerPhone\" class=\"form-control nonEmpty\"/><span class=\"help-block\">{{'For example: 1-888-467-3342'|translate}}</span></div></div><div class=\"form-group\"><label for=\"rha-geo\" class=\"col-sm-5 control-label\">{{'Customer GEO'|translate}} *</label><div class=\"col-sm-7\"><select id=\"rha-geo\" ng-model=\"EscalationRequestService.geo\" ng-options=\"geo for geo in partnerGeoList\" ng-change=\"partnerMandatoryFieldCheck()\" class=\"form-control productSelect nonEmpty\">             </select><span class=\"help-block\">NA-North America, EMEA-Europe,the Middle East and Africa, LATAM-Latin America, APAC-Asia Pacific</span></div></div></fieldset></div><div class=\"col-md-7 col-md-offset-1 push-bottom\"><fieldset><legend><span class=\"number\">3</span>{{'Case Information'|translate}}</legend><div class=\"form-group\"><label for=\"rha-case-number\" class=\"col-sm-5 control-label\">{{'Red Hat Support Ticket Number'|translate}} *</label><div class=\"col-sm-7\"><input id=\"rha-case-number\" ng-model=\"EscalationRequestService.caseNumber\" ng-change=\"partnerMandatoryFieldCheck()\" class=\"form-control nonEmpty\"/><span class=\"help-block\">{{'This is your 8 digit Red Hat Support ticket number'|translate}}</span></div></div><div class=\"form-group\"><label for=\"rha-already-escalated\" class=\"col-sm-5 control-label\">{{'Already Escalated?'|translate}}</label><div class=\"col-sm-7\"><input id=\"rha-already-escalated\" type=\"checkbox\" ng-model=\"EscalationRequestService.alreadyEscalated\" class=\"nonEmpty\"/></div></div><div class=\"form-group\"><label for=\"rha-issue-description\" class=\"col-sm-5 control-label\">{{'Issue Description'|translate}} *</label><div class=\"col-sm-7\"><textarea id=\"rha-issue-description\" ng-model=\"EscalationRequestService.issueDescription\" ng-change=\"partnerMandatoryFieldCheck()\" class=\"form-control nonEmpty\"></textarea><span class=\"help-block\">{{'Please provide as much detail as possible to help us understand the issue, for example:Reason for the escalation, the business context, the competitive situation, past support experience'|translate}}</span></div></div><div class=\"form-group\"><label for=\"rha-expectations\" class=\"col-sm-5 control-label\">{{'Expectation'|translate}}</label><div class=\"col-sm-7\"><textarea id=\"rha-expectations\" ng-model=\"EscalationRequestService.expectations\" class=\"form-control nonEmpty\"></textarea><span class=\"help-block\">{{'Please provide expectations and desired outcomes from yourself and from the customer'|translate}}</span></div></div></fieldset></div><div class=\"clear\"></div><div class=\"col-md-7 col-md-offset-1 push-bottom\"><button ng-click=\"submitEscalationRequest(ESCALATION_TYPE.partner)\" ng-disabled=\"disableSendRequest\" translate=\"\" class=\"btn btn-primary\">Send Request</button></div></div></form></div>");
 }]);
