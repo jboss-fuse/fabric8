@@ -107,6 +107,7 @@ import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.PushResult;
+import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.gitective.core.RepositoryUtils;
 import io.fabric8.api.gravia.IllegalArgumentAssertion;
@@ -636,6 +637,10 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                 public Void call(Git git, GitContext context) throws Exception {
                     removeVersionFromCaches(versionId);
                     GitHelpers.removeBranch(git, versionId);
+                    git.push().setTimeout(gitTimeout)
+                            .setCredentialsProvider(getCredentialsProvider())
+                            .setRefSpecs(new RefSpec().setSource(null).setDestination("refs/heads/" + versionId))
+                            .call();
                     return null;
                 }
             };

@@ -101,14 +101,26 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
         Map<String, Ref> remoteBranches = new HashMap<String, Ref>();
         Set<String> allBranches = new HashSet<String>();
         try {
+            // list local branches
             for (Ref ref : git.branchList().setListMode(ListBranchCommand.ListMode.ALL).call()) {
-                if (ref.getName().startsWith("refs/remotes/" + remoteRef + "/")) {
-                    String name = ref.getName().substring(("refs/remotes/" + remoteRef + "/").length());
-                    remoteBranches.put(name, ref);
-                    allBranches.add(name);
-                } else if (ref.getName().startsWith("refs/heads/")) {
+                // FABRIC-1173, ENTESB-1332 - we can't list *really* remote branches by listing remote references to
+                // those branches from local git repo
+//                if (ref.getName().startsWith("refs/remotes/" + remoteRef + "/")) {
+//                    String name = ref.getName().substring(("refs/remotes/" + remoteRef + "/").length());
+//                    remoteBranches.put(name, ref);
+//                    allBranches.add(name);
+//                }
+                if (ref.getName().startsWith("refs/heads/")) {
                     String name = ref.getName().substring(("refs/heads/").length());
                     localBranches.put(name, ref);
+                    allBranches.add(name);
+                }
+            }
+            // list remote branches
+            for (Ref ref : git.lsRemote().setCredentialsProvider(credentialsProvider).setTags(false).setRemote(remoteRef).setHeads(true).call()) {
+                if (ref.getName().startsWith("refs/heads/")) {
+                    String name = ref.getName().substring(("refs/heads/").length());
+                    remoteBranches.put(name, ref);
                     allBranches.add(name);
                 }
             }
@@ -138,8 +150,9 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                 boolean allowDelete = allowVersionDelete && !GitHelpers.MASTER_BRANCH.equals(branch);
                 if (localBranches.containsKey(branch) && !remoteBranches.containsKey(branch)) {
                     if (allowDelete) {
-                        LOGGER.debug("Deleting local branch: {}", branch);
-                        git.branchDelete().setBranchNames(branch).setForce(true).call();
+                        String remotebranchRef = String.format("remotes/%s/%s", remoteRef, branch);
+                        LOGGER.debug("Deleting local branch: {} and local reference to remote branch: {}", branch, remotebranchRef);
+                        git.branchDelete().setBranchNames(branch, remotebranchRef).setForce(true).call();
                         localUpdate = true;
                     } else {
                         remoteUpdate = true;
