@@ -105,12 +105,15 @@ public class MQManager implements MQManagerMXBean {
     private CuratorFramework curator;
     @Reference(referenceInterface = RuntimeProperties.class)
     private RuntimeProperties runtimeProperties;
+    @Reference(referenceInterface = ProfileService.class)
+    private ProfileService profileService;
 
     private MQService mqService;
 
     @Activate
     void activate() throws Exception {
         Objects.notNull(fabricService, "fabricService");
+        Objects.notNull(profileService, "profileService");
         mqService = createMQService(fabricService, runtimeProperties);
         if (mbeanServer != null) {
             StandardMBean mbean = new StandardMBean(this, MQManagerMXBean.class);
@@ -139,11 +142,16 @@ public class MQManager implements MQManagerMXBean {
 
     @Override
     public List<MQBrokerStatusDTO> loadBrokerStatus() throws Exception {
+        return loadBrokerStatus(null); // default version
+    }
+
+    @Override
+    public List<MQBrokerStatusDTO> loadBrokerStatus(String versionId) throws Exception {
         FabricRequirements requirements = fabricService.getRequirements();
         List<MQBrokerStatusDTO> answer = new ArrayList<MQBrokerStatusDTO>();
-        Version defaultVersion = fabricService.getDefaultVersion();
+        Version version = versionId == null ? fabricService.getDefaultVersion() : profileService.getVersion(versionId);
         Container[] containers = fabricService.getContainers();
-        List<Profile> values = getActiveOrRequiredBrokerProfileMap(defaultVersion, requirements);
+        List<Profile> values = getActiveOrRequiredBrokerProfileMap(version, requirements);
         for (Profile profile : values) {
             List<MQBrokerConfigDTO> list = createConfigDTOs(mqService, profile);
             for (MQBrokerConfigDTO configDTO : list) {
@@ -228,7 +236,6 @@ public class MQManager implements MQManagerMXBean {
             }
         }
     }
-
 
     protected static String stringValue(Map<String, Object> map, String... keys) {
         Object value = value(map, keys);
@@ -336,8 +343,8 @@ public class MQManager implements MQManagerMXBean {
             for (Profile profile : profiles) {
                 // ignore if we don't have any requirements or instances as it could be profiles such
                 // as the out of the box mq-default / mq-amq etc
-            	String versionId = profile.getVersion();
-            	String profileId = profile.getId();
+                String versionId = profile.getVersion();
+                String profileId = profile.getId();
                 if (requirements.hasMinimumInstances(profileId) || fabricService.getAssociatedContainers(versionId, profileId).length > 0) {
                     Profile overlay = profileService.getOverlayProfile(profile);
                     Map<String, Map<String, String>> configurations = overlay.getConfigurations();
@@ -362,7 +369,6 @@ public class MQManager implements MQManagerMXBean {
         return key.startsWith(MQService.MQ_FABRIC_SERVER_PID_PREFIX);
     }
 
-
     @Override
     public void saveBrokerConfigurationJSON(String json) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
@@ -386,7 +392,6 @@ public class MQManager implements MQManagerMXBean {
             createOrUpdateProfile(dto, fabricService, runtimeProperties);
         }
     }
-
 
     /**
      * Creates or updates the broker profile for the given DTO and updates the requirements so that the

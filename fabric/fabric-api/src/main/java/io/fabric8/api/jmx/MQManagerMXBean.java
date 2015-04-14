@@ -37,4 +37,10 @@ public interface MQManagerMXBean {
      * Returns the current runtime status of all the logical Fabric brokers
      */
     List<MQBrokerStatusDTO> loadBrokerStatus() throws Exception;
+
+    /**
+     * Returns the current runtime status of all the logical Fabric brokers in specified version.
+     */
+    List<MQBrokerStatusDTO> loadBrokerStatus(String versionId) throws Exception;
+
 }
