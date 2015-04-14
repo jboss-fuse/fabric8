@@ -97,6 +97,8 @@ public class MQManager implements MQManagerMXBean {
         }
     }
 
+    private static Set<String> IGNORED_PROFILES = new HashSet<String>(Arrays.asList("mq-amq", "mq-default"));
+
     @Reference(referenceInterface = FabricService.class)
     private FabricService fabricService;
     @Reference(referenceInterface = MBeanServer.class)
@@ -334,6 +336,7 @@ public class MQManager implements MQManagerMXBean {
         return getActiveOrRequiredBrokerProfileMap(version, fabricService.getRequirements());
     }
 
+
     private List<Profile> getActiveOrRequiredBrokerProfileMap(Version version, FabricRequirements requirements) {
         IllegalArgumentAssertion.assertNotNull(fabricService, "fabricService");
         List<Profile> answer = new ArrayList<Profile>();
@@ -341,11 +344,9 @@ public class MQManager implements MQManagerMXBean {
             ProfileService profileService = fabricService.adapt(ProfileService.class);
             List<Profile> profiles = version.getProfiles();
             for (Profile profile : profiles) {
-                // ignore if we don't have any requirements or instances as it could be profiles such
-                // as the out of the box mq-default / mq-amq etc
                 String versionId = profile.getVersion();
                 String profileId = profile.getId();
-                if (requirements.hasMinimumInstances(profileId) || fabricService.getAssociatedContainers(versionId, profileId).length > 0) {
+                if (!IGNORED_PROFILES.contains(profileId)) {
                     Profile overlay = profileService.getOverlayProfile(profile);
                     Map<String, Map<String, String>> configurations = overlay.getConfigurations();
                     Set<Map.Entry<String, Map<String, String>>> entries = configurations.entrySet();
@@ -404,7 +405,8 @@ public class MQManager implements MQManagerMXBean {
 
         List<String> properties = dto.getProperties();
         String version = dto.version();
-        requirements.setVersion(version);
+
+        boolean changeInCurrentVersion = requirements.getVersion().equals(dto.getVersion());
 
         if (properties != null) {
             for (String entry : properties) {
@@ -500,7 +502,7 @@ public class MQManager implements MQManagerMXBean {
             // assume N+1 broker as there's more than one broker in the profile; so lets set the required size to N+1
             requiredInstances = list.size() + 1;
         }
-        if (minimumInstances == null || minimumInstances.intValue() < requiredInstances) {
+        if (changeInCurrentVersion && (minimumInstances == null || minimumInstances.intValue() < requiredInstances)) {
             profileRequirement.setMinimumInstances(requiredInstances);
             fabricService.setRequirements(requirements);
         }
