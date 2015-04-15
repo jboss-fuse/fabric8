@@ -97,7 +97,7 @@ public abstract class AbstractProfileManagementTest {
             Assert.assertEquals("valA", prfA.getConfiguration("pidA").get("keyA"));
             
             // getProfile
-            Assert.assertEquals(prfA, getProxy().getProfile("1.0", "prfA"));
+            Assert.assertEquals(prfA.toString(), getProxy().getProfile("1.0", "prfA").toString());
 
             // updateProfile
             prfA = getProxy().getProfile("1.0", "prfA");
