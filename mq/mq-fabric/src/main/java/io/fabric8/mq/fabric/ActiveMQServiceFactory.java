@@ -27,10 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.jms.ConnectionFactory;
 
@@ -65,6 +62,7 @@ public class ActiveMQServiceFactory  {
 
     public static final Logger LOG = LoggerFactory.getLogger(ActiveMQServiceFactory.class);
     public static final ThreadLocal<Properties> CONFIG_PROPERTIES = new ThreadLocal<Properties>();
+    public static final int SHUTDOWN_TIMEOUT_IN_SECONDS = 60;
 
     BundleContext bundleContext;
 
@@ -616,8 +614,12 @@ public class ActiveMQServiceFactory  {
         }
 
         private void waitForStop() throws ExecutionException, InterruptedException {
-            if (stop_future != null && !stop_future.isDone()) {
-                stop_future.get();
+            if (started.get() && stop_future != null && !stop_future.isDone()) {
+                try {
+                    stop_future.get(SHUTDOWN_TIMEOUT_IN_SECONDS, TimeUnit.SECONDS);
+                } catch (TimeoutException e) {
+                    LOG.error("Unable to shutdown ActiveMQ in the allotted {} seconds.", SHUTDOWN_TIMEOUT_IN_SECONDS);
+                }
             }
         }
 
