@@ -232,7 +232,7 @@
         <http-client-version>4.3.6</http-client-version>
         <http-core-version>4.3.3</http-core-version>
         <influxdb-version>1.2</influxdb-version>
-        <jackson-version>1.9.2</jackson-version>
+        <jackson-version>1.9.12</jackson-version>
         <jackson2-version>2.4.3</jackson2-version>
         <jackson-module-scala-version>2.1.5_2</jackson-module-scala-version>
         <jansi-version>1.11</jansi-version>
