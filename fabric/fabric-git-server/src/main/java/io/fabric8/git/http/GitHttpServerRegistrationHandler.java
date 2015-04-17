@@ -218,8 +218,13 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
             if (conf == null) {
                 LOGGER.warn("No configuration for pid " + Constants.DATASTORE_PID);
             } else {
-                Object o = conf.getProperties().get(Constants.GIT_REMOTE_URL);
-                result = o != null ? o.toString() : null;
+                Dictionary<String, Object> properties = conf.getProperties();
+                if (properties != null) {
+                    Object o = conf.getProperties().get(Constants.GIT_REMOTE_URL);
+                    result = o != null ? o.toString() : null;
+                } else{
+                    result = null;
+                }
             }
         } catch (Throwable e) {
             LOGGER.error("Could not load config admin for pid " + Constants.DATASTORE_PID + ". Reason: " + e, e);
