@@ -57,6 +57,7 @@ import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.Service;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.zookeeper.CreateMode;
 import org.osgi.service.cm.Configuration;
@@ -66,6 +67,7 @@ import org.slf4j.LoggerFactory;
 
 @ThreadSafe
 @Component(name = "io.fabric8.cxf.registry", label = "Fabric8 CXF Registration Handler", immediate = true, metatype = false)
+@Service({ ConnectionStateListener.class })
 public final class FabricCxfRegistrationHandler extends AbstractComponent implements ConnectionStateListener {
 
     public static final String CXF_API_ENDPOINT_MBEAN_NAME = "io.fabric8.cxf:*";
