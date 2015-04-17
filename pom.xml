@@ -156,7 +156,7 @@
         <codehaus-plexus-version>1.5.5</codehaus-plexus-version>
         <codahale-metrics-version>3.0.2</codahale-metrics-version>
         <commons-beanutils-version>1.8.3</commons-beanutils-version>
-        <commons-codec-version>1.9</commons-codec-version>
+        <commons-codec-version>1.10</commons-codec-version>
         <commons-collections-version>3.2.1</commons-collections-version>
         <commons-compress-version>1.8</commons-compress-version>
         <commons-fileupload-version>1.3.1</commons-fileupload-version>
@@ -218,7 +218,7 @@
         <geronimo-atinject.version>1.0</geronimo-atinject.version>
         <gitective-version>0.9.9</gitective-version>
         <gson-version>2.3</gson-version>
-        <groovy-version>2.3.6</groovy-version>
+        <groovy-version>2.4.3</groovy-version>
         <guava-version>17.0</guava-version>
         <guava.osgi.version.clean>17.0</guava.osgi.version.clean>
         <hadoop-version>1.2.1</hadoop-version>
@@ -232,8 +232,8 @@
         <http-client-version>4.3.6</http-client-version>
         <http-core-version>4.3.3</http-core-version>
         <influxdb-version>1.2</influxdb-version>
-        <jackson-version>1.9.2</jackson-version>
-        <jackson2-version>2.4.1</jackson2-version>
+        <jackson-version>1.9.12</jackson-version>
+        <jackson2-version>2.4.3</jackson2-version>
         <jackson-module-scala-version>2.1.5_2</jackson-module-scala-version>
         <jansi-version>1.11</jansi-version>
         <jasypt-smx-version>1.9.2_1</jasypt-smx-version>
@@ -268,7 +268,7 @@
         <jgroups-version>3.4.4.Final</jgroups-version>
         <jsch-version>0.1.51</jsch-version>
         <jsch-smx-version>0.1.51_1</jsch-smx-version>
-        <json4s-version>3.2.4_1</json4s-version>
+        <json4s-version>3.2.8_1</json4s-version>
         <junit-version>4.11</junit-version>
         <karaf-version>2.4.0.redhat-620105</karaf-version>
         <libvirt-bundle-version>1.1</libvirt-bundle-version>
@@ -287,7 +287,7 @@
         <mockserver-version>3.4</mockserver-version>
         <mongo-java-driver-version>2.12.3</mongo-java-driver-version>
         <mvel-version>2.2.1.Final</mvel-version>
-        <netty.version>4.0.23.Final</netty.version>
+        <netty.version>4.0.27.Final</netty.version>
         <openshift.client.groupId>com.openshift</openshift.client.groupId>
         <openshift.client.version>2.5.0.Final</openshift.client.version>
         <ops4j-base.version>1.5.0</ops4j-base.version>
@@ -344,9 +344,9 @@
         <sshd-version>0.12.0.redhat-002</sshd-version>
         <sshj.version>0.8.1</sshj.version>
         <swagger-community-version>1.3.0</swagger-community-version>
-        <swagger-version>1.3.2_1</swagger-version>
-        <swagger-jaxrs-version>1.3.2_3</swagger-jaxrs-version>
-        <swagger-scala-version>2.10.2</swagger-scala-version>
+        <swagger-version>1.3.12_1</swagger-version>
+        <swagger-jaxrs-version>1.3.12_1</swagger-jaxrs-version>
+        <swagger-scala-version>2.10.4</swagger-scala-version>
         <tinybundles-version>2.0.0</tinybundles-version>
         <tomcat-version>7.0.54</tomcat-version>
         <tomcat-plugin-version>2.2</tomcat-plugin-version>
