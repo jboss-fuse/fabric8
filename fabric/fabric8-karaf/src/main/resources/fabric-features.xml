@@ -443,7 +443,7 @@
         <bundle dependency="true">mvn:commons-lang/commons-lang/${commons-lang-version}</bundle>
         <bundle dependency="true">mvn:commons-collections/commons-collections/${commons-collections-version}</bundle>
         <bundle>mvn:org.apache.servicemix.specs/org.apache.servicemix.specs.scripting-api-1.0/${servicemix-specs-version}</bundle>
-        <bundle>mvn:org.apache.commons/commons-jexl/2.0.1</bundle>
+        <bundle>mvn:org.apache.commons/commons-jexl/2.1.1</bundle>
         <bundle>mvn:org.apache.xbean/xbean-blueprint/${xbean-version}</bundle>
         <bundle>mvn:io.fabric8/common-util/${project.version}</bundle>
         <bundle>mvn:io.fabric8/fabric-ldap/${project.version}</bundle>
