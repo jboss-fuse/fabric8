@@ -155,6 +155,7 @@ class CreateAction extends AbstractAction {
                 .fromRuntimeProperties(runtimeProperties)
                 .bootstrapTimeout(bootstrapTimeout)
                 .waitForProvision(waitForProvisioning)
+                .autoImportEnabled(!noImport)
                 .clean(clean);
 
         builder.version(version);
