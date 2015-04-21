@@ -202,6 +202,10 @@ class CreateAction extends AbstractAction {
             // system/runtime properties
             builder.setZooKeeperServerPort(zooKeeperServerPort);
             builder.setZooKeeperServerConnectionPort(zooKeeperServerPort);
+        } else {
+            int shiftedPort = Ports.mapPortToRange(2181, minimumPort, maximumPort);
+            builder.setZooKeeperServerPort(shiftedPort);
+            builder.setZooKeeperServerConnectionPort(shiftedPort);
         }
 
         //Configure External Git Repository.
