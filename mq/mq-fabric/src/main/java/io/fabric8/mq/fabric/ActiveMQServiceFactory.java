@@ -150,6 +150,13 @@ public class ActiveMQServiceFactory  {
             Thread.currentThread().setContextClassLoader(classLoader);
 
             Resource resource = Utils.resourceFromString(uri);
+
+            // To work around ENTESB-2761, lets wait up to 10 seconds for the broker.xml
+            // to get deployed before trying to start the broker.
+            for( int i=0; !resource.exists() && i < 100; i++ ) {
+               Thread.sleep(100);
+            }
+
             ResourceXmlApplicationContext ctx = new ResourceXmlApplicationContext(resource) {
                 @Override
                 protected void initBeanDefinitionReader(XmlBeanDefinitionReader reader) {
