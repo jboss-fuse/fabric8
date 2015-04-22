@@ -45,7 +45,7 @@ public class InvocationTest {
     final int BENCHMARK_INVOCATIONS_PER_CLIENT = 1000;
 
 
-    @Test
+    @Test(timeout=30*1000)
     public void testInvoke() throws Exception {
 
         DispatchQueue queue = Dispatch.createQueue();
@@ -100,7 +100,7 @@ public class InvocationTest {
         }
     }
 
-    @Test
+    @Test(timeout=30*1000)
     public void testOverflowAsync() throws Exception {
 
     	DispatchQueue queue = Dispatch.createQueue();
@@ -150,7 +150,7 @@ public class InvocationTest {
     	}
     }
 
-    @Test
+    @Test(timeout=30*1000)
     public void testOverflow() throws Exception {
 
     	DispatchQueue queue = Dispatch.createQueue();
@@ -219,7 +219,7 @@ public class InvocationTest {
     	}
     }
 
-    @Test
+    @Test(timeout=30*1000)
     public void testNoOverflow() throws Exception {
 
     	DispatchQueue queue = Dispatch.createQueue();
@@ -258,7 +258,7 @@ public class InvocationTest {
     	}
     }
 
-    @Test
+    @Test(timeout=30*1000)
     public void testUnderLoadSyncObject() throws Exception {
         HashMap<String, SerializationStrategy> map = new HashMap<String, SerializationStrategy>();
 
@@ -380,7 +380,7 @@ public class InvocationTest {
         }
 
         void join() throws InterruptedException {
-            done.await();
+            done.await(10, TimeUnit.SECONDS);
         }
 
         private void sendNext() {
@@ -411,7 +411,7 @@ public class InvocationTest {
         }
     }
 
-    @Test
+    @Test(timeout=30*1000)
     public void testUnderLoadAsyncProto() throws Exception {
         HashMap<String, SerializationStrategy> map = new HashMap<String, SerializationStrategy>();
         map.put("protobuf", new ProtobufSerializationStrategy());
