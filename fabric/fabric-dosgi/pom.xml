@@ -168,4 +168,27 @@
         </pluginManagement>
     </build>
 
+    <profiles>
+        <profile>
+            <id>fabric8.tests.hpux.excludes</id>
+            <activation>
+                <os>
+                    <family>HP-UX</family>
+                </os>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <excludes combine.children="append">
+                                <exclude>**/InvocationTest.*</exclude>  <!-- See ENTESB-3077 -->
+                            </excludes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
 </project>
