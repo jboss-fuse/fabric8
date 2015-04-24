@@ -21,6 +21,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import io.fabric8.common.util.IOHelpers;
+import io.fabric8.patch.PatchException;
 import org.apache.felix.utils.version.VersionRange;
 import org.apache.felix.utils.version.VersionTable;
 import org.osgi.framework.Version;
@@ -76,7 +77,7 @@ public class Offline {
                 log(WARN, "No patch to apply");
             } else {
                 for (PatchData data : patches) {
-                    applyPatch(data, zipFile);
+                    applyPatch(data, zipFile, null);
                 }
             }
         } finally {
@@ -107,8 +108,8 @@ public class Offline {
         }
     }
 
-    public void applyConfigChanges(PatchData patch) throws IOException {
-        applyPatch(patch, null);
+    public void applyConfigChanges(PatchData patch, File storage) throws IOException {
+        applyPatch(patch, null, storage);
     }
 
     protected List<PatchData> extractPatch(ZipFile zipFile) throws IOException {
@@ -132,7 +133,7 @@ public class Offline {
         return patches;
     }
 
-    protected void applyPatch(PatchData patch, ZipFile zipFile) throws IOException {
+    protected void applyPatch(PatchData patch, ZipFile zipFile, File storage) throws IOException {
         log(DEBUG, "Applying patch: " + patch.getId() + " / " + patch.getDescription());
 
         File startupFile = new File(karafBase, "etc/startup.properties");
@@ -272,6 +273,20 @@ public class Offline {
         writeLines(overridesFile, overrides);
         writeLines(startupFile, startup);
 
+        // update the remaining patch files (using either the patch ZIP file or the patch storage location)
+        if (zipFile != null) {
+            patchFiles(patch, zipFile);
+        } else if (storage != null) {
+            patchFiles(patch, storage);
+        } else {
+            throw new PatchException("Unable to update patch files: no access to patch ZIP file or patch storage location");
+        }
+    }
+
+    /*
+     * Patch files with the ones from the patch ZIP file
+     */
+    private void patchFiles(PatchData patch, ZipFile zipFile) throws IOException {
         for (String file : patch.getFiles()) {
 
             ZipEntry entry = zipFile.getEntry(file);
@@ -279,24 +294,45 @@ public class Offline {
                 log(ERROR, "Could not find file in patch zip: " + file);
                 continue;
             }
-            File f = new File(karafBase, file);
-            if (f.isFile()) {
-                backup(patch, file);
-                f.delete();
-                log(DEBUG, String.format("Updating file: %s", file));
-            } else {
-                log(DEBUG, String.format("Adding file: %s", file));
+
+            patchFile(patch, file, zipFile.getInputStream(entry));
+        }
+    }
+
+    /*
+     * Patch files with the ones from the patch storage location
+     */
+    private void patchFiles(PatchData patch, File storage) throws IOException {
+        for (String file : patch.getFiles()) {
+
+            File entry = new File(storage, file);
+            if (!entry.exists()) {
+                log(ERROR, "Could not find file in patch storage location: " + entry);
+                continue;
             }
-            if (!f.isFile()) {
-                f.getParentFile().mkdirs();
-                InputStream fis = zipFile.getInputStream(entry);
-                FileOutputStream fos = new FileOutputStream(f);
-                try {
-                    IOHelpers.copy(fis, fos);
-                } finally {
-                    IOHelpers.close(fis, fos);
-                }
-            }
+
+            patchFile(patch, file, new FileInputStream(entry));
+        }
+    }
+
+    /*
+     * Patch a single file
+     */
+    private void patchFile(PatchData patch, String file, InputStream is)  throws IOException {
+        File target = new File(karafBase, file);
+        if (target.exists()) {
+            backup(patch, file);
+            target.delete();
+            log(DEBUG, String.format("Updating file: %s", file));
+        } else {
+            log(DEBUG, String.format("Adding file: %s", file));
+        }
+        target.getParentFile().mkdirs();
+        FileOutputStream fos = new FileOutputStream(target);
+        try {
+            IOHelpers.copy(is, fos);
+        } finally {
+            IOHelpers.close(is, fos);
         }
     }
 

@@ -1,0 +1,3 @@
+id=patch-01
+bundle.0=mvn:io.fabric8.patch/patchable/1.0.1
+bundle.count=1

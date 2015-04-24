@@ -41,6 +41,7 @@
         <module>patch-commands</module>
         <module>patch-features</module>
         <module>patch-maven-plugin</module>
+        <module>patch-itests</module>
     </modules>
 
 </project>
