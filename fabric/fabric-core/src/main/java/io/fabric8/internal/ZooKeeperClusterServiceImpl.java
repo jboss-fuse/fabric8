@@ -16,6 +16,7 @@
 package io.fabric8.internal;
 
 import static io.fabric8.utils.Ports.mapPortToRange;
+import io.fabric8.zookeeper.utils.ZooKeeperUtils;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.copy;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.exists;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getStringData;
@@ -428,7 +429,15 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
         FabricService fabric = fabricService.get();
         Container container = fabric.getContainer(containerName);
 
-        ContainerTemplate containerTemplate = new ContainerTemplate(container, fabric.getZooKeeperUser(), fabric.getZookeeperPassword(), false);
+        String user = ZooKeeperUtils.getContainerLogin(runtimeProperties.get());
+        String password = "";
+        try {
+            Properties containerTokens = ZooKeeperUtils.getContainerTokens(curator.get());
+            password = containerTokens.getProperty(user);
+        } catch (Exception e) {
+            LOGGER.error("Unable to get temp ZK user/pass for administrative purposes", e);
+        }
+        ContainerTemplate containerTemplate = new ContainerTemplate(container, user, password, false);
         return containerTemplate.execute(new JmxTemplateSupport.JmxConnectorCallback<String>() {
             @Override
             public String doWithJmxConnector(JMXConnector connector) throws Exception {
