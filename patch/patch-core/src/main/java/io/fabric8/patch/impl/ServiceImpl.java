@@ -148,6 +148,9 @@ public class ServiceImpl implements Service {
                 }
                 File localRepoPath = new File(System.getProperty("karaf.home"), karafDefaultRrepository);
                 Enumeration<? extends ZipEntry> entries = zipFile.entries();
+                List<ZipEntry> resources = new ArrayList<ZipEntry>();
+
+                Patch patch = null;
                 while (entries.hasMoreElements()) {
                     ZipEntry entry = entries.nextElement();
                     if (!entry.isDirectory()) {
@@ -155,33 +158,32 @@ public class ServiceImpl implements Service {
                         if (entryName.startsWith("repository/")) {
                             String fileName = entryName.substring("repository/".length());
                             File f = new File(localRepoPath, fileName);
-                            if (!f.isFile()) {
-                                f.getParentFile().mkdirs();
-                                InputStream fis = zipFile.getInputStream(entry);
-                                FileOutputStream fos = new FileOutputStream(f);
-                                try {
-                                    copy(fis, fos);
-                                } finally {
-                                    close(fis, fos);
-                                }
-                            }
+                            copyZipEntryToFile(zipFile, entry, f);
                         } else if (entryName.endsWith(".patch") && !entryName.contains("/")) {
                             File f = new File(patchDir, entryName);
-                            if (!f.isFile()) {
-                                InputStream fis = zipFile.getInputStream(entry);
-                                FileOutputStream fos = new FileOutputStream(f);
-                                try {
-                                    copy(fis, fos);
-                                } finally {
-                                    close(fis, fos);
-                                }
+                            copyZipEntryToFile(zipFile, entry, f);
+                            if (patch == null) {
+                                patch = load(f);
+                                f.renameTo(new File(patchDir, patch.getId() + ".patch"));
+                                patches.add(patch);
+                            } else {
+                                throw new PatchException(
+                                        String.format("Multiple patch descriptors: already have patch %s and now encountered entry %s",
+                                                       patch.getId(), entryName));
                             }
-                            Patch patch = load(f);
-                            f.renameTo(new File(patchDir, patch.getId() + ".patch"));
-                            patches.add(patch);
+                        } else {
+                            // add resource entry to be copied afterwards
+                            resources.add(entry);
                         }
                     }
                 }
+
+                // copy the remaining resources to the patch storage location
+                File patchStorage = getPatchStorage(patch);
+                for (ZipEntry resource : resources) {
+                    copyZipEntryToFile(zipFile, resource, new File(patchStorage, resource.getName()));
+                }
+
                 close(zipFile);
                 file.delete();
             }
@@ -194,6 +196,24 @@ public class ServiceImpl implements Service {
             return patches;
         } catch (Exception e) {
             throw new PatchException("Unable to download patch from url " + url, e);
+        }
+    }
+
+    private File getPatchStorage(Patch patch) {
+        return new File(patchDir, patch.getId());
+    }
+
+
+    private void copyZipEntryToFile(ZipFile zipFile, ZipEntry entry, File file) throws IOException {
+        if (!file.isFile()) {
+            file.getParentFile().mkdirs();
+            InputStream fis = zipFile.getInputStream(entry);
+            FileOutputStream fos = new FileOutputStream(file);
+            try {
+                copy(fis, fos);
+            } finally {
+                close(fis, fos);
+            }
         }
     }
 
@@ -424,7 +444,7 @@ public class ServiceImpl implements Service {
                 }
                 if (!simulate) {
                     new Offline(new File(System.getProperty("karaf.base")))
-                            .applyConfigChanges(((PatchImpl) patch).getPatch());
+                            .applyConfigChanges(((PatchImpl) patch).getPatch(), getPatchStorage(patch));
                 }
                 Result result = new ResultImpl(patch, simulate, System.currentTimeMillis(), updates, startup, overrides);
                 results.put(patch.getId(), result);
