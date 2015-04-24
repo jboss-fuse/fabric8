@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 import io.fabric8.api.Constants;
@@ -276,14 +277,38 @@ public final class ContainerProviderUtils {
     }
 
     public static void zipDirectory(File zipFile, String srcDir) throws Exception {
-        FileOutputStream fos = new FileOutputStream(zipFile);
-        ZipOutputStream zos = new ZipOutputStream(fos);
         File srcFile = new File(srcDir);
+        try {
+            FileOutputStream fos = new FileOutputStream(zipFile);
+            ZipOutputStream zos = new ZipOutputStream(fos);
+    
+            logger.info("Zipping up " + srcFile + " to " + zipFile.getPath());
+    
+            addDirToZip(zos, srcFile, null);
+            zos.close();
+        } finally {
+            if (!isZipValid(srcFile)) {
+                srcFile.delete();
+            }   
+        }
+    }
 
-        logger.info("Zipping up " + srcFile + " to " + zipFile.getPath());
-
-        addDirToZip(zos, srcFile, null);
-        zos.close();
+    private static boolean isZipValid(final File file) {
+        ZipFile zipfile = null;
+        try {
+            zipfile = new ZipFile(file);
+            return true;
+        } catch (Exception e) {
+            return false;
+        } finally {
+            try {
+                if (zipfile != null) {
+                    zipfile.close();
+                    zipfile = null;
+                }
+            } catch (Exception e) {
+            }
+        }
     }
 
     private static void addDirToZip(ZipOutputStream zos, File fileToZip, String parent) throws Exception {
