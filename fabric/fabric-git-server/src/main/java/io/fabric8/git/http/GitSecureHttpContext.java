@@ -186,10 +186,10 @@ public class GitSecureHttpContext implements HttpContext {
             }
             return subject;
         } catch (AccountException e) {
-            LOGGER.warn("Account failure", e);
+            LOGGER.debug("Account failure", e);
             return null;
         } catch (LoginException e) {
-            LOGGER.warn("Login failed", e);
+            LOGGER.debug("Login failed", e);
             return null;
         }
     }
