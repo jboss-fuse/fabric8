@@ -55,7 +55,7 @@ public class CommandCollector implements Collector {
         result.add(factory.createCommandResource("zk:list -r -d"));
         //  result.add(new CommandResource("each [1 2 3 ] { echo \"================ Execution $it ==============\"; dev:threads --dump ;  sleep 5000 }"));
 
-        result.add(factory.createCommandResource("fabric:camel:context-list"));
+        result.add(factory.createCommandResource("camel:context-list"));
         return result;
     }
 }
