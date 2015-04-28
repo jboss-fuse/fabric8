@@ -16,7 +16,6 @@
  */
 package io.fabric8.quickstarts.rest.secure;
 
-import junit.framework.Assert;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScheme;
@@ -37,6 +36,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+
+import static org.junit.Assert.*;
 
 /**
  * The client class has a main method that accesses a few of the resources defined in our JAX-RS example using
@@ -103,11 +104,11 @@ public final class CrmSecureTest {
             LOG.error("Error connecting to {}", CUSTOMER_SERVICE_URL);
             LOG.error("You should build the 'rest' quick start and deploy it to a local Fabric8 before running this test");
             LOG.error("Please read the README.md file in 'rest' quick start root");
-            Assert.fail("Connection error");
+            fail("Connection error");
         } finally {
             get.releaseConnection();
         }
-        Assert.assertTrue(res.contains("123"));
+        assertTrue(res.contains("123"));
     }
 
     /**
@@ -135,11 +136,11 @@ public final class CrmSecureTest {
             LOG.error("Error connecting to {}", PRODUCT_ORDER_TEST_URL);
             LOG.error("You should build the 'rest' quick start and deploy it to a local Fabric8 before running this test");
             LOG.error("Please read the README.md file in 'rest' quick start root");
-            Assert.fail("Connection error");
+            fail("Connection error");
         } finally {
             get.releaseConnection();
         }
-        Assert.assertTrue(res.contains("product 323"));
+        assertTrue(res.contains("product 323"));
     }
 
     /**
@@ -174,13 +175,13 @@ public final class CrmSecureTest {
             LOG.error("Error connecting to {}", CUSTOMER_SERVICE_URL);
             LOG.error("You should build the 'rest' quick start and deploy it to a local Fabric8 before running this test");
             LOG.error("Please read the README.md file in 'rest' quick start root");
-            Assert.fail("Connection error");
+            fail("Connection error");
         } finally {
             // Release current connection to the connection pool once you are
             // done
             post.releaseConnection();
         }
-        Assert.assertTrue(res.contains("Jack"));
+        assertTrue(res.contains("Jack"));
 
     }
 
@@ -215,14 +216,14 @@ public final class CrmSecureTest {
             LOG.error("Error connecting to {}", CUSTOMER_SERVICE_URL);
             LOG.error("You should build the 'rest' quick start and deploy it to a local Fabric8 before running this test");
             LOG.error("Please read the README.md file in 'rest' quick start root");
-            Assert.fail("Connection error");
+            fail("Connection error");
         } finally {
             // Release current connection to the connection pool once you are
             // done
             put.releaseConnection();
         }
 
-        Assert.assertEquals(result, 200);
+        assertEquals(result, 200);
     }
 
 }

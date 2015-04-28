@@ -16,7 +16,6 @@
  */
 package io.fabric8.quickstarts.soap.secure;
 
-import junit.framework.Assert;
 import org.apache.cxf.frontend.ClientProxy;
 import org.apache.cxf.jaxws.JaxWsProxyFactoryBean;
 import org.apache.cxf.ws.security.wss4j.WSS4JOutInterceptor;
@@ -26,6 +25,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.junit.Assert.*;
 
 /**
  * A Java client application that uses CXF's JaxWsProxyFactoryBean to create a web service client proxy to invoke
@@ -75,7 +76,7 @@ public class SecureSoapTest {
         String ret = client.sayHi("World");
         LOG.info("result: " + ret);
 
-        Assert.assertEquals("Hello World", ret);
+        assertEquals("Hello World", ret);
     }
 
 }
