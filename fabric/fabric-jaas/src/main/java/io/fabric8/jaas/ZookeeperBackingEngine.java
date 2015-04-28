@@ -171,6 +171,11 @@ public class ZookeeperBackingEngine implements BackingEngine {
                     return;
                 }
             }
+            for (GroupPrincipal gp : listGroups(username)) {
+                if (role.equals(GROUP_PREFIX + gp.getName())) {
+                    return; 
+                }
+            }
             String newUserInfos = userInfos + "," + role;
             users.put(username, newUserInfos);
         }
