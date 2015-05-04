@@ -19,10 +19,8 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Dictionary;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import javax.management.BadAttributeValueExpException;
 import javax.management.BadBinaryOpValueExpException;
@@ -86,6 +84,7 @@ public final class FabricCxfRegistrationHandler extends AbstractComponent implem
     private ConfigurationAdmin configAdmin;
 
     private Set<String> registeredZkPaths = new ConcurrentSkipListSet<String>();
+    private Map<String, String> registeredUrls = new ConcurrentHashMap<String, String>();
 
     private NotificationListener listener = new NotificationListener() {
         @Override
@@ -201,35 +200,47 @@ public final class FabricCxfRegistrationHandler extends AbstractComponent implem
 
     protected void onMBeanEvent(Container container, ObjectName oName, String type) {
         try {
-            if (isCxfServiceEndpointQuery.apply(oName) && mBeanServer.isRegistered(oName)) {
-                Object state = mBeanServer.getAttribute(oName, "State");
-                String address = null;
-                try {
-                    Object addressValue = mBeanServer.getAttribute(oName, "Address");
-                    if (addressValue instanceof String) {
-                        address = addressValue.toString();
-                    }
-                } catch (Exception e) {
-                    LOGGER.warn("Failed to get address for endpoint " + oName + " type " + type + " has status " + state + ". " + e, e);
-                }
-                boolean started = state instanceof String && state.toString().toUpperCase().startsWith("START");
-                boolean created = state instanceof String && state.toString().toUpperCase().startsWith("CREATE");
 
-                if (address != null && (started || created)) {
-                    LOGGER.info("Registering endpoint " + oName + " type " + type + " has status " + state + "at " + address);
-                    registerApiEndpoint(container, oName, address, started);
-                } else {
-                    if (address == null) {
-                        LOGGER.warn("Endpoint " + oName + " type " + type + " has status " + state + "but no address");
-                    } else {
-                        LOGGER.info("Unregistering endpoint " + oName + " type " + type + " has status " + state + "at " + address);
-                    }
+            if (isCxfServiceEndpointQuery.apply(oName)) {
+                if(type.equals(MBeanServerNotification.UNREGISTRATION_NOTIFICATION)){
                     unregisterApiEndpoint(container, oName);
+                }else{
+                    Object state = mBeanServer.getAttribute(oName, "State");
+                    String address = getAddress(oName, type, state);
+                    if(mBeanServer.isRegistered(oName)){
+                        boolean started = state instanceof String && state.toString().toUpperCase().startsWith("START");
+                        boolean created = state instanceof String && state.toString().toUpperCase().startsWith("CREATE");
+
+                        if (address != null && (started || created)) {
+                            LOGGER.info("Registering endpoint " + oName + " type " + type + " has status " + state + "at " + address);
+                            registerApiEndpoint(container, oName, address, started);
+                        } else {
+                            if (address == null) {
+                                LOGGER.warn("Endpoint " + oName + " type " + type + " has status " + state + "but no address");
+                            } else {
+                                LOGGER.info("Unregistering endpoint " + oName + " type " + type + " has status " + state + "at " + address);
+                            }
+                            unregisterApiEndpoint(container, oName);
+                        }
+                    }
                 }
             }
         } catch (Exception e) {
             LOGGER.warn("Failed to process " + oName + ". " + e, e);
         }
+    }
+
+    private String getAddress(ObjectName oName, String type, Object state) {
+        String address = null;
+        try {
+            Object addressValue = mBeanServer.getAttribute(oName, "Address");
+            if (addressValue instanceof String) {
+                address = addressValue.toString();
+            }
+        } catch (Exception e) {
+            LOGGER.warn("Failed to get address for endpoint " + oName + " type " + type + " has status " + state + ". " + e, e);
+        }
+        return address;
     }
 
     public static ObjectName createObjectName(String name) {
@@ -290,6 +301,7 @@ public final class FabricCxfRegistrationHandler extends AbstractComponent implem
                 LOGGER.warn("Since the CXF service isn't started, this could really be a REST endpoint rather than WSDL at " + path);
             }
             registeredZkPaths.add(path);
+            registeredUrls.put(oName.toString(), address);
             ZooKeeperUtils.setData(curator.get(), path, json, CreateMode.EPHEMERAL);
         } catch (Exception e) {
             LOGGER.error("Failed to register API endpoint for {}.", actualEndpointUrl, e);
@@ -333,8 +345,8 @@ public final class FabricCxfRegistrationHandler extends AbstractComponent implem
     }
 
     protected void unregisterApiEndpoint(Container container, ObjectName oName) {
-        String address = "";
         String path = null;
+        String address = registeredUrls.get(oName.toString());
         try {
             // TODO there's no way to grok if its a REST or WS API so lets remove both just in case
             path = getPath(container, oName, address, true);
@@ -343,6 +355,8 @@ public final class FabricCxfRegistrationHandler extends AbstractComponent implem
             removeZkPath(path);
         } catch (Exception e) {
             LOGGER.error("Failed to unregister API endpoint at {}.", path, e);
+        } finally{
+            registeredUrls.remove(oName.toString());
         }
     }
 
