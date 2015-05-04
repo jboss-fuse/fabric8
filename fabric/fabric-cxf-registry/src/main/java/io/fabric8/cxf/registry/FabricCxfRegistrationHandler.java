@@ -202,7 +202,7 @@ public final class FabricCxfRegistrationHandler extends AbstractComponent implem
         try {
 
             if (isCxfServiceEndpointQuery.apply(oName)) {
-                if(type.equals(MBeanServerNotification.UNREGISTRATION_NOTIFICATION)){
+                if(MBeanServerNotification.UNREGISTRATION_NOTIFICATION.equals(type)){
                     unregisterApiEndpoint(container, oName);
                 }else{
                     Object state = mBeanServer.getAttribute(oName, "State");
