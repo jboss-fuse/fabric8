@@ -286,29 +286,11 @@ public final class ContainerProviderUtils {
     
             addDirToZip(zos, srcFile, null);
             zos.close();
-        } finally {
-            if (!isZipValid(srcFile)) {
-                srcFile.delete();
-            }   
-        }
-    }
-
-    private static boolean isZipValid(final File file) {
-        ZipFile zipfile = null;
-        try {
-            zipfile = new ZipFile(file);
-            return true;
         } catch (Exception e) {
-            return false;
-        } finally {
-            try {
-                if (zipfile != null) {
-                    zipfile.close();
-                    zipfile = null;
-                }
-            } catch (Exception e) {
-            }
-        }
+            // clean up if an excpetion was thrown during zip file creation
+            srcFile.delete();
+            throw e;
+        } 
     }
 
     private static void addDirToZip(ZipOutputStream zos, File fileToZip, String parent) throws Exception {
@@ -487,6 +469,10 @@ public final class ContainerProviderUtils {
 
         sb.append("cp /tmp/" + file + " " + file).append("\n");
 
+        // if this is a bad zip file we won't be able to extract it and should remove it
+        sb.append("if ! jar xf " + file + " &> /dev/null; then rm " + file + " ; fi \n");
+        
+        // if upload didn't work, try downloading via Maven
         for (String repo : allRepos) {
             sb.append("if [ ! -f " + file + " ] && [ ! -s " + file + " ] ; then ").append("maven_download ").append(repo).append(" ")
                     .append(groupId).append(" ")
