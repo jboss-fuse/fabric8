@@ -75,14 +75,27 @@ public class BrokerDeployment {
     @Modified
     void modified(Map<String, ?> configuration) throws Exception {
         if( config!=null ) {
-            config.update(toDictionary(configuration));
+           try
+           {
+              config.update(toDictionary(configuration));
+           }
+           catch (IllegalStateException e)
+           {
+              // Typically a 'java.lang.IllegalStateException: Configuration xxxx deleted' error
+              activate(configuration);
+           }
         }
     }
 
     @Deactivate
     void deactivate() throws IOException {
         if( config!=null ) {
-            config.delete();
+           try
+           {
+              config.delete();
+           }
+           catch (IllegalStateException ignore) {
+           }
         }
     }
 

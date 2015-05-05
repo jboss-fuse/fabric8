@@ -615,22 +615,24 @@ public class ActiveMQServiceFactory  {
         }
 
         private void waitForStop() throws ExecutionException, InterruptedException {
-            if (started.get() && stop_future != null && !stop_future.isDone()) {
+            if (stop_future != null) {
                 try {
                     stop_future.get(SHUTDOWN_TIMEOUT_IN_SECONDS, TimeUnit.SECONDS);
                 } catch (TimeoutException e) {
                     LOG.error("Unable to shutdown ActiveMQ in the allotted {} seconds.", SHUTDOWN_TIMEOUT_IN_SECONDS);
+                } catch (CancellationException ignore) {
                 }
             }
         }
 
         private void interruptAndWaitForStart() throws ExecutionException, InterruptedException {
-            if (start_future != null && !start_future.isDone()) {
-                start_future.cancel(true);
+            if (start_future != null) {
+                start_future.cancel(false);
                 try {
                    start_future.get(SHUTDOWN_TIMEOUT_IN_SECONDS, TimeUnit.SECONDS);
                 } catch (TimeoutException e) {
                     LOG.error("Unable to cancel startup ActiveMQ in the allotted {} seconds.", SHUTDOWN_TIMEOUT_IN_SECONDS);
+                } catch (CancellationException ignore) {
                 }
             }
         }
