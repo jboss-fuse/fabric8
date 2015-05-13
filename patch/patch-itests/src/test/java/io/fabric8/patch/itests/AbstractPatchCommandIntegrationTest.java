@@ -17,6 +17,7 @@ package io.fabric8.patch.itests;
 
 import io.fabric8.api.gravia.ServiceLocator;
 import io.fabric8.common.util.IOHelpers;
+import io.fabric8.itests.support.CommandSupport;
 import io.fabric8.patch.Patch;
 import io.fabric8.patch.Service;
 import org.jboss.arquillian.test.api.ArquillianResource;
@@ -28,9 +29,9 @@ import java.io.File;
 import static org.junit.Assert.fail;
 
 /**
- * Abstract base class for all the patching mechanism integration tests (using the OSGi Service)
+ * Abstract base class for all the patching mechanism integration tests (using the patch:* commands)
  */
-public abstract class AbstractPatchIntegrationTest {
+public abstract class AbstractPatchCommandIntegrationTest {
 
     // Time-out for installing/rolling back patches
     private static final long TIMEOUT = 30 * 1000;
@@ -38,41 +39,16 @@ public abstract class AbstractPatchIntegrationTest {
     @ArquillianResource
     protected BundleContext context;
 
-    // The patch service
-    protected Service service;
-
-    @Before
-    public void setupService() throws Exception {
-        // let's grab the patch service and get testing, shall we?
-        service = ServiceLocator.awaitService(context, Service.class);
-    }
-
     // Install a patch and wait for installation to complete
     protected void install(String name) throws Exception {
-        Patch patch = service.getPatch(name);
-        patch.install(false, false);
-
-        long start = System.currentTimeMillis();
-        while (!patch.isInstalled() && System.currentTimeMillis() - start < TIMEOUT) {
-            Thread.sleep(100);
-        }
-        if (!patch.isInstalled()) {
-            fail(String.format("Patch '%s' did not installed within %s ms", name, TIMEOUT));
-        }
+        CommandSupport.executeCommand(String.format("patch:install %s", name));
+        await(name, true);
     }
 
     // Rollback a patch and wait for rollback to complete
     protected void rollback(String name) throws Exception {
-        Patch patch = service.getPatch(name);
-        patch.rollback(false);
-
-        long start = System.currentTimeMillis();
-        while (patch.isInstalled() && System.currentTimeMillis() - start < TIMEOUT) {
-            Thread.sleep(100);
-        }
-        if (patch.isInstalled()) {
-            fail(String.format("Patch '%s' did not roll back within %s ms", name, TIMEOUT));
-        }
+        CommandSupport.executeCommand(String.format("patch:rollback %s", name));
+        await(name, false);
     }
 
     // Load a patch into the patching service
@@ -84,7 +60,32 @@ public abstract class AbstractPatchIntegrationTest {
         File patch = new File(temp, name + ".zip");
         IOHelpers.writeTo(patch, getClass().getResourceAsStream(String.format("/patches/%s.zip", name)));
 
-        service.download(patch.toURI().toURL());
+        CommandSupport.executeCommand(String.format("patch:add %s", patch.toURI().toURL()));
+    }
+
+
+    private void await(String name, Boolean installed) throws Exception {
+        long start = System.currentTimeMillis();
+        boolean done = false;
+
+        while (!done && System.currentTimeMillis() - start < TIMEOUT) {
+            String result = CommandSupport.executeCommand(String.format("patch:list", name));
+
+            for (String line : result.split("\\r?\\n")) {
+                if (line.contains(name) && line.contains(installed.toString())) {
+                    done = true;
+                    break;
+                }
+            }
+
+            if (!done) {
+                Thread.sleep(100);
+            }
+        }
+
+        if (!done) {
+            fail(String.format("Patch %s does not have installed status %s after %s ms", name, installed, TIMEOUT));
+        }
     }
 
 }

@@ -98,12 +98,20 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.apache.felix</groupId>
+            <artifactId>org.apache.felix.utils</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-aether-provider</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-settings-builder</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.karaf.shell</groupId>
+            <artifactId>org.apache.karaf.shell.scr</artifactId>
         </dependency>
     </dependencies>
 
@@ -158,6 +166,34 @@
                     </execution>
                 </executions>
             </plugin>
+            <!--
+                Add all necessary bundles to the test Karaf container
+            -->
+            <plugin>
+                <groupId>org.apache.karaf.tooling</groupId>
+                <artifactId>features-maven-plugin</artifactId>
+                <version>${karaf-version}</version>
+                <executions>
+                <execution>
+                <id>add-features-to-repo</id>
+                <phase>generate-resources</phase>
+                <goals>
+                    <goal>add-features-to-repo</goal>
+                </goals>
+                <configuration>
+                <descriptors>
+                    <descriptor>mvn:org.apache.karaf.assemblies.features/standard/${karaf-version}/xml/features</descriptor>
+                    <descriptor>mvn:io.fabric8.patch/patch-features/${project.version}/xml/features</descriptor>
+                </descriptors>
+                <features>
+                    <feature>scr</feature>
+                    <feature>patch</feature>
+                </features>
+                    <repository>${karaf.home}/system</repository>
+                </configuration>
+                </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
@@ -167,6 +203,7 @@
                     <systemPropertyVariables>
                         <log4j.configuration>file://${basedir}/src/test/resources/logging.properties</log4j.configuration>
                         <target.container>karaf</target.container>
+                        <karaf.home>${karaf.home}</karaf.home>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>

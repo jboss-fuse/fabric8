@@ -17,7 +17,11 @@ package io.fabric8.patch.itests;
 
 import io.fabric8.api.gravia.ServiceLocator;
 import io.fabric8.common.util.IOHelpers;
+import io.fabric8.itests.support.CommandSupport;
 import io.fabric8.patch.Service;
+import org.apache.felix.gogo.commands.Action;
+import org.apache.felix.gogo.commands.basic.AbstractCommand;
+import org.apache.felix.service.command.Function;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.osgi.metadata.OSGiManifestBuilder;
@@ -29,19 +33,22 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.osgi.framework.Bundle;
+import org.osgi.framework.ServiceReference;
 import org.osgi.util.tracker.ServiceTracker;
+import org.slf4j.Logger;
 
 import java.io.File;
 import java.io.InputStream;
+import java.util.Enumeration;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 /**
- * Integration tests for patching bundles using the patch:* commands.
+ * Integration tests for patching bundles.
  */
 @RunWith(Arquillian.class)
-public class PatchBundlesIntegrationTest extends AbstractPatchIntegrationTest {
+public class PatchBundlesCommandIntegrationTest extends AbstractPatchCommandIntegrationTest {
 
     // Bundle-SymbolicName of the bundle we're patching
     private static final String PATCHABLE_BSN = "patchable";
@@ -53,12 +60,15 @@ public class PatchBundlesIntegrationTest extends AbstractPatchIntegrationTest {
         archive.addClass(IOHelpers.class);
         archive.addPackage(ServiceTracker.class.getPackage());
         archive.addPackages(true, OSGiManifestBuilder.class.getPackage());
+        archive.addPackage(CommandSupport.class.getPackage());
         archive.setManifest(new Asset() {
             public InputStream openStream() {
                 OSGiManifestBuilder builder = OSGiManifestBuilder.newInstance();
                 builder.addBundleSymbolicName(archive.getName());
                 builder.addBundleManifestVersion(2);
-                builder.addImportPackages(Bundle.class, Service.class);
+                builder.addImportPackages(Bundle.class, Logger.class);
+                builder.addImportPackages(AbstractCommand.class, Action.class, Function.class);
+                builder.addImportPackage("org.apache.felix.service.command;status=provisional");
                 return builder.openStream();
             }
         });

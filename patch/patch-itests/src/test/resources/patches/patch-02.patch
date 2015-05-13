@@ -1,4 +1,4 @@
 id=patch-02
-bundle.0=mvn:io.fabric8.patch/patchable/1.1.0
+bundle.0=mvn:io.fabric8.patch/patchable/1.1.2
 bundle.0.range=[1.0.0,1.1.0)
 bundle.count=1

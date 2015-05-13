@@ -1,3 +1,3 @@
 id=patch-02-without-range
-bundle.0=mvn:io.fabric8.patch/patchable/1.1.0
+bundle.0=mvn:io.fabric8.patch/patchable/1.1.2
 bundle.count=1

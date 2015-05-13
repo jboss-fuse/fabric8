@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 import java.util.jar.Attributes;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
@@ -317,8 +318,8 @@ public class ServiceImpl implements Service {
         }
     }
 
-    public void rollback(Patch patch, boolean force) throws PatchException {
-        Result result = patch.getResult();
+    public void rollback(final Patch patch, boolean force) throws PatchException {
+        final Result result = patch.getResult();
         if (result == null) {
             throw new PatchException("Patch " + patch.getId() + " is not installed");
         }
@@ -347,7 +348,7 @@ public class ServiceImpl implements Service {
             throw new PatchException(sb.toString());
         }
 
-        Map<Bundle, String> toUpdate = new HashMap<Bundle, String>();
+        final Map<Bundle, String> toUpdate = new HashMap<Bundle, String>();
         for (BundleUpdate update : result.getUpdates()) {
             Version v = Version.parseVersion(update.getNewVersion());
             for (Bundle bundle : allBundles) {
@@ -357,17 +358,24 @@ public class ServiceImpl implements Service {
                 }
             }
         }
-        try {
-            applyChanges(toUpdate);
-            writeFully(new File(System.getProperty("karaf.base"), "etc/startup.properties"), ((ResultImpl) result).getStartup());
-            writeFully(new File(System.getProperty("karaf.base"), "etc/overrides.properties"), ((ResultImpl) result).getOverrides());
-            new Offline(new File(System.getProperty("karaf.base"))).rollbackPatch(((PatchImpl) patch).getPatch());
-        } catch (Exception e) {
-            throw new PatchException("Unable to rollback patch " + patch.getId() + ": " + e.getMessage(), e);
-        }
-        ((PatchImpl) patch).setResult(null);
-        File file = new File(patchDir, result.getPatch().getId() + ".patch.result");
-        file.delete();
+
+        final Offline offline = new Offline(new File(System.getProperty("karaf.base")));
+        Executors.newSingleThreadExecutor().execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    applyChanges(toUpdate);
+                    writeFully(new File(System.getProperty("karaf.base"), "etc/startup.properties"), ((ResultImpl) result).getStartup());
+                    writeFully(new File(System.getProperty("karaf.base"), "etc/overrides.properties"), ((ResultImpl) result).getOverrides());
+                    offline.rollbackPatch(((PatchImpl) patch).getPatch());
+                } catch (Exception e) {
+                    throw new PatchException("Unable to rollback patch " + patch.getId() + ": " + e.getMessage(), e);
+                }
+                ((PatchImpl) patch).setResult(null);
+                File file = new File(patchDir, result.getPatch().getId() + ".patch.result");
+                file.delete();
+            }
+        });
     }
 
     public Result install(Patch patch, boolean simulate) {
