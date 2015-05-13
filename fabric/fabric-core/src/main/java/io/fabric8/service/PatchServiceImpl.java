@@ -135,7 +135,8 @@ public class PatchServiceImpl implements PatchService {
                     builder.setOverrides(descriptor.getBundles());
                     profile = profileService.createProfile(builder.getProfile());
                     Profile defaultProfile = version.getRequiredProfile("default");
-                    List<String> parentIds = defaultProfile.getParentIds();
+                    List<String> parentIds = new LinkedList<String>();
+                    parentIds.addAll(defaultProfile.getParentIds());
                     if (!parentIds.contains(profile.getId())) {
                         parentIds.add(profile.getId());
                         builder = ProfileBuilder.Factory.createFrom(defaultProfile);
