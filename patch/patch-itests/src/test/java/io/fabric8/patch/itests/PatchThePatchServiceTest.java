@@ -29,6 +29,7 @@ import org.jboss.shrinkwrap.api.*;
 import org.jboss.shrinkwrap.api.asset.Asset;
 import org.jboss.shrinkwrap.api.exporter.ZipExporter;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.osgi.framework.Bundle;
@@ -156,6 +157,7 @@ public class PatchThePatchServiceTest extends AbstractPatchCommandIntegrationTes
     }
 
 
+    @Ignore("ENTESB-3232")
     @Test
     public void testInstallAndRollbackPatch01() throws Exception {
         load(PATCH_ID);
