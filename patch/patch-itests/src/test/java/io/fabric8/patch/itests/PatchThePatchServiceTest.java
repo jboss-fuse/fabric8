@@ -29,7 +29,6 @@ import org.jboss.shrinkwrap.api.*;
 import org.jboss.shrinkwrap.api.asset.Asset;
 import org.jboss.shrinkwrap.api.exporter.ZipExporter;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.osgi.framework.Bundle;
@@ -38,6 +37,7 @@ import org.osgi.util.tracker.ServiceTracker;
 import org.slf4j.Logger;
 
 import java.io.*;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Map;
 import java.util.jar.*;
@@ -153,11 +153,11 @@ public class PatchThePatchServiceTest extends AbstractPatchCommandIntegrationTes
 
     // Get the current patch-core version (Maven artifact version)
     private static String getCurrentMavenVersion() {
-        return new File(KARAF_HOME, "system/io/fabric8/patch/patch-core/").listFiles()[0].getName();
+        final String[] files = new File(KARAF_HOME, "system/io/fabric8/patch/patch-core/").list();
+        Arrays.sort(files);
+        return files[0];
     }
 
-
-    @Ignore("ENTESB-3232")
     @Test
     public void testInstallAndRollbackPatch01() throws Exception {
         load(PATCH_ID);
