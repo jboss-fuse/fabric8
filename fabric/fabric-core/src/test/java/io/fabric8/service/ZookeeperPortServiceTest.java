@@ -196,9 +196,10 @@ public class ZookeeperPortServiceTest {
     }
 
     private NIOServerCnxnFactory startZooKeeper(int port) throws Exception {
-        FileUtils.deleteDirectory(new File("target/zk-ports/data"));
+        String testDirectory = "target/zk-ports/data" + System.currentTimeMillis();
+        FileUtils.deleteDirectory(new File(testDirectory));
         ServerConfig cfg = new ServerConfig();
-        cfg.parse(new String[]{Integer.toString(port), "target/zk-ports/data"});
+        cfg.parse(new String[]{Integer.toString(port), testDirectory});
 
         ZooKeeperServer zkServer = new ZooKeeperServer();
         FileTxnSnapLog ftxn = new FileTxnSnapLog(new File(cfg.getDataLogDir()), new File(cfg.getDataDir()));
