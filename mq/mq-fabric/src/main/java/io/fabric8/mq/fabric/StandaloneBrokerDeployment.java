@@ -53,24 +53,31 @@ public class StandaloneBrokerDeployment {
     @Activate
     void activate(Map<String, ?> configuration) throws Exception {
         Properties properties = toProperties(configuration);
+
         // Make sure the original config we are linked to still exists.
-        Configuration original = getConfigurationAdmin().getConfiguration(properties.getProperty("mq.fabric.server.pid"));
-        if( original.getProperties()!=null ) {
-            pid = properties.getProperty("service.pid");
-            boolean standalone = "true".equalsIgnoreCase(properties.getProperty("standalone")) ||
-                    "standalone".equalsIgnoreCase(properties.getProperty("kind"));
-            getBrokerDeploymentManager().updated(pid, properties);
-        } else {
-            // we need to delete our config.
+        if( !BrokerDeployment.LOAD_TS.equals(properties.getProperty("mq.fabric.server.ts") ) ) {
+            // Our pid is now stale.
             Configuration ourConfig = getConfigurationAdmin().getConfiguration(properties.getProperty("service.pid"));
             ourConfig.delete();
+        } else {
+            pid = properties.getProperty("service.pid");
+            getBrokerDeploymentManager().updated(pid, properties);
         }
     }
 
     @Modified
     void modified(Map<String, ?> configuration) throws Exception {
-        Properties properties = toProperties(configuration);
-        getBrokerDeploymentManager().updated(pid, properties);
+        if( pid !=null ) {
+            Properties properties = toProperties(configuration);
+            getBrokerDeploymentManager().updated(pid, properties);
+        }
+    }
+
+    @Deactivate
+    void deactivate() {
+        if( pid !=null ) {
+            getBrokerDeploymentManager().deleted(pid);
+        }
     }
 
     protected BrokerDeploymentManager getBrokerDeploymentManager() {
@@ -79,11 +86,6 @@ public class StandaloneBrokerDeployment {
 
     protected ConfigurationAdmin getConfigurationAdmin() {
         return configurationAdmin.get();
-    }
-
-    @Deactivate
-    void deactivate() {
-        getBrokerDeploymentManager().deleted(pid);
     }
 
     void bindBrokerDeploymentManager(BrokerDeploymentManager service) {

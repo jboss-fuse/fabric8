@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 )
 public class BrokerDeployment {
 
+    public static final String LOAD_TS = Long.toHexString(System.currentTimeMillis());
     public static final Logger LOG = LoggerFactory.getLogger(BrokerDeployment.class);
 
     @Reference(referenceInterface = ConfigurationAdmin.class)
@@ -69,6 +70,7 @@ public class BrokerDeployment {
         properties.remove("fabric.zookeeper.pid");
         String pid = (String) properties.remove("service.pid");
         properties.put("mq.fabric.server.pid", pid);
+        properties.put("mq.fabric.server.ts", LOAD_TS);
         return properties;
     }
 
