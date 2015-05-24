@@ -50,8 +50,7 @@ public class BrokerDeployment {
 
     @Activate
     void activate(Map<String, ?> configuration) throws Exception {
-        boolean standalone = "true".equalsIgnoreCase((String) configuration.get("standalone")) ||
-                "standalone".equalsIgnoreCase((String) configuration.get("kind"));
+        boolean standalone = "true".equalsIgnoreCase((String) configuration.get("standalone"));
 
         String factoryPid = standalone ?
                 "io.fabric8.mq.fabric.standalone.server" :
