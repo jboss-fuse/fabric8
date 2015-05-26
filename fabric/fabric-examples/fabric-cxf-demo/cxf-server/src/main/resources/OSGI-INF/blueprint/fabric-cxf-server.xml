@@ -19,8 +19,7 @@
            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xmlns:cxf="http://cxf.apache.org/blueprint/core"
            xmlns:jaxws="http://cxf.apache.org/blueprint/jaxws"
-           xmlns:cm="http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.0.0"
-           xmlns:ext="http://aries.apache.org/blueprint/xmlns/blueprint-ext/v1.0.0"
+           xmlns:cm="http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.1.0"
            xsi:schemaLocation="
            http://www.osgi.org/xmlns/blueprint/v1.0.0
            http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd
@@ -30,7 +29,8 @@
            http://cxf.apache.org/blueprint/jaxws.xsd
            ">
 
-    <ext:property-placeholder placeholder-prefix="$[" placeholder-suffix="]" />
+    <cm:property-placeholder id="placeholder" placeholder-prefix="$[" placeholder-suffix="]" persistent-id="io.fabric8.examples.cxf" update-strategy="reload" />
+
     <reference id="curator" interface="org.apache.curator.framework.CuratorFramework" />
 
     <!-- The FabricFailOverFeature will try to access other service endpoint with round rad -->
@@ -60,13 +60,13 @@
     -->
 
     <!-- publish the service with the address of fail, cxf client will get the simulated IOException -->
-    <jaxws:server id="service1" serviceClass="io.fabric8.demo.cxf.Hello" address="http://$[bind.address]:$[app1.port]/server/server1">
+    <jaxws:server id="service1" serviceClass="io.fabric8.demo.cxf.Hello" address="http://$[bindAddress]:$[greeterPort]/server/server1">
         <jaxws:serviceBean>
              <ref component-id="hello1" />
         </jaxws:serviceBean>
     </jaxws:server>
 
-    <jaxws:server id="service2" serviceClass="io.fabric8.demo.cxf.Hello" address="http://$[bind.address]:$[app1.port]/server/server2">
+    <jaxws:server id="service2" serviceClass="io.fabric8.demo.cxf.Hello" address="http://$[bindAddress]:$[greeterPort]/server/server2">
         <jaxws:serviceBean>
             <ref component-id="hello2" />
         </jaxws:serviceBean>
