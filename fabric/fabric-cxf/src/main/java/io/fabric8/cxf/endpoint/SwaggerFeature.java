@@ -63,4 +63,9 @@ public class SwaggerFeature extends org.apache.cxf.jaxrs.swagger.SwaggerFeature 
         }
     }
 
+    @Override
+    public String getBasePath() {
+        // HACK: without this, swagger-ui will invoke endpoints using http://host:8181/crm without using /cxf servlet base path
+        return super.getBasePath() == null ? null : "/cxf" + super.getBasePath();
+    }
 }
