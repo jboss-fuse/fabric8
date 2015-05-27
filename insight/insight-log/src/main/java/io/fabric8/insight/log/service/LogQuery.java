@@ -15,10 +15,7 @@
  */
 package io.fabric8.insight.log.service;
 
-import java.io.IOException;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
-import io.fabric8.common.util.JMXUtils;
 import io.fabric8.insight.log.LogFilter;
 import io.fabric8.insight.log.LogResults;
 import io.fabric8.insight.log.service.support.MavenCoordinates;
@@ -29,16 +26,11 @@ import org.apache.karaf.shell.log.LruList;
 import org.apache.karaf.shell.log.VmLogAppender;
 import org.ops4j.pax.logging.spi.PaxAppender;
 import org.ops4j.pax.logging.spi.PaxLoggingEvent;
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.BundleEvent;
-import org.osgi.framework.BundleListener;
-import org.osgi.util.tracker.ServiceTracker;
-import org.osgi.util.tracker.ServiceTrackerCustomizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.management.MBeanServer;
-import javax.management.ObjectName;
+import java.io.IOException;
 
 /**
  * An implementation of {@link LogQueryMBean} using the embedded pax appender used by karaf
@@ -50,7 +42,7 @@ public class LogQuery extends LogQuerySupport implements LogQueryMBean {
     @Reference
     private MBeanServer mbeanServer;
 
-    @Reference(referenceInterface = PaxAppender.class, cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE, bind = "bindAppender", unbind = "unbindAppender")
+    @Reference(referenceInterface = PaxAppender.class, cardinality = ReferenceCardinality.MANDATORY_MULTIPLE, bind = "bindAppender", unbind = "unbindAppender")
     private VmLogAppender appender;
 
     public LogQuery() {
