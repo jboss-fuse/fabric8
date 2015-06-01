@@ -243,12 +243,10 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
                     for (Map.Entry<String, T> entry : members.entrySet()) {
                         T v = entry.getValue();
                         if( state.getContainer().equals(v.getContainer()) ) {
-                            id = entry.getKey();
-                            return;
+                            client.delete().guaranteed().forPath(entry.getKey());
                         }
                     }
                 }
-
                 if (id == null) {
                     id = client.create().creatingParentsIfNeeded()
                         .withMode(CreateMode.EPHEMERAL_SEQUENTIAL)

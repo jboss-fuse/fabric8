@@ -667,8 +667,8 @@ public class ActiveMQServiceFactory  {
                             discoveryAgent.getGroup().add(new GroupListener<ActiveMQNode>() {
                                 @Override
                                 public void groupEvent(Group<ActiveMQNode> group, GroupEvent event) {
-                                    if (event.equals(GroupEvent.CONNECTED) || event.equals(GroupEvent.CHANGED)) {
-                                        try {
+                                    try {
+                                        if (event.equals(GroupEvent.CONNECTED) || event.equals(GroupEvent.CHANGED)) {
                                             if (discoveryAgent.getGroup().isMaster(name)) {
                                                 if (started.compareAndSet(false, true)) {
                                                     if (take_pool(ClusteredConfiguration.this)) {
@@ -679,7 +679,7 @@ public class ActiveMQServiceFactory  {
                                                         started.set(false);
                                                     }
                                                 } else {
-                                                    if (discoveryAgent.getServices().isEmpty()) {
+                                                    if (discoveryAgent.getServices().isEmpty() && server != null && server.getBroker() != null && server.getBroker().isStarted()) {
                                                         info("Reconnected to the group", name);
                                                         registerConnectors();
                                                     }
@@ -692,17 +692,18 @@ public class ActiveMQServiceFactory  {
                                                 } else {
                                                     if (event.equals(GroupEvent.CHANGED)) {
                                                         info("Broker %s is slave", name);
-                                                        discoveryAgent.setServices(new String[0]);
+                                                        if (!discoveryAgent.getServices().isEmpty()) {
+                                                            discoveryAgent.setServices(new String[0]);
+                                                        }
                                                     }
                                                 }
                                             }
-                                        } catch (Exception e) {
-                                            throw new RuntimeException(e.getMessage(), e);
+                                        } else if (event.equals(GroupEvent.DISCONNECTED)) {
+                                            info("Disconnected from the group", name);
+                                            disconnect();
                                         }
-                                    } else if (event.equals(GroupEvent.DISCONNECTED)) {
-                                        info("Disconnected from the group", name);
-                                        discoveryAgent.setServices(new String[0]);
-                                        pool_enabled = false;
+                                    } catch (Exception e) {
+                                        throw new RuntimeException(e.getMessage(), e);
                                     }
                                 }
                             });
@@ -710,8 +711,23 @@ public class ActiveMQServiceFactory  {
                             info("Broker %s is waiting to become the master", name);
                             update_pool_state();
                         }
+                    } else {
+                        info("Lost zookeeper service for broker %s", name);
+                        disconnect();
                     }
                 }
+            }
+        }
+
+        private void disconnect() throws Exception {
+            if (started.compareAndSet(true, false)) {
+              return_pool(ClusteredConfiguration.this);
+              info("Stopping the broker %s.", name);
+              stop();
+            } else {
+              info("Disconnecting the broker %s.", name);
+              discoveryAgent.setServices(new String[0]);
+              pool_enabled = false;
             }
         }
 
