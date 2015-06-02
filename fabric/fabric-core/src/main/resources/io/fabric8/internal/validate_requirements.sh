@@ -11,7 +11,7 @@ function validate_requirements() {
 }
 
 function check_java_version() {
-  JAVA_VERSION=`java -version 2>&1 | grep "java version" | awk '{print $3}' | tr -d \" | awk '{split($0, array, ".")} END{print array[2]}'`
+  JAVA_VERSION=`java -version 2>&1 | grep "[java|openjdk] version" | awk '{print $3}' | tr -d \" | awk '{split($0, array, ".")} END{print array[2]}'`
   if [ $JAVA_VERSION -ge 6 ]; then
     echo "Java version is greater than 1.6."
   else
