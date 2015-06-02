@@ -45,6 +45,13 @@
         <jaxrs:providers>
            <bean class="com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider"/>
         </jaxrs:providers>
+        <jaxrs:features>
+            <bean class="io.fabric8.cxf.endpoint.SwaggerFeature">
+                <property name="title" value="Fabric8:CXF:Quickstarts - Customer Service" />
+                <property name="description" value="Sample REST-based Customer Service" />
+                <property name="version" value="${project.version}" />
+            </bean>
+        </jaxrs:features>
     </jaxrs:server>
  
     <cxf:bus>
