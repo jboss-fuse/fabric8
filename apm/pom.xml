@@ -138,7 +138,7 @@
                     <executable>java</executable>
                     <arguments>
                         <argument>
-                            -javaagent:${basedir}/target/apmagent-project-1.2.0-SNAPSHOT.jar=startJolokiaAgent=true
+                            -javaagent:${basedir}/target/apmagent-project-1.2.0.redhat-6-2-0-SNAPSHOT.jar=startJolokiaAgent=true
                         </argument>
                         <argument>-classpath</argument>
                         <classpath/>
