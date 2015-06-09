@@ -100,6 +100,9 @@ final class JoinAction extends AbstractAction {
 
     @Override
     protected Object doExecute() throws Exception {
+        if (nonManaged) {
+            profile = "unmanaged";
+        }
         String oldName = runtimeProperties.getRuntimeIdentity();
 
         if( System.getenv("OPENSHIFT_BROKER_HOST")!=null && containerName!=null ) {
