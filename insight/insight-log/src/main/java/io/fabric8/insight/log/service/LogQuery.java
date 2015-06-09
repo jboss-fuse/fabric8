@@ -50,7 +50,7 @@ public class LogQuery extends LogQuerySupport implements LogQueryMBean {
     @Reference
     private MBeanServer mbeanServer;
 
-    @Reference(referenceInterface = PaxAppender.class, cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE, bind = "bindAppender", unbind = "unbindAppender")
+    @Reference(referenceInterface = PaxAppender.class, policy = ReferencePolicy.DYNAMIC, cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE, bind = "bindAppender", unbind = "unbindAppender")
     private VmLogAppender appender;
 
     public LogQuery() {
