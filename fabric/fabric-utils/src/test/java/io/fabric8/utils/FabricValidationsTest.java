@@ -60,11 +60,6 @@ public class FabricValidationsTest {
         validateProfileName("_profile");
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testProfileWithUpperCase() {
-        validateProfileName("MyProfile");
-    }
-
     @Test
     public void testValidProfileNames() {
         assertTrue(isValidProfileName("c"));
@@ -80,6 +75,7 @@ public class FabricValidationsTest {
         assertTrue(isValidProfileName("c_1"));
         assertTrue(isValidProfileName("1container"));
         assertTrue(isValidProfileName("container1"));
+        assertTrue(isValidProfileName("Container1"));
 
         // we also allow dots
         assertTrue(isValidProfileName("my.container.name"));
