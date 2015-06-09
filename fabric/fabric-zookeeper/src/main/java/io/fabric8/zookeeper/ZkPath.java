@@ -261,10 +261,12 @@ public enum ZkPath {
         if (v == null && exists(curator, CONFIG_CONTAINER.getPath(container)) != null) {
             //Try to acquire the version from the registry path /fabric/configs/containers/{container}
             v = getStringData(curator, CONFIG_CONTAINER.getPath(container));
-        }  else if (exists(curator, CONFIG_DEFAULT_VERSION.getPath()) != null) {
+        }
+        if (v == null && exists(curator, CONFIG_DEFAULT_VERSION.getPath()) != null) {
             //If version is still null, try the default version.
             v = getStringData(curator, CONFIG_DEFAULT_VERSION.getPath());
-        } else {
+        } 
+        if (v == null) {
             //Else assume version 1.0.
             v = ZkDefs.DEFAULT_VERSION;
         }
