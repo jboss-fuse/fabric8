@@ -152,7 +152,7 @@ public class DeploymentAgent implements ManagedService {
             public FabricService addingService(ServiceReference<FabricService> reference) {
                 FabricService service = systemBundleContext.getService(reference);
                 if (provisioningStatus != null) {
-                    updateStatus(service, provisioningStatus, provisioningError);
+                    updateStatus(service, provisioningStatus, provisioningError, false);
                 }
                 if (service != null) {
                     if (LOGGER.isDebugEnabled()) {
@@ -166,7 +166,7 @@ public class DeploymentAgent implements ManagedService {
             @Override
             public void modifiedService(ServiceReference<FabricService> reference, FabricService service) {
                 if (provisioningStatus != null) {
-                    updateStatus(service, provisioningStatus, provisioningError);
+                    updateStatus(service, provisioningStatus, provisioningError, false);
                 }
                 if (service != null) {
                     if (LOGGER.isDebugEnabled()) {
@@ -278,13 +278,23 @@ public class DeploymentAgent implements ManagedService {
             } else {
                 fs = fabricService.getService();
             }
-            updateStatus(fs, status, result);
+            updateStatus(fs, status, result, force);
         } catch (Throwable e) {
             LOGGER.warn("Unable to set provisioning result");
         }
     }
 
-    private void updateStatus(FabricService fs, String status, Throwable result) {
+    // last time the status was updated
+    // synchronization is not that important here
+    private long lastStatusUpdate = 0L;
+    // ENTESB-3361: we'll be updating status (in ZK) not faster than every UPDATE_INTERVAL ms
+    private static final long UPDATE_INTERVAL = 2000L;
+
+    private void updateStatus(FabricService fs, String status, Throwable result, boolean force/*=false*/) {
+        if (!force && System.currentTimeMillis() < lastStatusUpdate + UPDATE_INTERVAL) {
+            return;
+        }
+        lastStatusUpdate = System.currentTimeMillis();
         try {
             provisioningStatus = status;
             provisioningError = result;
