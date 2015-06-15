@@ -21,7 +21,7 @@ public class ChildContainerBuilder extends ContainerBuilder<ChildContainerBuilde
 
 
 	protected ChildContainerBuilder(CreateChildContainerOptions.Builder optionsBuilder) {
-		super(optionsBuilder.parent("root").jmxUser("admin").jmxPassword("admin").zookeeperPassword("admin"));
+		super(optionsBuilder.parent("root").jmxUser("admin").jmxPassword("admin").zookeeperPassword("admin").jvmOpts("-Xmx1536m"));
 	}
 
 	public static ChildContainerBuilder child() {
