@@ -23,7 +23,7 @@ public class ChildContainerBuilder extends ContainerBuilder<ChildContainerBuilde
 
 
 	protected ChildContainerBuilder(ServiceProxy<FabricService> proxy, CreateChildContainerOptions.Builder optionsBuilder) {
-		super(proxy, optionsBuilder.parent("root").jmxUser("admin").jmxPassword("admin").zookeeperPassword("admin"));
+		super(proxy, optionsBuilder.parent("root").jmxUser("admin").jmxPassword("admin").zookeeperPassword("admin").jvmOpts("-Xmx1536m"));
 	}
 
 	public static ChildContainerBuilder child(ServiceProxy<FabricService> proxy) {

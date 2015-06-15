@@ -76,7 +76,7 @@ public class FabricTestSupport extends FabricKarafTestSupport {
         if (jvmOpts != null) {
             builder.jvmOpts(jvmOpts);
         } else {
-            builder.jvmOpts("-Xms1024m -Xmx1024m");
+            builder.jvmOpts("-Xms1024m -Xmx1536m");
         }
 
         CreateContainerMetadata[] metadata = fabricService.createContainers(builder.build());
