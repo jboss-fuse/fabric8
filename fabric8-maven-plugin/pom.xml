@@ -114,6 +114,12 @@
     <dependency>
         <groupId>io.fabric8</groupId>
         <artifactId>fabric-project-deployer</artifactId>
+        <exclusions>
+            <exclusion>
+                <groupId>org.eclipse.aether</groupId>
+                <artifactId>aether-connector-wagon</artifactId>
+            </exclusion>
+        </exclusions>
     </dependency>
     <dependency>
         <groupId>io.fabric8</groupId>
