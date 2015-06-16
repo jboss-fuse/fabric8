@@ -33,6 +33,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipException;
+import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 
 import org.slf4j.Logger;
@@ -63,6 +65,11 @@ public class PatchServiceImpl implements PatchService {
             // Load patch
             URI uploadUri = fabricService.getMavenRepoUploadURI();
             List<PatchDescriptor> descriptors = new ArrayList<PatchDescriptor>();
+
+            if(!isZipValid(patch.getFile())){
+                throw new PatchException("Invalid zip file: " + patch.getFile());
+            }
+
             ZipInputStream zis = new ZipInputStream(new BufferedInputStream(patch.openStream()));
             try {
                 ZipEntry entry = zis.getNextEntry();
@@ -249,6 +256,20 @@ public class PatchServiceImpl implements PatchService {
             return requirements;
         }
     }
+
+
+        public static boolean isZipValid(String fileName) {
+            boolean result = true;
+
+            try {
+                ZipFile zipFile = new ZipFile(fileName);
+                zipFile.size();
+            } catch (Exception e){
+                result = false;
+                LOGGER.error("Patch zip [{}] is not valid. ", fileName, e);
+            }
+            return result;
+        }
 
     static void copy(InputStream is, OutputStream os) throws IOException {
         try {
