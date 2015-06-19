@@ -44,8 +44,6 @@
       <ref component-id="fabricResourceBean"/>
     </jaxrs:serviceBeans>
     <jaxrs:providers>
-      <ref component-id="authenticationFilter"/>
-      <ref component-id="authorizationFilter"/>
       <bean class="com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider"/>
     </jaxrs:providers>
   </jaxrs:server>
@@ -67,19 +65,6 @@
   <bean id="fabricResourceBean" class="io.fabric8.rest.FabricResource">
     <property name="fabricService" ref="fabricService"/>
     <property name="curator" ref="curator"/>
-  </bean>
-
-  <bean id="authenticationFilter" class="org.apache.cxf.jaxrs.security.JAASAuthenticationFilter">
-    <!-- Name of the JAAS Context -->
-    <property name="contextName" value="karaf"/>
-  </bean>
-
-  <bean id="authorizationFilter" class="org.apache.cxf.jaxrs.security.SimpleAuthorizingFilter">
-    <property name="interceptor">
-      <bean class="org.apache.cxf.interceptor.security.SimpleAuthorizingInterceptor">
-        <property name="globalRoles" value="admin"/>
-      </bean>
-    </property>
   </bean>
 
 </blueprint>

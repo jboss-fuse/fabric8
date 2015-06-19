@@ -40,9 +40,6 @@
             org.osgi.service.log;version="[1.0.0,2.0.0)",
             org.osgi.util.tracker;version="[1.0.0,2.0.0)",
             javax.annotation;version="[1.1.0,2.0.0)",
-            org.apache.cxf.jaxrs.security,
-            org.apache.karaf.jaas.boot.principal,
-            org.eclipse.jetty.plus.jaas,
             *
         </fuse.osgi.import>
     </properties>
