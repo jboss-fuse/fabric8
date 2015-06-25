@@ -27,7 +27,7 @@ import java.util.Map;
 
 import static org.elasticsearch.node.NodeBuilder.nodeBuilder;
 
-@Component(name = "io.fabric8.elasticsearch", policy = ConfigurationPolicy.REQUIRE, configurationFactory = true, metatype = false)
+@Component(name = "io.fabric8.elasticsearch", policy = ConfigurationPolicy.REQUIRE, immediate = true, configurationFactory = true, metatype = false)
 @Service(org.elasticsearch.node.Node.class)
 public class ElasticsearchNode implements Node {
 
@@ -52,6 +52,12 @@ public class ElasticsearchNode implements Node {
         settings.put(stringProps).classLoader(getClass().getClassLoader());
 
         nodeDelegate = nodeBuilder().settings(settings).node();
+    }
+
+    @Modified
+    protected void modified(final Map<String, Object> props) throws Exception {
+        deactivate();
+        activate(props);
     }
 
     @Deactivate
