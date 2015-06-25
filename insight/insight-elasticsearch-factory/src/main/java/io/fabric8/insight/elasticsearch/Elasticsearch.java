@@ -20,7 +20,6 @@ import org.apache.felix.scr.annotations.*;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
-import org.elasticsearch.action.admin.cluster.stats.ClusterStatsResponse;
 import org.elasticsearch.client.ClusterAdminClient;
 import org.elasticsearch.node.Node;
 
@@ -38,7 +37,7 @@ public class Elasticsearch implements ElasticsearchMBean {
     @Reference
     private MBeanServer mbeanServer;
 
-    @Reference(name = "node", referenceInterface = org.elasticsearch.node.Node.class, cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE)
+    @Reference(name = "node", policy = ReferencePolicy.DYNAMIC, referenceInterface = org.elasticsearch.node.Node.class, cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE)
     private final Map<String, Set<Node>> nodesClusterMap = new ConcurrentHashMap<String, Set<Node>>();
 
     @Activate
