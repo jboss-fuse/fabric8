@@ -33,6 +33,7 @@ public class MasterEndpoint extends DefaultEndpoint implements DelegateEndpoint 
     private final MasterComponent component;
     private final String singletonId;
     private final String child;
+    private final Endpoint childEndpoint;
 
 
     public MasterEndpoint(String uri, MasterComponent component, String singletonId, String child) {
@@ -40,6 +41,7 @@ public class MasterEndpoint extends DefaultEndpoint implements DelegateEndpoint 
         this.component = component;
         this.singletonId = singletonId;
         this.child = child;
+        this.childEndpoint = getCamelContext().getEndpoint(child);
     }
 
     public String getSingletonId() {
@@ -78,7 +80,7 @@ public class MasterEndpoint extends DefaultEndpoint implements DelegateEndpoint 
     // Implementation methods
     //-------------------------------------------------------------------------
     Endpoint getChildEndpoint() {
-        return getCamelContext().getEndpoint(child);
+        return childEndpoint;
     }
 
     public Endpoint getEndpoint() {
