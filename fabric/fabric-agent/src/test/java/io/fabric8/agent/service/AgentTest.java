@@ -74,6 +74,7 @@ public class AgentTest {
                 "mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.cm/1.0.5",
                 "mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.core.compatibility/1.0.0",
                 "mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.core/1.4.2",
+                "mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.core.compatibility/1.0.0",
                 "mvn:org.apache.aries.proxy/org.apache.aries.proxy.api/1.0.1",
                 "mvn:org.apache.aries.proxy/org.apache.aries.proxy.impl/1.0.4",
                 "mvn:org.apache.aries/org.apache.aries.util/1.1.0",
