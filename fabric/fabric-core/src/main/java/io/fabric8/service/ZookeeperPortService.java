@@ -80,7 +80,9 @@ public final class ZookeeperPortService extends AbstractComponent implements Por
             lease = interProcessLock.acquire(60, TimeUnit.SECONDS);
             if (lease != null) {
                 int port = lookupPort(container, pid, key);
-                if (port > 0) {
+                if (port > 0 && (port >= fromPort && port <= toPort)) {
+                    //if the previous port isn't in the port range then
+                    //get one from the port range
                     return port;
                 }
                 Set<Integer> boundPorts = findUsedPortByHost(container, lease);
