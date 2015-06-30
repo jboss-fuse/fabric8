@@ -72,6 +72,7 @@ public class AgentTest {
         String[] bundles = {
                 "mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.api/1.0.1",
                 "mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.cm/1.0.5",
+                "mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.core.compatibility/1.0.0",
                 "mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.core/1.4.2",
                 "mvn:org.apache.aries.proxy/org.apache.aries.proxy.api/1.0.1",
                 "mvn:org.apache.aries.proxy/org.apache.aries.proxy.impl/1.0.4",
@@ -88,7 +89,7 @@ public class AgentTest {
                 "mvn:org.apache.karaf.shell/org.apache.karaf.shell.packages/" + karafVersion,
                 "mvn:org.apache.karaf.shell/org.apache.karaf.shell.ssh/" + karafVersion,
                 "mvn:org.apache.mina/mina-core/2.0.9",
-                "mvn:org.apache.sshd/sshd-core/0.12.0.redhat-002",
+                "mvn:org.apache.sshd/sshd-core/0.14.0",
                 "mvn:org.ow2.asm/asm-all/5.0.3",
                 "mvn:org.ops4j.pax.logging/pax-logging-api/1.8.2",
                 "mvn:org.ops4j.pax.logging/pax-logging-service/1.8.2",
