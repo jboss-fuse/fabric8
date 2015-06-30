@@ -166,4 +166,29 @@
             </plugin>
         </plugins>
     </build>
+    
+    <profiles>
+        <profile>
+            <id>disable-flaky-tests</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <excludes>
+                                <exclude>**/EnsembleTest.java</exclude>
+                                <exclude>**/ProfileEditTest.java</exclude>
+                                <exclude>**/PatchApplyTest.java</exclude>
+                                <exclude>**/JoinTest.java</exclude>
+                                <exclude>**/EnsembleTest.java</exclude>
+                                <exclude>**/DeploymentAgentTest.java</exclude>
+                                <exclude>**/CreateChildContainerTest.java</exclude>
+                            </excludes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
 </project>
