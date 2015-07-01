@@ -103,6 +103,7 @@ import org.eclipse.aether.resolution.VersionRangeResult;
 import org.eclipse.aether.spi.connector.RepositoryConnectorFactory;
 import org.eclipse.aether.spi.connector.transport.TransporterFactory;
 import org.eclipse.aether.spi.connector.transport.TransporterProvider;
+import org.eclipse.aether.transport.file.FileTransporterFactory;
 import org.eclipse.aether.transport.wagon.WagonProvider;
 import org.eclipse.aether.transport.wagon.WagonTransporterFactory;
 import org.eclipse.aether.util.artifact.DefaultArtifactTypeRegistry;
@@ -196,6 +197,7 @@ public class AetherBasedResolver implements MavenResolver {
 
         locator.addService( RepositoryConnectorFactory.class, BasicRepositoryConnectorFactory.class );
         locator.addService( TransporterProvider.class, DefaultTransporterProvider.class );
+        locator.addService( TransporterFactory.class, FileTransporterFactory.class );
         locator.addService( TransporterFactory.class, WagonTransporterFactory.class );
         locator.setServices( WagonProvider.class, new StaticWagonProvider(m_config.getTimeout()) );
 
