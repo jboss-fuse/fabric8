@@ -18,7 +18,7 @@ package io.fabric8.maven;
 import org.apache.maven.wagon.Wagon;
 import org.apache.maven.wagon.providers.file.FileWagon;
 import org.apache.maven.wagon.providers.http.HttpWagon;
-import org.eclipse.aether.connector.wagon.WagonProvider;
+import org.eclipse.aether.transport.wagon.WagonProvider;
 
 public class StaticWagonProvider implements WagonProvider {
     private int timeout;

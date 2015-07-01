@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Enumeration;
@@ -75,13 +76,13 @@ import org.eclipse.aether.collection.DependencyGraphTransformer;
 import org.eclipse.aether.collection.DependencyManager;
 import org.eclipse.aether.collection.DependencySelector;
 import org.eclipse.aether.collection.DependencyTraverser;
-import org.eclipse.aether.connector.wagon.WagonProvider;
-import org.eclipse.aether.connector.wagon.WagonRepositoryConnectorFactory;
+import org.eclipse.aether.connector.basic.BasicRepositoryConnectorFactory;
 import org.eclipse.aether.graph.DefaultDependencyNode;
 import org.eclipse.aether.graph.Dependency;
 import org.eclipse.aether.graph.DependencyFilter;
 import org.eclipse.aether.graph.DependencyNode;
 import org.eclipse.aether.impl.DefaultServiceLocator;
+import org.eclipse.aether.internal.impl.DefaultTransporterProvider;
 import org.eclipse.aether.repository.Authentication;
 import org.eclipse.aether.repository.LocalRepository;
 import org.eclipse.aether.repository.MirrorSelector;
@@ -100,6 +101,11 @@ import org.eclipse.aether.resolution.VersionRangeRequest;
 import org.eclipse.aether.resolution.VersionRangeResolutionException;
 import org.eclipse.aether.resolution.VersionRangeResult;
 import org.eclipse.aether.spi.connector.RepositoryConnectorFactory;
+import org.eclipse.aether.spi.connector.transport.TransporterFactory;
+import org.eclipse.aether.spi.connector.transport.TransporterProvider;
+import org.eclipse.aether.transport.file.FileTransporterFactory;
+import org.eclipse.aether.transport.wagon.WagonProvider;
+import org.eclipse.aether.transport.wagon.WagonTransporterFactory;
 import org.eclipse.aether.util.artifact.DefaultArtifactTypeRegistry;
 import org.eclipse.aether.util.graph.manager.ClassicDependencyManager;
 import org.eclipse.aether.util.graph.selector.AndDependencySelector;
@@ -155,7 +161,7 @@ public class AetherBasedResolver implements MavenResolver {
      * @param configuration (must be not null)
      */
     public AetherBasedResolver( final MavenConfiguration configuration ) {
-        this( configuration, null );
+        this( configuration, null, null );
     }
 
     /**
@@ -164,9 +170,23 @@ public class AetherBasedResolver implements MavenResolver {
      * @param configuration (must be not null)
      */
     public AetherBasedResolver( final MavenConfiguration configuration, final Mirror mirror ) {
+        this( configuration, mirror, null );
+    }
+
+    /**
+     * Create a AetherBasedResolver
+     *
+     * @param configuration (must be not null)
+     */
+    public AetherBasedResolver( final MavenConfiguration configuration, final Mirror mirror, final RepositorySystem repositorySystem ) {
         m_config = configuration;
         m_settings = configuration.getSettings();
-        m_repoSystem = newRepositorySystem();
+        if (repositorySystem == null) {
+            m_repoSystem = newRepositorySystem();
+        } else {
+            m_repoSystem = repositorySystem;
+            decrypter = new MavenSettingsDecrypter( m_config.getSecuritySettings() );
+        }
         decryptSettings();
         m_proxySelector = selectProxies();
         m_mirrorSelector = selectMirrors( mirror );
@@ -175,8 +195,11 @@ public class AetherBasedResolver implements MavenResolver {
     private RepositorySystem newRepositorySystem() {
         DefaultServiceLocator locator = MavenRepositorySystemUtils.newServiceLocator();
 
-        locator.setServices( WagonProvider.class, new StaticWagonProvider( m_config.getTimeout() ) );
-        locator.addService( RepositoryConnectorFactory.class, WagonRepositoryConnectorFactory.class );
+        locator.addService( RepositoryConnectorFactory.class, BasicRepositoryConnectorFactory.class );
+        locator.addService( TransporterProvider.class, DefaultTransporterProvider.class );
+        locator.addService( TransporterFactory.class, FileTransporterFactory.class );
+        locator.addService( TransporterFactory.class, WagonTransporterFactory.class );
+        locator.setServices( WagonProvider.class, new StaticWagonProvider(m_config.getTimeout()) );
 
         decrypter = new MavenSettingsDecrypter( m_config.getSecuritySettings() );
         locator.setServices( SettingsDecrypter.class, decrypter );
@@ -330,8 +353,6 @@ public class AetherBasedResolver implements MavenResolver {
             }
         }
     }
-
-    
 
     private void addRepo( List<RemoteRepository> list, MavenRepositoryURL repo ) {
         String releasesUpdatePolicy = repo.getReleasesUpdatePolicy();
@@ -775,7 +796,7 @@ public class AetherBasedResolver implements MavenResolver {
             DependencyNode pomNode = rootNode;
 
             //final Filter<Dependency> shouldExclude = Filters.or(DependencyFilters.testScopeFilter, excludeDependencyFilter, new NewerVersionExistsFilter(rootNode));
-            final Filter<Dependency> shouldExclude = Filters.or(DependencyFilters.testScopeFilter, excludeDependencyFilter);
+            final Filter<Dependency> shouldExclude = Filters.or(Arrays.asList(DependencyFilters.testScopeFilter, excludeDependencyFilter));
             DependencySelector dependencySelector = new AndDependencySelector(
                     new ScopeDependencySelector("test"),
                     new ExclusionDependencySelector(),
@@ -815,7 +836,7 @@ public class AetherBasedResolver implements MavenResolver {
 
             // now lets transform the dependency tree to remove different versions for the same artifact
             final DependencyGraphTransformationContext tranformContext = new DependencyGraphTransformationContext() {
-                Map map = new HashMap();
+                Map<Object, Object> map = new HashMap<>();
 
                 public RepositorySystemSession getSession() {
                     return session;
@@ -881,9 +902,7 @@ public class AetherBasedResolver implements MavenResolver {
                 DependencyRequest request = new DependencyRequest(cr, filter);
                 m_repoSystem.resolveDependencies(session, request);
                 return node;
-            } catch (DependencyCollectionException e) {
-                handleDependencyResolveFailure(pomNode, dependency, e);
-            } catch (DependencyResolutionException e) {
+            } catch (DependencyResolutionException | DependencyCollectionException e) {
                 handleDependencyResolveFailure(pomNode, dependency, e);
             }
         }
