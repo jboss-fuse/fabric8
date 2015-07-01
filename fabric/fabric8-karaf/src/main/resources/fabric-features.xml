@@ -36,6 +36,7 @@
         <bundle>mvn:io.fabric8/fabric-ssl/${project.version}</bundle>
         <bundle>mvn:org.apache.felix/org.apache.felix.configadmin/${felix-configadmin-version}</bundle>
 
+        <bundle dependency="true">mvn:org.apache.geronimo.specs/geronimo-servlet_3.0_spec/1.0</bundle>
         <bundle>mvn:io.fabric8/fabric-maven/${project.version}</bundle>
         <bundle>mvn:org.ops4j.pax.url/pax-url-wrap/${pax.url.version}/jar/uber</bundle>
 
@@ -155,6 +156,7 @@
         <bundle dependency="true">mvn:org.ops4j.base/ops4j-base-lang/${ops4j-base.version}</bundle>
         <bundle dependency="true">mvn:commons-io/commons-io/${commons-io2-version}</bundle>
         <bundle>mvn:io.fabric8/fabric-maven/${project.version}</bundle>
+        <bundle dependency="true">mvn:org.apache.geronimo.specs/geronimo-servlet_3.0_spec/1.0</bundle>
         <bundle>mvn:io.fabric8/fabric-maven-proxy/${project.version}</bundle>
     </feature>
 
@@ -204,6 +206,7 @@
         <bundle>mvn:io.fabric8/fabric-git/${project.version}</bundle>
         <bundle>mvn:io.fabric8/fabric-configadmin/${project.version}</bundle>
         <bundle>mvn:io.fabric8/fabric-maven/${project.version}</bundle>
+        <bundle dependency="true">mvn:org.apache.geronimo.specs/geronimo-servlet_3.0_spec/1.0</bundle>
         <bundle>mvn:io.fabric8/fabric-agent/${project.version}</bundle>
         <bundle>mvn:io.fabric8/fabric-extender-listener/${project.version}</bundle>
         <bundle>mvn:io.fabric8/fabric-jaas/${project.version}</bundle>
