@@ -63,6 +63,7 @@ import org.apache.maven.plugin.descriptor.PluginDescriptor;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.eclipse.aether.RepositorySystem;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceReference;
 import org.osgi.service.url.URLStreamHandlerService;
@@ -104,6 +105,9 @@ public class VerifyFeatureResolutionMojo extends AbstractMojo {
     @Component
     protected PluginDescriptor pluginDescriptor;
 
+    @Component
+    protected RepositorySystem repositorySystem;
+
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         try {
@@ -143,7 +147,7 @@ public class VerifyFeatureResolutionMojo extends AbstractMojo {
         Map<String, Feature[]> repos = new HashMap<>();
         Map<String, Feature> allFeatures = new HashMap<>();
         try {
-            resolver = MavenResolvers.createMavenResolver(properties, "org.ops4j.pax.url.mvn");
+            resolver = MavenResolvers.createMavenResolver(null, properties, "org.ops4j.pax.url.mvn", repositorySystem);
             manager = DownloadManagers.createDownloadManager(resolver, executor);
             repositories = downloadRepositories(manager, descriptors).call();
             for (String repoUri : repositories.keySet()) {
