@@ -398,24 +398,26 @@ public class ActiveMQServiceFactory  {
             }
         }
 
-        public synchronized void update_pool_state() {
-            boolean value = can_own_pool(this);
-            if (pool_enabled != value) {
-                try {
-                    pool_enabled = value;
-                    if (value) {
-                        if (pool != null) {
-                            info("Broker %s added to pool %s.", name, pool);
+        public void update_pool_state() {
+            synchronized (ActiveMQServiceFactory.this) {
+                boolean value = can_own_pool(this);
+                if (pool_enabled != value) {
+                    try {
+                        pool_enabled = value;
+                        if (value) {
+                            if (pool != null) {
+                                info("Broker %s added to pool %s.", name, pool);
+                            }
+                            discoveryAgent.start();
+                        } else {
+                            if (pool != null) {
+                                info("Broker %s removed from pool %s.", name, pool);
+                            }
+                            discoveryAgent.stop();
                         }
-                        discoveryAgent.start();
-                    } else {
-                        if (pool != null) {
-                            info("Broker %s removed from pool %s.", name, pool);
-                        }
-                        discoveryAgent.stop();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e.getMessage(), e);
                     }
-                } catch (Exception e) {
-                    throw new RuntimeException(e.getMessage(), e);
                 }
             }
         }
@@ -558,7 +560,7 @@ public class ActiveMQServiceFactory  {
         }
 
         public void close() throws Exception {
-            synchronized (this) {
+            synchronized (ActiveMQServiceFactory.this) {
                 if (pool_enabled) {
                     return_pool(this);
                 }
@@ -575,16 +577,17 @@ public class ActiveMQServiceFactory  {
             executor.shutdownNow();
         }
 
-        public synchronized void stop() throws ExecutionException, InterruptedException
-        {
-            interruptAndWaitForStart();
-            if (stop_future == null || stop_future.isDone()) {
-                stop_future = executor.submit(new Runnable() {
-                    @Override
-                    public void run() {
-                        doStop();
-                    }
-                });
+        public void stop() throws ExecutionException, InterruptedException {
+            synchronized (ActiveMQServiceFactory.this) {
+                interruptAndWaitForStart();
+                if (stop_future == null || stop_future.isDone()) {
+                    stop_future = executor.submit(new Runnable() {
+                        @Override
+                        public void run() {
+                            doStop();
+                        }
+                    });
+                }
             }
         }
 
@@ -638,7 +641,7 @@ public class ActiveMQServiceFactory  {
 
         public void updateCurator(CuratorFramework curator) throws Exception {
             if (!standalone) {
-                synchronized (this) {
+                synchronized (ActiveMQServiceFactory.this) {
                     if (discoveryAgent != null) {
                         discoveryAgent.stop();
                         discoveryAgent = null;
