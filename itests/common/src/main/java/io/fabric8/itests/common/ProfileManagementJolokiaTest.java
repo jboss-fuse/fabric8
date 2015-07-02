@@ -40,7 +40,7 @@ public class ProfileManagementJolokiaTest extends AbstractProfileManagementTest 
     
     @BeforeClass
     public static void beforeClass() throws Exception {
-        String jmxServiceURL = "http://localhost:8181/jolokia";
+        String jmxServiceURL = "http://127.0.0.1:8181/jolokia";
         proxy = JolokiaMXBeanProxy.getMXBeanProxy(jmxServiceURL, new ObjectName(ProfileManagement.OBJECT_NAME), ProfileManagement.class, credentials[0], credentials[1]);
     }
 
