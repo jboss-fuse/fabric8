@@ -55,7 +55,7 @@ public class ExtendedUpgradeAndRollbackTest  {
     @Deployment
     @StartLevelAware(autostart = true)
     public static Archive<?> deployment() {
-        final JavaArchive archive = ShrinkWrap.create(JavaArchive.class, "extended-upgrade-rollback-test");
+        final JavaArchive archive = ShrinkWrap.create(JavaArchive.class, "extended-upgrade-rollback-test.jar");
         archive.addPackage(CommandSupport.class.getPackage());
         archive.setManifest(new Asset() {
             @Override

@@ -39,7 +39,6 @@ import org.junit.runner.RunWith;
  */
 @RunAsClient
 @RunWith(Arquillian.class)
-@Ignore("[FABRIC-1173] Cannot reliably delete profile version")
 public class ProfileManagementProxyTest extends AbstractProfileManagementTest {
 
     static final String[] credentials = new String[] { "admin", "admin" };

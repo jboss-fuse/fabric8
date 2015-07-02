@@ -48,7 +48,7 @@ public class ProfileEditTest {
     @Deployment
     @StartLevelAware(autostart = true)
     public static Archive<?> deployment() {
-        final JavaArchive archive = ShrinkWrap.create(JavaArchive.class, "profile-edit-test");
+        final JavaArchive archive = ShrinkWrap.create(JavaArchive.class, "profile-edit-test.jar");
         archive.addPackage(CommandSupport.class.getPackage());
         archive.setManifest(new Asset() {
             @Override
