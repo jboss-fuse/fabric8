@@ -46,7 +46,7 @@ public class FreeGeoIpService implements GeoLocationService{
             String urlStr = "http://freegeoip.net/json/";
             URL url = new URL(urlStr);
             URLConnection urlConnection = url.openConnection();
-            urlConnection.setConnectTimeout(50000);
+            urlConnection.setConnectTimeout(2000);
             urlConnection.setReadTimeout(5000);
             InputStream is = urlConnection.getInputStream();
             closeable = is;
