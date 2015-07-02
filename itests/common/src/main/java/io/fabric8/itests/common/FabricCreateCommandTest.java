@@ -56,7 +56,7 @@ public class FabricCreateCommandTest {
     @Deployment
     @StartLevelAware(autostart = true)
     public static Archive<?> deployment() {
-        final JavaArchive archive = ShrinkWrap.create(JavaArchive.class, "create-command-test");
+        final JavaArchive archive = ShrinkWrap.create(JavaArchive.class, "create-command-test.jar");
         archive.addClasses(PasswordEncoder.class, Base64Encoder.class);
         archive.addPackage(CommandSupport.class.getPackage());
         archive.setManifest(new Asset() {
