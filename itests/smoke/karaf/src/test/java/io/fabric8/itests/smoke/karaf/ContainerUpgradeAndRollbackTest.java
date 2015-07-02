@@ -53,7 +53,7 @@ public class ContainerUpgradeAndRollbackTest {
     @Deployment
     @StartLevelAware(autostart = true)
     public static Archive<?> deployment() {
-        final JavaArchive archive = ShrinkWrap.create(JavaArchive.class, "container-upgrade-rollback-test");
+        final JavaArchive archive = ShrinkWrap.create(JavaArchive.class, "container-upgrade-rollback-test.jar");
         archive.addPackage(CommandSupport.class.getPackage());
         archive.setManifest(new Asset() {
             @Override
