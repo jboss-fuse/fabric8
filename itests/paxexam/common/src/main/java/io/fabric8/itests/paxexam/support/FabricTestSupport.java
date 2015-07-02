@@ -76,7 +76,7 @@ public class FabricTestSupport extends FabricKarafTestSupport {
         if (jvmOpts != null) {
             builder.jvmOpts(jvmOpts);
         } else {
-            builder.jvmOpts("-Xms1024m -Xmx1536m");
+            builder.jvmOpts("-Xms1024m -Xmx1536m -Djava.net.preferIPv4Stack=true");
         }
 
         CreateContainerMetadata[] metadata = fabricService.createContainers(builder.build());
