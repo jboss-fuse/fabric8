@@ -58,7 +58,7 @@ public class ExtendedEnsembleTest {
     @Deployment
     @StartLevelAware(autostart = true)
     public static Archive<?> deployment() {
-        final JavaArchive archive = ShrinkWrap.create(JavaArchive.class, "extended-ensemble-test");
+        final JavaArchive archive = ShrinkWrap.create(JavaArchive.class, "extended-ensemble-test.jar");
         archive.addPackage(CommandSupport.class.getPackage());
         archive.setManifest(new Asset() {
             @Override

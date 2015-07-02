@@ -57,7 +57,7 @@ public class ContainerStartupTest {
     @Deployment
     @StartLevelAware(autostart = true)
     public static Archive<?> deployment() {
-        final JavaArchive archive = ShrinkWrap.create(JavaArchive.class, "container-startup-test");
+        final JavaArchive archive = ShrinkWrap.create(JavaArchive.class, "container-startup-test.jar");
         archive.addClasses(PasswordEncoder.class, Base64Encoder.class);
         archive.addPackage(CommandSupport.class.getPackage());
         archive.setManifest(new Asset() {
