@@ -21,7 +21,7 @@ import io.fabric8.api.RuntimeProperties;
 import io.fabric8.api.jcip.ThreadSafe;
 import io.fabric8.api.scr.AbstractComponent;
 import io.fabric8.api.scr.ValidatingReference;
-import io.fabric8.common.util.Files;
+//import io.fabric8.common.util.Files;
 import io.fabric8.git.GitDataStore;
 import io.fabric8.git.GitHttpEndpoint;
 import io.fabric8.git.GitNode;
@@ -32,8 +32,9 @@ import io.fabric8.zookeeper.ZkPath;
 import io.fabric8.zookeeper.utils.ZooKeeperUtils;
 
 import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.IOException;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.Map;
@@ -48,6 +49,8 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.internal.storage.file.WindowCache;
+import org.eclipse.jgit.storage.file.WindowCacheConfig;
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.http.HttpContext;
@@ -176,7 +179,9 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
 
             // Init and clone the local repo.
             File fabricRoot = fabricRepoPath.toFile();
+
             if (!fabricRoot.exists()) {
+                LOGGER.info("Cloning master root repo into {}", fabricRoot);
                 File localRepo = gitDataStore.get().getGit().getRepository().getDirectory();
                 git = Git.cloneRepository()
                     .setTimeout(10)
@@ -187,6 +192,7 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
                     .setURI(localRepo.toURI().toString())
                     .call();
             } else {
+                LOGGER.info("{} already exists", fabricRoot);
                 git = Git.open(fabricRoot);
             }
 
@@ -201,14 +207,53 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
         }
     }
 
+
+    /**
+     * The complexity of this code is due to problems with jgit and Windows file system.
+     * See https://bugs.eclipse.org/bugs/show_bug.cgi?id=300084
+     */
     private void unregisterServlet() {
         synchronized (gitRemoteUrl) {
             if (basePath != null) {
                 httpService.get().unregister("/git");
+                // this should foul jgit to use flush its cache and release locks for .pack files on Windows
+                WindowCacheConfig cfg = new WindowCacheConfig();
+                cfg.install();
                 git.getRepository().close();
-                Files.recursiveDelete(basePath.toFile());
+                git = null;
+
+                boolean basePathExists = basePath.toFile().exists();
+                for(int i = 0 ; i < 10; i++) {
+                    try {
+                        if (basePathExists) {
+                            recursiveDelete(basePath.toFile());
+                            basePathExists = false;
+                        }
+                        break;
+                    } catch (IOException e) {
+                        LOGGER.debug("Failed to recursively delete this filesystem path: {}", basePath, e);
+                        System.gc();
+                        try {
+                            Thread.sleep(3 * 1000);
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+                }
+                if(basePathExists){
+                    LOGGER.error("Failed to recursively delete this filesystem path: {}", basePath );
+                } else{
+                    LOGGER.info("Correctly removed old git repo: {}", basePath );
+                }
             }
         }
+    }
+
+
+    private void recursiveDelete(File file) throws IOException{
+        org.eclipse.jgit.util.FileUtils.delete(file,
+                org.eclipse.jgit.util.FileUtils.RECURSIVE |org.eclipse.jgit.util.FileUtils.RETRY);
+        LOGGER.info("Deleted path: {}", file.getAbsoluteFile());
     }
 
     private String readExternalGitUrl() {
