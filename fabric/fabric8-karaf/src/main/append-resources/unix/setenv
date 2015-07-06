@@ -36,7 +36,7 @@
 # karaf scripts
 #
 JAVA_MIN_MEM=512M # Minimum memory for the JVM
-JAVA_MAX_MEM=512M # Maximum memory for the JVM
+JAVA_MAX_MEM=1024M # Maximum memory for the JVM
 JAVA_PERM_MEM=128M # Minimum perm memory for the JVM
 JAVA_MAX_PERM_MEM=256M # Maximum memory for the JVM
 export JAVA_MIN_MEM

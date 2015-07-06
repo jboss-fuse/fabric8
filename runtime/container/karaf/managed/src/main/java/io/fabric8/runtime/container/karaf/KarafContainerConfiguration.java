@@ -29,7 +29,7 @@ import java.util.Properties;
  */
 public final class KarafContainerConfiguration extends ContainerConfiguration {
 
-    public static final String DEFAULT_JAVAVM_ARGUMENTS = "-Xmx512m ";
+    public static final String DEFAULT_JAVAVM_ARGUMENTS = "-Xmx768m ";
 
     @Override
     protected void validate() {

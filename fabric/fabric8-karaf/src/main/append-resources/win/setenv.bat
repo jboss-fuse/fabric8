@@ -43,7 +43,7 @@ rem Minimum memory for the JVM
 SET JAVA_MIN_MEM=512M
 
 rem Maximum memory for the JVM
-SET JAVA_MAX_MEM=512M
+SET JAVA_MAX_MEM=1024M
 
 rem Minimum perm memory for the JVM
 SET JAVA_PERM_MEM=128M
