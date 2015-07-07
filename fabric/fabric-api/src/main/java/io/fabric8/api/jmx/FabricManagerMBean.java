@@ -112,9 +112,21 @@ public interface FabricManagerMBean {
     // used by hawtio
     List<String> containerIdsForProfile(String versionId, String profileId);
 
+    /**
+     * Return a list of container IDs using each of the checked profileIds. Some of those profileIds may not
+     * represent actual profiles, so should be ignored
+     * @param versionId
+     * @param profileIds
+     * @param checkParents whether to return containers by parent profile as well
+     * @return
+     */
+    List<List<String>> containerIdsForProfiles(String versionId, List<String> profileIds, boolean checkParents);
+
     List<Map<String, Object>> containersForProfile(String versionId, String profileId);
 
     List<Map<String, Object>> containersForProfile(String versionId, String profileId, List<String> fields);
+
+    List<Map<String, Object>> containersForProfile(String versionId, String profileId, List<String> fields, boolean checkParents);
 
     void setContainerProperty(String containerId, String property, Object value);
 

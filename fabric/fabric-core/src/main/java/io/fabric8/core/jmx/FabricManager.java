@@ -73,12 +73,14 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
+import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getAllChildren;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getChildrenSafe;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getSubstitutedData;
 
@@ -667,25 +669,71 @@ public final class FabricManager implements FabricManagerMBean {
     }
 
     @Override
+    public List<List<String>> containerIdsForProfiles(String versionId, List<String> profileIds, boolean checkParents) {
+        List<String> fields = new ArrayList<String>();
+        fields.add("id");
+        List<List<String>> result = new ArrayList<>(profileIds.size());
+        for (String profileId : profileIds) {
+            try {
+                result.add(BeanUtils.collapseToList(containersForProfile(versionId, profileId, fields, checkParents), "id"));
+            } catch (IllegalStateException notAValidProfile) {
+                result.add(Collections.<String>emptyList());
+            }
+        }
+        return result;
+    }
+
+    @Override
     public List<Map<String, Object>> containersForProfile(String versionId, String profileId) {
         return containersForProfile(versionId, profileId, BeanUtils.getFields(Container.class));
     }
 
     @Override
     public List<Map<String, Object>> containersForProfile(String versionId, String profileId, List<String> fields) {
+        return containersForProfile(versionId, profileId, fields, false);
+    }
+
+    @Override
+    public List<Map<String, Object>> containersForProfile(String versionId, String profileId, List<String> fields, boolean checkParents) {
         Version version = profileService.getVersion(versionId);
         Profile profile = version != null ? version.getRequiredProfile(profileId) : null;
-        List<Map<String, Object>> answer = new ArrayList<Map<String, Object>>();
+        Set<Map<String, Object>> answer = new LinkedHashSet<Map<String, Object>>();
         if (profile != null) {
             for (Container c : fabricService.getContainers()) {
                 for (Profile p : c.getProfiles()) {
                     if (p.equals(profile)) {
                         answer.add(BeanUtils.convertContainerToMap(fabricService, c, fields));
+                    } else if (checkParents) {
+                        HashSet<Profile> profileIDs = new HashSet<>();
+                        getAllParentProfiles(version, p, profileIDs);
+                        for (Profile pprofile : profileIDs) {
+                            if (pprofile.equals(profile)) {
+                                answer.add(BeanUtils.convertContainerToMap(fabricService, c, fields));
+                                break;
+                            }
+                        }
                     }
                 }
             }
         }
-        return answer;
+        return new ArrayList<>(answer);
+    }
+
+    /**
+     * Returns a set of profiles that are parents or grandparents, or ... of a given profile
+     * @param version
+     * @param profile
+     * @param parentProfiles
+     * @return
+     */
+    private void getAllParentProfiles(Version version, Profile profile, Set<Profile> parentProfiles) {
+        for (String parentProfileId : profile.getParentIds()) {
+            Profile pprofile = version.getProfile(parentProfileId);
+            if (pprofile != null) {
+                parentProfiles.add(pprofile);
+                getAllParentProfiles(version, pprofile, parentProfiles);
+            }
+        }
     }
 
     @Override
