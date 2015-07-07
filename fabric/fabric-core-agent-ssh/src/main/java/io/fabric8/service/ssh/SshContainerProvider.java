@@ -121,7 +121,7 @@ public class SshContainerProvider implements ContainerProvider<CreateSshContaine
                     }
                     uploadTo(session,
                             options.getProxyUri().resolve("io/fabric8/fabric8-karaf/" + FabricConstants.FABRIC_VERSION + "/fabric8-karaf-" + FabricConstants.FABRIC_VERSION + ".zip").toURL(),
-                            srcFile.getAbsolutePath());
+                            "/tmp/fabric8-karaf-" + FabricConstants.FABRIC_VERSION + ".zip");
                 }
                 runScriptOnHost(session, script);
             } catch (Throwable ex) {
