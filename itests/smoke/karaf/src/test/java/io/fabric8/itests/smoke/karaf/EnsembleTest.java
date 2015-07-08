@@ -43,6 +43,7 @@ import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.Asset;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.osgi.framework.BundleContext;
@@ -75,6 +76,7 @@ public class EnsembleTest {
         return archive;
     }
 
+    @Ignore("ENTESB-3580")
     @Test
     @SuppressWarnings("unchecked")
     public void testAddAndRemove() throws Exception {
