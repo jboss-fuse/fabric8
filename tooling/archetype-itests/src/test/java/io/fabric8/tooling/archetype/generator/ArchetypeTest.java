@@ -34,7 +34,7 @@ import java.util.Set;
 import io.fabric8.maven.MavenResolver;
 import io.fabric8.maven.MavenResolvers;
 import org.apache.commons.io.IOUtils;
-import org.apache.maven.cli.MavenCli;
+import org.apache.maven.shared.invoker.*;
 import org.eclipse.aether.artifact.DefaultArtifact;
 import org.junit.AfterClass;
 import org.junit.Ignore;
@@ -174,7 +174,7 @@ public class ArchetypeTest {
     @AfterClass
     public static void afterAll() throws Exception {
         // now let invoke the projects
-        final int[] resultPointer = new int[1];
+
         StringWriter sw = new StringWriter();
         Set<String> modules = new HashSet<String>();
         for (final String outDir : outDirs) {
@@ -197,15 +197,26 @@ public class ArchetypeTest {
             @Override
             public void run() {
                 System.out.println("Invoking projects in " + outDir);
-                MavenCli maven = new MavenCli();
-                resultPointer[0] = maven.doMain(new String[] { "clean", "package", "-f", "archetypes-test-pom.xml" }, outDir, System.out, System.out);
-                System.out.println("result: " + resultPointer[0]);
+                InvocationResult mavenInvocationResult = null;
+                InvocationRequest mavenInvocationRequest = new DefaultInvocationRequest();
+                mavenInvocationRequest.setPomFile(new File(outDir + "/archetypes-test-pom.xml"));
+                String[] goals = {"clean", "install"};
+                mavenInvocationRequest.setGoals(Arrays.asList(goals));
+
+                Invoker mavenInvoker = new DefaultInvoker();
+
+                try {
+                    mavenInvocationResult =  mavenInvoker.execute(mavenInvocationRequest);
+                } catch (MavenInvocationException e) {
+                    e.printStackTrace();
+                    fail(e.getMessage());
+                }
+                System.out.println("result: " + mavenInvocationResult.getExitCode());
+                assertEquals("Build of project " + outDir + " failed. Result = " + mavenInvocationResult.getExitCode(), 0, mavenInvocationResult.getExitCode());
             }
         });
         t.start();
         t.join();
-
-        assertEquals("Build of project " + outDir + " failed. Result = " + resultPointer[0], 0, resultPointer[0]);
     }
 
     protected void assertFileExists(File file) {
