@@ -57,6 +57,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static io.fabric8.zookeeper.ZkPath.CONTAINER_DOMAIN;
+import static io.fabric8.zookeeper.ZkPath.CONTAINER_DOMAINS;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.create;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.delete;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.deleteSafe;
@@ -152,6 +153,11 @@ public final class FabricMBeanRegistrationListener extends AbstractComponent imp
                     if (shutdownTracker.attemptRetain()) {
                         try {
                             updateProcessId();
+                            try {
+                                registerDomains();
+                            } catch (Exception e) {
+                                LOGGER.error(e.getMessage(), e);
+                            }
                         } finally {
                             shutdownTracker.release();
                         }
@@ -193,7 +199,6 @@ public final class FabricMBeanRegistrationListener extends AbstractComponent imp
         try {
             String runtimeIdentity = runtimeProperties.get().getRuntimeIdentity();
             mbeanServer.get().addNotificationListener(new ObjectName("JMImplementation:type=MBeanServerDelegate"), this, null, runtimeIdentity);
-            registerDomains();
             registerFabricMBeans();
         } catch (Exception e) {
             LOGGER.warn("An error occurred during mbean server registration. This exception will be ignored.", e);
@@ -211,11 +216,16 @@ public final class FabricMBeanRegistrationListener extends AbstractComponent imp
 
     private void registerDomains() throws Exception {
         String runtimeIdentity = runtimeProperties.get().getRuntimeIdentity();
+        String domainsNode = CONTAINER_DOMAINS.getPath(runtimeIdentity);
+        Stat stat = exists(curator.get(), domainsNode);
+        if (stat != null) {
+            deleteSafe(curator.get(), domainsNode);
+        }
         synchronized (this) {
             domains.addAll(Arrays.asList(mbeanServer.get().getDomains()));
-        }
-        for (String domain : mbeanServer.get().getDomains()) {
-            setData(curator.get(), CONTAINER_DOMAIN.getPath(runtimeIdentity, domain), "", CreateMode.EPHEMERAL);
+            for (String domain : domains) {
+                setData(curator.get(), CONTAINER_DOMAIN.getPath(runtimeIdentity, domain), "", CreateMode.EPHEMERAL);
+            }
         }
     }
 
