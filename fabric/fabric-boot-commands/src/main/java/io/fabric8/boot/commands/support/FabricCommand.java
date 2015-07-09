@@ -39,16 +39,29 @@ public abstract class FabricCommand extends OsgiCommandSupport {
     protected FabricService fabricService;
     protected ConfigurationAdmin configurationAdmin;
 
-    protected CuratorFramework getCurator() {
+    public CuratorFramework getCurator() {
         return curator;
     }
+    
+    public void setCurator(CuratorFramework curator) {
+        this.curator = curator;
+    }
 
-    protected FabricService getFabricService() {
+    public FabricService getFabricService() {
         return fabricService;
     }
 
-    protected ConfigurationAdmin getConfigurationAdmin() {
+    public void setFabricService(FabricService fabricService) {
+        this.fabricService = fabricService;
+    }
+
+
+    public ConfigurationAdmin getConfigurationAdmin() {
         return configurationAdmin;
+    }
+
+    public void setConfigurationAdmin(ConfigurationAdmin configurationAdmin) {
+        this.configurationAdmin = configurationAdmin;
     }
 
     protected void checkFabricAvailable() throws Exception {
