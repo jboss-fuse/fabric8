@@ -353,7 +353,7 @@ public final class ChildContainerProvider extends AbstractComponent implements C
             jvmOptsBuilder.append(" -XX:MaxPermSize=256m");
         }
         if (options.isEnsembleServer()) {
-            jvmOptsBuilder.append(" ").append(CreateEnsembleOptions.ENSEMBLE_AUTOSTART + "=true");
+            jvmOptsBuilder.append(" -D").append(CreateEnsembleOptions.ENSEMBLE_AUTOSTART + "=true");
         }
 
         if (options.getJvmOpts() != null && !options.getJvmOpts().isEmpty()) {
