@@ -170,12 +170,15 @@ final class JoinAction extends AbstractAction {
                 systemProps.put("zookeeper.password", encodedPassword);
                 systemProps.save();
 
+                System.setProperty("runtime.id", containerName);
+                System.setProperty(SystemProperties.KARAF_NAME, containerName);
+                System.setProperty("karaf.restart", "true");
+                System.setProperty("karaf.restart.clean", "false");
+
                 if (!nonManaged) {
                     installBundles();
                 }
                 //Restart the container
-                System.setProperty("karaf.restart", "true");
-                System.setProperty("karaf.restart.clean", "false");
                 bootConfiguration.update(bootProperties);
                 bundleContext.getBundle(0).stop();
 
