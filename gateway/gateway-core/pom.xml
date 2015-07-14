@@ -54,7 +54,7 @@
         </fuse.osgi.import>
         <fuse.osgi.private.pkg>
           META-INF.services.*;-split-package:=first,
-          org.apache.qpid.proton*;-split-package:=first,
+          org.apache.qpid.proton*,
           org.fusesource.mqtt*;-split-package:=first,
           io.fabric8.mqtt*;-split-package:=first,
           org.fusesource.hawtbuf*;-split-package:=first,
