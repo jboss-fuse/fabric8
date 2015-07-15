@@ -22,6 +22,7 @@ import org.apache.activemq.apollo.dto.AcceptingConnectorDTO;
 import org.apache.activemq.apollo.dto.BrokerDTO;
 import org.apache.activemq.apollo.dto.VirtualHostDTO;
 import org.apache.activemq.apollo.util.ServiceControl;
+import org.apache.activemq.command.ActiveMQQueue;
 import org.apache.qpid.amqp_1_0.jms.impl.ConnectionFactoryImpl;
 import io.fabric8.gateway.handlers.detecting.protocol.http.HttpProtocol;
 import io.fabric8.gateway.handlers.detecting.protocol.openwire.OpenwireProtocol;
@@ -45,6 +46,9 @@ import org.vertx.java.core.Vertx;
 import org.vertx.java.core.VertxFactory;
 
 import javax.jms.Connection;
+import javax.jms.Destination;
+import javax.jms.MessageProducer;
+import javax.jms.Session;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -262,6 +266,13 @@ public class DetectingGatewayTest {
         assertEquals(1, gateway.getConnectedClients().length);
 
         assertConnectedToBroker(0);
+        Thread.sleep(6000);
+
+        Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+        Destination test = new ActiveMQQueue("TEST");
+        MessageProducer producer = session.createProducer(test);
+        producer.send(session.createTextMessage("Hello"));
+
         connection.close();
 
     }

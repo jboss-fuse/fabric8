@@ -265,6 +265,11 @@ public class DetectingGateway implements DetectingGatewayMBean {
                             SslSocketWrapper sslSocketWrapper = new SslSocketWrapper(socket);
                             sslSocketWrapper.putBackHeader(received);
                             sslSocketWrapper.initServer(sslContext, clientAuth, disabledCypherSuites, enabledCipherSuites);
+
+                            // Undo initial connection accounting since we will be redoing @ the SSL level.
+                            socketsConnecting.remove(socket);
+                            receivedConnectionAttempts.decrementAndGet();
+
                             DetectingGateway.this.handle(sslSocketWrapper);
                             return;
 
