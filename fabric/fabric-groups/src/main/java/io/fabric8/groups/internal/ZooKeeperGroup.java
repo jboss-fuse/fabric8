@@ -235,21 +235,6 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
                 }
             } else {
                 if (id == null) {
-                    //We explicitly refresh to prevent members() from returning stale data.
-                    refresh(RefreshMode.FORCE_GET_DATA_AND_STAT);
-                    // We could have created the sequence, but then have crashed and our entry is already registered,
-                    // find out by looking up entry by the matching uuid.
-                    Map<String, T> members = members();
-                    for (Map.Entry<String, T> entry : members.entrySet()) {
-                        T v = entry.getValue();
-                        if( state.getContainer().equals(v.getContainer()) ) {
-                            id = entry.getKey();
-                            return;
-                        }
-                    }
-                }
-
-                if (id == null) {
                     id = client.create().creatingParentsIfNeeded()
                         .withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
                         .forPath(path + "/0", encode(state));
