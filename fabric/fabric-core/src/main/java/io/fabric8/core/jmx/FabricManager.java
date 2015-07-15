@@ -957,6 +957,9 @@ public final class FabricManager implements FabricManagerMBean {
             List<String> parentIds = profile.getParentIds();
             if (parentIds != null && !parentIds.isEmpty()) {
                 for (String parentId : parentIds) {
+                    if (parentId == null || parentId.trim().equals("")) {
+                        parentId = "default";
+                    }
                     Profile parentProfile = version.getRequiredProfile(parentId);
                     relativeIcon = parentProfile.getIconRelativePath();
                     if (isNullOrEmpty(relativeIcon)) {
