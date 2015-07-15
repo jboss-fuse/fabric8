@@ -33,7 +33,7 @@ public class ProfileScaleAction extends AbstractAction {
     @Argument(index = 0, required = true, name = "profile", description = "The name of the profile to scale up or down.")
     @CompleterValues(index = 0)
     private String name;
-    @Argument(index = 1, required = false, name = "count", description = "The number of instances to increase or decrease (defaults to +1).")
+    @Argument(index = 1, required = false, name = "count", description = "The number of instances to increase or decrease. Positive number means increase and Negative number  means decrease")
     private int count = 1;
 
     private final FabricService fabricService;
