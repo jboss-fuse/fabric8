@@ -506,13 +506,15 @@ public final class FabricServiceImpl extends AbstractComponent implements Fabric
             optionsMap.put("profiles", profileIds);
             optionsMap.put("number", 0);
 
-            // inject global resolver configuration
+            // assign parent resolver if it's a child container, else assign global resolver policy
             if(bootstrapConfig != null) {
                 String configuredGlobalResolver = bootstrapConfig.getGlobalResolver();
                 if (!Strings.isNullOrEmpty(configuredGlobalResolver)) {
                     optionsMap.put("globalResolver", configuredGlobalResolver);
                     if (optionsMap.get("resolver") == null) {
-                        optionsMap.put("resolver", configuredGlobalResolver);
+                        if (optionsMap.get("parent") == null) {
+                            optionsMap.put("resolver", configuredGlobalResolver);
+                        }
                     }
                 }
             }
