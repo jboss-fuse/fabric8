@@ -24,6 +24,11 @@ import java.util.Map;
 public interface Version extends Comparable<Version>, HasId {
 
     /**
+     * The attribute key for the parent of the version
+     */
+    String PARENT = "parent";
+
+    /**
      * The attribute key for the description of the version
      */
     String DESCRIPTION = "description";
