@@ -51,19 +51,19 @@
         <bundle>mvn:org.apache.karaf.shell/org.apache.karaf.shell.config/${karaf-version}</bundle>
         <bundle>mvn:org.apache.karaf.shell/org.apache.karaf.shell.packages/${karaf-version}</bundle>
         <bundle>mvn:org.apache.karaf.shell/org.apache.karaf.shell.ssh/${karaf-version}</bundle>
-        <bundle>mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.api/${aries-blueprint-api-version}</bundle>
-        <bundle>mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.core/${aries-blueprint-core-version}</bundle>
-        <bundle>mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.cm/${aries-blueprint-cm-version}</bundle>
+        <bundle start-level="40">mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.api/${aries-blueprint-api-version}</bundle>
+        <bundle start-level="40">mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.core/${aries-blueprint-core-version}</bundle>
+        <bundle start-level="40">mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.cm/${aries-blueprint-cm-version}</bundle>
 
-        <bundle>mvn:org.apache.aries/org.apache.aries.util/${aries-util-version}</bundle>
-        <bundle>mvn:org.apache.aries.proxy/org.apache.aries.proxy.api/${aries-proxy-api-version}</bundle>
-        <bundle>mvn:org.apache.aries.proxy/org.apache.aries.proxy.impl/${aries-proxy-impl-version}</bundle>
+        <bundle start-level="40">mvn:org.apache.aries/org.apache.aries.util/${aries-util-version}</bundle>
+        <bundle start-level="40">mvn:org.apache.aries.proxy/org.apache.aries.proxy.api/${aries-proxy-api-version}</bundle>
+        <bundle start-level="40">mvn:org.apache.aries.proxy/org.apache.aries.proxy.impl/${aries-proxy-impl-version}</bundle>
         <bundle>mvn:org.ow2.asm/asm-all/${asm.version}</bundle>
         <bundle>mvn:org.apache.aries.jmx/org.apache.aries.jmx.api/${aries-jmx-api-version}</bundle>
         <bundle>mvn:org.apache.aries.jmx/org.apache.aries.jmx.core/${aries-jmx-core-version}</bundle>
         <bundle>mvn:org.apache.aries.jmx/org.apache.aries.jmx.blueprint.api/${aries-jmx-blueprint-api-version}</bundle>
         <bundle>mvn:org.apache.aries.jmx/org.apache.aries.jmx.blueprint.core/${aries-jmx-blueprint-core-version}</bundle>
-        <bundle dependency="true">mvn:org.apache.karaf.management/org.apache.karaf.management.server/${karaf-version}</bundle>
+        <bundle start-level="45" dependency="true">mvn:org.apache.karaf.management/org.apache.karaf.management.server/${karaf-version}</bundle>
 
         <bundle>mvn:org.bouncycastle/bcprov-jdk15on/${bouncycastle-version}</bundle>
         <bundle>mvn:org.apache.sshd/sshd-core/${sshd-version}</bundle>
