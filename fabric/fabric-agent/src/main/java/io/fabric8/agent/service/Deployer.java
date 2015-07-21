@@ -33,6 +33,7 @@ import io.fabric8.agent.region.SubsystemResolver;
 import io.fabric8.agent.utils.OsgiUtils;
 import io.fabric8.common.util.ChecksumUtils;
 import io.fabric8.common.util.MultiException;
+import io.fabric8.utils.NamedThreadFactory;
 import org.apache.felix.utils.version.VersionRange;
 import org.apache.felix.utils.version.VersionTable;
 import org.eclipse.equinox.region.Region;
@@ -179,7 +180,7 @@ public class Deployer {
      */
     public void deploy(DeploymentState dstate, final DeploymentRequest request) throws Exception {
 
-        ExecutorService deploymentsExecutor = Executors.newSingleThreadExecutor();
+        ExecutorService deploymentsExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory("deployer"));
 
         boolean noRefreshUnmanaged = request.options.contains(Constants.Option.NoAutoRefreshUnmanagedBundles);
         boolean noRefreshManaged = request.options.contains(Constants.Option.NoAutoRefreshManagedBundles);

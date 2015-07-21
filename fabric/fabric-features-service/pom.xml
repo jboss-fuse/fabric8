@@ -44,6 +44,7 @@
             io.fabric8.features;version=${project.version};-noimport:=true,
         </fuse.osgi.export>
         <fuse.osgi.private.pkg>
+            io.fabric8.utils;-split-package:=first,
             io.fabric8.utils.features,
             org.apache.karaf.features.internal,
             org.apache.felix.utils.version;-split-package:=merge-first,

@@ -37,6 +37,9 @@
             io.fabric8.mq.fabric.cf;
                 version=${fuse.osgi.version};-noimport:=true
         </fuse.osgi.export>
+        <fuse.osgi.private.pkg>
+            io.fabric8.utils;-split-package:=first
+        </fuse.osgi.private.pkg>
         <fuse.osgi.capabilities.provide><![CDATA[
             osgi.service;effective:=active;objectClass=javax.jms.ConnectionFactory
         ]]></fuse.osgi.capabilities.provide>

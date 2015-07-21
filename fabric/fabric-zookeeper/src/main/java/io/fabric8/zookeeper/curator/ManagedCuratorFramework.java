@@ -39,6 +39,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import io.fabric8.api.scr.Configurer;
 
+import io.fabric8.utils.NamedThreadFactory;
 import io.fabric8.utils.PasswordEncoder;
 import org.apache.curator.ensemble.fixed.FixedEnsembleProvider;
 import org.apache.curator.framework.CuratorFramework;
@@ -93,7 +94,7 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
     private final ValidatingReference<BootstrapConfiguration> bootstrapConfiguration = new ValidatingReference<BootstrapConfiguration>();
 
     private BundleContext bundleContext;
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final ExecutorService executor = Executors.newSingleThreadExecutor(new NamedThreadFactory("MCF"));
 
     private AtomicReference<State> state = new AtomicReference<State>();
 

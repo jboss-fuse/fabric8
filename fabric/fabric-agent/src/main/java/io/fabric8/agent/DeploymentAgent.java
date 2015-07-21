@@ -59,6 +59,7 @@ import io.fabric8.common.util.ChecksumUtils;
 import io.fabric8.common.util.Files;
 import io.fabric8.maven.MavenResolver;
 import io.fabric8.maven.MavenResolvers;
+import io.fabric8.utils.NamedThreadFactory;
 import org.apache.felix.utils.properties.Properties;
 import org.apache.felix.utils.version.VersionRange;
 import org.osgi.framework.Bundle;
@@ -699,29 +700,6 @@ public class DeploymentAgent implements ManagedService {
 
     protected ScheduledExecutorService getDownloadExecutor() {
         return downloadExecutor;
-    }
-
-    static class NamedThreadFactory implements ThreadFactory {
-        private static final AtomicInteger poolNumber = new AtomicInteger(1);
-        private final ThreadGroup group;
-        private final AtomicInteger threadNumber = new AtomicInteger(1);
-        private final String namePrefix;
-
-        NamedThreadFactory(String prefix) {
-            SecurityManager s = System.getSecurityManager();
-            group = (s != null) ? s.getThreadGroup() : Thread.currentThread().getThreadGroup();
-            namePrefix = prefix + "-" + poolNumber.getAndIncrement() + "-thread-";
-        }
-
-        public Thread newThread(Runnable r) {
-            Thread t = new Thread(group, r, namePrefix + threadNumber.getAndIncrement(), 0);
-            if (t.isDaemon())
-                t.setDaemon(false);
-            if (t.getPriority() != Thread.NORM_PRIORITY)
-                t.setPriority(Thread.NORM_PRIORITY);
-            return t;
-        }
-
     }
 
 }

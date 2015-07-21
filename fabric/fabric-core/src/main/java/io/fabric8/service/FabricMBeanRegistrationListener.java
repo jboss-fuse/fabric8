@@ -21,6 +21,7 @@ import io.fabric8.core.jmx.FileSystem;
 import io.fabric8.core.jmx.HealthCheck;
 import io.fabric8.core.jmx.ZooKeeperFacade;
 
+import io.fabric8.utils.NamedThreadFactory;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.framework.state.ConnectionStateListener;
@@ -85,7 +86,7 @@ public final class FabricMBeanRegistrationListener extends AbstractComponent imp
     private FabricManager managerMBean;
     private ZooKeeperFacade zooKeeperMBean;
     private FileSystem fileSystemMBean;
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final ExecutorService executor = Executors.newSingleThreadExecutor(new NamedThreadFactory("mbean-reg"));
     ShutdownTracker shutdownTracker = new ShutdownTracker();
 
     @Activate

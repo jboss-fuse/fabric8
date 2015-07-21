@@ -36,6 +36,7 @@ import io.fabric8.api.FabricService;
 import io.fabric8.groups.Group;
 import io.fabric8.groups.GroupListener;
 import io.fabric8.mq.fabric.discovery.FabricDiscoveryAgent;
+import io.fabric8.utils.NamedThreadFactory;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.broker.BrokerService;
 import org.apache.activemq.broker.TransportConnector;
@@ -338,7 +339,7 @@ public class ActiveMQServiceFactory  {
         private final AtomicBoolean started = new AtomicBoolean();
 //        private final AtomicInteger startAttempt = new AtomicInteger();
 
-        private ExecutorService executor = Executors.newSingleThreadExecutor();
+        private ExecutorService executor = Executors.newSingleThreadExecutor(new NamedThreadFactory("AMQ"));
 
         private Future<?> start_future = null;
         private Future<?> stop_future = null;
