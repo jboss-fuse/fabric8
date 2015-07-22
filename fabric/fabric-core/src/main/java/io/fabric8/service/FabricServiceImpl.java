@@ -522,6 +522,9 @@ public final class FabricServiceImpl extends AbstractComponent implements Fabric
             final List<CreateContainerMetadata> metadatas = new CopyOnWriteArrayList<CreateContainerMetadata>();
             int orgNumber = options.getNumber();
             int number = Math.max(orgNumber, 1);
+            if (orgNumber > 1) {
+                originalName = originalName + "1";
+            }
             final CountDownLatch latch = new CountDownLatch(number);
             Set<String> ignoreContainerNames = new HashSet<>();
             Container[] containers = getContainers();
