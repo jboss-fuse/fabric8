@@ -31,9 +31,11 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Configuration;
+import org.ops4j.pax.exam.CoreOptions;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.OptionUtils;
 import org.ops4j.pax.exam.junit.PaxExam;
+import org.ops4j.pax.exam.karaf.options.KarafDistributionOption;
 import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerMethod;
 
@@ -79,7 +81,12 @@ public class ExampleCamelCxfTest extends FabricTestSupport {
     @Configuration
     public Option[] config() {
         return OptionUtils.combine(
-                fabricDistributionConfiguration()
+                fabricDistributionConfiguration(),
+                KarafDistributionOption.features(
+                        CoreOptions.maven("io.fabric8", "fabric8-karaf").type("xml").classifier("features").versionAsInProject(),
+                        "fabric-cxf"
+                ),
+                mavenBundle("io.fabric8.examples", "fabric-camel-cxf")
         );
     }
 }

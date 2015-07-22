@@ -123,6 +123,12 @@
 
         <dependency>
             <groupId>io.fabric8.examples</groupId>
+            <artifactId>fabric-camel-cxf</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.fabric8.examples</groupId>
             <artifactId>fabric-activemq-demo</artifactId>
             <version>${project.version}</version>
         </dependency>
