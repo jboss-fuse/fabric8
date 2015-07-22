@@ -76,7 +76,7 @@ public class EnsembleTest {
         return archive;
     }
 
-    @Ignore("ENTESB-3580")
+//    @Ignore("ENTESB-3580")
     @Test
     @SuppressWarnings("unchecked")
     public void testAddAndRemove() throws Exception {
