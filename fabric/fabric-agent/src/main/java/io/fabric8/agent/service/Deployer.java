@@ -337,20 +337,25 @@ public class Deployer {
             Set<? extends Resource> unmanaged = apply(flatten(unmanagedBundles), adapt(BundleRevision.class));
             Set<Resource> requested = new HashSet<>();
             // Gather bundles required by a feature
-            for (List<Wire> wires : resolver.getWiring().values()) {
-                for (Wire wire : wires) {
-                    if (features.contains(wire.getRequirer()) && unmanaged.contains(wire.getProvider())) {
-                        requested.add(wire.getProvider());
+            if (resolver.getWiring() != null){
+                for (List<Wire> wires : resolver.getWiring().values()) {
+                    for (Wire wire : wires) {
+                        if (features.contains(wire.getRequirer()) && unmanaged.contains(wire.getProvider())) {
+                            requested.add(wire.getProvider());
+                        }
                     }
                 }
             }
+
             // Now, we know which bundles are completely unmanaged
             unmanaged.removeAll(requested);
             // Check if bundles have wires from really unmanaged bundles
-            for (List<Wire> wires : resolver.getWiring().values()) {
-                for (Wire wire : wires) {
-                    if (requested.contains(wire.getProvider()) && unmanaged.contains(wire.getRequirer())) {
-                        requested.remove(wire.getProvider());
+            if (resolver.getWiring() != null) {
+                for (List<Wire> wires : resolver.getWiring().values()) {
+                    for (Wire wire : wires) {
+                        if (requested.contains(wire.getProvider()) && unmanaged.contains(wire.getRequirer())) {
+                            requested.remove(wire.getProvider());
+                        }
                     }
                 }
             }
@@ -378,14 +383,17 @@ public class Deployer {
         // Compute bundle states
         //
         Map<Resource, Constants.RequestedState> states = new HashMap<>();
-        for (Map.Entry<String, Set<Resource>> entry : resolver.getFeaturesPerRegions().entrySet()) {
-            String region = entry.getKey();
-            Map<String, String> fss = stateFeatures.get(region);
-            for (Resource feature : entry.getValue()) {
-                String fs = fss.get(getFeatureId(feature));
-                propagateState(states, feature, Constants.RequestedState.valueOf(fs), resolver);
+        if (resolver.getFeaturesPerRegions() != null){
+            for (Map.Entry<String, Set<Resource>> entry : resolver.getFeaturesPerRegions().entrySet()) {
+                String region = entry.getKey();
+                Map<String, String> fss = stateFeatures.get(region);
+                for (Resource feature : entry.getValue()) {
+                    String fs = fss.get(getFeatureId(feature));
+                    propagateState(states, feature, Constants.RequestedState.valueOf(fs), resolver);
+                }
             }
         }
+
         states.keySet().retainAll(resolver.getBundles().keySet());
         //
         // Compute bundles to start, stop and resolve
@@ -957,18 +965,21 @@ public class Deployer {
         for (Bundle bundle : bundles) {
             newFragments.put(bundle, new HashSet<Resource>());
         }
-        for (Resource res : resolution.keySet()) {
-            for (Wire wire : resolution.get(res)) {
-                if (HOST_NAMESPACE.equals(wire.getCapability().getNamespace())) {
-                    Bundle bundle = resources.get(wire.getProvider());
-                    if (bundle != null) {
-                        Bundle b = resources.get(wire.getRequirer());
-                        Resource r = b != null ? b.adapt(BundleRevision.class) : wire.getRequirer();
-                        newFragments.get(bundle).add(r);
+        if (resolution != null){
+            for (Resource res : resolution.keySet()) {
+                for (Wire wire : resolution.get(res)) {
+                    if (HOST_NAMESPACE.equals(wire.getCapability().getNamespace())) {
+                        Bundle bundle = resources.get(wire.getProvider());
+                        if (bundle != null) {
+                            Bundle b = resources.get(wire.getRequirer());
+                            Resource r = b != null ? b.adapt(BundleRevision.class) : wire.getRequirer();
+                            newFragments.get(bundle).add(r);
+                        }
                     }
                 }
             }
         }
+
         // Main loop
         int size;
         Map<Bundle, Resource> bndToRes = new HashMap<>();

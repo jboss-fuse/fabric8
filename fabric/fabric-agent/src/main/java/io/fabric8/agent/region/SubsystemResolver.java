@@ -217,15 +217,17 @@ public class SubsystemResolver {
     }
 
     private void addBundleInfos(Subsystem subsystem) {
-        String region = getFlatSubsystemsMap().get(subsystem.getName());
-        Map<String, BundleInfo> bis = bundleInfos.get(region);
-        if (bis == null) {
-            bis = new HashMap<>();
-            bundleInfos.put(region, bis);
-        }
-        bis.putAll(subsystem.getBundleInfos());
-        for (Subsystem child : subsystem.getChildren()) {
-            addBundleInfos(child);
+        if(subsystem != null) {
+            String region = getFlatSubsystemsMap().get(subsystem.getName());
+            Map<String, BundleInfo> bis = bundleInfos.get(region);
+            if (bis == null) {
+                bis = new HashMap<>();
+                bundleInfos.put(region, bis);
+            }
+            bis.putAll(subsystem.getBundleInfos());
+            for (Subsystem child : subsystem.getChildren()) {
+                addBundleInfos(child);
+            }
         }
     }
 
@@ -319,14 +321,16 @@ public class SubsystemResolver {
         Map<Resource, String> resources = new HashMap<>();
         SimpleFilter sf = createFilter(IDENTITY_NAMESPACE, "*",
                 CAPABILITY_TYPE_ATTRIBUTE, TYPE_SUBSYSTEM);
-        for (Resource resource : wiring.keySet()) {
-            if (findMatchingCapability(resourceFilter, resource.getCapabilities(null)) != null) {
-                // Find the subsystem where this feature is installed
-                Wire wire = findMatchingWire(sf, wiring.get(resource));
-                if (wire != null) {
-                    String region = (String) wire.getCapability().getAttributes().get(IDENTITY_NAMESPACE);
-                    region = flats.get(region);
-                    resources.put(resource, region);
+        if(wiring != null) {
+            for (Resource resource : wiring.keySet()) {
+                if (findMatchingCapability(resourceFilter, resource.getCapabilities(null)) != null) {
+                    // Find the subsystem where this feature is installed
+                    Wire wire = findMatchingWire(sf, wiring.get(resource));
+                    if (wire != null) {
+                        String region = (String) wire.getCapability().getAttributes().get(IDENTITY_NAMESPACE);
+                        region = flats.get(region);
+                        resources.put(resource, region);
+                    }
                 }
             }
         }
@@ -409,12 +413,14 @@ public class SubsystemResolver {
 
     private void findSubsystemsToFlatten(Subsystem subsystem, Map<String, String> toFlatten) {
         Subsystem nonFlat = subsystem;
-        while (isFlat(nonFlat)) {
-            nonFlat = nonFlat.getParent();
-        }
-        toFlatten.put(subsystem.getName(), nonFlat.getName());
-        for (Subsystem child : subsystem.getChildren()) {
-            findSubsystemsToFlatten(child, toFlatten);
+        if(subsystem != null) {
+            while (isFlat(nonFlat)) {
+                nonFlat = nonFlat.getParent();
+            }
+            toFlatten.put(subsystem.getName(), nonFlat.getName());
+            for (Subsystem child : subsystem.getChildren()) {
+                findSubsystemsToFlatten(child, toFlatten);
+            }
         }
     }
 
