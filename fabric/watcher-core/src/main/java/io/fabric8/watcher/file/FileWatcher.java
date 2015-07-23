@@ -64,6 +64,7 @@ public class FileWatcher extends WatcherSupport {
     private PathMatcher fileMatcher;
     private ExecutorService executor;
     private final AtomicInteger processing = new AtomicInteger();
+    private final Object keysMonitor = new Object();
     private final Map<WatchKey, Path> keys = new ConcurrentHashMap<WatchKey, Path>();
     private volatile long lastModified;
     private final Map<Path, Boolean> processedMap = new ConcurrentHashMap<Path, Boolean>();
@@ -239,7 +240,10 @@ public class FileWatcher extends WatcherSupport {
             } catch (InterruptedException e) {
                 return;
             }
-            Path dir = keys.get(key);
+            Path dir;
+            synchronized (keysMonitor) {
+                dir = keys.get(key);
+            }
             if (dir == null) {
                 LOGGER.warn("Could not find key for " + key);
                 continue;
@@ -372,9 +376,10 @@ public class FileWatcher extends WatcherSupport {
 
     private void watch(final Path path) throws IOException {
         if (watcher != null) {
-            WatchKey key = path.register(watcher, ENTRY_CREATE, ENTRY_MODIFY, ENTRY_DELETE);
-            keys.put(key, path);
-            LOGGER.debug("Watched path " + path + " key " + key);
+            synchronized (keysMonitor) {
+                WatchKey key = path.register(watcher, ENTRY_CREATE, ENTRY_MODIFY, ENTRY_DELETE);
+                keys.put(key, path);
+            }
         } else {
             LOGGER.warn("No watcher yet for path " + path);
         }
