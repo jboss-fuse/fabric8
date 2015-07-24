@@ -700,6 +700,7 @@ public class Deployer {
                 break;
             }
         }
+        Map<Bundle, String> toRefreshHasToInstall = new TreeMap<>(new BundleComparator());
         if (hasToInstall) {
             callback.phase("updating (installing bundles)");
             print("Installing bundles:", display);
@@ -716,6 +717,7 @@ public class Deployer {
                     ) {
                         bundle = callback.installBundle(name, uri, is);
                         crc = is.getCRC();
+                        toRefreshHasToInstall.put(bundle, "to refresh the hastoInstall bundles ensure they pick up the lastest dependency revision");
                     }
                     addToMapSet(managedBundles, name, bundle.getBundleId());
                     deployment.resToBnd.put(resource, bundle);
@@ -878,7 +880,7 @@ public class Deployer {
 
             }
             
-            if (!noRefresh && !toRefresh.isEmpty()) {
+            if (!noRefresh && !toRefreshHasToInstall.isEmpty()) {
                 callback.phase("finalizing (refreshing bundles)");
                 print("Refreshing bundles:", display);
                 for (Map.Entry<Bundle, String> entry : toRefresh.entrySet()) {
