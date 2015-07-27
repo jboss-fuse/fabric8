@@ -552,7 +552,7 @@ public class ActiveMQServiceFactory  {
             for (String name : connectors) {
                 TransportConnector connector = server.getBroker().getConnectorByName(name);
                 if (connector == null) {
-                    warn("ActiveMQ broker '%s' does not have a connector called '%s'", name, name);
+                    warn("ActiveMQ broker '%s' does not have a connector called '%s'", server.getBroker().getBrokerName(), name);
                 } else {
                     services.add(connector.getConnectUri().getScheme() + "://${zk:" + System.getProperty("runtime.id") + "/ip}:" + connector.getPublishableConnectURI().getPort());
                 }
