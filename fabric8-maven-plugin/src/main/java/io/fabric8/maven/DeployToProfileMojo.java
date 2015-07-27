@@ -175,6 +175,7 @@ public class DeployToProfileMojo extends AbstractProfileMojo {
                     fabricServer = new Server();
                 }
                 getLog().info("Using username: " + jolokiaUsername + " and password from provided jolokiaUrl option");
+                fabricServer.setId(serverId);
                 fabricServer.setUsername(jolokiaUsername);
                 fabricServer.setPassword(jolokiaPassword);
             }
@@ -255,7 +256,7 @@ public class DeployToProfileMojo extends AbstractProfileMojo {
             J4pClient client = createJolokiaClient();
 
             if (upload && isIncludeArtifact()) {
-                uploadDeploymentUnit(client, newUserAdded);
+                uploadDeploymentUnit(client, newUserAdded || customUsernameAndPassword);
             } else {
                 getLog().info("Uploading to the fabric8 maven repository is disabled");
             }
@@ -274,7 +275,7 @@ public class DeployToProfileMojo extends AbstractProfileMojo {
     }
 
     @SuppressWarnings("unchecked")
-    protected void uploadDeploymentUnit(J4pClient client, boolean newUserAdded) throws Exception {
+    protected void uploadDeploymentUnit(J4pClient client, boolean customUsernameAndPassword) throws Exception {
         String uri = getMavenUploadUri(client);
 
         // lets resolve the artifact to make sure we get a local file
@@ -295,8 +296,7 @@ public class DeployToProfileMojo extends AbstractProfileMojo {
 
         DefaultRepositoryLayout layout = new DefaultRepositoryLayout();
         ArtifactRepository repo = new DefaultArtifactRepository(serverId, uri, layout);
-        if (newUserAdded) {
-            // make sure to set authentication if we just added new user
+        if (customUsernameAndPassword) {
             repo.setAuthentication(new Authentication(fabricServer.getUsername(), fabricServer.getPassword()));
         }
 
