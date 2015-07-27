@@ -96,7 +96,7 @@ public class MQServiceImpl implements MQService {
             overlay = profileService.getOverlayProfile(profile);
         }
         
-        Map<String, String> parentProfileConfig = parentProfile.getConfiguration(MQ_PID_TEMPLATE);
+        Map<String, String> parentProfileConfig = overlay.getConfiguration(MQ_PID_TEMPLATE);
         if (config == null) {
             config = new HashMap<>(parentProfileConfig);
         }
