@@ -90,7 +90,7 @@ public class ContainerRegistrationTest {
             System.out.println(CommandSupport.executeCommand("fabric:profile-create --parent default child-profile"));
             Assert.assertTrue(ProvisionSupport.profileAvailable("child-profile", "1.0", ProvisionSupport.PROVISION_TIMEOUT));
 
-            Set<Container> containers = ContainerBuilder.create(1,1).withName("basic.cntA").withProfiles("child-profile").assertProvisioningResult().build(fabricService);
+            Set<Container> containers = ContainerBuilder.create(1,1).withName("basic_cnt").withProfiles("child-profile").assertProvisioningResult().build(fabricService);
             try {
                 Container cntA = containers.iterator().next();
                 System.out.println(CommandSupport.executeCommand("fabric:profile-edit --import-pid --pid org.apache.karaf.shell child-profile"));
