@@ -81,6 +81,7 @@ import io.fabric8.internal.ContainerImpl;
 import io.fabric8.internal.ProfileDependencyConfig;
 import io.fabric8.internal.ProfileDependencyKind;
 import io.fabric8.utils.DataStoreUtils;
+import io.fabric8.utils.FabricValidations;
 import io.fabric8.utils.PasswordEncoder;
 import io.fabric8.api.SystemProperties;
 import io.fabric8.zookeeper.ZkPath;
@@ -487,6 +488,9 @@ public final class FabricServiceImpl extends AbstractComponent implements Fabric
             if (originalName == null || originalName.length() == 0) {
                 throw new FabricException("A name must be specified when creating containers");
             }
+
+            // Only allow containers with valid names to get created.
+            FabricValidations.validateContainerName(originalName);
 
             if (listener == null) {
                 listener = new NullCreationStateListener();
