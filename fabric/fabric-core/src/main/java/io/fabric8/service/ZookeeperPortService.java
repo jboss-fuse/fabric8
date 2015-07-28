@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 
 import io.fabric8.api.scr.support.Strings;
 import io.fabric8.internal.Objects;
+import io.fabric8.utils.Ports;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.api.UnhandledErrorListener;
 import org.apache.curator.framework.recipes.locks.InterProcessSemaphoreV2;
@@ -90,8 +91,10 @@ public final class ZookeeperPortService extends AbstractComponent implements Por
 
                 for (port = fromPort; port <= toPort; port++) {
                     if (!boundPorts.contains(port)) {
-                        registerPort(container, pid, key, port, lease);
-                        return port;
+                        if(Ports.isPortFree(port)) {
+                            registerPort(container, pid, key, port, lease);
+                            return port;
+                        }
                     }
                 }
             } else {
