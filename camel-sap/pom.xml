@@ -1,44 +1,96 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
- Copyright 2013 Red Hat, Inc.
-
- Red Hat licenses this file to you under the Apache License, version
- 2.0 (the "License"); you may not use this file except in compliance
- with the License.  You may obtain a copy of the License at
- 
-     http://www.apache.org/licenses/LICENSE-2.0
- 
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-  implied.  See the License for the specific language governing
- permissions and limitations under the License.
- -->
+<!-- Copyright 2015 Red Hat, Inc. Red Hat licenses this file to you under 
+	the Apache License, version 2.0 (the "License"); you may not use this file 
+	except in compliance with the License. You may obtain a copy of the License 
+	at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable 
+	law or agreed to in writing, software distributed under the License is distributed 
+	on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either 
+	express or implied. See the License for the specific language governing permissions 
+	and limitations under the License. -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
-		<artifactId>components</artifactId>
-		<groupId>org.fusesource</groupId>
-		<version>6.2.1.redhat-SNAPSHOT</version>
+		<groupId>org.apache.camel</groupId>
+		<artifactId>camel-parent</artifactId>
+		<version>2.15.1.redhat-621012</version>
 	</parent>
 
+	<groupId>org.fusesource</groupId>
 	<artifactId>camel-sap-parent</artifactId>
+	<version>6.2.1.redhat-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
-    <name>JBoss Fuse :: Components :: SAP JCO</name>
+	<name>JBoss Fuse :: Components :: SAP JCO</name>
 	<url>http://http://www.jboss.org/products/fuse/overview/</url>
 
 	<properties>
 		<tycho-version>0.21.0</tycho-version>
-	    <maven.compiler.target>1.7</maven.compiler.target>
-	    <maven.compiler.source>1.7</maven.compiler.source>
+		<maven.compiler.target>1.7</maven.compiler.target>
+		<maven.compiler.source>1.7</maven.compiler.source>
+		<camel-version>2.15.1.redhat-621012</camel-version>
+		<camel.sap.plugin.version>6.2.1-SNAPSHOT</camel.sap.plugin.version>
+		
+        <!-- OSGi bundles properties -->
+        <fuse.osgi.bundle.name>${project.name}</fuse.osgi.bundle.name>
+        <fuse.osgi.import.fabric.version>
+            version="[$(version;==;${fuse.osgi.version}),$(version;=+;${fuse.osgi.version}))"
+        </fuse.osgi.import.fabric.version>
+        <fuse.osgi.import.strict.version>
+            version="[$(version;===;${fuse.osgi.version}),$(version;==+;${fuse.osgi.version}))"
+        </fuse.osgi.import.strict.version>
+        <fuse.osgi.import.default.version>[$(version;==;$(@)),$(version;+;$(@)))</fuse.osgi.import.default.version>
+        <fuse.osgi.import.defaults>
+            org.springframework.osgi.*;version="[1.2,2)",
+            org.springframework.*;version="[3.1,4)",
+            org.apache.commons.logging.*;version="[1.1,2)",
+            org.apache.camel.*;version="[2.13,3)",
+            org.apache.felix.gogo.commands.*;version="[0.10,1)",
+            org.apache.felix.service.command.*;version="[0.10,1)",
+            org.osgi.service.component.*;version="[1.1,2.0)",
+            scala*;version="[2.11,2.12)"
+        </fuse.osgi.import.defaults>
+        <fuse.osgi.import.before.defaults/>
+        <fuse.osgi.import.additional/>
+        <fuse.osgi.import.pkg>
+            io.fabric8.*;${fuse.osgi.import.fabric.version},
+            ${fuse.osgi.import.before.defaults},
+            ${fuse.osgi.import.defaults},
+            ${fuse.osgi.import.additional},
+            *
+        </fuse.osgi.import.pkg>
+        <fuse.osgi.activator/>
+        <fuse.osgi.failok>false</fuse.osgi.failok>
+        <fuse.osgi.private.pkg></fuse.osgi.private.pkg>
+        <fuse.osgi.export>io.fabric8.*;version=${fuse.osgi.version};-noimport:=true</fuse.osgi.export>
+        <fuse.osgi.split.pkg>-split-package:=first</fuse.osgi.split.pkg>
+        <fuse.osgi.import>${fuse.osgi.import.pkg}</fuse.osgi.import>
+        <fuse.osgi.dynamic/>
+        <fuse.osgi.symbolic.name>${project.groupId}.${project.artifactId}</fuse.osgi.symbolic.name>
+        <fuse.osgi.exclude.dependencies>false</fuse.osgi.exclude.dependencies>
+        <fuse.osgi.resource>{maven-resources}</fuse.osgi.resource>
+        <fuse.osgi.embed.dependency>!*</fuse.osgi.embed.dependency>
+        <fuse.osgi.embed.transitive>false</fuse.osgi.embed.transitive>
+        <fuse.osgi.require.bundle />
+        <fuse.osgi.capabilities.provide />
+        <fuse.osgi.capabilities.require />
+		
 	</properties>
 
 	<dependencyManagement>
 		<dependencies>
+			<dependency>
+				<groupId>org.apache.camel</groupId>
+				<artifactId>camel-core</artifactId>
+				<version>${camel-version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.camel</groupId>
+				<artifactId>camel-spring</artifactId>
+				<version>${camel-version}</version>
+			</dependency>
 			<dependency>
 				<groupId>org.apache.camel</groupId>
 				<artifactId>apt</artifactId>
@@ -54,14 +106,14 @@
 			<dependency>
 				<groupId>org.fusesource</groupId>
 				<artifactId>org.fusesource.camel.component.sap.model</artifactId>
-                <version>${camel.sap.plugin.version}</version>
+				<version>${camel.sap.plugin.version}</version>
 				<scope>compile</scope>
 			</dependency>
 			<dependency>
 				<groupId>org.fusesource</groupId>
 				<artifactId>org.fusesource.camel.component.sap.model.edit</artifactId>
-                <version>${camel.sap.plugin.version}</version>
-                <scope>compile</scope>
+				<version>${camel.sap.plugin.version}</version>
+				<scope>compile</scope>
 			</dependency>
 			<dependency>
 				<groupId>org.eclipse.emf</groupId>
@@ -118,6 +170,11 @@
 				<classifier>${envClassifier}</classifier>
 				<scope>test</scope>
 			</dependency>
+			<dependency>
+				<groupId>com.sun.xml.bind</groupId>
+				<artifactId>jaxb-core</artifactId>
+				<version>2.2.11</version>
+			</dependency>
 
 			<dependency>
 				<groupId>org.mockito</groupId>
@@ -140,6 +197,18 @@
 
 		</dependencies>
 	</dependencyManagement>
+	<dependencies>
+      	<dependency>
+      		<groupId>com.sap.conn.jco</groupId>
+      		<artifactId>com.sap.conn.jco</artifactId>
+      		<version>3.0.11.redhat_1</version>
+      	</dependency>
+      	<dependency>
+      		<groupId>com.sap.conn.idoc</groupId>
+      		<artifactId>com.sap.conn.idoc</artifactId>
+      		<version>3.0.10.redhat_1</version>
+      	</dependency>
+	</dependencies>
 	<profiles>
 		<profile>
 			<id>integration-tests</id>
@@ -380,65 +449,114 @@
 						</environments>
 					</configuration>
 				</plugin>
-			<plugin>
-				<groupId>org.eclipse.tycho</groupId>
-				<artifactId>tycho-surefire-plugin</artifactId>
-				<version>${tycho-version}</version>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.camel</groupId>
-				<artifactId>camel-package-maven-plugin</artifactId>
-				<version>${camel-version}</version>
-				<executions>
-					<execution>
-						<goals>
-							<goal>generate-components-list</goal>
-						</goals>
-						<phase>generate-resources</phase>
-					</execution>
-				</executions>
-			</plugin>
+				<plugin>
+					<groupId>org.eclipse.tycho</groupId>
+					<artifactId>tycho-surefire-plugin</artifactId>
+					<version>${tycho-version}</version>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.camel</groupId>
+					<artifactId>camel-package-maven-plugin</artifactId>
+					<version>${camel-version}</version>
+					<executions>
+						<execution>
+							<goals>
+								<goal>generate-components-list</goal>
+							</goals>
+							<phase>generate-resources</phase>
+						</execution>
+					</executions>
+				</plugin>
+                <plugin>
+                    <groupId>org.apache.felix</groupId>
+                    <artifactId>maven-bundle-plugin</artifactId>
+                    <version>${maven-bundle-plugin-version}</version>
+                    <extensions>true</extensions>
+                    <configuration>
+                        <excludeDependencies>${fuse.osgi.exclude.dependencies}</excludeDependencies>
+                        <instructions>
+                            <Bundle-Name>${fuse.osgi.bundle.name}</Bundle-Name>
+                            <Bundle-SymbolicName>${fuse.osgi.symbolic.name}</Bundle-SymbolicName>
+                            <Bundle-DocURL>http://fabric.fusesource.org/</Bundle-DocURL>
+                            <Bundle-Activator>${fuse.osgi.activator}</Bundle-Activator>
+                            <Export-Package>${fuse.osgi.export}</Export-Package>
+                            <Import-Package>${fuse.osgi.import}</Import-Package>
+                            <DynamicImport-Package>${fuse.osgi.dynamic}</DynamicImport-Package>
+                            <Private-Package>${fuse.osgi.private.pkg}</Private-Package>
+                            <Implementation-Title>Fabric8</Implementation-Title>
+                            <Implementation-Version>${project.version}</Implementation-Version>
+                            <Include-Resource>${fuse.osgi.resource}</Include-Resource>
+                            <_versionpolicy>${fuse.osgi.import.default.version}</_versionpolicy>
+                            <_failok>${fuse.osgi.failok}</_failok>
+                            
+                            <Export-Service>${fuse.osgi.services.export}</Export-Service>
+                            
+                            <Embed-Dependency>${fuse.osgi.embed.dependency}</Embed-Dependency>
+                            <Embed-Transitive>${fuse.osgi.embed.transitive}</Embed-Transitive>
+                            <Require-Bundle>${fuse.osgi.require.bundle}</Require-Bundle>
+                            <Require-Capability>${fuse.osgi.capabilities.require}</Require-Capability>
+                            <Provide-Capability>${fuse.osgi.capabilities.provide}</Provide-Capability>
+                            
+                            <Service-Component>${fuse.osgi.service.component}</Service-Component>
+                            
+                        </instructions>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>cleanVersions</id>
+                            <phase>generate-sources</phase>
+                            <goals>
+                                <goal>cleanVersions</goal>
+                            </goals>
+                            <configuration>
+                                <versions>
+                                    <karaf.osgi.version>${karaf-version}</karaf.osgi.version>
+                                </versions>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
 			</plugins>
 		</pluginManagement>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-          		<artifactId>maven-source-plugin</artifactId>
-          		<executions>
-          			<execution>
-          				<id>attach-sources</id>
-          				<goals>
-          					<goal>aggregate</goal>
-          				</goals>
-          				<configuration>
-          					<finalName>camel-sap-${project.version}</finalName>
-          					<attach>true</attach>
-          				</configuration>
-          			</execution>
-          		</executions>
+				<artifactId>maven-source-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>aggregate</goal>
+						</goals>
+						<configuration>
+							<finalName>camel-sap-${project.version}</finalName>
+							<attach>true</attach>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-install-plugin</artifactId>
-                <inherited>false</inherited>
-                <executions>
-                    <execution>
-                        <id>attach-artifacts</id>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>install-file</goal>
-                        </goals>
-                        <configuration>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-install-plugin</artifactId>
+				<inherited>false</inherited>
+				<executions>
+					<execution>
+						<id>attach-artifacts</id>
+						<phase>install</phase>
+						<goals>
+							<goal>install-file</goal>
+						</goals>
+						<configuration>
 							<file>target/camel-sap-${project.version}-sources.jar</file>
 							<groupId>org.fusesource</groupId>
 							<artifactId>camel-sap</artifactId>
 							<version>${project.version}</version>
 							<packaging>jar</packaging>
 							<classifier>sources</classifier>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 	<modules>
@@ -446,15 +564,24 @@
 		<module>org.fusesource.camel.component.sap.model.edit</module>
 		<module>org.fusesource.camel.component.sap</module>
 		<module>camel-sap-component</module>
-		<!--  
-		<module>camel-sap-repository</module>
-		-->
+		<!-- <module>camel-sap-repository</module> -->
 	</modules>
 	<repositories>
 		<repository>
 			<id>eclipse-luna</id>
 			<url>http://download.eclipse.org/releases/luna/</url>
 			<layout>p2</layout>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+		</repository>
+		<repository>
+			<id>fusesource-third-party-internal</id>
+			<url>https://repository.jboss.org/nexus/content/repositories/fs-maven2-all/</url>
+			<layout>default</layout>
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>

@@ -1,19 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
- Copyright 2013 Red Hat, Inc.
-
- Red Hat licenses this file to you under the Apache License, version
- 2.0 (the "License"); you may not use this file except in compliance
- with the License.  You may obtain a copy of the License at
- 
-     http://www.apache.org/licenses/LICENSE-2.0
- 
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-  implied.  See the License for the specific language governing
- permissions and limitations under the License.
- -->
+<!-- Copyright 2015 Red Hat, Inc. Red Hat licenses this file to you under 
+	the Apache License, version 2.0 (the "License"); you may not use this file 
+	except in compliance with the License. You may obtain a copy of the License 
+	at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable 
+	law or agreed to in writing, software distributed under the License is distributed 
+	on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either 
+	express or implied. See the License for the specific language governing permissions 
+	and limitations under the License. -->
 
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
@@ -35,6 +28,7 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+		<fuse.osgi.activator>org.fusesource.camel.component.sap.Activator</fuse.osgi.activator>
 		<fuse.osgi.import>
 			org.eclipse.*;resolution:=optional,
 			*
@@ -101,6 +95,7 @@
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
 		</dependency>
+
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-log4j12</artifactId>
@@ -132,7 +127,8 @@
 			<type>bundle</type>
 			<scope>test</scope>
 		</dependency>
- 		<dependency>
+
+		<dependency>
 			<groupId>com.sap.conn.jco</groupId>
 			<artifactId>sapjco3</artifactId>
 			<scope>system</scope>
@@ -144,7 +140,18 @@
 			<scope>system</scope>
 			<systemPath>${lib.directory}/sapidoc3.jar</systemPath>
 		</dependency>
- 		<dependency>
+		<dependency>
+			<groupId>com.sap.conn.jco</groupId>
+			<artifactId>com.sap.conn.jco</artifactId>
+			<version>3.0.11.redhat_1</version>
+		</dependency>
+		<dependency>
+			<groupId>com.sap.conn.idoc</groupId>
+			<artifactId>com.sap.conn.idoc</artifactId>
+			<version>3.0.10.redhat_1</version>
+		</dependency>
+
+		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-core</artifactId>
 		</dependency>
@@ -175,11 +182,11 @@
 		<defaultGoal>install</defaultGoal>
 
 		<plugins>
-            <plugin>
-                <groupId>org.eclipse.tycho</groupId>
-                <artifactId>tycho-maven-plugin</artifactId>
-                <extensions>true</extensions>
-            </plugin>
+			<plugin>
+				<groupId>org.eclipse.tycho</groupId>
+				<artifactId>tycho-maven-plugin</artifactId>
+				<extensions>true</extensions>
+			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -196,97 +203,136 @@
 				</configuration>
 			</plugin>
 			<plugin>
-			  <groupId>org.apache.felix</groupId>
-			  <artifactId>maven-bundle-plugin</artifactId>
-			  <extensions>true</extensions>
-			  <configuration>
-			  	<instructions>
-			  		<Bundle-Activator>org.fusesource.camel.component.sap.Activator</Bundle-Activator>
-			  	</instructions>
-			  </configuration>
-			</plugin>			
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>attach-artifacts</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>attach-artifact</goal>
-                        </goals>
-                        <configuration>
-                            <artifacts>
-                                <artifact>
-                                    <file>target/classes/features.xml</file>
-                                    <type>xml</type>
-                                    <classifier>features</classifier>
-                                </artifact>
-                            </artifacts>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-            	<groupId>org.apache.maven.plugins</groupId>
-            	<artifactId>maven-dependency-plugin</artifactId>
-            	<executions>
-            		<execution>
-            			<id>copy-native-lib-for-unit-tests</id>
-            			<phase>process-test-resources</phase>
-            			<goals>
-            				<goal>copy</goal>
-            			</goals>
-            			<configuration>
-            				<stripVersion>true</stripVersion>
-            				<outputDirectory>${native.lib.directory}</outputDirectory>
-            				<artifactItems>
-            					<artifactItem>
-            						<groupId>com.sap.conn.jco</groupId>
-            						<artifactId>sapjco3</artifactId>
-            						<type>${envType}</type>
-            						<classifier>${envClassifier}</classifier>
-            						<overWrite>true</overWrite>
-            						<destFileName>${native.lib.filename}.${envType}</destFileName>
-            					</artifactItem>
-            				</artifactItems>
-            			</configuration>
-            		</execution>
-            		<execution>
-            			<id>copy-jco-libs-unit-tests</id>
-            			<phase>validate</phase>
-            			<goals>
-            				<goal>copy</goal>
-            			</goals>
-            			<configuration>
-            				<stripVersion>true</stripVersion>
-            				<outputDirectory>${lib.directory}</outputDirectory>
-            				<artifactItems>
-            					<artifactItem>
-            						<groupId>com.sap.conn.jco</groupId>
-            						<artifactId>sapjco3</artifactId>
-            						<overWrite>true</overWrite>
-            						<destFileName>sapjco3.jar</destFileName>
-            					</artifactItem>
-            					<artifactItem>
-            						<groupId>com.sap.conn.idoc</groupId>
-            						<artifactId>sapidoc3</artifactId>
-            						<overWrite>true</overWrite>
-            						<destFileName>sapidoc3.jar</destFileName>
-            					</artifactItem>
-            				</artifactItems>
-            			</configuration>
-            		</execution>
-            	</executions>
-            </plugin>
-            <plugin>
-            	<groupId>org.apache.maven.plugins</groupId>
-            	<artifactId>maven-surefire-plugin</artifactId>
-            	<configuration>
-		            <reuseForks>false</reuseForks><!-- Added to resolve issues with multiple loading of JCo native library -->
-            		<argLine>-Djava.library.path=${native.lib.directory}</argLine>
-           		</configuration>
-            </plugin>
+				<groupId>org.apache.felix</groupId>
+				<artifactId>maven-bundle-plugin</artifactId>
+				<extensions>true</extensions>
+				<configuration>
+					<excludeDependencies>${fuse.osgi.exclude.dependencies}</excludeDependencies>
+					<instructions>
+						<Bundle-Name>${fuse.osgi.bundle.name}</Bundle-Name>
+						<Bundle-SymbolicName>${fuse.osgi.symbolic.name}</Bundle-SymbolicName>
+						<Bundle-DocURL>http://fabric.fusesource.org/</Bundle-DocURL>
+						<Bundle-Activator>${fuse.osgi.activator}</Bundle-Activator>
+						<Export-Package>${fuse.osgi.export}</Export-Package>
+						<Import-Package>${fuse.osgi.import}</Import-Package>
+						<DynamicImport-Package>${fuse.osgi.dynamic}</DynamicImport-Package>
+						<Private-Package>${fuse.osgi.private.pkg}</Private-Package>
+						<Implementation-Title>Fabric8</Implementation-Title>
+						<Implementation-Version>${project.version}</Implementation-Version>
+						<Include-Resource>${fuse.osgi.resource}</Include-Resource>
+						<_versionpolicy>${fuse.osgi.import.default.version}</_versionpolicy>
+						<_failok>${fuse.osgi.failok}</_failok>
+
+						<Export-Service>${fuse.osgi.services.export}</Export-Service>
+
+						<Embed-Dependency>${fuse.osgi.embed.dependency}</Embed-Dependency>
+						<Embed-Transitive>${fuse.osgi.embed.transitive}</Embed-Transitive>
+						<Require-Bundle>${fuse.osgi.require.bundle}</Require-Bundle>
+						<Require-Capability>${fuse.osgi.capabilities.require}</Require-Capability>
+						<Provide-Capability>${fuse.osgi.capabilities.provide}</Provide-Capability>
+
+						<Service-Component>${fuse.osgi.service.component}</Service-Component>
+
+					</instructions>
+				</configuration>
+				<executions>
+					<execution>
+						<id>cleanVersions</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>cleanVersions</goal>
+						</goals>
+						<configuration>
+							<versions>
+								<karaf.osgi.version>${karaf-version}</karaf.osgi.version>
+							</versions>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>attach-artifacts</id>
+						<phase>package</phase>
+						<goals>
+							<goal>attach-artifact</goal>
+						</goals>
+						<configuration>
+							<artifacts>
+								<artifact>
+									<file>target/classes/features.xml</file>
+									<type>xml</type>
+									<classifier>features</classifier>
+								</artifact>
+							</artifacts>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>copy-native-lib-for-unit-tests</id>
+						<phase>process-test-resources</phase>
+						<goals>
+							<goal>copy</goal>
+						</goals>
+						<configuration>
+							<stripVersion>true</stripVersion>
+							<outputDirectory>${native.lib.directory}</outputDirectory>
+							<artifactItems>
+								<artifactItem>
+									<groupId>com.sap.conn.jco</groupId>
+									<artifactId>sapjco3</artifactId>
+									<type>${envType}</type>
+									<classifier>${envClassifier}</classifier>
+									<overWrite>true</overWrite>
+									<destFileName>${native.lib.filename}.${envType}</destFileName>
+								</artifactItem>
+							</artifactItems>
+						</configuration>
+					</execution>
+					<execution>
+						<id>copy-jco-libs-unit-tests</id>
+						<phase>validate</phase>
+						<goals>
+							<goal>copy</goal>
+						</goals>
+						<configuration>
+							<stripVersion>true</stripVersion>
+							<outputDirectory>${lib.directory}</outputDirectory>
+							<artifactItems>
+								<artifactItem>
+									<groupId>com.sap.conn.jco</groupId>
+									<artifactId>sapjco3</artifactId>
+									<overWrite>true</overWrite>
+									<destFileName>sapjco3.jar</destFileName>
+								</artifactItem>
+								<artifactItem>
+									<groupId>com.sap.conn.idoc</groupId>
+									<artifactId>sapidoc3</artifactId>
+									<overWrite>true</overWrite>
+									<destFileName>sapidoc3.jar</destFileName>
+								</artifactItem>
+							</artifactItems>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<reuseForks>false</reuseForks><!-- Added to resolve issues with multiple 
+						loading of JCo native library -->
+					<argLine>-Djava.library.path=${native.lib.directory}</argLine>
+				</configuration>
+			</plugin>
 			<plugin>
 				<groupId>org.apache.camel</groupId>
 				<artifactId>camel-package-maven-plugin</artifactId>
@@ -294,7 +340,8 @@
 		</plugins>
 		<pluginManagement>
 			<plugins>
-				<!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
+				<!--This plugin's configuration is used to store Eclipse m2e settings 
+					only. It has no influence on the Maven build itself. -->
 				<plugin>
 					<groupId>org.eclipse.m2e</groupId>
 					<artifactId>lifecycle-mapping</artifactId>
@@ -330,4 +377,19 @@
 	</build>
 
 	<description>Provides SAP Camel Component Layer</description>
+
+	<repositories>
+		<repository>
+			<id>fusesource-third-party-internal</id>
+			<url>https://repository.jboss.org/nexus/content/repositories/fs-maven2-all/</url>
+			<layout>default</layout>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+		</repository>
+	</repositories>
+
 </project>
