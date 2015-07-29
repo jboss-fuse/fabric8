@@ -166,6 +166,7 @@ public final class ContainerProviderUtils {
         sb.append("run cd `").append(FIRST_FABRIC_DIRECTORY).append("`\n");
         sb.append("run mkdir -p ").append(systemDistPath).append("\n");
         sb.append("run cp ../").append(distFilename).append(" ").append(systemDistPath).append("/\n");
+        sb.append("run rm ../").append(distFilename).append("\n");
         sb.append("run chmod +x bin/*").append("\n");
         List<String> lines = new ArrayList<String>();
         String globalResolver = options.getResolver() != null ? options.getResolver() : ZkDefs.DEFAULT_RESOLVER;
