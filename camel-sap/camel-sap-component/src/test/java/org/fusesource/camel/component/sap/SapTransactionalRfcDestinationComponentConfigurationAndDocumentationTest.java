@@ -16,7 +16,6 @@
  */
 package org.fusesource.camel.component.sap;
 
-import org.apache.camel.ComponentConfiguration;
 import org.apache.camel.EndpointConfiguration;
 import org.apache.camel.test.junit4.CamelTestSupport;
 import org.junit.Test;
@@ -36,14 +35,6 @@ public class SapTransactionalRfcDestinationComponentConfigurationAndDocumentatio
         assertEquals("true", conf.getParameter("stateful"));
         assertEquals("false", conf.getParameter("transacted"));
 
-        ComponentConfiguration compConf = comp.createComponentConfiguration();
-        String json = compConf.createParameterJsonSchema();
-        assertNotNull(json);
-
-        assertTrue(json.contains("\"destination\": { \"kind\": \"path\", \"required\": \"true\", \"type\": \"string\", \"javaType\": \"java.lang.String\", \"deprecated\": \"false\", \"description\": \"Specifies the destination this endpoint sends an SAP request to\" }"));
-        assertTrue(json.contains("\"rfc\": { \"kind\": \"path\", \"required\": \"true\", \"type\": \"string\", \"javaType\": \"java.lang.String\", \"deprecated\": \"false\", \"description\": \"Specifies the Remote Function Module this endpoint sends an SAP request to\" }"));
-        assertTrue(json.contains("\"transacted\": { \"kind\": \"parameter\", \"type\": \"boolean\", \"javaType\": \"boolean\", \"deprecated\": \"false\", \"defaultValue\": \"false\", \"description\": \"When true specifies that this endpoint will initiate an SAP transaction\" }"));
-        assertTrue(json.contains("\"stateful\": { \"kind\": \"parameter\", \"type\": \"boolean\", \"javaType\": \"boolean\", \"deprecated\": \"false\", \"defaultValue\": \"false\", \"description\": \"When true specifies that this endpoint will initiate an SAP stateful session\" }"));
     }
 
 }
