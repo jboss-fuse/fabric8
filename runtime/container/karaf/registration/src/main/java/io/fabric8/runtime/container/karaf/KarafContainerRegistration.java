@@ -194,7 +194,15 @@ public final class KarafContainerRegistration extends AbstractComponent implemen
 
             //Set the port range values
             String minimumPort = sysprops.getProperty(ZkDefs.MINIMUM_PORT);
+            if(minimumPort == null){
+                String minPort = (String) bootstrapConfiguration.get().getConfiguration().get("minimum.port");
+                minimumPort = minPort;
+            }
             String maximumPort = sysprops.getProperty(ZkDefs.MAXIMUM_PORT);
+            if(maximumPort == null){
+                String maxPort = (String) bootstrapConfiguration.get().getConfiguration().get("maximum.port");
+                maximumPort = maxPort;
+            }
             createDefault(curator.get(), CONTAINER_PORT_MIN.getPath(runtimeIdentity), minimumPort);
             createDefault(curator.get(), CONTAINER_PORT_MAX.getPath(runtimeIdentity), maximumPort);
         } catch (Exception e) {
