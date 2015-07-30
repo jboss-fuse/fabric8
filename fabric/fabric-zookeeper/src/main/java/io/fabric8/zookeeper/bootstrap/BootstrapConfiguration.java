@@ -136,6 +136,10 @@ public class BootstrapConfiguration extends AbstractComponent {
     private File dataDir;
     @Property(name = "zookeeper.url", label = "ZooKeeper URL", description = "The url to an existing zookeeper ensemble", value = "${zookeeper.url}", propertyPrivate = true)
     private String zookeeperUrl;
+    @Property(name = "minport", label = "Min port", description = "The smallest port to chose for services", value = "${minimum.port}", propertyPrivate = true)
+    private int minport = Ports.MIN_PORT_NUMBER;
+    @Property(name = "maxport", label = "Max port", description = "The largest port to chose for services", value = "${maximum.port}", propertyPrivate = true)
+    private int maxport = Ports.MAX_PORT_NUMBER;
 
     private ComponentContext componentContext;
     private Map<String, ?> configuration;
@@ -191,9 +195,18 @@ public class BootstrapConfiguration extends AbstractComponent {
             userProps.put(DEFAULT_ADMIN_USER, decodedZookeeperPassword+ ROLE_DELIMITER + DEFAULT_ADMIN_ROLE);
         }
 
+        String minimumPort = (String) configuration.get("minimum.port");
+        if(!Strings.isNullOrBlank(minimumPort)){
+            this.minport = Integer.valueOf(minimumPort);
+        }
+        String maximumPort = (String) configuration.get("maximum.port");
+        if(!Strings.isNullOrBlank(maximumPort)){
+            this.maxport = Integer.valueOf(maximumPort);
+        }
+
         options = CreateEnsembleOptions.builder().bindAddress(bindAddress).agentEnabled(agentAutoStart).ensembleStart(ensembleAutoStart).zookeeperPassword(decodedZookeeperPassword)
                 .zooKeeperServerPort(zookeeperServerPort).zooKeeperServerConnectionPort(zookeeperServerConnectionPort).autoImportEnabled(profilesAutoImport)
-                .importPath(profilesAutoImportPath).resolver(localResolver).globalResolver(globalResolver).users(userProps).profiles(profiles).version(version).build();
+                .importPath(profilesAutoImportPath).resolver(localResolver).globalResolver(globalResolver).users(userProps).minimumPort(minport).maximumPort(maxport).profiles(profiles).version(version).build();
     }
 
     void bootIfNeeded() throws IOException {

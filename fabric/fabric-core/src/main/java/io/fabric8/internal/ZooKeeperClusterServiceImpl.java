@@ -526,7 +526,7 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
             usedPorts.put(ip, ports);
         }
         for (;;) {
-            if (!ports.contains(port)) {
+            if (!ports.contains(port) && Ports.isPortFree(port)) {
                 ports.add(port);
                 return port;
             }
