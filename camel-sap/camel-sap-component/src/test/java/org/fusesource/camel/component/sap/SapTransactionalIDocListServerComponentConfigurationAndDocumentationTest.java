@@ -16,11 +16,9 @@
  */
 package org.fusesource.camel.component.sap;
 
-import org.apache.camel.ComponentConfiguration;
 import org.apache.camel.EndpointConfiguration;
 import org.apache.camel.test.junit4.CamelTestSupport;
 import org.junit.Test;
-import org.junit.Ignore;
 
 public class SapTransactionalIDocListServerComponentConfigurationAndDocumentationTest extends CamelTestSupport {
 
@@ -29,7 +27,6 @@ public class SapTransactionalIDocListServerComponentConfigurationAndDocumentatio
         return false;
     }
 
-    @Ignore("ENTESB-3457")
     @Test
     public void testComponentConfiguration() throws Exception {
         SapTransactionalIDocListServerComponent comp = context.getComponent("sap-idoclist-server", SapTransactionalIDocListServerComponent.class);
@@ -38,17 +35,6 @@ public class SapTransactionalIDocListServerComponentConfigurationAndDocumentatio
         assertEquals("true", conf.getParameter("stateful"));
         assertEquals("false", conf.getParameter("propagateExceptions"));
 
-        ComponentConfiguration compConf = comp.createComponentConfiguration();
-        String json = compConf.createParameterJsonSchema();
-        assertNotNull(json);
-
-        assertTrue(json.contains("\"server\": { \"kind\": \"path\", \"required\": \"true\", \"type\": \"string\", \"javaType\": \"java.lang.String\", \"deprecated\": \"false\", \"description\": \"Specifies the server this endpoint receives an IDoc from\" }"));
-        assertTrue(json.contains("\"idocType\": { \"kind\": \"path\", \"required\": \"true\", \"type\": \"string\", \"javaType\": \"java.lang.String\", \"deprecated\": \"false\", \"description\": \"Specifies the Basic IDoc Type of an IDoc consumed by this endpoint\" }"));
-        assertTrue(json.contains("\"idocTypeExtension\": { \"kind\": \"path\", \"type\": \"string\", \"javaType\": \"java.lang.String\", \"deprecated\": \"false\", \"description\": \"Specifies the IDoc Type Extension if any of an IDoc consumed by this endpoint\" }"));
-        assertTrue(json.contains("\"systemRelease\": { \"kind\": \"path\", \"type\": \"string\", \"javaType\": \"java.lang.String\", \"deprecated\": \"false\", \"description\": \"Specifies the associated SAP Basis Release if any of an IDoc consumed by this endpoint\" }"));
-        assertTrue(json.contains("\"applicationRelease\": { \"kind\": \"path\", \"type\": \"string\", \"javaType\": \"java.lang.String\", \"deprecated\": \"false\", \"description\": \"Specifes the associated Application Release if any of an IDoc consumed by this endpoint\" }"));
-        assertTrue(json.contains("\"propagateExceptions\": { \"kind\": \"parameter\", \"type\": \"boolean\", \"javaType\": \"boolean\", \"deprecated\": \"false\", \"defaultValue\": \"false\", \"description\": \"When true specifies that this endpoint will propagate exceptions back to the caller in SAP instead of the exchange's exception handler\" }"));
-        assertTrue(json.contains("\"stateful\": { \"kind\": \"parameter\", \"type\": \"boolean\", \"javaType\": \"boolean\", \"deprecated\": \"false\", \"defaultValue\": \"false\", \"description\": \"When true specifies that this endpoint will initiate an SAP stateful session\" }"));
     }
 
 }

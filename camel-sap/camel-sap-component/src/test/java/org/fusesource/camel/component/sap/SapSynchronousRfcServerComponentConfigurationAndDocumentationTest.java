@@ -16,7 +16,6 @@
  */
 package org.fusesource.camel.component.sap;
 
-import org.apache.camel.ComponentConfiguration;
 import org.apache.camel.EndpointConfiguration;
 import org.apache.camel.test.junit4.CamelTestSupport;
 import org.junit.Test;
@@ -34,14 +33,6 @@ public class SapSynchronousRfcServerComponentConfigurationAndDocumentationTest e
         EndpointConfiguration conf = comp.createConfiguration("sap-srfc-server:serverName:rfcName?stateful=true");
 
         assertEquals("true", conf.getParameter("stateful"));
-
-        ComponentConfiguration compConf = comp.createComponentConfiguration();
-        String json = compConf.createParameterJsonSchema();
-        assertNotNull(json);
-
-        assertTrue(json.contains("\"server\": { \"kind\": \"path\", \"required\": \"true\", \"type\": \"string\", \"javaType\": \"java.lang.String\", \"deprecated\": \"false\", \"description\": \"Specifies the server this endpoint receives an SAP request from\" }"));
-        assertTrue(json.contains("\"rfc\": { \"kind\": \"path\", \"required\": \"true\", \"type\": \"string\", \"javaType\": \"java.lang.String\", \"deprecated\": \"false\", \"description\": \"Specifies the Remote Function Module this endpoint handles an SAP request for\" }"));
-        assertTrue(json.contains("\"stateful\": { \"kind\": \"parameter\", \"type\": \"boolean\", \"javaType\": \"boolean\", \"deprecated\": \"false\", \"defaultValue\": \"false\", \"description\": \"When true specifies that this endpoint will initiate an SAP stateful session\" }"));
 
     }
 
