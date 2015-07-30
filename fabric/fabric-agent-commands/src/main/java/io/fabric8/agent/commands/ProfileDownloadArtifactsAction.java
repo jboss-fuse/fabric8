@@ -54,13 +54,15 @@ public class ProfileDownloadArtifactsAction extends AbstractAction {
     @Option(name = "-t", aliases = "--threads", description = "The number of threads to use for the download manager. Defaults to 1.")
     private int threadPoolSize;
 
-    @Argument(index = 0, required = false, name = "target directory", description = "The directory to download files to. Defaults to the system folder.")
+    @Argument(index = 0, required = false, name = "target directory", description = "The directory to download files to. Defaults to the .")
     @CompleterValues(index = 0)
     private File target;
 
     private final FabricService fabricService;
     private final ProfileService profileService;
     private ScheduledExecutorService executorService;
+
+    public static final String DEFAULT_TARGET = "profile_download";
 
     ProfileDownloadArtifactsAction(FabricService fabricService) {
         this.fabricService = fabricService;
@@ -81,7 +83,7 @@ public class ProfileDownloadArtifactsAction extends AbstractAction {
 
         if (target == null) {
             String karafBase = System.getProperty("karaf.base", ".");
-            target = new File(karafBase + "/system");
+            target = new File(karafBase , ProfileDownloadArtifactsAction.DEFAULT_TARGET);
         }
         target.mkdirs();
         if (!target.exists()) {
