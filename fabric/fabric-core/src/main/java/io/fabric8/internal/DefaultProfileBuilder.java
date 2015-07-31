@@ -333,6 +333,11 @@ public final class DefaultProfileBuilder extends AbstractBuilder<ProfileBuilder>
 	@Override
 	public Profile getProfile() {
 		validate();
-		return new ProfileImpl(versionId, profileId, getParents(), fileMapping, lastModified, isOverlay);
+        List<String> parents = getParents();
+        if (!"default".equals(profileId) && !parents.contains("default")){
+            parents = new ArrayList(parents);
+            parents.add("default");
+        }
+        return new ProfileImpl(versionId, profileId, parents, fileMapping, lastModified, isOverlay);
 	}
 }
