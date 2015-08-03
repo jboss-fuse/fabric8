@@ -402,7 +402,7 @@ public class Agent {
                     latch.countDown();
                 }
             });
-            latch.await();
+            latch.await(30, TimeUnit.SECONDS);
         }
 
         @Override
