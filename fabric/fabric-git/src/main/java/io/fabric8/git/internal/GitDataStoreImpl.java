@@ -546,8 +546,9 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                     createOrCheckoutVersion(git, version.getId());
                     setVersionAttributes(git, context, versionId, version.getAttributes());
                     context.commitMessage("Create version: " + version);
+                    Set<String>  alreadyProcessedProfiles =  new HashSet<String>();
                     for (Profile profile : version.getProfiles()) {
-                        createOrUpdateProfile(context, null, profile, new HashSet<String>());
+                        createOrUpdateProfile(context, null, profile,alreadyProcessedProfiles);
                     }
                     return versionId;
                 }
@@ -787,8 +788,11 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
             
             // Process parents first
             for (String parentId : profile.getParentIds()) {
-                Profile parent = getProfileFromCache(profile.getVersion(), parentId);
-                IllegalStateAssertion.assertNotNull(parent, "Parent profile does not exist: " + parentId);
+                // skip if parent has been already visited
+                if(!profiles.contains(parentId)){
+                    Profile parent = getProfileFromCache(profile.getVersion(), parentId);
+                    IllegalStateAssertion.assertNotNull(parent, "Parent profile does not exist: " + parentId);
+                }
             }
             
             if (lastProfile == null) {
