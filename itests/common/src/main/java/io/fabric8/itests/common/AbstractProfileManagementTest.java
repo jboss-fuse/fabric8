@@ -56,11 +56,13 @@ public abstract class AbstractProfileManagementTest {
 
     @Test
     public void testCreateVersion() throws Exception {
+        ProfileBuilder pbDefault = ProfileBuilder.Factory.create("1.1", "default");
+        Profile prfDefault = pbDefault.addConfiguration("pidA", Collections.singletonMap("keyA", "valA")).getProfile();
         ProfileBuilder pbA11 = ProfileBuilder.Factory.create("1.1", "prfA");
         Profile prfA = pbA11.addConfiguration("pidA", Collections.singletonMap("keyA", "valA")).getProfile();
-        VersionBuilder vb11 = VersionBuilder.Factory.create("1.1").addProfile(prfA);
-        VersionState v11 = getProxy().createVersion(new VersionState(vb11.getVersion()));
+        VersionBuilder vb11 = VersionBuilder.Factory.create("1.1").addProfile(prfDefault).addProfile(prfA);
         try {
+            VersionState v11 = getProxy().createVersion(new VersionState(vb11.getVersion()));
             Assert.assertEquals("1.1", v11.getId());
             Assert.assertTrue(v11.getAttributes().isEmpty());
             Assert.assertEquals("valA", v11.getProfileState("prfA").getConfiguration("pidA").get("keyA"));
