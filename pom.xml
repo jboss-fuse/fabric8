@@ -345,6 +345,7 @@
         <sshj.version>0.8.1</sshj.version>
         <swagger-community-version>1.3.2</swagger-community-version>
         <swagger-version>1.3.2_1</swagger-version>
+        <swagger-core-version>1.3.2_2</swagger-core-version>
         <swagger-jaxrs-version>1.3.2_3</swagger-jaxrs-version>
         <swagger-scala-version>2.10.4</swagger-scala-version>
         <tinybundles-version>2.0.0</tinybundles-version>
