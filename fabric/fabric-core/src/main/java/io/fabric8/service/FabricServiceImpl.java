@@ -304,8 +304,8 @@ public final class FabricServiceImpl extends AbstractComponent implements Fabric
         List<Container> containers = new ArrayList<>();
         for (Container container : getContainers()) {
         	for (Profile profile : Arrays.asList(container.getProfiles())) {
-            	if (profile.getId().equals(profileId)) {
-            		containers.add(container);
+                if (profile.getId().equals(profileId) && profile.getVersion().equals(versionId)) {
+                    containers.add(container);
             	}
         	}
         }
