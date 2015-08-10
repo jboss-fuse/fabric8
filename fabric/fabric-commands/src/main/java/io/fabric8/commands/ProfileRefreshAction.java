@@ -27,7 +27,7 @@ import org.apache.felix.gogo.commands.Argument;
 import org.apache.felix.gogo.commands.Command;
 import org.apache.karaf.shell.console.AbstractAction;
 
-@Command(name = ProfileRefresh.FUNCTION_VALUE, scope = ProfileRefresh.SCOPE_VALUE, description = ProfileRefresh.DESCRIPTION, detailedDescription = "classpath:profileRefresh.txt")
+@Command(name = ProfileRefresh.FUNCTION_VALUE, scope = ProfileRefresh.SCOPE_VALUE, description = ProfileRefresh.DESCRIPTION)
 public class ProfileRefreshAction extends AbstractAction {
 
 	@Argument(index = 0, name = "profile", description = "The target profile to edit", required = true, multiValued = false)
