@@ -889,6 +889,9 @@ public class Deployer {
             if (!noRefresh && !toRefresh.isEmpty()) {
                 callback.phase("finalizing (refreshing bundles)");
                 print("Refreshing bundles:", display);
+                if (toRefresh.containsKey(dstate.serviceBundle)) {
+                    toRefresh.remove(dstate.serviceBundle);
+                }
                 for (Map.Entry<Bundle, String> entry : toRefresh.entrySet()) {
                     Bundle bundle = entry.getKey();
                     print("Refreshing bundles:", display);
