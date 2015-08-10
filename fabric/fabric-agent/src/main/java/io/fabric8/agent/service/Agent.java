@@ -185,10 +185,9 @@ public class Agent {
         for (Repository repository : repos.call().values()) {
             for (Feature f : repository.getFeatures()) {
                 String id = f.getId();
-                allFeatures.put(id, f);
-                /*if (allFeatures.put(id, f) != null) {
+                if (allFeatures.put(id, f) != null) {
                     throw new IllegalStateException("Duplicate feature found: " + id);
-                }*/
+                }
             }
         }
 
