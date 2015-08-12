@@ -93,6 +93,12 @@
       <groupId>org.apache.servicemix.nmr</groupId>
       <artifactId>org.apache.servicemix.nmr.management</artifactId>
       <version>${servicemix-nmr-version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.apache.aries.blueprint</groupId>
+            <artifactId>org.apache.aries.blueprint</artifactId>
+          </exclusion>
+        </exclusions>
     </dependency>
 
     <dependency>
