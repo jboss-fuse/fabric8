@@ -509,7 +509,7 @@ public class Agent {
                             BundleCapability cand = candIter.next();
                             BundleRevision br = cand.getRevision();
                             Resource res = bndToRes.get(br.getBundle());
-                            if (!wired.contains(br) && !wired.contains(res)) {
+                            if (BundleRevision.TYPE_FRAGMENT != br.getTypes() && !wired.contains(br) && !wired.contains(res)) {
                                 candIter.remove();
                             }
                         }
