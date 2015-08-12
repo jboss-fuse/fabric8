@@ -872,24 +872,9 @@ public class Deployer {
                     }
 
                     toStart.remove(bundle);
-                                      
                 }
 
             }
-            
-            if (!noRefresh && !toRefresh.isEmpty()) {
-                callback.phase("finalizing (refreshing bundles)");
-                print("Refreshing bundles:", display);
-                for (Map.Entry<Bundle, String> entry : toRefresh.entrySet()) {
-                    Bundle bundle = entry.getKey();
-                    print("Refreshing bundles:", display);
-                    print("    " + bundle.getSymbolicName() + " / " + bundle.getVersion() + " (" + entry.getValue() + ")", display);
-                }
-                if (!toRefresh.isEmpty()) {
-                    callback.refreshPackages(toRefresh.keySet());
-                }
-            }
-            
             deploymentsExecutor.shutdown();
 
             if (!exceptions.isEmpty()) {
