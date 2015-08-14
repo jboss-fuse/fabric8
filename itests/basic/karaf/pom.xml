@@ -158,6 +158,9 @@
                         <configuration>
                             <target>
                                 <copy file="src/test/resources/users.properties" todir="${karaf.home}/etc" overwrite="true" />
+                                <concat destfile="${karaf.home}/fabric/import/fabric/profiles/default.profile/io.fabric8.maven.properties" append="true">
+                                    <filelist dir="src/test/resources" files="io.fabric8.maven.properties" />
+                                </concat>
                             </target>
                         </configuration>
                     </execution>

@@ -42,6 +42,7 @@ import javax.management.remote.JMXServiceURL;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.felix.service.command.Function;
 import org.junit.Assert;
+import org.ops4j.pax.exam.Configuration;
 import org.ops4j.pax.exam.CoreOptions;
 import org.ops4j.pax.exam.MavenUtils;
 import org.ops4j.pax.exam.Option;
@@ -218,7 +219,8 @@ public class FabricTestSupport extends FabricKarafTestSupport {
                 CoreOptions.mavenBundle("io.fabric8.itests.paxexam", "fabric-itests-paxexam-common").versionAsInProject(),
                 CoreOptions.mavenBundle("io.fabric8.tooling.testing", "pax-exam-karaf").versionAsInProject(), new DoNotModifyLogOption(),
                 KarafDistributionOption.keepRuntimeFolder(),
-
+                // See ENTESB-3731
+                KarafDistributionOption.editConfigurationFilePut("fabric/import/fabric/profiles/default.profile/io.fabric8.maven.properties", "io.fabric8.maven.localRepository", "${karaf.data}/repository")
         };
     }
 
