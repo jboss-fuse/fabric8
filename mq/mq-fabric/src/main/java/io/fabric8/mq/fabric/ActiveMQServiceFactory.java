@@ -631,6 +631,14 @@ public class ActiveMQServiceFactory  {
         private void interruptAndWaitForStart() throws ExecutionException, InterruptedException {
             if (start_future != null) {
                 start_future.cancel(false);
+                if (server != null && server.broker != null) {
+                    // slave blocked on store lock
+                    try {
+                        server.broker.stop();
+                    } catch (Exception e) {
+                        LOG.warn("Call to stop failed with exception:" + e.getLocalizedMessage());
+                    }
+                }
                 try {
                    start_future.get(SHUTDOWN_TIMEOUT_IN_SECONDS, TimeUnit.SECONDS);
                 } catch (TimeoutException e) {
