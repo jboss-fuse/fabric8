@@ -113,8 +113,10 @@ public class EnsembleAddAction extends AbstractAction {
         int currentTickTime = Integer.parseInt(currentConfig.get("tickTime"));
         int currentInitLimit = Integer.parseInt(currentConfig.get("initLimit"));
         int currentSyncLimit = Integer.parseInt(currentConfig.get("syncLimit"));
-        String currentDataDir = currentConfig.get("dataDir");
-        currentDataDir = currentDataDir.substring(0, currentDataDir.lastIndexOf("/"));
+        String currentDataDir = currentConfig.get("dataDir");       
+        int lastIndexOfFwdSlash = currentDataDir.lastIndexOf("/"); // prefer fwd slash        
+        currentDataDir = currentDataDir.substring(0, (lastIndexOfFwdSlash < 0) ? currentDataDir.lastIndexOf("\\") : lastIndexOfFwdSlash);
+        
         zooKeeperTickTime = zooKeeperTickTime != 0 ? zooKeeperTickTime : currentTickTime;
         zooKeeperInitLimit = zooKeeperInitLimit != 0 ? zooKeeperInitLimit : currentInitLimit;
         zooKeeperSyncLimit = zooKeeperSyncLimit != 0 ? zooKeeperSyncLimit : currentSyncLimit;
