@@ -508,8 +508,11 @@ public class Agent {
                         for (Iterator<BundleCapability> candIter = candidates.iterator(); candIter.hasNext(); ) {
                             BundleCapability cand = candIter.next();
                             BundleRevision br = cand.getRevision();
+                            if ((br.getTypes() & BundleRevision.TYPE_FRAGMENT) != 0) {
+                                br = br.getWiring().getRequiredWires(null).get(0).getProvider();
+                            }
                             Resource res = bndToRes.get(br.getBundle());
-                            if (BundleRevision.TYPE_FRAGMENT != br.getTypes() && !wired.contains(br) && !wired.contains(res)) {
+                            if (!wired.contains(br) && !wired.contains(res)) {
                                 candIter.remove();
                             }
                         }
