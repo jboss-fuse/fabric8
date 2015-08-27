@@ -80,7 +80,7 @@ public class VersionCreateAction extends AbstractAction {
         
         Version targetVersion;
         if (sourceId != null) {
-            Map<String, String> attributes = Collections.singletonMap(Version.PARENT, sourceId);
+            Map<String, String> attributes = new HashMap<String, String>(Collections.singletonMap(Version.PARENT, sourceId));
             if (description != null) {
                 attributes.put(Version.DESCRIPTION, description);
             }
