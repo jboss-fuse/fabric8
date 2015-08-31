@@ -200,7 +200,9 @@ public class DataStoreBootstrapTemplate implements DataStoreTemplate {
             Set<String> profiles = options.getProfiles();
             profilesBuilder.append("fabric").append(" ").append("fabric-ensemble-0000-1");
             for (String p : profiles) {
-                profilesBuilder.append(" ").append(p);
+                if (!(p.equals("fabric") || p.equals("fabric-ensemble-0000-1"))) {
+                    profilesBuilder.append(" ").append(p);
+                }
             }
             if (!options.isAgentEnabled()) {
                 profilesBuilder.append(" ").append("unmanaged");
