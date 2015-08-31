@@ -294,7 +294,11 @@ public final class ZkDataStoreImpl extends AbstractComponent implements DataStor
             String versionId = options.getVersion();
             Set<String> profileIds = options.getProfiles();
             StringBuilder sb = new StringBuilder();
+            List<String> existIds = getContainerProfiles(containerId);
             for (String profileId : profileIds) {
+                if (existIds.contains(profileId)) {
+                    continue;
+                }
                 if (sb.length() > 0) {
                     sb.append(" ");
                 }
@@ -449,8 +453,12 @@ public final class ZkDataStoreImpl extends AbstractComponent implements DataStor
         try {
             String versionId = getStringData(curator.get(), ZkPath.CONFIG_CONTAINER.getPath(containerId));
             Set<String> idset = new HashSet<>();
+            List<String> existIds = getContainerProfiles(containerId);
             StringBuilder sb = new StringBuilder();
             for (String profileId : profileIds) {
+                if (existIds.contains(profileId)) {
+                    continue;
+                }
                 IllegalArgumentAssertion.assertFalse(idset.contains(profileId), "Duplicate profile id in: " + profileIds);
                 if (sb.length() > 0) {
                     sb.append(" ");
