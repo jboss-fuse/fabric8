@@ -79,6 +79,7 @@
             org.apache.aries.util.internal;
             org.apache.felix.bundleplugin;
             org.apache.felix.resolver;
+            org.apache.felix.resolver.util;
             org.apache.felix.utils.collections;
             org.apache.felix.utils.properties;
             org.apache.felix.utils.version;
