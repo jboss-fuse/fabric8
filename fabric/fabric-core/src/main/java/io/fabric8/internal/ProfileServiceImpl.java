@@ -337,12 +337,11 @@ public final class ProfileServiceImpl extends AbstractProtectedComponent<Profile
 
         private void fillParentProfiles(Profile profile, List<Profile> profiles) {
             if (!profiles.contains(profile)) {
-                profiles.add(profile);
                 for (String parentId : profile.getParentIds()) {
                     Profile parent = version.getRequiredProfile(parentId);
                     fillParentProfiles(parent, profiles);
                 }
-
+                profiles.add(profile);
             }
         }
 
