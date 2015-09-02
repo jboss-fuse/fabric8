@@ -30,6 +30,7 @@ import io.fabric8.agent.model.BundleInfo;
 import io.fabric8.agent.model.ConfigFile;
 import io.fabric8.agent.model.Feature;
 import io.fabric8.agent.region.SubsystemResolver;
+import io.fabric8.agent.resolver.FeatureResource;
 import io.fabric8.agent.utils.OsgiUtils;
 import io.fabric8.common.util.ChecksumUtils;
 import io.fabric8.common.util.MultiException;
@@ -81,8 +82,6 @@ import static org.osgi.framework.Bundle.UNINSTALLED;
 import static org.osgi.framework.namespace.HostNamespace.HOST_NAMESPACE;
 import static org.osgi.framework.namespace.IdentityNamespace.IDENTITY_NAMESPACE;
 import static org.osgi.framework.namespace.IdentityNamespace.TYPE_BUNDLE;
-import static org.osgi.resource.Namespace.CAPABILITY_EFFECTIVE_DIRECTIVE;
-import static org.osgi.resource.Namespace.EFFECTIVE_ACTIVE;
 
 public class Deployer {
 
@@ -383,18 +382,63 @@ public class Deployer {
         // Compute bundle states
         //
         Map<Resource, Constants.RequestedState> states = new HashMap<>();
+        // Find all features state
+        Map<Resource, Constants.RequestedState> featuresState = new HashMap<>();
+        Map<Resource, Set<Resource>> conditionals = new HashMap<>();
         if (resolver.getFeaturesPerRegions() != null){
             for (Map.Entry<String, Set<Resource>> entry : resolver.getFeaturesPerRegions().entrySet()) {
                 String region = entry.getKey();
                 Map<String, String> fss = stateFeatures.get(region);
                 for (Resource feature : entry.getValue()) {
-                    String fs = fss.get(getFeatureId(feature));
-                    propagateState(states, feature, Constants.RequestedState.valueOf(fs), resolver);
+                    Set<Resource> conditions = new HashSet<>();
+                    for (Wire wire : resolver.getWiring().get(feature)) {
+                        if (IDENTITY_NAMESPACE.equals(wire.getRequirement().getNamespace()) &&
+                                FeatureResource.CONDITIONAL_TRUE.equals(wire.getRequirement().getDirectives().get(FeatureResource.REQUIREMENT_CONDITIONAL_DIRECTIVE))) {
+                            conditions.add(wire.getProvider());
+                        }
+                    }
+                    if (conditions.isEmpty()) {
+                        String fs = fss.get(getFeatureId(feature));
+                        featuresState.put(feature, Constants.RequestedState.valueOf(fs));
+                    } else {
+                        conditionals.put(feature, conditions);
+                    }
                 }
             }
         }
-
-        states.keySet().retainAll(resolver.getBundles().keySet());
+        // Compute conditional features state
+        for (Resource feature : conditionals.keySet()) {
+            Constants.RequestedState state = null;
+            for (Resource cond : conditionals.get(feature)) {
+                Constants.RequestedState s = featuresState.get(cond);
+                if (state == null) {
+                    state = s;
+                } else if (state == Constants.RequestedState.Started && s == Constants.RequestedState.Resolved) {
+                    state = Constants.RequestedState.Resolved;
+                }
+            }
+            featuresState.put(feature, state);
+        }
+        // Propagate Resolved state
+        for (Resource feature : featuresState.keySet()) {
+            if (featuresState.get(feature) == Constants.RequestedState.Resolved) {
+                propagateState(states, feature, Constants.RequestedState.Resolved, resolver);
+            }
+        }
+        // Propagate Started state
+        for (Resource feature : featuresState.keySet()) {
+            if (featuresState.get(feature) == Constants.RequestedState.Started) {
+                propagateState(states, feature, Constants.RequestedState.Started, resolver);
+            }
+        }
+        // Put default Started state for other bundles
+        for (Resource resource : resolver.getBundles().keySet()) {
+            if (!states.containsKey(resource)) {
+                states.put(resource, Constants.RequestedState.Started);
+            }
+        }
+        // Only keep bundles resources
+       states.keySet().retainAll(resolver.getBundles().keySet());
         //
         // Compute bundles to start, stop and resolve
         //
@@ -903,24 +947,9 @@ public class Deployer {
             if (reqState != states.get(resource)) {
                 states.put(resource, reqState);
                 for (Wire wire : resolver.getWiring().get(resource)) {
-                    Resource provider = wire.getProvider();
-                    Constants.RequestedState stateToMerge;
-                    String region = resolver.getBundles().get(provider);
-                    BundleInfo bi = region != null ? resolver.getBundleInfos().get(region).get(getUri(provider)) : null;
-                    if (reqState == Constants.RequestedState.Started) {
-                        String effective = wire.getCapability().getDirectives().get(CAPABILITY_EFFECTIVE_DIRECTIVE);
-                        // If there is an active effective capability or a requirement from the feature
-                        // and if the bundle is flagged as to start, start it
-                        if ((EFFECTIVE_ACTIVE.equals(effective) || IDENTITY_NAMESPACE.equals(wire.getCapability().getNamespace()))
-                                && (bi == null || bi.isStart())) {
-                            stateToMerge = Constants.RequestedState.Started;
-                        } else {
-                            stateToMerge = Constants.RequestedState.Resolved;
-                        }
-                    } else {
-                        stateToMerge = reqState;
+                    if (IDENTITY_NAMESPACE.equals(wire.getCapability().getNamespace())) {
+                        propagateState(states, wire.getProvider(), reqState, resolver);
                     }
-                    propagateState(states, provider, stateToMerge, resolver);
                 }
             }
         }
