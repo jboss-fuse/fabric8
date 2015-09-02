@@ -504,11 +504,11 @@ public class ServiceImplTest {
     @Test
     public void testVersionHistory() {
         // the same bundle has been patched twice
-        PatchImpl patch1 = new PatchImpl(null, new PatchData("patch1", "First patch", null, null, null));
+        PatchImpl patch1 = new PatchImpl(null, new PatchData("patch1", "First patch", null, null, null, null));
         patch1.setResult(new ResultImpl(patch1, true, System.currentTimeMillis(), new LinkedList<BundleUpdate>(), null, null));
         patch1.getResult().getUpdates().add(new BundleUpdateImpl("my-bsn", "1.1.0", "mvn:groupId/my-bsn/1.1.0",
                 "1.0.0", "mvn:groupId/my-bsn/1.0.0"));
-        PatchImpl patch2 = new PatchImpl(null, new PatchData("patch2", "Second patch", null, null, null));
+        PatchImpl patch2 = new PatchImpl(null, new PatchData("patch2", "Second patch", null, null, null, null));
         patch2.setResult(new ResultImpl(patch1, true, System.currentTimeMillis(), new LinkedList<BundleUpdate>(), null, null));
         patch2.getResult().getUpdates().add(new BundleUpdateImpl("my-bsn;directive1=true", "1.2.0", "mvn:groupId/my-bsn/1.2.0",
                 "1.1.0", "mvn:groupId/my-bsn/1.1.0"));

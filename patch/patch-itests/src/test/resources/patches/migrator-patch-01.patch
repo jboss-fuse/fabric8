@@ -1,0 +1,4 @@
+id=migrator-patch-01
+bundle.0=mvn:io.fabric8.patch/migrator/1.0.1
+bundle.count=1
+migrator-bundle=mvn:io.fabric8.patch/migrator/1.0.1

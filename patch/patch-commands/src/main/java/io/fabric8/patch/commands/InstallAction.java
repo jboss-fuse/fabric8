@@ -15,6 +15,7 @@
  */
 package io.fabric8.patch.commands;
 
+import io.fabric8.utils.shell.ShellUtils;
 import org.apache.felix.gogo.commands.Argument;
 import org.apache.felix.gogo.commands.Command;
 import org.apache.felix.gogo.commands.Option;
@@ -47,6 +48,22 @@ public class InstallAction extends PatchActionSupport {
         }
         if (patch.isInstalled()) {
             throw new PatchException("Patch '" + patchId + "' is already installed");
+        }
+        if ( patch.getMigratorBundle()!=null ) {
+            System.out.println("This patch cannot be rolled back.  Are you sure you want to install?");
+            while (true) {
+                String response = ShellUtils.readLine(session, "[y/n]: ", false);
+                if (response == null) {
+                    return;
+                }
+                response = response.trim().toLowerCase();
+                if( response.equals("y") || response.equals("yes") ) {
+                    break;
+                }
+                if( response.equals("n") || response.equals("no") ) {
+                    return;
+                }
+            }
         }
         Result result = patch.install(force, synchronous);
         display(result);
