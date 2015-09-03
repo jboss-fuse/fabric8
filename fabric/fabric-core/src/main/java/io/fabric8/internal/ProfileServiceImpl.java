@@ -332,6 +332,12 @@ public final class ProfileServiceImpl extends AbstractProtectedComponent<Profile
         private List<Profile> getInheritedProfiles() {
             List<Profile> profiles = new ArrayList<>();
             fillParentProfiles(self, profiles);
+            // always prepend "default" as first profile
+            if(profiles.size() > 0){
+                if(!"default".equals(profiles.get(0).getId())){
+                    profiles.add(0, version.getProfile("default"));
+                }
+            }
             return profiles;
         }
 
