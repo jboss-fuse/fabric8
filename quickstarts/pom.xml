@@ -26,6 +26,7 @@
   <version>1.2.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Fabric8 :: Quickstarts :: Parent</name>
+  <url>http://fabric8.io/</url>
 
   <licenses>
     <license>
@@ -34,6 +35,22 @@
       <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>
     </license>
   </licenses>
+
+
+  <developers>
+    <developer>
+      <id>geeks</id>
+      <name>Fabric8 Development Team</name>
+      <organization>fabric8</organization>
+      <organizationUrl>http://fabric8.io/</organizationUrl>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:git@github.com:fabric8io/fabric8.git</connection>
+    <developerConnection>scm:git:git@github.com:fabric8io/fabric8.git</developerConnection>
+    <url>http://github.com/fabric8io/fabric8/tree/master</url>
+  </scm>
 
   <properties>
     <maven.compiler.target>1.7</maven.compiler.target>
