@@ -158,6 +158,10 @@
       <version>2.4.3</version>
       <optional>true</optional>
     </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+    </dependency>
 
     <!-- Test Dependencies -->
 
