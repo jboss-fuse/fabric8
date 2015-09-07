@@ -42,7 +42,7 @@ final class WelcomeAction extends AbstractAction {
     protected Object doExecute() throws Exception {
         String name = runtimeProperties.getRuntimeIdentity();
 
-        String appName = runtimeProperties.getProperty("karaf.app.name");
+        String appName = runtimeProperties.getProperty("karaf.app.name", "JBoss Fuse");
 
         System.out.println("Welcome to " + appName);
         System.out.println("");
