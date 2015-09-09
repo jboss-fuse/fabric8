@@ -281,6 +281,56 @@ public class Offline {
         } else {
             throw new PatchException("Unable to update patch files: no access to patch ZIP file or patch storage location");
         }
+
+        if( patch.getMigratorBundle() !=null ) {
+            Artifact artifact = mvnurlToArtifact(patch.getMigratorBundle(), true);
+            if (artifact != null) {
+                // Copy it to the deploy dir
+                File src = new File(karafBase, "system/"+artifact.getPath());
+                File target = new File(new File(karafBase, "deploy"), artifact.getArtifactId()+".jar");
+                copy(src, target);
+            }
+        }
+    }
+
+    static String getJavaFile() throws IOException {
+        String home = System.getProperty("java.home");
+        if (home != null) {
+            File file = new File(home, "bin/java");
+            if (file.exists() && file.canExecute()) {
+                return file.getCanonicalPath();
+            }
+        }
+        return "java";
+    }
+
+    static Process exec(String[] args, File dir) throws IOException, InterruptedException {
+        Process process = Runtime.getRuntime().exec(args, new String[0], dir);
+        startPump(process.getInputStream(), System.out);
+        startPump(process.getErrorStream(), System.err);
+        return process;
+    }
+
+    static Thread startPump(final InputStream is, final OutputStream os) {
+        Thread thread = new Thread("io") {
+            @Override
+            public void run() {
+                try {
+                    pump(is, os);
+                } catch (IOException e) {
+                }
+            }
+        };
+        thread.start();
+        return thread;
+    }
+
+    static void pump(InputStream distro, OutputStream fos) throws IOException {
+        int len;
+        byte[] buffer = new byte[1024 * 4];
+        while ((len = distro.read(buffer)) > 0) {
+            fos.write(buffer, 0, len);
+        }
     }
 
     /*

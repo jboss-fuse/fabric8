@@ -30,20 +30,23 @@ public class PatchData {
     private static final String TARGET = "target";
     private static final String COUNT = "count";
     private static final String RANGE = "range";
+    private static final String MIGRATOR_BUNDLE = "migrator-bundle";
 
     private final String id;
     private final String description;
+    private final String migratorBundle;
     private final Collection<String> bundles;
     private final Map<String, String> versionRanges;
     private final Collection<String> requirements;
     private final Collection<String> files = new LinkedList<String>();
 
-    public PatchData(String id, String description, Collection<String> bundles, Map<String, String> versionRanges, Collection<String> requirements) {
+    public PatchData(String id, String description, Collection<String> bundles, Map<String, String> versionRanges, Collection<String> requirements, String migratorBundle) {
         this.id = id;
         this.description = description;
         this.bundles = bundles;
         this.versionRanges = versionRanges;
         this.requirements = requirements;
+        this.migratorBundle = migratorBundle;
     }
 
     public String getId() {
@@ -75,6 +78,7 @@ public class PatchData {
         props.load(is);
         String id = props.getProperty(ID);
         String desc = props.getProperty(DESCRIPTION);
+        String installerBundle = props.getProperty(MIGRATOR_BUNDLE);
         List<String> bundles = new ArrayList<String>();
         Map<String, String> ranges = new HashMap<String, String>();
         int count = Integer.parseInt(props.getProperty(BUNDLES + "." + COUNT, "0"));
@@ -94,7 +98,7 @@ public class PatchData {
             String requirement = props.getProperty(key);
             requirements.add(requirement);
         }
-        PatchData result = new PatchData(id, desc, bundles, ranges, requirements);
+        PatchData result = new PatchData(id, desc, bundles, ranges, requirements, installerBundle);
         // add info for patched files
         count = Integer.parseInt(props.getProperty(FILES + "." + COUNT, "0"));
         for (int i = 0; i < count; i++) {
@@ -103,4 +107,7 @@ public class PatchData {
         return result;
     }
 
+    public String getMigratorBundle() {
+        return migratorBundle;
+    }
 }

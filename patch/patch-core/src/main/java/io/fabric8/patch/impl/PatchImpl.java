@@ -16,7 +16,6 @@
 package io.fabric8.patch.impl;
 
 import java.util.Collection;
-import java.util.Map;
 
 import io.fabric8.patch.Patch;
 import io.fabric8.patch.Result;
@@ -43,6 +42,10 @@ public class PatchImpl implements Patch {
 
     public String getDescription() {
         return patch.getDescription();
+    }
+
+    public String getMigratorBundle() {
+        return patch.getMigratorBundle();
     }
 
     public Collection<String> getBundles() {

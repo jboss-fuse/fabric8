@@ -27,13 +27,8 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 
@@ -48,6 +43,7 @@ public class PatchServiceImpl implements PatchService {
     private static final String PATCH_REQUIREMENTS = "requirement";
     private static final String PATCH_COUNT = "count";
     private static final String PATCH_RANGE = "range";
+    private static final String MIGRATOR_BUNDLE = "migrator-bundle";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PatchServiceImpl.class);
 
@@ -140,6 +136,9 @@ public class PatchServiceImpl implements PatchService {
                     String versionId = version.getId();
                     ProfileBuilder builder = ProfileBuilder.Factory.create(versionId, profileId);
                     builder.setOverrides(descriptor.getBundles());
+                    if( descriptor.migratorBundle !=null ) {
+                        builder.setBundles(Collections.singletonList(descriptor.migratorBundle));
+                    }
                     profile = profileService.createProfile(builder.getProfile());
                     Profile defaultProfile = version.getRequiredProfile("default");
                     List<String> parentIds = new LinkedList<String>();
@@ -207,10 +206,12 @@ public class PatchServiceImpl implements PatchService {
         final String description;
         final List<String> bundles;
         final List<String> requirements;
+        final String migratorBundle;
 
         PatchDescriptor(Properties properties) {
             this.id = properties.getProperty(PATCH_ID);
             this.description = properties.getProperty(PATCH_DESCRIPTION);
+            this.migratorBundle =properties.getProperty(MIGRATOR_BUNDLE);
             // parse the bundle URLs and optionally, the bundle version ranges
             this.bundles = new ArrayList<String>();
             int count = Integer.parseInt(properties.getProperty(PATCH_BUNDLES + "." + PATCH_COUNT, "0"));
@@ -231,13 +232,6 @@ public class PatchServiceImpl implements PatchService {
                 String requirement = properties.getProperty(PATCH_REQUIREMENTS + "." + Integer.toString(i));
                 this.requirements.add(requirement);
             }
-        }
-
-        PatchDescriptor(String id, String description, List<String> bundles, List<String> requirements) {
-            this.id = id;
-            this.description = description;
-            this.bundles = bundles;
-            this.requirements = requirements;
         }
 
         public String getId() {

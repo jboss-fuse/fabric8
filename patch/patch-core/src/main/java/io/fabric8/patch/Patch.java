@@ -24,6 +24,8 @@ public interface Patch {
     
     String getDescription();
 
+    String getMigratorBundle();
+
     Collection<String> getBundles();
 
     /**
