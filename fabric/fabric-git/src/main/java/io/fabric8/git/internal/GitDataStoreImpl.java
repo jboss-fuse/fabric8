@@ -474,6 +474,35 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     }
 
     private Version getVersionFromCache(String versionId, String profileId) {
+        Version result = getVersionFromCacheRO(versionId, profileId);
+        if (result == null) {
+            return getVersionFromCacheRW(versionId, profileId);
+        }
+        return result;
+    }
+    
+    private Version getVersionFromCacheRO(String versionId, String profileId){
+        LockHandle readLock = aquireReadLock();
+        try {
+            assertValid();
+            String branch = GitHelpers.getProfileBranch(versionId, profileId);
+            if (GitHelpers.localBranchExists(getGit(), branch)) {
+                if( versionCache.asMap().containsKey(versionId) ) {
+                    return versionCache.asMap().get(versionId);
+                } else {
+                    return null;
+                }
+            } else {
+                return null;
+            }
+        } catch (Exception e) {
+            throw FabricException.launderThrowable(e);
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    private Version getVersionFromCacheRW(String versionId, String profileId){
         LockHandle writeLock = aquireWriteLock();
         try {
             assertValid();
@@ -694,12 +723,12 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         LockHandle writeLock = aquireWriteLock();
         try {
             assertValid();
-            
+
             // Get the existing profile
             final String versionId = profile.getVersion();
             final String profileId = profile.getId();
             final Profile lastProfile = getRequiredProfile(versionId, profileId);
-            
+
             if (force || !lastProfile.equals(profile)) {
                 GitOperation<String> gitop = new GitOperation<String>() {
                     public String call(Git git, GitContext context) throws Exception {
@@ -785,7 +814,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         String profileId = profile.getId();
 
         if (!profiles.contains(profileId)) {
-            
+
             // Process parents first
             for (String parentId : profile.getParentIds()) {
                 // skip if parent has been already visited
