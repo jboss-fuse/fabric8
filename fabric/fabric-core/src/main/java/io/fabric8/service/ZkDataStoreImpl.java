@@ -158,7 +158,7 @@ public final class ZkDataStoreImpl extends AbstractComponent implements DataStor
                 case CHILD_REMOVED:
                 case CHILD_UPDATED:
                 case INITIALIZED:
-                    if (shouldRunCallbacks(type, path)) {
+                    if (shouldRunCallbacks(type, path) && !path.contains("password")) {
                         String s = data != null ? new String(data, "UTF-8") : "";
                         LOGGER.info("Event {} detected on {} with data {}. Sending notification.", type.name(), path, s);
                         fireChangeNotifications();
