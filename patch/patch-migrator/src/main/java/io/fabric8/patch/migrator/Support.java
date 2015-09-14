@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package io.fabric8.patch.installer;
+package io.fabric8.patch.migrator;
 
 import org.jdom.Element;
 import org.jdom.Namespace;

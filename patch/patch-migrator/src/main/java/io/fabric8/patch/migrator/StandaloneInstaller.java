@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package io.fabric8.patch.installer;
+package io.fabric8.patch.migrator;
 
 import java.util.ArrayList;
 import java.util.Properties;
@@ -39,9 +39,9 @@ import java.io.*;
 import java.net.URI;
 import java.util.regex.Pattern;
 
-import static io.fabric8.patch.installer.Support.*;
-import static io.fabric8.patch.installer.Support.pump;
-import static io.fabric8.patch.installer.Support.writeText;
+import static io.fabric8.patch.migrator.Support.*;
+import static io.fabric8.patch.migrator.Support.pump;
+import static io.fabric8.patch.migrator.Support.writeText;
 
 @Component(
     name = "io.fabric8.patch.installer.StandaloneInstaller",

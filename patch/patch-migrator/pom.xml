@@ -26,10 +26,10 @@
     <version>1.2.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>patch-installer</artifactId>
+  <artifactId>patch-migrator</artifactId>
   <packaging>bundle</packaging>
   
-  <name>Fabric8 :: Patch :: Installer</name>
+  <name>Fabric8 :: Patch :: Migrator</name>
 
     <properties>
         <fuse.osgi.import>
@@ -40,7 +40,7 @@
         <fuse.osgi.export>
         </fuse.osgi.export>
         <fuse.osgi.private.pkg>
-            io.fabric8.patch.installer,
+            io.fabric8.patch.migrator,
             org.jdom.*,
         </fuse.osgi.private.pkg>
     </properties>
@@ -87,7 +87,7 @@
                             <goal>copy</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${project.build.directory}/classes/io/fabric8/patch/installer</outputDirectory>
+                            <outputDirectory>${project.build.directory}/classes/io/fabric8/patch/migrator</outputDirectory>
                             <artifactItems>
                                 <artifactItem>
                                     <groupId>org.apache.karaf</groupId>
