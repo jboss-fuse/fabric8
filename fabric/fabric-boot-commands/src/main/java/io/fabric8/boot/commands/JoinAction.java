@@ -23,6 +23,7 @@ import io.fabric8.api.RuntimeProperties;
 import io.fabric8.api.SystemProperties;
 import io.fabric8.api.ZkDefs;
 import io.fabric8.utils.BundleUtils;
+import io.fabric8.utils.FabricValidations;
 import io.fabric8.utils.PasswordEncoder;
 import io.fabric8.utils.Ports;
 import io.fabric8.utils.shell.ShellUtils;
@@ -114,6 +115,7 @@ final class JoinAction extends AbstractAction {
             containerName = oldName;
         }
 
+        FabricValidations.validateContainerName(containerName);
         Configuration bootConfiguration = configAdmin.getConfiguration(BootstrapConfiguration.COMPONENT_PID, null);
         Dictionary<String, Object> bootProperties = bootConfiguration.getProperties();
         if (bootProperties == null) {
