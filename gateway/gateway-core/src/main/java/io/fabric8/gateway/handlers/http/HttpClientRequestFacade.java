@@ -32,6 +32,6 @@ public class HttpClientRequestFacade implements ClientRequestFacade {
 
     @Override
     public String getClientRequestKey() {
-        return request.netSocket().localAddress().toString();
+        return request.remoteAddress().getAddress().toString();
     }
 }
