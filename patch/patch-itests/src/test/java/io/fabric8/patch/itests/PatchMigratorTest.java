@@ -45,10 +45,6 @@ public class PatchMigratorTest extends AbstractPatchIntegrationTest {
     @Deployment
     public static JavaArchive createdeployment() {
         final JavaArchive archive = ShrinkWrap.create(JavaArchive.class, "test.jar");
-        archive.addClass(ServiceLocator.class);
-        archive.addClass(IOHelpers.class);
-        archive.addPackage(ServiceTracker.class.getPackage());
-        archive.addPackages(true, OSGiManifestBuilder.class.getPackage());
         archive.setManifest(new Asset() {
             public InputStream openStream() {
                 OSGiManifestBuilder builder = OSGiManifestBuilder.newInstance();
@@ -58,6 +54,10 @@ public class PatchMigratorTest extends AbstractPatchIntegrationTest {
                 return builder.openStream();
             }
         });
+        archive.addClass(ServiceLocator.class);
+        archive.addClass(IOHelpers.class);
+        archive.addPackage(ServiceTracker.class.getPackage());
+        archive.addPackages(true, OSGiManifestBuilder.class.getPackage());
 
         // add the original bundle as well as the patch zip files as resources
         archive.add(createPatchZipFile("migrator-patch-01"), "/patches", ZipExporter.class);
@@ -67,7 +67,6 @@ public class PatchMigratorTest extends AbstractPatchIntegrationTest {
     // Create a 'patchable' bundle with the specified version
     private static JavaArchive createMigratorBundle(final String version) {
         final JavaArchive archive = ShrinkWrap.create(JavaArchive.class, "migrator-1.0.1.jar");
-        archive.addClass(ExampleMigrator.class);
         archive.setManifest(new Asset() {
             public InputStream openStream() {
                 OSGiManifestBuilder builder = OSGiManifestBuilder.newInstance();
@@ -79,6 +78,7 @@ public class PatchMigratorTest extends AbstractPatchIntegrationTest {
                 return builder.openStream();
             }
         });
+        archive.addClass(ExampleMigrator.class);
         return archive;
     }
 
