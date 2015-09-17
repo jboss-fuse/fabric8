@@ -116,7 +116,7 @@ public class SshContainerProvider implements ContainerProvider<CreateSshContaine
                         try {
                             zipDirectory(srcFile, System.getProperty("karaf.home", "."));
                         } catch (Exception e) {
-                            LOGGER.debug("Could not zip up current distro to use as base for new SSH container. Will try downloading via Maven instead.", e);
+                            LOGGER.warn("Could not zip up current distro to use as base for new SSH container. Will try downloading via Maven instead.", e);
                         }
                     }
                     uploadTo(session,

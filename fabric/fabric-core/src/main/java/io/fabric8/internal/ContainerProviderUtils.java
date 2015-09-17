@@ -280,6 +280,7 @@ public final class ContainerProviderUtils {
     public static void zipDirectory(File zipFile, String srcDir) throws Exception {
         File srcFile = new File(srcDir);
         try {
+            zipFile.getParentFile().mkdirs();
             FileOutputStream fos = new FileOutputStream(zipFile);
             ZipOutputStream zos = new ZipOutputStream(fos);
     
