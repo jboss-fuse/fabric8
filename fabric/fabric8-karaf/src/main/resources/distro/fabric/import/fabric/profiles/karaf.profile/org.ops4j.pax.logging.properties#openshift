@@ -5,6 +5,10 @@ log4j.throwableRenderer=org.apache.log4j.OsgiThrowableRenderer
 # To avoid flooding the log when using DEBUG level on an ssh connection and doing log:tail
 log4j.logger.org.apache.sshd.server.channel.ChannelSession = INFO
 
+
+#tone down sshd Nio2Session logging
+log4j.logger.org.apache.sshd.common.io.nio2.Nio2Session=WARN
+
 # CONSOLE appender not used by default
 log4j.appender.stdout=org.apache.log4j.ConsoleAppender
 log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
