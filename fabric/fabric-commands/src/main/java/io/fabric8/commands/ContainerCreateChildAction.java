@@ -32,7 +32,7 @@ import io.fabric8.utils.shell.ShellUtils;
 import static io.fabric8.utils.FabricValidations.validateProfileNames;
 
 @Command(name = ContainerCreateChild.FUNCTION_VALUE, scope = ContainerCreateChild.SCOPE_VALUE, description = ContainerCreateChild.DESCRIPTION, detailedDescription = "classpath:containerCreateChild.txt")
-public class ContainerCreateChildAction extends AbstractContainerCreateAction {
+public class ContainerCreateChildAction extends AbstractChildContainerCreateAction {
 
     @Option(name = "--jmx-user", multiValued = false, required = false, description = "The jmx user name of the parent container.")
     protected String username;
@@ -70,7 +70,7 @@ public class ContainerCreateChildAction extends AbstractContainerCreateAction {
                 .bindAddress(bindAddress)
                 .resolver(resolver)
                 .manualIp(manualIp)
-                .ensembleServer(isEnsembleServer)
+                .ensembleServer(false)
                 .number(number)
                 .zookeeperUrl(fabricService.getZookeeperUrl())
                 .zookeeperPassword(fabricService.getZookeeperPassword())
@@ -115,9 +115,6 @@ public class ContainerCreateChildAction extends AbstractContainerCreateAction {
         // validate number is not out of bounds
         if (number < 0 || number > 99) {
             throw new IllegalArgumentException("The number of containers must be between 1 and 99.");
-        }
-        if (isEnsembleServer && number > 1) {
-            throw new IllegalArgumentException("Can not create a new ZooKeeper ensemble on multiple containers. Create the containers first and then use the fabric:create command instead.");
         }
     }
 
