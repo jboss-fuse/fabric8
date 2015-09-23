@@ -17,22 +17,52 @@
 
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <groupId>io.fabric8.patch</groupId>
-    <artifactId>patch-project</artifactId>
-    <version>1.2.0-SNAPSHOT</version>
-  </parent>
+    <parent>
+        <groupId>io.fabric8.patch</groupId>
+        <artifactId>patch-project</artifactId>
+        <version>1.2.0.redhat-621039</version>
+    </parent>
 
-  <artifactId>patch-management</artifactId>
-  <packaging>bundle</packaging>
-  
-  <name>Fabric8 :: Patch :: Management</name>
+    <artifactId>patch-management</artifactId>
+    <packaging>bundle</packaging>
 
-  <dependencies>
+    <name>Fabric8 :: Patch :: Management</name>
 
-  </dependencies>
+    <properties>
+        <fuse.osgi.activator>io.fabric8.patch.management.Activator</fuse.osgi.activator>
+        <fuse.osgi.import>
+            javax.net.ssl,
+            org.osgi.framework,
+            org.osgi.framework.startlevel
+        </fuse.osgi.import>
+        <fuse.osgi.export>
+        </fuse.osgi.export>
+        <fuse.osgi.private.pkg>
+            !org.osgi*,
+            *
+        </fuse.osgi.private.pkg>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jgit</groupId>
+            <artifactId>org.eclipse.jgit</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
+        </dependency>
+    </dependencies>
 
 </project>
