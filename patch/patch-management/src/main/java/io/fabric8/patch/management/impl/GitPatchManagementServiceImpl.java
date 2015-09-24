@@ -61,7 +61,7 @@ import org.osgi.framework.startlevel.BundleStartLevel;
 /**
  * <p>An implementation of Git-based patch management system</p>
  * <p>This class maintains single <em>bare</em> git repository (by default in ${karaf.base}/patches/.management/history)
- * and performs git operations in temporary clone+working copy.</p>
+ * and performs git operations in temporary clone+working copies.</p>
  */
 public class GitPatchManagementServiceImpl implements GitPatchManagementService {
 
@@ -451,7 +451,7 @@ public class GitPatchManagementServiceImpl implements GitPatchManagementService 
 
                 // now main repository has exactly the same content as ${karaf.home}
                 // TODO we have two methods of synchronization wrt future rollup changes:
-                // 1. we can pull from "origin" in the MAIN working copy (${karaf.hoome}) (making sure the copy is initialized
+                // 1. we can pull from "origin" in the MAIN working copy (${karaf.hoome}) (making sure the copy is initialized)
                 // 2. we can apply rollup patch to temporary fork + working copy, perform merges, resolve conflicts, etc
                 //    and if everything goes fine, simply override ${karaf.hoome} content with the working copy content
                 // method 2. doesn't require real working copy and ${karaf.home}/.git directory
