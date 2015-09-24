@@ -26,26 +26,29 @@ import org.osgi.framework.startlevel.FrameworkStartLevel;
 
 public class Activator implements BundleActivator {
 
-    private static final int PATCH_MANAGEMENT_START_LEVEL = 2;
+    public static final int PATCH_MANAGEMENT_START_LEVEL = 2;
 
     private FrameworkStartLevel sl;
     private int activatedAt = 0;
-    private BundleContext systemContext;
 
     private GitPatchManagementService patchManagementService;
+    private final Object serviceAccess = new Object();
 
     // version of this bundle started from etc/startup.properties
     private Version startupVersion;
     // version of this bundle started from deploy/
     private Version deployVersion;
+    private StartLevelNotificationFrameworkListener startLevelNotificationFrameworkListener;
+
+    private BundleContext systemContext;
 
     @Override
     public void start(final BundleContext context) throws Exception {
+        systemContext = context.getBundle(0).getBundleContext();
         patchManagementService = new GitPatchManagementServiceImpl(context);
 
         final int targetStartLevel = Integer.parseInt(System.getProperty("org.osgi.framework.startlevel.beginning"));
 
-        systemContext = context.getBundle(0).getBundleContext();
         sl = context.getBundle(0).adapt(FrameworkStartLevel.class);
         activatedAt = sl.getStartLevel();
 
@@ -55,17 +58,18 @@ public class Activator implements BundleActivator {
         }
 
         switch (activatedAt) {
-            case 0:
-                // PANIC!
-                break;
             case PATCH_MANAGEMENT_START_LEVEL:
                 // this bundle is configured in etc/startup.properties, we can handle registered tasks
                 // like updating critical bundles
                 startupVersion = context.getBundle().getVersion();
-                // TODO check if there's not newer version of this bundle in ${karaf.home}/deploy as well
+                // we're started before fileinstall, so we can remove this bundle if it is available in deploy/
+                patchManagementService.cleanupDeployDir();
                 break;
             default:
-                // this bundle is dropped into deploy/ directory, we have to do initial preparation
+                // this bundle was activated from deploy/ directory or osgi:install. But this doesn't mean there's no
+                // patch-management bundle configured in etc/startup.properties
+                // the point is that when etc/startup.properties already has this bundle, there should be no such bundle in deploy/
+                // TODO (there may be newer version however)
                 deployVersion = context.getBundle().getVersion();
                 break;
         }
@@ -83,25 +87,48 @@ public class Activator implements BundleActivator {
             patchManagementService.ensurePatchManagementInitialized();
         } else {
             // let's wait for last start level
-            context.addFrameworkListener(new FrameworkListener() {
-                @Override
-                public void frameworkEvent(FrameworkEvent event) {
-                    if (event.getType() == FrameworkEvent.STARTLEVEL_CHANGED) {
-                        if (sl.getStartLevel() == targetStartLevel) {
-                            // last start level reached
-                            System.out.println("[PATCH] STARTED (2) at " + sl.getStartLevel());
-                            patchManagementService.ensurePatchManagementInitialized();
-                        }
-                    }
-                }
-            });
+            startLevelNotificationFrameworkListener = new StartLevelNotificationFrameworkListener(targetStartLevel);
+            systemContext.addFrameworkListener(startLevelNotificationFrameworkListener);
         }
     }
 
     @Override
     public void stop(BundleContext context) throws Exception {
-        patchManagementService.stop();
-        patchManagementService = null;
+        System.out.println("[PATCH] STOPPED at " + sl.getStartLevel());
+        synchronized (serviceAccess) {
+            patchManagementService.stop();
+            patchManagementService = null;
+        }
+    }
+
+    /**
+     * Listener that takes care of correct patch management initialization when specific start-level is reached
+     */
+    private class StartLevelNotificationFrameworkListener implements FrameworkListener {
+
+        private final int targetStartLevel;
+        private boolean done = false;
+
+        public StartLevelNotificationFrameworkListener(int targetStartLevel) {
+            this.targetStartLevel = targetStartLevel;
+        }
+
+        @Override
+        public void frameworkEvent(FrameworkEvent event) {
+            if (event.getType() == FrameworkEvent.STARTLEVEL_CHANGED) {
+                if (!done && sl.getStartLevel() == targetStartLevel) {
+                    done = true;
+                    // last start level reached
+                    synchronized (serviceAccess) {
+                        if (patchManagementService != null) {
+                            System.out.println("[PATCH] STARTED (2) at " + sl.getStartLevel() + " (" + this.hashCode() + ")");
+                            patchManagementService.ensurePatchManagementInitialized();
+                            systemContext.removeFrameworkListener(this);
+                        }
+                    }
+                }
+            }
+        }
     }
 
 }

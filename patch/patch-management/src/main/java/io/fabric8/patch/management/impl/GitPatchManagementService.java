@@ -15,6 +15,8 @@
  */
 package io.fabric8.patch.management.impl;
 
+import java.io.IOException;
+
 /**
  * Operations used to manage git repository that keeps track of applied rollup patches
  * (non-rollup too?)
@@ -43,5 +45,10 @@ public interface GitPatchManagementService {
      * Initializes necessary git repositories if this hasn't been done before
      */
     void ensurePatchManagementInitialized();
+
+    /**
+     * Called if during startup it was detected that the bundle is already available in etc/startup.properties
+     */
+    void cleanupDeployDir() throws IOException;
 
 }
