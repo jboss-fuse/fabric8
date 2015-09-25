@@ -49,6 +49,8 @@ import java.util.zip.ZipFile;
 
 import io.fabric8.common.util.Strings;
 import io.fabric8.patch.Patch;
+import org.apache.felix.scr.annotations.Activate;
+import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.utils.manifest.Clause;
 import org.apache.felix.utils.manifest.Parser;
 import org.apache.felix.utils.version.VersionRange;
@@ -67,16 +69,16 @@ import org.osgi.framework.FrameworkListener;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.Version;
 import org.osgi.framework.wiring.FrameworkWiring;
+import org.osgi.service.component.ComponentContext;
 
 import static io.fabric8.common.util.IOHelpers.close;
 import static io.fabric8.common.util.IOHelpers.copy;
 import static io.fabric8.common.util.IOHelpers.readFully;
 import static io.fabric8.common.util.IOHelpers.writeFully;
 
+@Component(immediate = true, metatype = false)
+@org.apache.felix.scr.annotations.Service(Service.class)
 public class ServiceImpl implements Service {
-
-    private final BundleContext bundleContext;
-    private final File patchDir;
 
     private static final String ID = "id";
     private static final String DESCRIPTION = "description";
@@ -95,10 +97,14 @@ public class ServiceImpl implements Service {
 
     private static final Pattern SYMBOLIC_NAME_PATTERN = Pattern.compile("([^;: ]+)(.*)");
 
-    public ServiceImpl(BundleContext bundleContext) {
+    private BundleContext bundleContext;
+    private File patchDir;
+
+    @Activate
+    void activate(ComponentContext componentContext) {
         // Use system bundle' bundle context to avoid running into
         // "Invalid BundleContext" exceptions when updating bundles
-        this.bundleContext = bundleContext.getBundle(0).getBundleContext();
+        this.bundleContext = componentContext.getBundleContext().getBundle(0).getBundleContext();
         String dir = this.bundleContext.getProperty(PATCH_LOCATION);
         patchDir = dir != null ? new File(dir) : this.bundleContext.getDataFile("patches");
         if (!patchDir.isDirectory()) {
@@ -528,7 +534,7 @@ public class ServiceImpl implements Service {
                 }
             };
             FrameworkWiring wiring = (FrameworkWiring) bundleContext.getBundle(0).adapt(FrameworkWiring.class);
-            wiring.refreshBundles((Collection<Bundle>) toRefresh, new FrameworkListener[]{listener});
+            wiring.refreshBundles((Collection<Bundle>) toRefresh, listener);
             try {
                 l.await();
             } catch (InterruptedException e) {
@@ -689,10 +695,10 @@ public class ServiceImpl implements Service {
     protected List<Clause> getOptionalImports(String importsStr) {
         Clause[] imports = Parser.parseHeader(importsStr);
         List<Clause> result = new LinkedList<Clause>();
-        for (int i = 0; i < imports.length; i++) {
-            String resolution = imports[i].getDirective(Constants.RESOLUTION_DIRECTIVE);
+        for (Clause anImport : imports) {
+            String resolution = anImport.getDirective(Constants.RESOLUTION_DIRECTIVE);
             if (Constants.RESOLUTION_OPTIONAL.equals(resolution)) {
-                result.add(imports[i]);
+                result.add(anImport);
             }
         }
         return result;
