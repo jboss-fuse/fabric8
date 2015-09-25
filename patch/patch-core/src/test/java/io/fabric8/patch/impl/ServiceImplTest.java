@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
@@ -36,7 +35,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import io.fabric8.patch.*;
-import junit.framework.Assert;
 import org.easymock.EasyMock;
 import org.easymock.IAnswer;
 import org.junit.After;
@@ -47,6 +45,7 @@ import org.osgi.framework.BundleContext;
 import org.osgi.framework.FrameworkListener;
 import org.osgi.framework.Version;
 import org.osgi.framework.wiring.FrameworkWiring;
+import org.osgi.service.component.ComponentContext;
 
 import static org.easymock.EasyMock.*;
 import static io.fabric8.common.util.IOHelpers.copy;
@@ -163,6 +162,7 @@ public class ServiceImplTest {
     @Test
     public void testLoadWithoutRanges() throws IOException {
         BundleContext bundleContext = createMock(BundleContext.class);
+        ComponentContext componentContext = createMock(ComponentContext.class);
         Bundle sysBundle = createMock(Bundle.class);
         BundleContext sysBundleContext = createMock(BundleContext.class);
         Bundle bundle = createMock(Bundle.class);
@@ -172,13 +172,15 @@ public class ServiceImplTest {
         //
         // Create a new service, download a patch
         //
+        expect(componentContext.getBundleContext()).andReturn(bundleContext);
         expect(bundleContext.getBundle(0)).andReturn(sysBundle);
         expect(sysBundle.getBundleContext()).andReturn(sysBundleContext);
         expect(sysBundleContext.getProperty(Service.PATCH_LOCATION))
                 .andReturn(storage.toString()).anyTimes();
-        replay(sysBundleContext, sysBundle, bundleContext, bundle);
+        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
 
-        ServiceImpl service = new ServiceImpl(bundleContext);
+        ServiceImpl service = new ServiceImpl();
+        service.activate(componentContext);
 
         Patch patch = ServiceImpl.doLoad(service, getClass().getClassLoader().getResourceAsStream("test1.patch"));
         assertEquals(2, patch.getBundles().size());
@@ -275,6 +277,7 @@ public class ServiceImplTest {
      * Create a mock patch service implementation with a provided patch storage location
      */
     private ServiceImpl createMockServiceImpl(File patches) {
+        ComponentContext componentContext = createMock(ComponentContext.class);
         BundleContext bundleContext = createMock(BundleContext.class);
         Bundle sysBundle = createMock(Bundle.class);
         BundleContext sysBundleContext = createMock(BundleContext.class);
@@ -283,25 +286,29 @@ public class ServiceImplTest {
         //
         // Create a new service, download a patch
         //
+        expect(componentContext.getBundleContext()).andReturn(bundleContext);
         expect(bundleContext.getBundle(0)).andReturn(sysBundle);
         expect(sysBundle.getBundleContext()).andReturn(sysBundleContext);
         expect(sysBundleContext.getProperty(Service.PATCH_LOCATION))
                 .andReturn(patches.toString()).anyTimes();
-        replay(sysBundleContext, sysBundle, bundleContext, bundle);
+        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
 
-        return new ServiceImpl(bundleContext);
+        ServiceImpl service = new ServiceImpl();
+        service.activate(componentContext);
+        return service;
     }
 
     @Test
     public void testSymbolicNameStrip() {
-        Assert.assertEquals("my.bundle", ServiceImpl.stripSymbolicName("my.bundle"));
-        Assert.assertEquals("my.bundle", ServiceImpl.stripSymbolicName("my.bundle;singleton:=true"));
-        Assert.assertEquals("my.bundle", ServiceImpl.stripSymbolicName("my.bundle;blueprint.graceperiod:=false;"));
-        Assert.assertEquals("my.bundle", ServiceImpl.stripSymbolicName("my.bundle;blueprint.graceperiod:=false; blueprint.timeout=10000;"));
+        assertEquals("my.bundle", ServiceImpl.stripSymbolicName("my.bundle"));
+        assertEquals("my.bundle", ServiceImpl.stripSymbolicName("my.bundle;singleton:=true"));
+        assertEquals("my.bundle", ServiceImpl.stripSymbolicName("my.bundle;blueprint.graceperiod:=false;"));
+        assertEquals("my.bundle", ServiceImpl.stripSymbolicName("my.bundle;blueprint.graceperiod:=false; blueprint.timeout=10000;"));
     }
     
     @Test
     public void testPatch() throws Exception {
+        ComponentContext componentContext = createMock(ComponentContext.class);
         BundleContext bundleContext = createMock(BundleContext.class);
         Bundle sysBundle = createMock(Bundle.class);
         BundleContext sysBundleContext = createMock(BundleContext.class);
@@ -312,13 +319,15 @@ public class ServiceImplTest {
         //
         // Create a new service, download a patch
         //
+        expect(componentContext.getBundleContext()).andReturn(bundleContext);
         expect(bundleContext.getBundle(0)).andReturn(sysBundle);
         expect(sysBundle.getBundleContext()).andReturn(sysBundleContext);
         expect(sysBundleContext.getProperty(Service.PATCH_LOCATION))
                 .andReturn(storage.toString()).anyTimes();
-        replay(sysBundleContext, sysBundle, bundleContext, bundle);
+        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
 
-        ServiceImpl service = new ServiceImpl(bundleContext);
+        ServiceImpl service = new ServiceImpl();
+        service.activate(componentContext);
         
         try {
             service.download(new URL("file:" + storage + "/temp/f00.zip"));
@@ -338,40 +347,42 @@ public class ServiceImplTest {
         Iterator<String> itb = patch.getBundles().iterator();
         assertEquals("mvn:foo/my-bsn/1.3.2", itb.next());
         assertNull(patch.getResult());
-        verify(sysBundleContext, sysBundle, bundleContext, bundle);
+        verify(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
 
         //
         // Simulate the patch
         //
 
-        reset(sysBundleContext, sysBundle, bundleContext, bundle);
-        
+        reset(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
+
         expect(sysBundleContext.getBundles()).andReturn(new Bundle[] { bundle });
         expect(bundle.getSymbolicName()).andReturn("my-bsn").anyTimes();
         expect(bundle.getVersion()).andReturn(new Version("1.3.1")).anyTimes();
         expect(bundle.getLocation()).andReturn("location");
         expect(bundle.getBundleId()).andReturn(123L);
-        replay(sysBundleContext, sysBundle, bundleContext, bundle);
-        
+        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
+
         Result result = patch.simulate();
         assertNotNull( result );
-        assertNull( patch.getResult() ); 
+        assertNull( patch.getResult() );
         assertTrue(result.isSimulation());
 
-        verify(sysBundleContext, sysBundle, bundleContext, bundle);
+        verify(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
 
         //
         // Recreate a new service and verify the downloaded patch is still available
         //
 
-        reset(sysBundleContext, sysBundle, bundleContext, bundle);
+        reset(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
+        expect(componentContext.getBundleContext()).andReturn(bundleContext);
         expect(bundleContext.getBundle(0)).andReturn(sysBundle);
         expect(sysBundle.getBundleContext()).andReturn(sysBundleContext);
         expect(sysBundleContext.getProperty(Service.PATCH_LOCATION))
                 .andReturn(storage.toString()).anyTimes();
-        replay(sysBundleContext, sysBundle, bundleContext, bundle);
+        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
 
-        service = new ServiceImpl(bundleContext);
+        service = new ServiceImpl();
+        service.activate(componentContext);
         patches = service.getPatches();
         assertNotNull(patches);
         it = patches.iterator();
@@ -384,19 +395,19 @@ public class ServiceImplTest {
         itb = patch.getBundles().iterator();
         assertEquals("mvn:foo/my-bsn/1.3.2", itb.next());
         assertNull(patch.getResult());
-        verify(sysBundleContext, sysBundle, bundleContext, bundle);
+        verify(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
 
-        // 
+        //
         // Install the patch
         //
-        
-        reset(sysBundleContext, sysBundle, bundleContext, bundle);
+
+        reset(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
 
         expect(sysBundleContext.getBundles()).andReturn(new Bundle[] { bundle });
         expect(bundle.getSymbolicName()).andReturn("my-bsn").anyTimes();
         expect(bundle.getVersion()).andReturn(new Version("1.3.1")).anyTimes();
         expect(bundle.getLocation()).andReturn("location");
-        expect(bundle.getHeaders()).andReturn(new Hashtable()).anyTimes();
+        expect(bundle.getHeaders()).andReturn(new Hashtable<String, String>()).anyTimes();
         expect(bundle.getBundleId()).andReturn(123L);
         bundle.update(EasyMock.<InputStream>anyObject());
         expect(sysBundleContext.getBundles()).andReturn(new Bundle[] { bundle });
@@ -413,27 +424,29 @@ public class ServiceImplTest {
                 return null;
             }
         });
-        replay(sysBundleContext, sysBundle, bundleContext, bundle, bundle2, wiring);
+        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, bundle2, wiring);
 
         result = patch.install();
         assertNotNull( result );
         assertSame( result, patch.getResult() );
         assertFalse(patch.getResult().isSimulation());
 
-        verify(sysBundleContext, sysBundle, bundleContext, bundle, wiring);
+        verify(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, wiring);
 
         //
         // Recreate a new service and verify the downloaded patch is still available and installed
         //
 
-        reset(sysBundleContext, sysBundle, bundleContext, bundle);
+        reset(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
+        expect(componentContext.getBundleContext()).andReturn(bundleContext);
         expect(bundleContext.getBundle(0)).andReturn(sysBundle);
         expect(sysBundle.getBundleContext()).andReturn(sysBundleContext);
         expect(sysBundleContext.getProperty(Service.PATCH_LOCATION))
                 .andReturn(storage.toString()).anyTimes();
-        replay(sysBundleContext, sysBundle, bundleContext, bundle);
+        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
 
-        service = new ServiceImpl(bundleContext);
+        service = new ServiceImpl();
+        service.activate(componentContext);
         patches = service.getPatches();
         assertNotNull(patches);
         it = patches.iterator();
@@ -446,11 +459,12 @@ public class ServiceImplTest {
         itb = patch.getBundles().iterator();
         assertEquals("mvn:foo/my-bsn/1.3.2", itb.next());
         assertNotNull(patch.getResult());
-        verify(sysBundleContext, sysBundle, bundleContext, bundle);
+        verify(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
     }
 
     @Test
     public void testPatchWithVersionRanges() throws Exception {
+        ComponentContext componentContext = createMock(ComponentContext.class);
         BundleContext bundleContext = createMock(BundleContext.class);
         Bundle sysBundle = createMock(Bundle.class);
         BundleContext sysBundleContext = createMock(BundleContext.class);
@@ -461,13 +475,15 @@ public class ServiceImplTest {
         //
         // Create a new service, download a patch
         //
+        expect(componentContext.getBundleContext()).andReturn(bundleContext);
         expect(bundleContext.getBundle(0)).andReturn(sysBundle);
         expect(sysBundle.getBundleContext()).andReturn(sysBundleContext);
         expect(sysBundleContext.getProperty(Service.PATCH_LOCATION))
                 .andReturn(storage.toString()).anyTimes();
-        replay(sysBundleContext, sysBundle, bundleContext, bundle);
+        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
 
-        ServiceImpl service = new ServiceImpl(bundleContext);
+        ServiceImpl service = new ServiceImpl();
+        service.activate(componentContext);
         Iterable<Patch> patches = service.download(patch140.toURI().toURL());
         assertNotNull(patches);
         Iterator<Patch> it = patches.iterator();
@@ -480,19 +496,19 @@ public class ServiceImplTest {
         Iterator<String> itb = patch.getBundles().iterator();
         assertEquals("mvn:foo/my-bsn/1.4.0", itb.next());
         assertNull(patch.getResult());
-        verify(sysBundleContext, sysBundle, bundleContext, bundle);
+        verify(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
 
         //
         // Simulate the patch
         //
-        reset(sysBundleContext, sysBundle, bundleContext, bundle);
+        reset(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
 
         expect(sysBundleContext.getBundles()).andReturn(new Bundle[] { bundle });
         expect(bundle.getSymbolicName()).andReturn("my-bsn").anyTimes();
         expect(bundle.getVersion()).andReturn(new Version("1.3.1")).anyTimes();
         expect(bundle.getLocation()).andReturn("location");
         expect(bundle.getBundleId()).andReturn(123L);
-        replay(sysBundleContext, sysBundle, bundleContext, bundle);
+        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
 
         Result result = patch.simulate();
         assertNotNull( result );
@@ -619,11 +635,10 @@ public class ServiceImplTest {
         return jar;
     }
 
-    private <T> Set<T> asSet(T... objects) {
+    @SafeVarargs
+    private final <T> Set<T> asSet(T... objects) {
         HashSet<T> set = new HashSet<T>();
-        for (T t : objects) {
-            set.add(t);
-        }
+        Collections.addAll(set, objects);
         return set;
     }
 
