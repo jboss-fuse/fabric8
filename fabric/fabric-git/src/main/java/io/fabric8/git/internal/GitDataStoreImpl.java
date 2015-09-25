@@ -526,7 +526,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
     @Override
     public String createVersion(final String sourceId, final String targetId, final Map<String, String> attributes) {
-        return createVersion(newGitWriteContext(), sourceId, targetId, attributes);
+        return createVersion(newGitWriteContext(targetId), sourceId, targetId, attributes);
     }
 
     @Override
@@ -557,7 +557,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
     @Override
     public String createVersion(final Version version) {
-        return createVersion(newGitWriteContext(), version);
+        return createVersion(newGitWriteContext(version.getId()), version);
     }
 
     @Override
@@ -682,7 +682,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
     @Override
     public String createProfile(Profile profile) {
-        return createProfile(newGitWriteContext(), profile);
+        return createProfile(newGitWriteContext(profile.getVersion()), profile);
     }
 
     @Override
@@ -714,7 +714,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
     @Override
     public String updateProfile(Profile profile, boolean force) {
-        return updateProfile(newGitWriteContext(), profile, force);
+        return updateProfile(newGitWriteContext(profile.getVersion()), profile, force);
     }
 
     @Override
@@ -781,7 +781,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
     @Override
     public void deleteProfile(String versionId, String profileId) {
-        deleteProfile(newGitWriteContext(), versionId, profileId);
+        deleteProfile(newGitWriteContext(versionId), versionId, profileId);
     }
 
     @Override
@@ -932,7 +932,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                     return doImportProfiles(git, context, profileZipUrls);
                 }
             };
-            executeWrite(gitop);
+            executeWrite(gitop, versionId);
         } finally {
             writeLock.unlock();
         }
@@ -986,16 +986,16 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         return executeInternal(newGitReadContext(), null, operation);
     }
 
-    private <T> T executeWrite(GitOperation<T> operation) {
-        return executeInternal(newGitWriteContext(), null, operation);
+    private <T> T executeWrite(GitOperation<T> operation, String versionId) {
+        return executeInternal(newGitWriteContext(versionId), null, operation);
     }
 
     private GitContext newGitReadContext() {
         return new GitContext();
     }
 
-    private GitContext newGitWriteContext() {
-        return new GitContext().requireCommit().requirePush();
+    private GitContext newGitWriteContext(String version) {
+        return new GitContext().requireCommit().requirePush().setCacheKey(version);
     }
 
     private <T> T executeInternal(GitContext context, PersonIdent personIdent, GitOperation<T> operation) {
@@ -1031,7 +1031,12 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
             if (context.isRequireCommit()) {
                 doCommit(git, context);
-                versionCache.invalidateAll();
+                Object cacheKey = context.getCacheKey();
+                if( cacheKey==null ) {
+                    versionCache.invalidateAll();
+                } else {
+                    versionCache.invalidate(cacheKey);
+                }
                 notificationRequired = true;
             }
 
@@ -1555,7 +1560,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                     return null;
                 }
             };
-            executeWrite(gitop);
+            executeWrite(gitop, versionId);
         }
         
         /**
