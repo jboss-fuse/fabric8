@@ -15,13 +15,12 @@
  */
 package io.fabric8.patch;
 
-import io.fabric8.patch.impl.PatchImpl;
-
 import java.net.URL;
 
 public interface Service {
 
     String PATCH_LOCATION = "fabric8.patch.location";
+    String NEW_PATCH_LOCATION = "fuse.patch.location";
 
     Iterable<Patch> getPatches();
     
@@ -34,4 +33,5 @@ public interface Service {
     Result install(Patch patch, boolean force, boolean synchronous);
 
     void rollback(Patch patch, boolean force);
+
 }
