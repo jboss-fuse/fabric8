@@ -31,6 +31,22 @@
 
     <name>Fabric8 :: Patch :: Management</name>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <version>${maven-bundle-plugin-version}</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <instructions>
+                        <Bundle-UpdateLocation>mvn:${project.groupId}/${project.artifactId}/${project.version}</Bundle-UpdateLocation>
+                    </instructions>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
     <properties>
         <fuse.osgi.activator>io.fabric8.patch.management.Activator</fuse.osgi.activator>
         <fuse.osgi.import>
@@ -62,6 +78,11 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-compress</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.karaf</groupId>
+            <artifactId>org.apache.karaf.util</artifactId>
+            <version>${karaf-version}</version>
         </dependency>
     </dependencies>
 
