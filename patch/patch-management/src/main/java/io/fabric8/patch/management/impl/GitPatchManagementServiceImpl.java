@@ -484,7 +484,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         if (deployedPatchManagement.exists() && deployedPatchManagement.isFile()) {
             // let's copy it to system/
             File systemRepo = new File(karafHome, System.getProperty("karaf.default.repository", "system"));
-            String targetFile = String.format("io/fabric8/patch/patch-management/%s/patch-managemen-%s.jar", bundleVersion, bundleVersion);
+            String targetFile = String.format("io/fabric8/patch/patch-management/%s/patch-management-%s.jar", bundleVersion, bundleVersion);
             File target = new File(systemRepo, targetFile);
             target.getParentFile().mkdirs();
             FileUtils.copyFile(deployedPatchManagement, target);
@@ -497,7 +497,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         String lf = System.lineSeparator();
         sb.append(lf);
         sb.append("# installed by patch-management-").append(bundleVersion).append(lf);
-        sb.append(String.format("io/fabric8/patch/patch-management/%s/patch-managemen-%s.jar=%d", bundleVersion, bundleVersion, Activator.PATCH_MANAGEMENT_START_LEVEL)).
+        sb.append(String.format("io/fabric8/patch/patch-management/%s/patch-management-%s.jar=%d", bundleVersion, bundleVersion, Activator.PATCH_MANAGEMENT_START_LEVEL)).
                 append(lf);
         FileUtils.write(new File(git.getRepository().getDirectory().getParent(), "etc/startup.properties"), sb.toString(), true);
 
