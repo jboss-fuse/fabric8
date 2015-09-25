@@ -66,16 +66,7 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.StringTokenizer;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -104,7 +95,6 @@ import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.StoredConfig;
-import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.transport.RefSpec;
@@ -867,6 +857,8 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
         // Delete and remove stale file configurations
         File profileDir = GitHelpers.getProfileDirectory(getGit(), profileId);
+
+        HashSet<File> filesToDelete = new HashSet<File>();
         if (profileDir.exists()) {
             File[] files = profileDir.listFiles(new FilenameFilter() {
                 @Override
@@ -875,12 +867,22 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                 }
             });
             for (File file : files) {
-                recursiveDeleteAndRemove(getGit(), file);
+                filesToDelete.add(file);
             }
         }
 
-        if (!fileConfigurations.isEmpty()) {
-            setFileConfigurations(getGit(), profileId, fileConfigurations);
+        for (Map.Entry<String, byte[]> entry : fileConfigurations.entrySet()) {
+            String fileName = entry.getKey();
+            byte[] newCfg = entry.getValue();
+            setFileConfiguration(getGit(), profileId, fileName, newCfg);
+            filesToDelete.remove(new File(profileDir, fileName));
+        }
+
+        for (File file : filesToDelete) {
+            recursiveDeleteAndRemove(getGit(), file);
+        }
+
+        if (!fileConfigurations.isEmpty() || !filesToDelete.isEmpty()) {
             context.commitMessage("Update configurations for profile: " + profileId);
         }
     }
@@ -913,8 +915,11 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     private void setFileConfiguration(Git git, String profileId, String fileName, byte[] configuration) throws IOException, GitAPIException {
         File profileDirectory = GitHelpers.getProfileDirectory(git, profileId);
         File file = new File(profileDirectory, fileName);
-        Files.writeToFile(file, configuration);
-        addFiles(git, file);
+        // Only write it if the content does not match..
+        if( !file.exists() || !Arrays.equals(Files.readBytes(file), configuration) ) {
+            Files.writeToFile(file, configuration);
+            addFiles(git, file);
+        }
     }
 
     @Override
