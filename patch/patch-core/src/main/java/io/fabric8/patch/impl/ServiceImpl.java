@@ -49,8 +49,12 @@ import java.util.zip.ZipFile;
 
 import io.fabric8.common.util.Strings;
 import io.fabric8.patch.Patch;
+import io.fabric8.patch.management.PatchManagement;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.ReferenceCardinality;
+import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.utils.manifest.Clause;
 import org.apache.felix.utils.manifest.Parser;
 import org.apache.felix.utils.version.VersionRange;
@@ -99,6 +103,9 @@ public class ServiceImpl implements Service {
 
     private BundleContext bundleContext;
     private File patchDir;
+
+    @Reference(referenceInterface = PatchManagement.class, cardinality = ReferenceCardinality.MANDATORY_UNARY, policy = ReferencePolicy.STATIC)
+    private PatchManagement patchManagement;
 
     @Activate
     void activate(ComponentContext componentContext) {
@@ -798,4 +805,5 @@ public class ServiceImpl implements Service {
             return location;
         }
     }
+
 }
