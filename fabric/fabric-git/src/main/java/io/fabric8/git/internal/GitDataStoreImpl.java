@@ -1775,10 +1775,8 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                     for (String childName : files) {
                         Path childPath = profilesDir.toPath().resolve(childName);
                         if (childPath.toFile().isDirectory()) {
-                            RevCommit lastCommit = GitHelpers.getProfileLastCommit(git, branch, childName);
-                            if (lastCommit != null) {
-                                populateProfile(git, builder, branch, versionId, childPath.toFile(), "");
-                            }
+                            populateProfile(git, builder, branch, versionId, childPath.toFile(), "");
+
                         }
                     }
                 }
@@ -1803,12 +1801,10 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                 return;
             }
 
-            RevCommit lastCommit = GitHelpers.getProfileLastCommit(git, branch, profileName);
-            String lastModified = lastCommit != null ? lastCommit.getId().abbreviate(GIT_COMMIT_SHORT_LENGTH).name() : "";
             Map<String, byte[]> fileConfigurations = doGetFileConfigurations(git, profileId);
             
             ProfileBuilder profileBuilder = ProfileBuilder.Factory.create(versionId, profileId);
-            profileBuilder.setFileConfigurations(fileConfigurations).setLastModified(lastModified);
+            profileBuilder.setFileConfigurations(fileConfigurations);
             versionBuilder.addProfile(profileBuilder.getProfile());
         }
 

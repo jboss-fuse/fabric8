@@ -85,34 +85,6 @@ public class GitHelpers {
         return Profiles.convertProfileIdToPath(profileId);
     }
 
-    public static RevCommit getVersionLastCommit(Git git, String branch) {
-        return getLastCommit(git, branch, GitHelpers.CONFIGS_PROFILES);
-    }
-    
-    public static RevCommit getProfileLastCommit(Git git, String branch, String profilePath) {
-        return getLastCommit(git, branch, GitHelpers.CONFIGS_PROFILES + File.separator + profilePath);
-    }
-
-    private static RevCommit getLastCommit(Git git, String branch, String path) {
-        RevCommit profileRef = null;
-        try {
-            Ref versionRef = git.getRepository().getRefDatabase().getRef(branch);
-            if (versionRef != null) {
-                String revision = versionRef.getObjectId().getName();
-                // need to force unix style on windows
-                if (path != null) {
-                    path = path.replace(File.separatorChar, '/');
-                }
-                profileRef = CommitUtils.getLastCommit(git.getRepository(), revision, path != null ? path : ".");
-            }
-        } catch (IOException ex) {
-            if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("Failed to get the last commit for " + path + " on branch " + branch, ex);
-            }
-        }
-        return profileRef;
-    }
-
     public static boolean localBranchExists(Git git, String branch) throws GitAPIException {
         List<Ref> list = git.branchList().call();
         String fullName = "refs/heads/" + branch;
