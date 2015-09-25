@@ -112,8 +112,17 @@ public class ServiceImpl implements Service {
         // Use system bundle' bundle context to avoid running into
         // "Invalid BundleContext" exceptions when updating bundles
         this.bundleContext = componentContext.getBundleContext().getBundle(0).getBundleContext();
-        String dir = this.bundleContext.getProperty(PATCH_LOCATION);
-        patchDir = dir != null ? new File(dir) : this.bundleContext.getDataFile("patches");
+        String dir = this.bundleContext.getProperty(NEW_PATCH_LOCATION);
+        if (dir != null) {
+            patchDir = new File(dir);
+        } else {
+            dir = this.bundleContext.getProperty(PATCH_LOCATION);
+            if (dir != null) {
+                patchDir = new File(dir);
+            } else {
+                patchDir = this.bundleContext.getDataFile("patches");
+            }
+        }
         if (!patchDir.isDirectory()) {
             patchDir.mkdirs();
             if (!patchDir.isDirectory()) {

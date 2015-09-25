@@ -85,7 +85,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
     private File karafHome;
     private String patchLocation;
-    // main patches directory at ${fuse.patch.location} (defaults to ${karaf.home}/patches
+    // main patches directory at ${fuse.patch.location} (defaults to ${karaf.home}/patches)
     private File patchesDir;
 
     // directory containing "reference", bare git repository to store patch management history
@@ -151,6 +151,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             mainRepository = findOrCreateGitRepository(gitPatchManagement, true);
             // prepare single fork for all the below operations
             fork = cloneRepository(mainRepository, true);
+
+            // 1) git history that tracks patch operations (but not the content of the patches)
             InitializationType state = checkMainRepositoryState(fork);
             switch (state) {
                 case INSTALL_BASELINE:
@@ -170,6 +172,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 case READY:
                     break;
             }
+
+            // 2) repository of patch data - already installed patches
+            migrateOldPatchData();
         } catch (GitAPIException | IOException e) {
             System.err.println("[PATCH-error] " + e.getMessage());
             e.printStackTrace();
@@ -647,6 +652,37 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 .setRemote("origin")
                 .setRefSpecs(new RefSpec("master"))
                 .call();
+    }
+
+    /**
+     * Checks if current installation has old patch data available. If true, then move this data
+     * under new patch management directory
+     */
+    private void migrateOldPatchData() throws IOException {
+        // bundle data of Felix
+        File systemBundleData = systemContext.getDataFile("patches");
+        if (systemBundleData.exists() && systemBundleData.isDirectory()) {
+            // move old data from ${karaf.home}/data/cache/bundle0/patches/
+            movePatchData(systemBundleData);
+        }
+        String oldPatchLocation = systemContext.getProperty("fabric8.patch.location");
+        if (oldPatchLocation != null && !"".equals(oldPatchLocation)) {
+            // move old data from ${karaf.home}/patches/
+            //movePatchData(new File(oldPatchLocation));
+        }
+        String newPatchLocation = systemContext.getProperty("fuse.patch.location");
+        if (newPatchLocation != null && !"".equals(newPatchLocation)) {
+            //movePatchData(new File(newPatchLocation));
+        }
+    }
+
+    /**
+     * Moves patch files, descriptors and results into managed location
+     * @param systemBundleData
+     */
+    private void movePatchData(File systemBundleData) throws IOException {
+        FileUtils.copyDirectory(systemBundleData, patchesDir);
+        FileUtils.deleteDirectory(systemBundleData);
     }
 
     /**
