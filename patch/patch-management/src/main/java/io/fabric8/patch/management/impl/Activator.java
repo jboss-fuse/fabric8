@@ -13,14 +13,14 @@
  *  implied.  See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package io.fabric8.patch.management;
+package io.fabric8.patch.management.impl;
 
-import io.fabric8.patch.management.impl.GitPatchManagementService;
-import io.fabric8.patch.management.impl.GitPatchManagementServiceImpl;
+import io.fabric8.patch.management.PatchManagement;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.FrameworkEvent;
 import org.osgi.framework.FrameworkListener;
+import org.osgi.framework.ServiceRegistration;
 import org.osgi.framework.Version;
 import org.osgi.framework.startlevel.FrameworkStartLevel;
 
@@ -41,6 +41,7 @@ public class Activator implements BundleActivator {
     private StartLevelNotificationFrameworkListener startLevelNotificationFrameworkListener;
 
     private BundleContext systemContext;
+    private ServiceRegistration<PatchManagement> registration;
 
     @Override
     public void start(final BundleContext context) throws Exception {
@@ -76,6 +77,8 @@ public class Activator implements BundleActivator {
 
         patchManagementService.start();
 
+        registration = systemContext.registerService(PatchManagement.class, PatchManagement.class.cast(patchManagementService), null);
+
         // this bundle may be started:
         //  - from deploy/ dir using fileinstall thread
         //  - from etc/startup.properties using FelixStartLevel thread (at early SL)
@@ -83,7 +86,6 @@ public class Activator implements BundleActivator {
 
         if (sl.getStartLevel() == targetStartLevel) {
             // dropped to deploy/ when framework was already at target start-level
-            System.out.println("[PATCH] STARTED (1) at " + sl.getStartLevel());
             patchManagementService.ensurePatchManagementInitialized();
         } else {
             // let's wait for last start level
@@ -94,10 +96,13 @@ public class Activator implements BundleActivator {
 
     @Override
     public void stop(BundleContext context) throws Exception {
-        System.out.println("[PATCH] STOPPED at " + sl.getStartLevel());
         synchronized (serviceAccess) {
             patchManagementService.stop();
             patchManagementService = null;
+        }
+        if (registration != null) {
+            registration.unregister();
+            registration = null;
         }
     }
 
@@ -121,7 +126,6 @@ public class Activator implements BundleActivator {
                     // last start level reached
                     synchronized (serviceAccess) {
                         if (patchManagementService != null) {
-                            System.out.println("[PATCH] STARTED (2) at " + sl.getStartLevel() + " (" + this.hashCode() + ")");
                             patchManagementService.ensurePatchManagementInitialized();
                             systemContext.removeFrameworkListener(this);
                         }

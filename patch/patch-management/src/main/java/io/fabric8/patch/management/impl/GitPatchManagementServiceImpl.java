@@ -34,7 +34,8 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.fabric8.patch.management.Activator;
+import io.fabric8.patch.management.PatchManagement;
+import io.fabric8.patch.management.PatchTask;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipFile;
 import org.apache.commons.io.FileUtils;
@@ -63,7 +64,7 @@ import org.osgi.framework.startlevel.BundleStartLevel;
  * <p>This class maintains single <em>bare</em> git repository (by default in ${karaf.base}/patches/.management/history)
  * and performs git operations in temporary clone+working copies.</p>
  */
-public class GitPatchManagementServiceImpl implements GitPatchManagementService {
+public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchManagementService {
 
     private static final String MAIN_GIT_REPO_LOCATION = ".management/history";
     private static final String[] MANAGED_DIRECTORIES = new String[] { "bin", "etc", "lib", "fabric", "licenses", "metatype" };
@@ -104,6 +105,11 @@ public class GitPatchManagementServiceImpl implements GitPatchManagementService 
         if (patchLocation != null) {
             patchesDir = new File(patchLocation);
         }
+    }
+
+    @Override
+    public void addTasks(PatchTask... tasks) {
+        // TODO
     }
 
     @Override

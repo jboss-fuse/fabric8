@@ -48,13 +48,14 @@
     </build>
 
     <properties>
-        <fuse.osgi.activator>io.fabric8.patch.management.Activator</fuse.osgi.activator>
+        <fuse.osgi.activator>io.fabric8.patch.management.impl.Activator</fuse.osgi.activator>
         <fuse.osgi.import>
             javax.net.ssl,
             org.osgi.framework,
             org.osgi.framework.startlevel
         </fuse.osgi.import>
         <fuse.osgi.export>
+            io.fabric8.patch.management
         </fuse.osgi.export>
         <fuse.osgi.private.pkg>
             !org.osgi*,
