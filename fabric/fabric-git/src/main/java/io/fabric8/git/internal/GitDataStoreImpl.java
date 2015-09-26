@@ -1221,6 +1221,9 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
     private String checkoutProfileBranch(Git git, GitContext context, String versionId, String profileId) throws GitAPIException {
         String branch = GitHelpers.getProfileBranch(versionId, profileId);
+        if( branch == GitHelpers.MASTER_BRANCH ) {
+            context.setCacheKey(null); // So we invalidate the entire cache.
+        }
         return GitHelpers.checkoutBranch(git, branch) ? branch : null;
     }
     

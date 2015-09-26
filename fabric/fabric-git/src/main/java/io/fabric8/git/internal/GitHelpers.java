@@ -206,7 +206,7 @@ public class GitHelpers {
      */
     public static String getProfileBranch(String versionId, String profileId) {
         if (profileId != null && ENSEMBLE_PROFILE_PATTERN.matcher(profileId).matches()) {
-            return "master";
+            return MASTER_BRANCH;
         } else {
             return versionId;
         }
