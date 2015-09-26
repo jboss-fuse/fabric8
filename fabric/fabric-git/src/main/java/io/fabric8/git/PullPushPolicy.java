@@ -28,7 +28,7 @@ public interface PullPushPolicy {
 
     interface PullPolicyResult {
         
-        boolean localUpdateRequired();
+        Set<String> localUpdateVersions();
         
         boolean remoteUpdateRequired();
         

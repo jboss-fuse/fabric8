@@ -1037,7 +1037,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
             if (context.isRequireCommit()) {
                 doCommit(git, context);
                 Object cacheKey = context.getCacheKey();
-                if( cacheKey==null ) {
+                if( cacheKey==null || cacheKey.equals(GitHelpers.MASTER_BRANCH)  ) {
                     versionCache.invalidateAll();
                 } else {
                     versionCache.invalidate(cacheKey);
@@ -1112,16 +1112,21 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     private PullPolicyResult doPullInternal(GitContext context, CredentialsProvider credentialsProvider, boolean allowVersionDelete) {
         PullPolicyResult pullResult = pullPushPolicy.doPull(context, getCredentialsProvider(), allowVersionDelete);
         if (pullResult.getLastException() == null) {
-            if (pullResult.localUpdateRequired()) {
-                versionCache.invalidateAll();
+            Set<String> updatedVersions = pullResult.localUpdateVersions();
+            if (!updatedVersions.isEmpty()) {
+                if( updatedVersions.contains(GitHelpers.MASTER_BRANCH) ) {
+                    versionCache.invalidateAll();
+                } else {
+                    for (String version : updatedVersions) {
+                        versionCache.invalidate(version);
+                    }
+                }
                 notificationRequired = true;
             }
             Set<String> pullVersions = pullResult.getVersions();
             if (!pullVersions.isEmpty() && !pullVersions.equals(versions)) {
                 versions.clear();
                 versions.addAll(pullVersions);
-                versionCache.invalidateAll();
-                notificationRequired = true;
             }
             if (pullResult.remoteUpdateRequired()) {
                 doPushInternal(context, credentialsProvider);
@@ -1771,7 +1776,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         private Version loadVersion(Git git, GitContext context, String versionId, String revision) throws Exception {
             VersionBuilder vbuilder = VersionBuilder.Factory.create(versionId).setRevision(revision);
             vbuilder.setAttributes(getVersionAttributes(git, context, versionId));
-            populateVersionBuilder(git, context, vbuilder, "master", versionId);
+            populateVersionBuilder(git, context, vbuilder, GitHelpers.MASTER_BRANCH, versionId);
             populateVersionBuilder(git, context, vbuilder, versionId, versionId);
             return vbuilder.getVersion();
         }
