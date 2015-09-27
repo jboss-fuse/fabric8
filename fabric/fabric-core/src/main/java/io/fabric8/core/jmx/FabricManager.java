@@ -1277,11 +1277,24 @@ public final class FabricManager implements FabricManagerMBean {
         return versions(BeanUtils.getFields(Version.class));
     }
 
+
+    private static final Set<String> ID_AND_DEFAULT_VERSION = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList("id", "defaultVersion")));
     @Override
     public List<Map<String, Object>> versions(List<String> fields) {
         List<Map<String, Object>> answer = new ArrayList<Map<String, Object>>();
-        for (String versionId : profileService.getVersions()) {
-            answer.add(getVersion(versionId, fields));
+        if( ID_AND_DEFAULT_VERSION.equals(Collections.unmodifiableSet(new HashSet<String>(fields)) )) {
+            // profileService.getVersions() can be expensive, so lets avoid it if we can.
+            // this path is something hawtio polls.
+            for (String version : profileService.getVersions()) {
+                HashMap<String, Object> obj = new HashMap<String, Object>();
+                obj.put("id", version);
+                obj.put("defaultVersion", fabricService.getDefaultVersionId().equals(version));
+                answer.add(obj);
+            }
+        } else {
+            for (String versionId : profileService.getVersions()) {
+                answer.add(getVersion(versionId, fields));
+            }
         }
         return answer;
     }
