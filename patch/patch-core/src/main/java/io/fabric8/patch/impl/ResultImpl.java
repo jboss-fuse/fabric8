@@ -17,7 +17,7 @@ package io.fabric8.patch.impl;
 
 import java.util.Collection;
 
-import io.fabric8.patch.Patch;
+import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.Result;
 import io.fabric8.patch.BundleUpdate;
 

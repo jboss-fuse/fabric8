@@ -21,7 +21,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import io.fabric8.common.util.IOHelpers;
-import io.fabric8.patch.PatchException;
+import io.fabric8.patch.management.PatchException;
+import io.fabric8.patch.management.PatchData;
 import org.apache.felix.utils.version.VersionRange;
 import org.apache.felix.utils.version.VersionTable;
 import org.osgi.framework.Version;

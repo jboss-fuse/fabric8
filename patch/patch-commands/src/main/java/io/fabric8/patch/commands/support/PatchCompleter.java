@@ -25,44 +25,22 @@ import org.apache.karaf.shell.console.Completer;
 import org.apache.karaf.shell.console.completer.StringsCompleter;
 
 @Component(immediate = true)
-@Service({InstallPatchCompleter.class, Completer.class})
-public class InstallPatchCompleter implements Completer {
+@Service({PatchCompleter.class, Completer.class})
+public class PatchCompleter implements Completer {
 
     @Reference
     private io.fabric8.patch.Service service;
-    private boolean installed;
-    private boolean uninstalled;
 
-    public InstallPatchCompleter() {
-        this.installed = true;
-        this.uninstalled = false;
+    public PatchCompleter() {
     }
 
     @Override
     public int complete(String buffer, int cursor, List<String> candidates) {
         StringsCompleter delegate = new StringsCompleter();
         for (Patch patch : service.getPatches()) {
-            if (isInstalled() && patch.isInstalled()
-                    || isUninstalled() && !patch.isInstalled()) {
-                delegate.getStrings().add(patch.getId());
-            }
+            delegate.getStrings().add(patch.getPatchData().getId());
         }
         return delegate.complete(buffer, cursor, candidates);
     }
 
-    public boolean isInstalled() {
-        return installed;
-    }
-
-    public boolean isUninstalled() {
-        return uninstalled;
-    }
-
-    public io.fabric8.patch.Service getService() {
-        return service;
-    }
-
-    public void setService(io.fabric8.patch.Service service) {
-        this.service = service;
-    }
 }

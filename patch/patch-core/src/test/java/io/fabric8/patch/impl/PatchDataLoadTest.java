@@ -16,6 +16,7 @@
 package io.fabric8.patch.impl;
 
 import io.fabric8.patch.Service;
+import io.fabric8.patch.management.PatchData;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -27,7 +28,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Test cases for {@link io.fabric8.patch.impl.PatchData}
+ * Test cases for {@link PatchData}
  */
 public class PatchDataLoadTest {
 

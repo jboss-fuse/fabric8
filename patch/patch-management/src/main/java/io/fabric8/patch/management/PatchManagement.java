@@ -15,16 +15,34 @@
  */
 package io.fabric8.patch.management;
 
+import java.net.URL;
+import java.util.List;
+
 /**
- * <p>Interface to an OSGi service that can handle low-level patch management tasks.</p>
- * <p>To be used by patch: commands when low-level operations has to be performed - probably during framework startup</p>
+ * <p>Interface to an OSGi service that can handle low-level patch management operations.</p>
+ * <p>To be used by patch:* commands when interaction with patch data is required.</p>
  */
 public interface PatchManagement {
 
     /**
-     * Add tasks to be performed
-     * @param tasks
+     * Retrieves information about a patch from the repository
+     * @param request
+     * @return
      */
-    void addTasks(PatchTask... tasks);
+    ManagedPatch getPatchDetails(PatchDetailsRequest request);
+
+    /**
+     * Retriees an artifact from a given URL and returns list of patch data it contains
+     * @param url
+     * @return
+     */
+    List<PatchData> fetchPatches(URL url);
+
+    /**
+     * Takes already downloaded {@link PatchData static patch data} and prepares the patch to be installed, examined and/or simulated
+     * @param patchData
+     * @return
+     */
+    Patch trackPatch(PatchData patchData);
 
 }

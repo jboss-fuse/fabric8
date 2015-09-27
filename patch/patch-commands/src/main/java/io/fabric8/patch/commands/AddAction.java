@@ -20,7 +20,7 @@ import java.net.URL;
 import org.apache.felix.gogo.commands.Argument;
 import org.apache.felix.gogo.commands.Command;
 import org.apache.felix.gogo.commands.Option;
-import io.fabric8.patch.Patch;
+import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.Service;
 
 @Command(scope = "patch", name = "add", description = "Download a patch")

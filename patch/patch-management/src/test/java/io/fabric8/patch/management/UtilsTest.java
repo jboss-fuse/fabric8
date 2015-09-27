@@ -13,23 +13,8 @@
  *  implied.  See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package io.fabric8.patch;
+package io.fabric8.patch.management;
 
-public class PatchException extends RuntimeException {
-
-    public PatchException() {
-    }
-
-    public PatchException(String message) {
-        super(message);
-    }
-
-    public PatchException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public PatchException(Throwable cause) {
-        super(cause);
-    }
+public class UtilsTest {
 
 }

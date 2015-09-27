@@ -64,10 +64,16 @@
     </properties>
 
     <dependencies>
+
+        <!-- External dependencies -->
+
         <dependency>
             <groupId>org.osgi</groupId>
             <artifactId>org.osgi.core</artifactId>
         </dependency>
+
+        <!-- Private-Packaged dependencies -->
+
         <dependency>
             <groupId>org.eclipse.jgit</groupId>
             <artifactId>org.eclipse.jgit</artifactId>
@@ -77,6 +83,7 @@
             <artifactId>commons-io</artifactId>
         </dependency>
         <dependency>
+            <!-- Handles UNIX file permissions better than java.util.zip -->
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-compress</artifactId>
         </dependency>
@@ -85,6 +92,20 @@
             <artifactId>org.apache.karaf.util</artifactId>
             <version>${karaf-version}</version>
         </dependency>
+
+        <!-- Test dependencies -->
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
 </project>

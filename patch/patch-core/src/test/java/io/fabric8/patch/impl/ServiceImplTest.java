@@ -35,6 +35,9 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import io.fabric8.patch.*;
+import io.fabric8.patch.management.Patch;
+import io.fabric8.patch.management.PatchData;
+import io.fabric8.patch.management.PatchException;
 import org.easymock.EasyMock;
 import org.easymock.IAnswer;
 import org.junit.After;
@@ -520,11 +523,11 @@ public class ServiceImplTest {
     @Test
     public void testVersionHistory() {
         // the same bundle has been patched twice
-        PatchImpl patch1 = new PatchImpl(null, new PatchData("patch1", "First patch", null, null, null, null));
+        Patch patch1 = new Patch(null, new PatchData("patch1", "First patch", null, null, null, null));
         patch1.setResult(new ResultImpl(patch1, true, System.currentTimeMillis(), new LinkedList<BundleUpdate>(), null, null));
         patch1.getResult().getUpdates().add(new BundleUpdateImpl("my-bsn", "1.1.0", "mvn:groupId/my-bsn/1.1.0",
                 "1.0.0", "mvn:groupId/my-bsn/1.0.0"));
-        PatchImpl patch2 = new PatchImpl(null, new PatchData("patch2", "Second patch", null, null, null, null));
+        Patch patch2 = new Patch(null, new PatchData("patch2", "Second patch", null, null, null, null));
         patch2.setResult(new ResultImpl(patch1, true, System.currentTimeMillis(), new LinkedList<BundleUpdate>(), null, null));
         patch2.getResult().getUpdates().add(new BundleUpdateImpl("my-bsn;directive1=true", "1.2.0", "mvn:groupId/my-bsn/1.2.0",
                 "1.1.0", "mvn:groupId/my-bsn/1.1.0"));
