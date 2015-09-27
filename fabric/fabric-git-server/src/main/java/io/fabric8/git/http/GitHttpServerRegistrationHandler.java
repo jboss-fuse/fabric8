@@ -21,7 +21,7 @@ import io.fabric8.api.RuntimeProperties;
 import io.fabric8.api.jcip.ThreadSafe;
 import io.fabric8.api.scr.AbstractComponent;
 import io.fabric8.api.scr.ValidatingReference;
-//import io.fabric8.common.util.Files;
+import io.fabric8.common.util.Files;
 import io.fabric8.git.GitDataStore;
 import io.fabric8.git.GitHttpEndpoint;
 import io.fabric8.git.GitNode;
@@ -33,10 +33,11 @@ import io.fabric8.zookeeper.utils.ZooKeeperUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Dictionary;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -49,7 +50,6 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.internal.storage.file.WindowCache;
 import org.eclipse.jgit.storage.file.WindowCacheConfig;
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
@@ -104,6 +104,9 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
         activateComponent();
 
         group = new ZooKeeperGroup<GitNode>(curator.get(), ZkPath.GIT.getPath(), GitNode.class);
+        //if anything went wrong in a previous deactivation we still have to clean up the registry
+        zkCleanUp(group);
+
         group.add(this);
         group.update(createState());
         group.start();
@@ -167,7 +170,7 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
             String url = state.getUrl();
             gitRemoteUrl.set(ZooKeeperUtils.getSubstitutedData(curator.get(), url));
         } catch (Exception e) {
-            // Ignore
+            LOGGER.debug("Failed to update master git server url.", e);
         }
     }
 
@@ -215,7 +218,11 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
     private void unregisterServlet() {
         synchronized (gitRemoteUrl) {
             if (basePath != null) {
-                httpService.get().unregister("/git");
+                try {
+                    httpService.get().unregister("/git");
+                } catch (IllegalArgumentException e){
+                    LOGGER.warn("/git Servlet wasn't registered. Unregistration not required.");
+                }
                 // this should foul jgit to use flush its cache and release locks for .pack files on Windows
                 WindowCacheConfig cfg = new WindowCacheConfig();
                 cfg.install();
@@ -291,6 +298,25 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
             }
         }
         return state;
+    }
+
+    private void zkCleanUp(Group<GitNode> group){
+        try {
+            RuntimeProperties sysprops = runtimeProperties.get();
+            String runtimeIdentity = sysprops.getRuntimeIdentity();
+
+            List<String> allChildren = ZooKeeperUtils.getAllChildren(curator.get(), ZkPath.GIT.getPath());
+            for(String path : allChildren){
+                String stringData = ZooKeeperUtils.getStringData(curator.get(), path);
+                if(stringData.contains("\"container\":\"" + runtimeIdentity + "\"")){
+                    LOGGER.info("Found older ZK \"/fabric/registry/clusters/git\" entry for node " + runtimeIdentity);
+                    ZooKeeperUtils.delete(curator.get(), path);
+                    LOGGER.info("Older ZK \"/fabric/registry/clusters/git\" entry for node " + runtimeIdentity + " has been removed");
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.warn("Failed to remove git server from registry.", e);
+        }
     }
 
     void bindConfigAdmin(ConfigurationAdmin service) {

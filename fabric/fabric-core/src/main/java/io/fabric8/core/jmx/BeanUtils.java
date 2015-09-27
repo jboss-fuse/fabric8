@@ -163,7 +163,7 @@ public class BeanUtils {
 
             } else if (field.equalsIgnoreCase("version") || field.equalsIgnoreCase("versionId")) {
 
-                answer.put(field, Ids.getId(container.getVersion()));
+                answer.put(field, container.getVersionId());
 
             } else if (field.equalsIgnoreCase("overlayProfile")) {
 

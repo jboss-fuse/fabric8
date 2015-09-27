@@ -125,14 +125,14 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                 }
             }
             
-            boolean localUpdate = false;
+            Set<String> localUpdate = new HashSet<String>();
             boolean remoteUpdate = false;
             Set<String> versions = new TreeSet<>();
             
             // Remote repository has no branches, force a push
             if (remoteBranches.isEmpty()) {
                 LOGGER.debug("Pulled from an empty remote repository");
-                return new AbstractPullPolicyResult(versions, false, !localBranches.isEmpty(), null);
+                return new AbstractPullPolicyResult(versions, localUpdate, !localBranches.isEmpty(), null);
             } else {
                 LOGGER.debug("Processing remote branches: {}", remoteBranches);
             }
@@ -153,7 +153,7 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                         String remotebranchRef = String.format("remotes/%s/%s", remoteRef, branch);
                         LOGGER.debug("Deleting local branch: {} and local reference to remote branch: {}", branch, remotebranchRef);
                         git.branchDelete().setBranchNames(branch, remotebranchRef).setForce(true).call();
-                        localUpdate = true;
+                        localUpdate.add(branch);
                     } else {
                         remoteUpdate = true;
                     }
@@ -164,7 +164,7 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                     LOGGER.debug("Adding local branch: {}", branch);
                     git.checkout().setCreateBranch(true).setName(branch).setStartPoint(remoteRef + "/" + branch).setUpstreamMode(SetupUpstreamMode.TRACK).setForce(true).call();
                     versions.add(branch);
-                    localUpdate = true;
+                    localUpdate.add(branch);
                 }
                 
                 // Update a local branch that also exists remotely
@@ -181,7 +181,7 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                         MergeStatus mergeStatus = mergeResult.getMergeStatus();
                         LOGGER.debug("Updating local branch {} with status: {}", branch, mergeStatus);
                         if (mergeStatus == MergeStatus.FAST_FORWARD) {
-                            localUpdate = true;
+                            localUpdate.add(branch);
                         } else if (mergeStatus == MergeStatus.ALREADY_UP_TO_DATE) {
                             remoteUpdate = true;
                         } else if (mergeStatus == MergeStatus.ABORTED) {
@@ -189,7 +189,7 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                             RebaseResult rebaseResult = git.rebase().setUpstream(remoteCommit).call();
                             RebaseResult.Status rebaseStatus = rebaseResult.getStatus();
                             if (rebaseStatus == RebaseResult.Status.OK) {
-                                localUpdate = true;
+                                localUpdate.add(branch);
                                 remoteUpdate = true;
                             } else {
                                 LOGGER.warn("Rebase on branch {} failed, restoring remote branch", branch);
@@ -197,7 +197,7 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                                 git.checkout().setName(GitHelpers.MASTER_BRANCH).setForce(true).call();
                                 git.branchDelete().setBranchNames(branch).setForce(true).call();
                                 git.checkout().setCreateBranch(true).setName(branch).setStartPoint(remoteRef + "/" + branch).setUpstreamMode(SetupUpstreamMode.TRACK).setForce(true).call();
-                                localUpdate = true;
+                                localUpdate.add(branch);
                             }
                         }
                     }
@@ -283,28 +283,28 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
     static class AbstractPullPolicyResult implements PullPolicyResult {
 
         private final Set<String> versions = new TreeSet<>();
-        private final boolean localUpdate;
+        private final Set<String> localUpdate = new HashSet<>();
         private final boolean remoteUpdate;
         private final Exception lastException;
         
         AbstractPullPolicyResult() {
-            this(Collections.<String>emptySet(), false, false, null);
+            this(Collections.<String>emptySet(), Collections.<String>emptySet(), false, null);
         }
 
         AbstractPullPolicyResult(Exception lastException) {
-            this(Collections.<String>emptySet(), false, false, lastException);
+            this(Collections.<String>emptySet(), Collections.<String>emptySet(), false, lastException);
         }
 
-        AbstractPullPolicyResult(Set<String> versions, boolean localUpdate, boolean remoteUpdate, Exception lastException) {
+        AbstractPullPolicyResult(Set<String> versions, Set<String> localUpdate, boolean remoteUpdate, Exception lastException) {
             this.versions.addAll(versions);
-            this.localUpdate = localUpdate;
+            this.localUpdate.addAll(localUpdate);
             this.remoteUpdate = remoteUpdate;
             this.lastException = lastException;
         }
 
         @Override
-        public boolean localUpdateRequired() {
-            return localUpdate;
+        public Set<String> localUpdateVersions() {
+            return  Collections.unmodifiableSet(localUpdate);
         }
 
         @Override

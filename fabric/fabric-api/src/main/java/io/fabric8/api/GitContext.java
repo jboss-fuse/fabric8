@@ -25,6 +25,7 @@ public class GitContext {
     private boolean requirePull;
     private boolean requireCommit;
     private boolean requirePush;
+    private Object cacheKey;
     private StringBuilder commitMessage = new StringBuilder();
 
     public GitContext() {
@@ -98,5 +99,15 @@ public class GitContext {
      */
     public String getCommitMessage() {
         return commitMessage.toString();
+    }
+
+
+    public Object getCacheKey() {
+        return cacheKey;
+    }
+
+    public GitContext setCacheKey(Object cacheKey) {
+        this.cacheKey = cacheKey;
+        return this;
     }
 }

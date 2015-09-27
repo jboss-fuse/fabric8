@@ -66,16 +66,7 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.StringTokenizer;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -104,7 +95,6 @@ import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.StoredConfig;
-import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.transport.RefSpec;
@@ -526,7 +516,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
     @Override
     public String createVersion(final String sourceId, final String targetId, final Map<String, String> attributes) {
-        return createVersion(newGitWriteContext(), sourceId, targetId, attributes);
+        return createVersion(newGitWriteContext(targetId), sourceId, targetId, attributes);
     }
 
     @Override
@@ -557,7 +547,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
     @Override
     public String createVersion(final Version version) {
-        return createVersion(newGitWriteContext(), version);
+        return createVersion(newGitWriteContext(version.getId()), version);
     }
 
     @Override
@@ -682,7 +672,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
     @Override
     public String createProfile(Profile profile) {
-        return createProfile(newGitWriteContext(), profile);
+        return createProfile(newGitWriteContext(profile.getVersion()), profile);
     }
 
     @Override
@@ -714,7 +704,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
     @Override
     public String updateProfile(Profile profile, boolean force) {
-        return updateProfile(newGitWriteContext(), profile, force);
+        return updateProfile(newGitWriteContext(profile.getVersion()), profile, force);
     }
 
     @Override
@@ -781,7 +771,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
     @Override
     public void deleteProfile(String versionId, String profileId) {
-        deleteProfile(newGitWriteContext(), versionId, profileId);
+        deleteProfile(newGitWriteContext(versionId), versionId, profileId);
     }
 
     @Override
@@ -867,6 +857,8 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
         // Delete and remove stale file configurations
         File profileDir = GitHelpers.getProfileDirectory(getGit(), profileId);
+
+        HashSet<File> filesToDelete = new HashSet<File>();
         if (profileDir.exists()) {
             File[] files = profileDir.listFiles(new FilenameFilter() {
                 @Override
@@ -875,12 +867,22 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                 }
             });
             for (File file : files) {
-                recursiveDeleteAndRemove(getGit(), file);
+                filesToDelete.add(file);
             }
         }
 
-        if (!fileConfigurations.isEmpty()) {
-            setFileConfigurations(getGit(), profileId, fileConfigurations);
+        for (Map.Entry<String, byte[]> entry : fileConfigurations.entrySet()) {
+            String fileName = entry.getKey();
+            byte[] newCfg = entry.getValue();
+            setFileConfiguration(getGit(), profileId, fileName, newCfg);
+            filesToDelete.remove(new File(profileDir, fileName));
+        }
+
+        for (File file : filesToDelete) {
+            recursiveDeleteAndRemove(getGit(), file);
+        }
+
+        if (!fileConfigurations.isEmpty() || !filesToDelete.isEmpty()) {
             context.commitMessage("Update configurations for profile: " + profileId);
         }
     }
@@ -913,8 +915,11 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     private void setFileConfiguration(Git git, String profileId, String fileName, byte[] configuration) throws IOException, GitAPIException {
         File profileDirectory = GitHelpers.getProfileDirectory(git, profileId);
         File file = new File(profileDirectory, fileName);
-        Files.writeToFile(file, configuration);
-        addFiles(git, file);
+        // Only write it if the content does not match..
+        if( !file.exists() || !Arrays.equals(Files.readBytes(file), configuration) ) {
+            Files.writeToFile(file, configuration);
+            addFiles(git, file);
+        }
     }
 
     @Override
@@ -932,7 +937,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                     return doImportProfiles(git, context, profileZipUrls);
                 }
             };
-            executeWrite(gitop);
+            executeWrite(gitop, versionId);
         } finally {
             writeLock.unlock();
         }
@@ -986,16 +991,16 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         return executeInternal(newGitReadContext(), null, operation);
     }
 
-    private <T> T executeWrite(GitOperation<T> operation) {
-        return executeInternal(newGitWriteContext(), null, operation);
+    private <T> T executeWrite(GitOperation<T> operation, String versionId) {
+        return executeInternal(newGitWriteContext(versionId), null, operation);
     }
 
     private GitContext newGitReadContext() {
         return new GitContext();
     }
 
-    private GitContext newGitWriteContext() {
-        return new GitContext().requireCommit().requirePush();
+    private GitContext newGitWriteContext(String version) {
+        return new GitContext().requireCommit().requirePush().setCacheKey(version);
     }
 
     private <T> T executeInternal(GitContext context, PersonIdent personIdent, GitOperation<T> operation) {
@@ -1031,7 +1036,12 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
             if (context.isRequireCommit()) {
                 doCommit(git, context);
-                versionCache.invalidateAll();
+                Object cacheKey = context.getCacheKey();
+                if( cacheKey==null || cacheKey.equals(GitHelpers.MASTER_BRANCH)  ) {
+                    versionCache.invalidateAll();
+                } else {
+                    versionCache.invalidate(cacheKey);
+                }
                 notificationRequired = true;
             }
 
@@ -1102,16 +1112,21 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     private PullPolicyResult doPullInternal(GitContext context, CredentialsProvider credentialsProvider, boolean allowVersionDelete) {
         PullPolicyResult pullResult = pullPushPolicy.doPull(context, getCredentialsProvider(), allowVersionDelete);
         if (pullResult.getLastException() == null) {
-            if (pullResult.localUpdateRequired()) {
-                versionCache.invalidateAll();
+            Set<String> updatedVersions = pullResult.localUpdateVersions();
+            if (!updatedVersions.isEmpty()) {
+                if( updatedVersions.contains(GitHelpers.MASTER_BRANCH) ) {
+                    versionCache.invalidateAll();
+                } else {
+                    for (String version : updatedVersions) {
+                        versionCache.invalidate(version);
+                    }
+                }
                 notificationRequired = true;
             }
             Set<String> pullVersions = pullResult.getVersions();
             if (!pullVersions.isEmpty() && !pullVersions.equals(versions)) {
                 versions.clear();
                 versions.addAll(pullVersions);
-                versionCache.invalidateAll();
-                notificationRequired = true;
             }
             if (pullResult.remoteUpdateRequired()) {
                 doPushInternal(context, credentialsProvider);
@@ -1206,6 +1221,9 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
     private String checkoutProfileBranch(Git git, GitContext context, String versionId, String profileId) throws GitAPIException {
         String branch = GitHelpers.getProfileBranch(versionId, profileId);
+        if( branch == GitHelpers.MASTER_BRANCH ) {
+            context.setCacheKey(null); // So we invalidate the entire cache.
+        }
         return GitHelpers.checkoutBranch(git, branch) ? branch : null;
     }
     
@@ -1555,7 +1573,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                     return null;
                 }
             };
-            executeWrite(gitop);
+            executeWrite(gitop, versionId);
         }
         
         /**
@@ -1761,7 +1779,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         private Version loadVersion(Git git, GitContext context, String versionId, String revision) throws Exception {
             VersionBuilder vbuilder = VersionBuilder.Factory.create(versionId).setRevision(revision);
             vbuilder.setAttributes(getVersionAttributes(git, context, versionId));
-            populateVersionBuilder(git, context, vbuilder, "master", versionId);
+            populateVersionBuilder(git, context, vbuilder, GitHelpers.MASTER_BRANCH, versionId);
             populateVersionBuilder(git, context, vbuilder, versionId, versionId);
             return vbuilder.getVersion();
         }
@@ -1775,10 +1793,8 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                     for (String childName : files) {
                         Path childPath = profilesDir.toPath().resolve(childName);
                         if (childPath.toFile().isDirectory()) {
-                            RevCommit lastCommit = GitHelpers.getProfileLastCommit(git, branch, childName);
-                            if (lastCommit != null) {
-                                populateProfile(git, builder, branch, versionId, childPath.toFile(), "");
-                            }
+                            populateProfile(git, builder, branch, versionId, childPath.toFile(), "");
+
                         }
                     }
                 }
@@ -1803,12 +1819,10 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                 return;
             }
 
-            RevCommit lastCommit = GitHelpers.getProfileLastCommit(git, branch, profileName);
-            String lastModified = lastCommit != null ? lastCommit.getId().abbreviate(GIT_COMMIT_SHORT_LENGTH).name() : "";
             Map<String, byte[]> fileConfigurations = doGetFileConfigurations(git, profileId);
             
             ProfileBuilder profileBuilder = ProfileBuilder.Factory.create(versionId, profileId);
-            profileBuilder.setFileConfigurations(fileConfigurations).setLastModified(lastModified);
+            profileBuilder.setFileConfigurations(fileConfigurations);
             versionBuilder.addProfile(profileBuilder.getProfile());
         }
 

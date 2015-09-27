@@ -82,7 +82,7 @@ import org.slf4j.LoggerFactory;
 @ThreadSafe
 @Component(label = "Fabric8 DataStore", policy = ConfigurationPolicy.IGNORE, immediate = true, metatype = true)
 @Service({ DataStore.class })
-public final class ZkDataStoreImpl extends AbstractComponent implements DataStore, PathChildrenCacheListener {
+public class ZkDataStoreImpl extends AbstractComponent implements DataStore, PathChildrenCacheListener {
     
     private static final transient Logger LOGGER = LoggerFactory.getLogger(ZkDataStoreImpl.class);
     
@@ -764,14 +764,14 @@ public final class ZkDataStoreImpl extends AbstractComponent implements DataStor
         return containers;
     }
 
-    void bindCurator(CuratorFramework curator) {
+    public void bindCurator(CuratorFramework curator) {
         this.curator.bind(curator);
     }
     void unbindCurator(CuratorFramework curator) {
         this.curator.unbind(curator);
     }
 
-    void bindRuntimeProperties(RuntimeProperties service) {
+    public void bindRuntimeProperties(RuntimeProperties service) {
         this.runtimeProperties.bind(service);
     }
     void unbindRuntimeProperties(RuntimeProperties service) {
