@@ -17,21 +17,40 @@ package io.fabric8.patch;
 
 import java.net.URL;
 
+import io.fabric8.patch.management.Patch;
+
+/**
+ * High-level patch management service to be used by commands
+ */
 public interface Service {
 
     String PATCH_LOCATION = "fabric8.patch.location";
     String NEW_PATCH_LOCATION = "fuse.patch.location";
 
+    /**
+     * List all available patches
+     * @return
+     */
     Iterable<Patch> getPatches();
-    
+
+    /**
+     * Get patch with a specific Id
+     * @param id
+     * @return
+     */
     Patch getPatch(String id);
-    
+
+    /**
+     * Retrieves a patch file (or ZIPped set of patches) from a given URL and returns a list of informations about found {@link Patch patches}
+     * @param url
+     * @return
+     */
     Iterable<Patch> download(URL url);
 
-    Result install(Patch patch, boolean simulate);
-
-    Result install(Patch patch, boolean force, boolean synchronous);
-
-    void rollback(Patch patch, boolean force);
+//    void install(Patch patch, boolean simulate);
+//
+//    void install(Patch patch, boolean force, boolean synchronous);
+//
+//    void rollback(Patch patch, boolean force);
 
 }

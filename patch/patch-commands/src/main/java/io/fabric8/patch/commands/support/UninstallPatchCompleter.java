@@ -17,7 +17,7 @@ package io.fabric8.patch.commands.support;
 
 import java.util.List;
 
-import io.fabric8.patch.Patch;
+import io.fabric8.patch.management.Patch;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;

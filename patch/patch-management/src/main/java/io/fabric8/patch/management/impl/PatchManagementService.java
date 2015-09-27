@@ -20,10 +20,9 @@ import java.io.IOException;
 /**
  * Operations used to manage git repository that keeps track of applied rollup patches
  * (non-rollup too?)
- * These operations are used both by the containing bundle, to ensure that git patch-management is enabled,
- * but also by other bundles (like patch-commands) to interact with this low-level bundle when applying patches.
+ * This interface is internal only - to be used by {@link Activator} and services exposed from this bundle.
  */
-public interface GitPatchManagementService {
+public interface PatchManagementService {
 
     /**
      * Returns <code>true</code> if patch managment should be performed
@@ -32,22 +31,22 @@ public interface GitPatchManagementService {
     boolean isEnabled();
 
     /**
-     * Starts the management if it is required. Prepares resources (like {@link org.eclipse.jgit.api.Git} instance.
+     * Starts the management if it is required.
      */
     void start();
 
     /**
-     * Stops the management, cleans up resources
+     * Stops the management, cleans up resources.
      */
     void stop();
 
     /**
-     * Initializes necessary git repositories if this hasn't been done before
+     * Initializes necessary git repositories if this hasn't been done before.
      */
     void ensurePatchManagementInitialized();
 
     /**
-     * Called if during startup it was detected that the bundle is already available in etc/startup.properties
+     * Called if during startup it was detected that the bundle is already available in etc/startup.properties.
      */
     void cleanupDeployDir() throws IOException;
 

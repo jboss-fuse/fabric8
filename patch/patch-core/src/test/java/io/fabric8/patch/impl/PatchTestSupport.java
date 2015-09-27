@@ -15,6 +15,7 @@
  */
 package io.fabric8.patch.impl;
 
+import io.fabric8.patch.management.PatchData;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 

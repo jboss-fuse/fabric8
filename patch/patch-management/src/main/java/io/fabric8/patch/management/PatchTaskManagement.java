@@ -13,18 +13,18 @@
  *  implied.  See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package io.fabric8.patch;
+package io.fabric8.patch.management;
 
-import java.util.Collection;
+/**
+ * <p>Interface to an OSGi service for handling patch-related tasks that has to be done at lower level (e.g., when part of patch installation
+ * requires framework restart or an update to critical system files.</p>
+ */
+public interface PatchTaskManagement {
 
-public interface Result {
-    
-    Patch getPatch();
-
-    boolean isSimulation();
-
-    long getDate();
-
-    Collection<BundleUpdate> getUpdates();
+    /**
+     * Add tasks to be performed at startup/restart/xyz
+     * @param tasks
+     */
+    void addTasks(PatchTask... tasks);
 
 }

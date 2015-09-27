@@ -31,7 +31,7 @@ public class Activator implements BundleActivator {
     private FrameworkStartLevel sl;
     private int activatedAt = 0;
 
-    private GitPatchManagementService patchManagementService;
+    private PatchManagementService patchManagementService;
     private final Object serviceAccess = new Object();
 
     // version of this bundle started from etc/startup.properties
@@ -46,6 +46,7 @@ public class Activator implements BundleActivator {
     @Override
     public void start(final BundleContext context) throws Exception {
         systemContext = context.getBundle(0).getBundleContext();
+
         patchManagementService = new GitPatchManagementServiceImpl(context);
 
         final int targetStartLevel = Integer.parseInt(System.getProperty("org.osgi.framework.startlevel.beginning"));

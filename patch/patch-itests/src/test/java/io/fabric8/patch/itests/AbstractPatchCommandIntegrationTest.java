@@ -15,13 +15,9 @@
  */
 package io.fabric8.patch.itests;
 
-import io.fabric8.api.gravia.ServiceLocator;
 import io.fabric8.common.util.IOHelpers;
 import io.fabric8.itests.support.CommandSupport;
-import io.fabric8.patch.Patch;
-import io.fabric8.patch.Service;
 import org.jboss.arquillian.test.api.ArquillianResource;
-import org.junit.Before;
 import org.osgi.framework.BundleContext;
 
 import java.io.File;

@@ -16,7 +16,7 @@
 package io.fabric8.patch.commands;
 
 import io.fabric8.patch.BundleUpdate;
-import io.fabric8.patch.Patch;
+import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.Result;
 import io.fabric8.patch.Service;
 import org.apache.karaf.shell.console.AbstractAction;
@@ -45,10 +45,10 @@ public abstract class PatchActionSupport extends AbstractAction {
     }
 
     protected void display(Iterable<Patch> patches, boolean listBundles) {
-        System.out.println(String.format("%-40s %-10s %s", "[name]", "[installed]", "[description]"));
+        System.out.println(String.format("%-40s %-11s %s", "[name]", "[installed]", "[description]"));
         for (Patch patch : patches) {
             String desc = patch.getDescription() != null ? patch.getDescription() : "";
-            System.out.println(String.format("%-40s %-10s %s", patch.getId(), patch.isInstalled(), desc));
+            System.out.println(String.format("%-40s %-11s %s", patch.getId(), Boolean.toString(patch.isInstalled()), desc));
             if (listBundles) {
                 for (String b : patch.getBundles()) {
                     System.out.println(String.format("\t%s", b));
