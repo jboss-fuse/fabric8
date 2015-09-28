@@ -15,6 +15,7 @@
  */
 package io.fabric8.patch.management;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
@@ -48,15 +49,18 @@ public class PatchData {
     private String description;
     private String migratorBundle;
 
+    // directory base of unpacked patch file. May be null if patch file was *.patch, not a ZIP file.
+    // this path is relative to ${karaf.home}
+    private String patchDirectory;
+
     private Collection<String> bundles = new LinkedList<>();
     private Collection<String> featureFiles = new LinkedList<>();
     private Collection<String> otherArtifacts = new LinkedList<>();
+    private Collection<String> files = new LinkedList<String>();
 
     private Map<String, String> versionRanges;
 
     private Collection<String> requirements;
-
-    private Collection<String> files = new LinkedList<String>();
 
     public PatchData(String id) {
         this.id = id;
@@ -116,13 +120,13 @@ public class PatchData {
     }
 
     /**
-     * We can write the patch data as well
+     * We can write the patch data as well. The <code>out</code> {@link OutputStream} is closed after the write.
      * @param out
      */
     public void storeTo(OutputStream out) {
         PrintWriter pw = new PrintWriter(out);
         pw.write("# generated file, do not modify\n");
-        pw.write("id = " + getId());
+        pw.write("id = " + getId() + "\n");
         int n = 0;
         if (bundles.size() > 0) {
             for (String bundle : bundles) {
@@ -154,6 +158,7 @@ public class PatchData {
         if (migratorBundle != null) {
             pw.write(String.format("%s = %s\n", MIGRATOR_BUNDLE, migratorBundle));
         }
+        pw.close();
     }
 
     public String getId() {
@@ -199,4 +204,18 @@ public class PatchData {
     public void setGenerated(boolean generated) {
         this.generated = generated;
     }
+
+    public String getPatchDirectory() {
+        return patchDirectory;
+    }
+
+    /**
+     * Sets a path (relative to ${karaf.home}) to the directory where patch content (without patch descriptor)
+     * is unpacked.
+     * @param patchDirectory
+     */
+    public void setPatchDirectory(String patchDirectory) {
+        this.patchDirectory = patchDirectory;
+    }
+
 }

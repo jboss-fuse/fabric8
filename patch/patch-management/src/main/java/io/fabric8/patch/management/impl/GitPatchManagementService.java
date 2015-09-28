@@ -22,7 +22,7 @@ import java.io.IOException;
  * (non-rollup too?)
  * This interface is internal only - to be used by {@link Activator} and services exposed from this bundle.
  */
-public interface PatchManagementService {
+public interface GitPatchManagementService {
 
     /**
      * Returns <code>true</code> if patch managment should be performed

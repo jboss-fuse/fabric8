@@ -25,6 +25,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 import java.util.regex.Matcher;
@@ -59,7 +60,7 @@ import static io.fabric8.patch.management.impl.Utils.*;
  * <p>An implementation of Git-based patch management system. Deals with patch distributions and their unpacked content.</p>
  * <p>This class delegates lower-level operations to {@link GitPatchRepository} and performs more complex git operations in temporary clone+working copies.</p>
  */
-public class GitPatchManagementServiceImpl implements PatchManagement, PatchManagementService {
+public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchManagementService {
 
     private static final String[] MANAGED_DIRECTORIES = new String[] { "bin", "etc", "lib", "fabric", "licenses", "metatype" };
 
@@ -85,7 +86,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, PatchMana
     public GitPatchManagementServiceImpl(BundleContext context) {
         this.bundleContext = context;
         this.systemContext = context.getBundle(0).getBundleContext();
-        karafHome = new File(System.getProperty("karaf.home"));
+        karafHome = new File(systemContext.getProperty("karaf.home"));
         String patchLocation = systemContext.getProperty("fuse.patch.location");
         if (patchLocation != null) {
             patchesDir = new File(patchLocation);
@@ -94,7 +95,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, PatchMana
         setGitPatchRepository(repository);
     }
 
-    private void setGitPatchRepository(GitPatchRepository repository) {
+    public void setGitPatchRepository(GitPatchRepository repository) {
         this.gitPatchRepository = repository;
     }
 
@@ -128,12 +129,13 @@ public class GitPatchManagementServiceImpl implements PatchManagement, PatchMana
             // in case patch ZIP file has no descriptor, we'll "generate" patch data on the fly
             PatchData fallbackPatchData = new PatchData(FilenameUtils.removeExtension(patchFile.getName()));
             fallbackPatchData.setGenerated(true);
+            fallbackPatchData.setPatchDirectory(Utils.relative(karafHome, new File(patchesDir, fallbackPatchData.getId())));
 
             if (zf != null) {
-                File systemRepo = new File(karafHome, System.getProperty("karaf.default.repository", "system"));
-                File targetDirForPatchResources = new File(patchesDir, patchData.getId());
-                targetDirForPatchResources.mkdirs();
+                File systemRepo = new File(karafHome, systemContext.getProperty("karaf.default.repository"));
                 try {
+                    List<ZipArchiveEntry> otherResources = new LinkedList<>();
+
                     for (Enumeration<ZipArchiveEntry> e = zf.getEntries(); e.hasMoreElements(); ) {
                         ZipArchiveEntry entry = e.nextElement();
                         if (!entry.isDirectory() && !entry.isUnixSymlink()) {
@@ -147,6 +149,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, PatchMana
                                     extractZipEntry(zf, entry, target);
                                     patchData = loadPatchData(target);
                                     patchData.setGenerated(false);
+                                    File targetDirForPatchResources = new File(patchesDir, patchData.getId());
+                                    patchData.setPatchDirectory(Utils.relative(karafHome, targetDirForPatchResources));
                                     target.renameTo(new File(patchesDir, patchData.getId() + ".patch"));
                                     patches.add(patchData);
                                 } else {
@@ -155,6 +159,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, PatchMana
                                                     patchData.getId(), name));
                                 }
                             } else {
+                                System.out.println("extracting " + entry.getName());
                                 File target = null;
                                 if (name.startsWith("system/")) {
                                     // copy to ${karaf.default.repository}
@@ -164,11 +169,21 @@ public class GitPatchManagementServiceImpl implements PatchManagement, PatchMana
                                     target = new File(systemRepo, name.substring("repository/".length()));
                                 } else {
                                     // other files that should be applied to ${karaf.home} when the patch is installed
-                                    target = new File(targetDirForPatchResources, name);
+                                    otherResources.add(entry);
                                 }
-                                extractAndTrackZipEntry(fallbackPatchData, zf, entry, target);
+                                if (target != null) {
+                                    extractAndTrackZipEntry(fallbackPatchData, zf, entry, target);
+                                }
                             }
                         }
+                    }
+
+
+                    File targetDirForPatchResources = new File(patchesDir, patchData == null ? fallbackPatchData.getId() : patchData.getId());
+                    // now copy non-maven resources (we should now know where to copy them)
+                    for (ZipArchiveEntry entry : otherResources) {
+                        File target = new File(targetDirForPatchResources, entry.getName());
+                        extractAndTrackZipEntry(fallbackPatchData, zf, entry, target);
                     }
                 } finally {
                     if (zf != null) {
@@ -181,6 +196,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, PatchMana
             } else {
                 // If the file is not a zip/jar, assume it's a single patch file
                 patchData = loadPatchData(patchFile);
+                // no patch directory - no attached content, assuming only references to bundles
+                patchData.setPatchDirectory(null);
                 patchFile.renameTo(new File(patchesDir, patchData.getId() + ".patch"));
                 patches.add(patchData);
             }
@@ -361,7 +378,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, PatchMana
             git.add()
                     .addFilepattern(".")
                     .call();
-            gitPatchRepository.commit(git, String.format(MARKER_BASELINE_COMMIT_PATTERN, currentFuseVersion)).call();
+            gitPatchRepository.prepareCommit(git, String.format(MARKER_BASELINE_COMMIT_PATTERN, currentFuseVersion)).call();
             gitPatchRepository.push(git);
         } else {
             String message = "Can't find baseline distribution \"" + baselineDistribution.getName() + "\" in patches dir or inside system repository.";
@@ -410,7 +427,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, PatchMana
                             .addFilepattern(name)
                             .call();
                 }
-                gitPatchRepository.commit(git, MARKER_USER_CHANGES_COMMIT).call();
+                gitPatchRepository.prepareCommit(git, MARKER_USER_CHANGES_COMMIT).call();
                 gitPatchRepository.push(git);
 
                 // now main repository has exactly the same content as ${karaf.home}
@@ -441,7 +458,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, PatchMana
         File deployedPatchManagement = new File(fileinstallDeployDir, patchManagementArtifact);
         if (deployedPatchManagement.exists() && deployedPatchManagement.isFile()) {
             // let's copy it to system/
-            File systemRepo = new File(karafHome, System.getProperty("karaf.default.repository", "system"));
+            File systemRepo = new File(karafHome, systemContext.getProperty("karaf.default.repository"));
             String targetFile = String.format("io/fabric8/patch/patch-management/%s/patch-management-%s.jar", bundleVersion, bundleVersion);
             File target = new File(systemRepo, targetFile);
             target.getParentFile().mkdirs();
@@ -463,7 +480,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, PatchMana
             git.add()
                     .addFilepattern("etc/startup.properties")
                     .call();
-            RevCommit commit = gitPatchRepository.commit(git, String.format(MARKER_PATCH_MANAGEMENT_INSTALLATION_COMMIT_PATTERN, bundleVersion)).call();
+            RevCommit commit = gitPatchRepository.prepareCommit(git, String.format(MARKER_PATCH_MANAGEMENT_INSTALLATION_COMMIT_PATTERN, bundleVersion)).call();
             gitPatchRepository.push(git);
 
             // "checkout" the above change in main "working copy" (${karaf.home})

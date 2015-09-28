@@ -21,11 +21,9 @@ import java.io.IOException;
 import org.eclipse.jgit.api.CommitCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.revwalk.RevCommit;
 
 /**
- * <p>Interface for GitPatchManager.</p>
+ * <p>Interface for low-level git patch repository operations.</p>
  * <p>(makes mocking easier).</p>
  */
 public interface GitPatchRepository {
@@ -81,7 +79,17 @@ public interface GitPatchRepository {
      */
     boolean containsCommit(Git git, String branch, String commitMessage) throws IOException, GitAPIException;
 
-    CommitCommand commit(Git git, String message);
+    /**
+     * Returns {@link CommitCommand} with Author and Message set
+     * @param git
+     * @return
+     */
+    CommitCommand prepareCommit(Git git, String message);
 
+    /**
+     * Shorthand for <code>git push origin master</code>
+     * @param git
+     */
     void push(Git git) throws GitAPIException;
+
 }

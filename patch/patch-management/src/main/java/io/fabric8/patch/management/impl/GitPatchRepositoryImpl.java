@@ -38,7 +38,7 @@ import org.eclipse.jgit.transport.RefSpec;
  */
 public class GitPatchRepositoryImpl implements GitPatchRepository {
 
-    private static final String MAIN_GIT_REPO_LOCATION = ".management/history";
+    public static final String MAIN_GIT_REPO_LOCATION = ".management/history";
 
     private static final DateFormat TS = new SimpleDateFormat("yyyyMMdd-HHmmssSSS");
 
@@ -84,7 +84,10 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
 
     @Override
     public Git findOrCreateMainGitRepository() throws IOException {
-        return findOrCreateGitRepository(gitPatchManagement, true);
+        if (mainRepository == null) {
+            mainRepository = findOrCreateGitRepository(gitPatchManagement, true);
+        }
+        return mainRepository;
     }
 
     @Override
@@ -98,7 +101,7 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
                         .setDirectory(directory)
                         .call();
                 Git fork = cloneRepository(git, false);
-                commit(fork, "[PATCH] initialization").call();
+                prepareCommit(fork, "[PATCH] initialization").call();
                 push(fork);
                 closeRepository(fork, true);
                 return git;
@@ -150,22 +153,13 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
         return false;
     }
 
-    /**
-     * Returns {@link CommitCommand} with Author and Message set
-     * @param git
-     * @return
-     */
     @Override
-    public CommitCommand commit(Git git, String message) {
+    public CommitCommand prepareCommit(Git git, String message) {
         return git.commit()
                 .setAuthor(karafHome.getName(), "fuse@redhat.com")
                 .setMessage(message);
     }
 
-    /**
-     * Shorthand for <code>git push origin master</code>
-     * @param git
-     */
     @Override
     public void push(Git git) throws GitAPIException {
         git.push()
