@@ -16,6 +16,7 @@
 package io.fabric8.patch.management;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -25,6 +26,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+
+import org.apache.commons.io.IOUtils;
 
 /**
  * Information about patch ZIP content
@@ -77,6 +80,19 @@ public class PatchData {
         this.versionRanges = versionRanges;
         this.requirements = requirements;
         this.migratorBundle = migratorBundle;
+    }
+
+    /**
+     * Static constructor of PatchData object that takes initialization data from {@link java.io.InputStream}.
+     * @param inputStream
+     * @return
+     * @throws IOException
+     */
+    public static PatchData load(InputStream inputStream) throws IOException {
+        Properties props = new Properties();
+        props.load(inputStream);
+        IOUtils.closeQuietly(inputStream);
+        return load(props);
     }
 
     /**

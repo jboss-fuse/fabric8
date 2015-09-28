@@ -13,11 +13,9 @@
  *  implied.  See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package io.fabric8.patch.impl;
+package io.fabric8.patch.management;
 
-import io.fabric8.patch.BundleUpdate;
-
-public class BundleUpdateImpl implements BundleUpdate {
+public class BundleUpdate {
 
     private final String symbolicName;
     private final String newVersion;
@@ -25,7 +23,7 @@ public class BundleUpdateImpl implements BundleUpdate {
     private final String previousVersion;
     private final String previousLocation;
 
-    public BundleUpdateImpl(String symbolicName, String newVersion, String newLocation, String previousVersion, String previousLocation) {
+    public BundleUpdate(String symbolicName, String newVersion, String newLocation, String previousVersion, String previousLocation) {
         this.symbolicName = symbolicName;
         this.newVersion = newVersion;
         this.newLocation = newLocation;

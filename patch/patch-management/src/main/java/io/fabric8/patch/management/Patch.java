@@ -22,12 +22,18 @@ public class Patch {
 
     // static patch information - content of patch file
     private PatchData patchData;
-    // dynamic patch information - patch tracked by patch management
+    // dynamic patch information - patch tracked by patch management, not necessarly installed
     private ManagedPatch managedPatch;
+    // information about installed patch
+    private PatchResult result;
 
     public Patch(PatchData patchData, ManagedPatch mp) {
         this.patchData = patchData;
         this.managedPatch = mp;
+    }
+
+    public boolean isInstalled() {
+        return result != null;
     }
 
     public PatchData getPatchData() {
@@ -44,6 +50,14 @@ public class Patch {
 
     public void setManagedPatch(ManagedPatch managedPatch) {
         this.managedPatch = managedPatch;
+    }
+
+    public PatchResult getResult() {
+        return result;
+    }
+
+    public void setResult(PatchResult result) {
+        this.result = result;
     }
 
 }
