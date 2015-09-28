@@ -35,9 +35,11 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import io.fabric8.patch.*;
+import io.fabric8.patch.management.BundleUpdate;
 import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.management.PatchData;
 import io.fabric8.patch.management.PatchException;
+import io.fabric8.patch.management.PatchResult;
 import org.easymock.EasyMock;
 import org.easymock.IAnswer;
 import org.junit.After;
@@ -186,8 +188,8 @@ public class ServiceImplTest {
         service.activate(componentContext);
 
         Patch patch = ServiceImpl.doLoad(service, getClass().getClassLoader().getResourceAsStream("test1.patch"));
-        assertEquals(2, patch.getBundles().size());
-        assertTrue(patch.getRequirements().isEmpty());
+        assertEquals(2, patch.getPatchData().getBundles().size());
+        assertTrue(patch.getPatchData().getRequirements().isEmpty());
     }
 
     @Test
@@ -195,10 +197,10 @@ public class ServiceImplTest {
         ServiceImpl service = createMockServiceImpl();
 
         Patch patch = ServiceImpl.doLoad(service, getClass().getClassLoader().getResourceAsStream("test2.patch"));
-        assertEquals(2, patch.getBundles().size());
-        assertEquals("[1.0.0,2.0.0)", patch.getVersionRange("mvn:io.fabric8.test/test1/1.0.0"));
-        assertNull(patch.getVersionRange("mvn:io.fabric8.test/test2/1.0.0"));
-        assertTrue(patch.getRequirements().isEmpty());
+        assertEquals(2, patch.getPatchData().getBundles().size());
+        assertEquals("[1.0.0,2.0.0)", patch.getPatchData().getVersionRange("mvn:io.fabric8.test/test1/1.0.0"));
+        assertNull(patch.getPatchData().getVersionRange("mvn:io.fabric8.test/test2/1.0.0"));
+        assertTrue(patch.getPatchData().getRequirements().isEmpty());
     }
 
     @Test
@@ -206,10 +208,10 @@ public class ServiceImplTest {
         ServiceImpl service = createMockServiceImpl();
 
         Patch patch = ServiceImpl.doLoad(service, getClass().getClassLoader().getResourceAsStream("test-with-prereq.patch"));
-        assertEquals(2, patch.getBundles().size());
-        assertEquals(1, patch.getRequirements().size());
-        assertTrue(patch.getRequirements().contains("prereq1"));
-        assertNull(patch.getVersionRange("mvn:io.fabric8.test/test2/1.0.0"));
+        assertEquals(2, patch.getPatchData().getBundles().size());
+        assertEquals(1, patch.getPatchData().getRequirements().size());
+        assertTrue(patch.getPatchData().getRequirements().contains("prereq1"));
+        assertNull(patch.getPatchData().getVersionRange("mvn:io.fabric8.test/test2/1.0.0"));
     }
 
     @Test
@@ -344,10 +346,10 @@ public class ServiceImplTest {
         assertTrue( it.hasNext() );
         Patch patch = it.next();
         assertNotNull( patch );
-        assertEquals("patch-1.3.2", patch.getId());
-        assertNotNull(patch.getBundles());
-        assertEquals(1, patch.getBundles().size());
-        Iterator<String> itb = patch.getBundles().iterator();
+        assertEquals("patch-1.3.2", patch.getPatchData().getId());
+        assertNotNull(patch.getPatchData().getBundles());
+        assertEquals(1, patch.getPatchData().getBundles().size());
+        Iterator<String> itb = patch.getPatchData().getBundles().iterator();
         assertEquals("mvn:foo/my-bsn/1.3.2", itb.next());
         assertNull(patch.getResult());
         verify(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
@@ -365,7 +367,7 @@ public class ServiceImplTest {
         expect(bundle.getBundleId()).andReturn(123L);
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
 
-        Result result = patch.simulate();
+        PatchResult result = service.install(patch, true);
         assertNotNull( result );
         assertNull( patch.getResult() );
         assertTrue(result.isSimulation());
@@ -392,10 +394,10 @@ public class ServiceImplTest {
         assertTrue( it.hasNext() );
         patch = it.next();
         assertNotNull( patch );
-        assertEquals("patch-1.3.2", patch.getId());
-        assertNotNull(patch.getBundles());
-        assertEquals(1, patch.getBundles().size());
-        itb = patch.getBundles().iterator();
+        assertEquals("patch-1.3.2", patch.getPatchData().getId());
+        assertNotNull(patch.getPatchData().getBundles());
+        assertEquals(1, patch.getPatchData().getBundles().size());
+        itb = patch.getPatchData().getBundles().iterator();
         assertEquals("mvn:foo/my-bsn/1.3.2", itb.next());
         assertNull(patch.getResult());
         verify(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
@@ -429,7 +431,7 @@ public class ServiceImplTest {
         });
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, bundle2, wiring);
 
-        result = patch.install();
+        result = service.install(patch, false);
         assertNotNull( result );
         assertSame( result, patch.getResult() );
         assertFalse(patch.getResult().isSimulation());
@@ -456,10 +458,10 @@ public class ServiceImplTest {
         assertTrue( it.hasNext() );
         patch = it.next();
         assertNotNull( patch );
-        assertEquals("patch-1.3.2", patch.getId());
-        assertNotNull(patch.getBundles());
-        assertEquals(1, patch.getBundles().size());
-        itb = patch.getBundles().iterator();
+        assertEquals("patch-1.3.2", patch.getPatchData().getId());
+        assertNotNull(patch.getPatchData().getBundles());
+        assertEquals(1, patch.getPatchData().getBundles().size());
+        itb = patch.getPatchData().getBundles().iterator();
         assertEquals("mvn:foo/my-bsn/1.3.2", itb.next());
         assertNotNull(patch.getResult());
         verify(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
@@ -493,10 +495,10 @@ public class ServiceImplTest {
         assertTrue( it.hasNext() );
         Patch patch = it.next();
         assertNotNull( patch );
-        assertEquals("patch-1.4.0", patch.getId());
-        assertNotNull(patch.getBundles());
-        assertEquals(1, patch.getBundles().size());
-        Iterator<String> itb = patch.getBundles().iterator();
+        assertEquals("patch-1.4.0", patch.getPatchData().getId());
+        assertNotNull(patch.getPatchData().getBundles());
+        assertEquals(1, patch.getPatchData().getBundles().size());
+        Iterator<String> itb = patch.getPatchData().getBundles().iterator();
         assertEquals("mvn:foo/my-bsn/1.4.0", itb.next());
         assertNull(patch.getResult());
         verify(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
@@ -513,7 +515,7 @@ public class ServiceImplTest {
         expect(bundle.getBundleId()).andReturn(123L);
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
 
-        Result result = patch.simulate();
+        PatchResult result = service.install(patch, true);
         assertNotNull( result );
         assertNull( patch.getResult() );
         assertEquals(1, result.getUpdates().size());
@@ -523,13 +525,13 @@ public class ServiceImplTest {
     @Test
     public void testVersionHistory() {
         // the same bundle has been patched twice
-        Patch patch1 = new Patch(null, new PatchData("patch1", "First patch", null, null, null, null));
-        patch1.setResult(new ResultImpl(patch1, true, System.currentTimeMillis(), new LinkedList<BundleUpdate>(), null, null));
-        patch1.getResult().getUpdates().add(new BundleUpdateImpl("my-bsn", "1.1.0", "mvn:groupId/my-bsn/1.1.0",
+        Patch patch1 = new Patch(new PatchData("patch1", "First patch", null, null, null, null), null);
+        patch1.setResult(new PatchResult(patch1, true, System.currentTimeMillis(), new LinkedList<io.fabric8.patch.management.BundleUpdate>(), null, null));
+        patch1.getResult().getUpdates().add(new BundleUpdate("my-bsn", "1.1.0", "mvn:groupId/my-bsn/1.1.0",
                 "1.0.0", "mvn:groupId/my-bsn/1.0.0"));
-        Patch patch2 = new Patch(null, new PatchData("patch2", "Second patch", null, null, null, null));
-        patch2.setResult(new ResultImpl(patch1, true, System.currentTimeMillis(), new LinkedList<BundleUpdate>(), null, null));
-        patch2.getResult().getUpdates().add(new BundleUpdateImpl("my-bsn;directive1=true", "1.2.0", "mvn:groupId/my-bsn/1.2.0",
+        Patch patch2 = new Patch(new PatchData("patch2", "Second patch", null, null, null, null), null);
+        patch2.setResult(new PatchResult(patch1, true, System.currentTimeMillis(), new LinkedList<io.fabric8.patch.management.BundleUpdate>(), null, null));
+        patch2.getResult().getUpdates().add(new BundleUpdate("my-bsn;directive1=true", "1.2.0", "mvn:groupId/my-bsn/1.2.0",
                 "1.1.0", "mvn:groupId/my-bsn/1.1.0"));
         Map<String, Patch> patches = new HashMap<String, Patch>();
         patches.put("patch1", patch1);

@@ -169,10 +169,33 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
             if ("bin/start".equals(de.getNewPath()) && de.getChangeType() == DiffEntry.ChangeType.MODIFY) {
                 iterator.remove();
             }
-            if ("bin/start".equals(de.getNewPath()) && de.getChangeType() == DiffEntry.ChangeType.MODIFY) {
+            if ("bin/stop".equals(de.getNewPath()) && de.getChangeType() == DiffEntry.ChangeType.MODIFY) {
+                iterator.remove();
+            }
+            if ("etc/startup.properties".equals(de.getNewPath()) && de.getChangeType() == DiffEntry.ChangeType.MODIFY) {
+                iterator.remove();
+            }
+            if ("etc/my.properties".equals(de.getNewPath()) && de.getChangeType() == DiffEntry.ChangeType.ADD) {
+                iterator.remove();
+            }
+            if ("etc/system.properties".equals(de.getNewPath()) && de.getChangeType() == DiffEntry.ChangeType.MODIFY) {
+                iterator.remove();
+            }
+            if ("fabric/import/fabric/profiles/default.profile/io.fabric8.agent.properties".equals(de.getNewPath()) && de.getChangeType() == DiffEntry.ChangeType.MODIFY) {
                 iterator.remove();
             }
         }
+
+        assertThat("Unknown changes in patch-4", patchDiff.size(), equalTo(0));
+
+        // let's see the patch applied to baseline-6.2.0
+        fork.checkout()
+                .setName("patch-4")
+                .setStartPoint("origin/patch-4")
+                .setCreateBranch(true)
+                .call();
+        String startupProperties = FileUtils.readFileToString(new File(fork.getRepository().getWorkTree(), "etc/startup.properties"));
+        assertTrue(startupProperties.contains("org/ops4j/pax/url/pax-url-gopher/2.4.0/pax-url-gopher-2.4.0.jar=5"));
 
         repository.closeRepository(fork, true);
     }

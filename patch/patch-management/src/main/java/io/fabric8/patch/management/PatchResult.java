@@ -13,15 +13,14 @@
  *  implied.  See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package io.fabric8.patch.impl;
+package io.fabric8.patch.management;
 
 import java.util.Collection;
 
-import io.fabric8.patch.management.Patch;
-import io.fabric8.patch.Result;
-import io.fabric8.patch.BundleUpdate;
-
-public class ResultImpl implements Result {
+/**
+ * TODO change, move parts of this class to {@link ManagedPatch}
+ */
+public class PatchResult {
 
     private final Patch patch;
     private final boolean simulation;
@@ -30,12 +29,12 @@ public class ResultImpl implements Result {
     private final String startup;
     private final String overrides;
 
-    public ResultImpl(Patch patch,
-                      boolean simulation,
-                      long date,
-                      Collection<BundleUpdate> updates,
-                      String startup,
-                      String overrides) {
+    public PatchResult(Patch patch,
+                       boolean simulation,
+                       long date,
+                       Collection<BundleUpdate> updates,
+                       String startup,
+                       String overrides) {
         this.patch = patch;
         this.simulation = simulation;
         this.date = date;

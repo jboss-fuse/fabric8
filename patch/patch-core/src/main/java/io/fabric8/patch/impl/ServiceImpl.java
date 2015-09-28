@@ -20,17 +20,16 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -43,13 +42,12 @@ import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 
-import io.fabric8.common.util.Strings;
+import io.fabric8.patch.management.BundleUpdate;
 import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.management.PatchData;
 import io.fabric8.patch.management.PatchManagement;
+import io.fabric8.patch.management.PatchResult;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
@@ -59,7 +57,6 @@ import org.apache.felix.utils.manifest.Clause;
 import org.apache.felix.utils.manifest.Parser;
 import org.apache.felix.utils.version.VersionRange;
 import org.apache.felix.utils.version.VersionTable;
-import io.fabric8.patch.BundleUpdate;
 import io.fabric8.patch.management.PatchException;
 import io.fabric8.patch.Service;
 import org.apache.karaf.util.bundles.BundleUtils;
@@ -75,7 +72,6 @@ import org.osgi.framework.wiring.FrameworkWiring;
 import org.osgi.service.component.ComponentContext;
 
 import static io.fabric8.common.util.IOHelpers.close;
-import static io.fabric8.common.util.IOHelpers.copy;
 import static io.fabric8.common.util.IOHelpers.readFully;
 import static io.fabric8.common.util.IOHelpers.writeFully;
 
@@ -160,20 +156,6 @@ public class ServiceImpl implements Service {
         return new File(patchDir, patch.getPatchData().getId());
     }
 
-
-    private void copyZipEntryToFile(ZipFile zipFile, ZipEntry entry, File file) throws IOException {
-        if (!file.isFile()) {
-            file.getParentFile().mkdirs();
-            InputStream fis = zipFile.getInputStream(entry);
-            FileOutputStream fos = new FileOutputStream(file);
-            try {
-                copy(fis, fos);
-            } finally {
-                close(fis, fos);
-            }
-        }
-    }
-
     /**
      * Used by the patch client when executing the script in the console
      * @param ids
@@ -200,7 +182,7 @@ public class ServiceImpl implements Service {
             if (file.exists() && file.getName().endsWith(".patch")) {
                 try {
                     Patch patch = load(file);
-                    patches.put(patch.getId(), patch);
+                    patches.put(patch.getPatchData().getId(), patch);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -224,16 +206,16 @@ public class ServiceImpl implements Service {
     }
 
     public static Patch doLoad(Service service, InputStream is) throws IOException {
-        return new Patch(service, PatchData.load(is));
+        return new Patch(PatchData.load(is), null);
     }
 
-    Result loadResult(Patch patch, File file) throws IOException {
+    PatchResult loadResult(Patch patch, File file) throws IOException {
         Properties props = new Properties();
         FileInputStream is = new FileInputStream(file);
         try {
             props.load(is);
             long date = Long.parseLong(props.getProperty(DATE));
-            List<BundleUpdate> updates = new ArrayList<BundleUpdate>();
+            List<io.fabric8.patch.management.BundleUpdate> updates = new ArrayList<io.fabric8.patch.management.BundleUpdate>();
             int count = Integer.parseInt(props.getProperty(UPDATES + "." + COUNT, "0"));
             for (int i = 0; i < count; i++) {
                 String sn = props.getProperty(UPDATES + "." + Integer.toString(i) + "." + SYMBOLIC_NAME);
@@ -241,18 +223,18 @@ public class ServiceImpl implements Service {
                 String nl = props.getProperty(UPDATES + "." + Integer.toString(i) + "." + NEW_LOCATION);
                 String ov = props.getProperty(UPDATES + "." + Integer.toString(i) + "." + OLD_VERSION);
                 String ol = props.getProperty(UPDATES + "." + Integer.toString(i) + "." + OLD_LOCATION);
-                updates.add(new BundleUpdateImpl(sn, nv, nl, ov, ol));
+                updates.add(new BundleUpdate(sn, nv, nl, ov, ol));
             }
             String startup = props.getProperty(STARTUP);
             String overrides = props.getProperty(OVERRIDES);
-            return new ResultImpl(patch, false, date, updates, startup, overrides);
+            return new PatchResult(patch, false, date, updates, startup, overrides);
         } finally {
             close(is);
         }
     }
 
-    void saveResult(Patch result) throws IOException {
-        File file = new File(patchDir, result.getPatchData().getId() + ".patch.result");
+    void saveResult(PatchResult result) throws IOException {
+        File file = new File(patchDir, result.getPatch().getPatchData().getId() + ".patch.result");
         Properties props  = new Properties();
         FileOutputStream fos = new FileOutputStream(file);
         try {
@@ -267,25 +249,25 @@ public class ServiceImpl implements Service {
                 props.put(UPDATES + "." + Integer.toString(i) + "." + OLD_LOCATION, update.getPreviousLocation());
                 i++;
             }
-            props.put(STARTUP, ((ResultImpl) result).getStartup());
-            String overrides = ((ResultImpl) result).getOverrides();
+            props.put(STARTUP, ((PatchResult) result).getStartup());
+            String overrides = ((PatchResult) result).getOverrides();
             if (overrides != null) {
                 props.put(OVERRIDES, overrides);
             }
-            props.store(fos, "Installation results for patch " + result.getPatch().getId());
+            props.store(fos, "Installation results for patch " + result.getPatch().getPatchData().getId());
         } finally {
             close(fos);
         }
     }
 
     public void rollback(final Patch patch, boolean force) throws PatchException {
-        final Result result = patch.getResult();
+        final PatchResult result = patch.getResult();
         if (result == null) {
-            throw new PatchException("Patch " + patch.getId() + " is not installed");
+            throw new PatchException("Patch " + patch.getPatchData().getId() + " is not installed");
         }
         Bundle[] allBundles = bundleContext.getBundles();
-        List<BundleUpdate> badUpdates = new ArrayList<BundleUpdate>();
-        for (BundleUpdate update : result.getUpdates()) {
+        List<io.fabric8.patch.management.BundleUpdate> badUpdates = new ArrayList<io.fabric8.patch.management.BundleUpdate>();
+        for (io.fabric8.patch.management.BundleUpdate update : result.getUpdates()) {
             boolean found = false;
             Version v = Version.parseVersion(update.getNewVersion());
             for (Bundle bundle : allBundles) {
@@ -301,15 +283,15 @@ public class ServiceImpl implements Service {
         }
         if (!badUpdates.isEmpty() && !force) {
             StringBuilder sb = new StringBuilder();
-            sb.append("Unable to rollback patch ").append(patch.getId()).append(" because of the following missing bundles:\n");
-            for (BundleUpdate up : badUpdates) {
+            sb.append("Unable to rollback patch ").append(patch.getPatchData().getId()).append(" because of the following missing bundles:\n");
+            for (io.fabric8.patch.management.BundleUpdate up : badUpdates) {
                 sb.append("\t").append(up.getSymbolicName()).append("/").append(up.getNewVersion()).append("\n");
             }
             throw new PatchException(sb.toString());
         }
 
         final Map<Bundle, String> toUpdate = new HashMap<Bundle, String>();
-        for (BundleUpdate update : result.getUpdates()) {
+        for (io.fabric8.patch.management.BundleUpdate update : result.getUpdates()) {
             Version v = Version.parseVersion(update.getNewVersion());
             for (Bundle bundle : allBundles) {
                 if (stripSymbolicName(bundle.getSymbolicName()).equals(stripSymbolicName(update.getSymbolicName()))
@@ -325,42 +307,42 @@ public class ServiceImpl implements Service {
             public void run() {
                 try {
                     applyChanges(toUpdate);
-                    writeFully(new File(System.getProperty("karaf.base"), "etc/startup.properties"), ((ResultImpl) result).getStartup());
-                    writeFully(new File(System.getProperty("karaf.base"), "etc/overrides.properties"), ((ResultImpl) result).getOverrides());
-                    offline.rollbackPatch(((Patch) patch).getPatch());
+                    writeFully(new File(System.getProperty("karaf.base"), "etc/startup.properties"), ((PatchResult) result).getStartup());
+                    writeFully(new File(System.getProperty("karaf.base"), "etc/overrides.properties"), ((PatchResult) result).getOverrides());
+                    offline.rollbackPatch(((Patch) patch).getPatchData());
                 } catch (Exception e) {
-                    throw new PatchException("Unable to rollback patch " + patch.getId() + ": " + e.getMessage(), e);
+                    throw new PatchException("Unable to rollback patch " + patch.getPatchData().getId() + ": " + e.getMessage(), e);
                 }
                 ((Patch) patch).setResult(null);
-                File file = new File(patchDir, result.getPatch().getId() + ".patch.result");
+                File file = new File(patchDir, result.getPatch().getPatchData().getId() + ".patch.result");
                 file.delete();
             }
         });
     }
 
-    public Result install(Patch patch, boolean simulate) {
+    public PatchResult install(Patch patch, boolean simulate) {
         return install(patch, simulate, true);
     }
 
-    public Result install(Patch patch, boolean simulate, boolean synchronous) {
-        Map<String, Result> results = install(Collections.singleton(patch), simulate, synchronous);
-        return results.get(patch.getId());
+    public PatchResult install(Patch patch, boolean simulate, boolean synchronous) {
+        Map<String, PatchResult> results = install(Collections.singleton(patch), simulate, synchronous);
+        return results.get(patch.getPatchData().getId());
     }
 
-    Map<String, Result> install(final Collection<Patch> patches, boolean simulate, boolean synchronous) {
+    Map<String, PatchResult> install(final Collection<Patch> patches, boolean simulate, boolean synchronous) {
         checkPrerequisites(patches);
         try {
             // Compute individual patch results
-            final Map<String, Result> results = new LinkedHashMap<String, Result>();
+            final Map<String, PatchResult> results = new LinkedHashMap<String, PatchResult>();
             final Map<Bundle, String> toUpdate = new HashMap<Bundle, String>();
             final BundleVersionHistory history = createBundleVersionHistory();
-            Map<String, BundleUpdate> allUpdates = new HashMap<String, BundleUpdate>();
+            Map<String, io.fabric8.patch.management.BundleUpdate> allUpdates = new HashMap<String, io.fabric8.patch.management.BundleUpdate>();
             for (Patch patch : patches) {
                 String startup = readFully(new File(System.getProperty("karaf.base"), "etc/startup.properties"));
                 String overrides = readFully(new File(System.getProperty("karaf.base"), "etc/overrides.properties"));
-                List<BundleUpdate> updates = new ArrayList<BundleUpdate>();
+                List<io.fabric8.patch.management.BundleUpdate> updates = new ArrayList<io.fabric8.patch.management.BundleUpdate>();
                 Bundle[] allBundles = bundleContext.getBundles();
-                for (String url : patch.getBundles()) {
+                for (String url : patch.getPatchData().getBundles()) {
                     JarInputStream jis = new JarInputStream(new URL(url).openStream());
                     jis.close();
                     Manifest manifest = jis.getManifest();
@@ -374,7 +356,7 @@ public class ServiceImpl implements Service {
 
                     VersionRange range = null;
 
-                    if (patch.getVersionRange(url) == null) {
+                    if (patch.getPatchData().getVersionRange(url) == null) {
                         // default version range starts with x.y.0 as the lower bound
                         Version lower = new Version(v.getMajor(), v.getMinor(), 0);
 
@@ -383,7 +365,7 @@ public class ServiceImpl implements Service {
                             range = new VersionRange(false, lower, v, true);
                         }
                     } else {
-                        range = new VersionRange(patch.getVersionRange(url));
+                        range = new VersionRange(patch.getPatchData().getVersionRange(url));
                     }
 
                     if (range != null) {
@@ -391,10 +373,10 @@ public class ServiceImpl implements Service {
                             Version oldV = bundle.getVersion();
                             if (bundle.getBundleId() != 0 && stripSymbolicName(sn).equals(stripSymbolicName(bundle.getSymbolicName())) && range.contains(oldV)) {
                                 String location = history.getLocation(bundle);
-                                BundleUpdate update = new BundleUpdateImpl(sn, v.toString(), url, oldV.toString(), location);
+                                io.fabric8.patch.management.BundleUpdate update = new BundleUpdate(sn, v.toString(), url, oldV.toString(), location);
                                 updates.add(update);
                                 // Merge result
-                                BundleUpdate oldUpdate = allUpdates.get(sn);
+                                io.fabric8.patch.management.BundleUpdate oldUpdate = allUpdates.get(sn);
                                 if (oldUpdate != null) {
                                     Version upv = VersionTable.getVersion(oldUpdate.getNewVersion());
                                     if (upv.compareTo(v) < 0) {
@@ -412,10 +394,10 @@ public class ServiceImpl implements Service {
                 }
                 if (!simulate) {
                     new Offline(new File(System.getProperty("karaf.base")))
-                            .applyConfigChanges(((Patch) patch).getPatch(), getPatchStorage(patch));
+                            .applyConfigChanges(((Patch) patch).getPatchData(), getPatchStorage(patch));
                 }
-                Result result = new ResultImpl(patch, simulate, System.currentTimeMillis(), updates, startup, overrides);
-                results.put(patch.getId(), result);
+                PatchResult result = new PatchResult(patch, simulate, System.currentTimeMillis(), updates, startup, overrides);
+                results.put(patch.getPatchData().getId(), result);
             }
             // Apply results
             System.out.println("Bundles to update:");
@@ -434,7 +416,7 @@ public class ServiceImpl implements Service {
                         try {
                             applyChanges(toUpdate);
                             for (Patch patch : patches) {
-                                Result result = results.get(patch.getId());
+                                PatchResult result = results.get(patch.getPatchData().getId());
                                 ((Patch) patch).setResult(result);
                                 saveResult(result);
                             }
@@ -685,7 +667,7 @@ public class ServiceImpl implements Service {
      * @throws PatchException if the requirements for the patch are missing or not yet installed
      */
     protected void checkPrerequisites(Patch patch) throws PatchException {
-        for (String requirement : patch.getRequirements()) {
+        for (String requirement : patch.getPatchData().getRequirements()) {
             Patch required = getPatch(requirement);
             if (required == null) {
                 throw new PatchException(String.format("Required patch '%s' is missing", requirement));
@@ -717,9 +699,9 @@ public class ServiceImpl implements Service {
         public BundleVersionHistory(Map<String, Patch> patches) {
             super();
             for (Map.Entry<String, Patch> patch : patches.entrySet()) {
-                Result result = patch.getValue().getResult();
+                PatchResult result = patch.getValue().getResult();
                 if (result != null) {
-                    for (BundleUpdate update : result.getUpdates()) {
+                    for (io.fabric8.patch.management.BundleUpdate update : result.getUpdates()) {
                         String symbolicName = stripSymbolicName(update.getSymbolicName());
                         Map<String, String> versions = bundleVersions.get(symbolicName);
                         if (versions == null) {
