@@ -127,7 +127,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             // patchFile may "be" a patch descriptor or be a ZIP file containing descriptor
             PatchData patchData = null;
             // in case patch ZIP file has no descriptor, we'll "generate" patch data on the fly
-            PatchData fallbackPatchData = new PatchData(FilenameUtils.removeExtension(patchFile.getName()));
+            PatchData fallbackPatchData = new PatchData(FilenameUtils.removeExtension(FilenameUtils.getBaseName(url.getPath())));
             fallbackPatchData.setGenerated(true);
             fallbackPatchData.setPatchDirectory(Utils.relative(karafHome, new File(patchesDir, fallbackPatchData.getId())));
 
@@ -159,7 +159,6 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                                                     patchData.getId(), name));
                                 }
                             } else {
-                                System.out.println("extracting " + entry.getName());
                                 File target = null;
                                 if (name.startsWith("system/")) {
                                     // copy to ${karaf.default.repository}
@@ -177,7 +176,6 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             }
                         }
                     }
-
 
                     File targetDirForPatchResources = new File(patchesDir, patchData == null ? fallbackPatchData.getId() : patchData.getId());
                     // now copy non-maven resources (we should now know where to copy them)
@@ -204,7 +202,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
             if (patches.size() == 0) {
                 // let's use generated patch descriptor
-                File generatedPatchDescriptor = new File(patchesDir, patchData.getId() + ".patch");
+                File generatedPatchDescriptor = new File(patchesDir, fallbackPatchData.getId() + ".patch");
                 FileOutputStream out = new FileOutputStream(generatedPatchDescriptor);
                 try {
                     fallbackPatchData.storeTo(out);
