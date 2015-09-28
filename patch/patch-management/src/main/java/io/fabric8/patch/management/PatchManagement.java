@@ -32,7 +32,7 @@ public interface PatchManagement {
     ManagedPatch getPatchDetails(PatchDetailsRequest request);
 
     /**
-     * Retriees an artifact from a given URL and returns list of patch data it contains
+     * Retriees an artifact from a given URL and returns list of patch data it contains (*.zip) or it is (*.patch)
      * @param url
      * @return
      */

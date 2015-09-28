@@ -1,0 +1,6 @@
+id = my-patch-1
+file.0 = bin/start
+file.1 = etc/my.properties
+file.count = 2
+bundle.0 = io/fabric8/fabric-tranquility/1.2.3/fabric-tranquility-1.2.3.jar
+bundle.count = 1

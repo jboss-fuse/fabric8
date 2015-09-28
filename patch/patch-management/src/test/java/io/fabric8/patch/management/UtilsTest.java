@@ -15,6 +15,35 @@
  */
 package io.fabric8.patch.management;
 
+import java.io.File;
+import java.nio.file.attribute.PosixFilePermissions;
+
+import io.fabric8.patch.management.impl.Utils;
+import org.junit.Test;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
+
 public class UtilsTest {
+
+    @Test
+    public void fromNumericUnixPermissions() {
+        assertThat(Utils.getPermissionsFromUnixMode(new File("target"), 0775), equalTo(PosixFilePermissions.fromString("rwxrwxr-x")));
+        assertThat(Utils.getPermissionsFromUnixMode(new File("target"), 0641), equalTo(PosixFilePermissions.fromString("rw-r----x")));
+    }
+
+    @Test
+    public void toNumericUnixPermissions() {
+        assertThat(Utils.getUnixModeFromPermissions(new File("target"), PosixFilePermissions.fromString("rwxrwxr-x")), equalTo(0775));
+        assertThat(Utils.getUnixModeFromPermissions(new File("target"), PosixFilePermissions.fromString("rw-rw-r--")), equalTo(0664));
+        assertThat(Utils.getUnixModeFromPermissions(new File("target"), PosixFilePermissions.fromString("r--------")), equalTo(0400));
+    }
+
+    @Test
+    public void relativePaths() {
+        File f1 = new File("target/karaf/patches");
+        File f2 = new File("target/karaf/other");
+        assertThat(Utils.relative(f1, f2), equalTo("../other"));
+    }
 
 }

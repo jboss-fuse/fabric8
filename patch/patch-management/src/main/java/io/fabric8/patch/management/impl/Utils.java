@@ -20,6 +20,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Enumeration;
@@ -49,6 +50,8 @@ public class Utils {
      * @param target
      */
     public static void extractAndTrackZipEntry(PatchData patchData, ZipFile zip, ZipArchiveEntry entry, File target) throws IOException {
+        extractZipEntry(zip, entry, target);
+
         String name = entry.getName();
         if (name.startsWith("system/") || name.startsWith("repository/")) {
             // Maven artifact: a bundle, feature definition file, configuration file
@@ -61,7 +64,7 @@ public class Utils {
             String extension = FilenameUtils.getExtension(name);
             if ("jar".equals(extension) || "war".equals(extension)) {
                 patchData.getBundles().add(name);
-            } else if ("xml".equals(extension) && FEATURES_FILE.matcher(name).matches()) {
+            } else if ("xml".equals(extension) && FEATURES_FILE.matcher(fileName).matches()) {
                 patchData.getFeatureFiles().add(name);
             } else {
                 // must be a config, a POM (irrelevant) or other maven artifact (like ZIP)
@@ -71,7 +74,6 @@ public class Utils {
             // ordinary entry to be applied to ${karaf.root}
             patchData.getFiles().add(name);
         }
-        extractZipEntry(zip, entry, target);
     }
 
     /**
@@ -128,6 +130,46 @@ public class Utils {
         return result;
     }
 
+    /**
+     * Converts a set of {@link PosixFilePermission} to numeric UNIX permissions
+     * @param permissions
+     * @return
+     */
+    public static int getUnixModeFromPermissions(File file, Set<PosixFilePermission> permissions) {
+        if (permissions == null) {
+            return file.isDirectory() ? 0775 : 0664;
+        } else {
+            int result = 00;
+            if (permissions.contains(PosixFilePermission.OWNER_READ)) {
+                result |= 0400;
+            }
+            if (permissions.contains(PosixFilePermission.OWNER_WRITE)) {
+                result |= 0200;
+            }
+            if (permissions.contains(PosixFilePermission.OWNER_EXECUTE)) {
+                result |= 0100;
+            }
+            if (permissions.contains(PosixFilePermission.GROUP_READ)) {
+                result |= 0040;
+            }
+            if (permissions.contains(PosixFilePermission.GROUP_WRITE)) {
+                result |= 0020;
+            }
+            if (permissions.contains(PosixFilePermission.GROUP_EXECUTE)) {
+                result |= 0010;
+            }
+            if (permissions.contains(PosixFilePermission.OTHERS_READ)) {
+                result |= 0004;
+            }
+            if (permissions.contains(PosixFilePermission.OTHERS_WRITE)) {
+                result |= 0002;
+            }
+            if (permissions.contains(PosixFilePermission.OTHERS_EXECUTE)) {
+                result |= 0001;
+            }
+            return result;
+        }
+    }
 
     /**
      * Unpacks a ZIP file to targetDirectory
@@ -175,7 +217,7 @@ public class Utils {
             FileInputStream stream = new FileInputStream(fileinstallCfg);
             props.load(stream);
             deployDir = props.getProperty("felix.fileinstall.dir");
-            // TODO should do full substitution instead of these two (org.apache.felix.utils.properties.Properties)
+            // TODO should do full substitution instead of these two (see org.apache.felix.utils.properties.Properties)
             if (deployDir.contains("${karaf.home}")) {
                 deployDir = deployDir.replace("${karaf.home}", System.getProperty("karaf.home"));
             } else if (deployDir.contains("${karaf.base}")) {
@@ -188,4 +230,15 @@ public class Utils {
         return new File(deployDir);
     }
 
+    /**
+     * Finds relative path between two files
+     * @param f1
+     * @param f2
+     * @return
+     */
+    public static String relative(File f1, File f2) {
+        Path p1 = f1.toPath();
+        Path p2 = f2.toPath();
+        return p1.relativize(p2).toString();
+    }
 }

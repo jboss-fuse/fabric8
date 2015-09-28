@@ -31,7 +31,7 @@ public class Activator implements BundleActivator {
     private FrameworkStartLevel sl;
     private int activatedAt = 0;
 
-    private PatchManagementService patchManagementService;
+    private GitPatchManagementService patchManagementService;
     private final Object serviceAccess = new Object();
 
     // version of this bundle started from etc/startup.properties
