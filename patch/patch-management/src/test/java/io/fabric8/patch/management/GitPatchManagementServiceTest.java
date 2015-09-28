@@ -18,6 +18,7 @@ package io.fabric8.patch.management;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Properties;
 
 import io.fabric8.patch.management.impl.GitPatchManagementService;
 import io.fabric8.patch.management.impl.GitPatchManagementServiceImpl;
@@ -31,9 +32,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.osgi.framework.startlevel.BundleStartLevel;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 public class GitPatchManagementServiceTest extends PatchTestSupport {
@@ -98,7 +98,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         setVersions();
         freshKarafDistro();
         preparePatchZip("src/test/resources/baselines/baseline1", "target/karaf/patches/jboss-fuse-full-6.2.0-baseline.zip", true);
-        validateGitRepository();
+        validateInitialGitRepository();
     }
 
     @Test
@@ -106,13 +106,42 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         setVersions();
         freshKarafDistro();
         preparePatchZip("src/test/resources/baselines/baseline1", "target/karaf/system/org/jboss/fuse/jboss-fuse-full/6.2.0/jboss-fuse-full-6.2.0-baseline.zip", true);
-        validateGitRepository();
+        validateInitialGitRepository();
     }
 
-    /**
-     * Validates the initial content of patch management git repository
-     */
-    private void validateGitRepository() throws IOException, GitAPIException {
+    @Test
+    public void initializationPerformedPatchManagementAlreadyInstalled() throws IOException, GitAPIException {
+        testWithAlreadyInstalledPatchManagementBundle("1.2.0");
+    }
+
+    @Test
+    public void initializationPerformedPatchManagementInstalledAtOlderVersion() throws IOException, GitAPIException {
+        testWithAlreadyInstalledPatchManagementBundle("1.1.9");
+    }
+
+    private void testWithAlreadyInstalledPatchManagementBundle(String version) throws IOException, GitAPIException {
+        setVersions();
+        freshKarafDistro();
+        String line = String.format("io/fabric8/patch/patch-management/%s/patch-management-%s.jar=2\n", version, version);
+        FileUtils.write(new File(karafHome, "etc/startup.properties"), line, true);
+        preparePatchZip("src/test/resources/baselines/baseline1", "target/karaf/system/org/jboss/fuse/jboss-fuse-full/6.2.0/jboss-fuse-full-6.2.0-baseline.zip", true);
+        validateInitialGitRepository();
+    }
+
+    @Test
+    public void addPatch4() throws IOException, GitAPIException {
+        initializationPerformedBaselineDistributionFoundInSystem();
+
+        // prepare some ZIP patches
+        preparePatchZip("src/test/resources/content/patch4", "target/karaf/patches/source/patch-4.zip", false);
+
+        PatchManagement service = (PatchManagement) pm;
+        PatchData patchData = service.fetchPatches(new File("target/karaf/patches/source/patch-4.zip").toURI().toURL()).get(0);
+        assertThat(patchData.getId(), equalTo("patch-4"));
+        service.trackPatch(patchData);
+    }
+
+    private void validateInitialGitRepository() throws IOException, GitAPIException {
         pm = new GitPatchManagementServiceImpl(bundleContext);
         pm.start();
         pm.ensurePatchManagementInitialized();
@@ -130,6 +159,21 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
             }
         }
         assertTrue("Repository should contain baseline tag for version 6.2.0", found);
+
+        // look in etc/startup.properties for installed patch-management bundle
+        List<String> lines = FileUtils.readLines(new File(karafHome, "etc/startup.properties"));
+        found = false;
+        for (String line : lines) {
+            if ("io/fabric8/patch/patch-management/1.1.9/patch-management-1.1.9.jar=2".equals(line)) {
+                fail("Should not contain old patch-management bundle in etc/startup.properties");
+            }
+            if ("io/fabric8/patch/patch-management/1.2.0/patch-management-1.2.0.jar=2".equals(line)) {
+                if (found) {
+                    fail("Should contain only one declaration of patch-management bundle in etc/startup.properties");
+                }
+                found = true;
+            }
+        }
     }
 
     /**

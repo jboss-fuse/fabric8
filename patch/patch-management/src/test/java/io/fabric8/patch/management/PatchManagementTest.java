@@ -16,20 +16,11 @@
 package io.fabric8.patch.management;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.attribute.PosixFilePermission;
 import java.util.List;
-import java.util.Set;
 
 import io.fabric8.patch.management.impl.GitPatchManagementServiceImpl;
-import io.fabric8.patch.management.impl.Utils;
-import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
-import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.filefilter.AbstractFileFilter;
-import org.apache.commons.io.filefilter.DirectoryFileFilter;
 import org.junit.Before;
 import org.junit.Test;
 

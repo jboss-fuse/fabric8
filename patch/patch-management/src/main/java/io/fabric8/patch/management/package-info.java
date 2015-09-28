@@ -17,6 +17,6 @@
 /**
  * <p>Patch-Management bundle contains patch-related services to be run at lowest level. The may be run during very early stages
  * of Karaf. Do not expect even OSGi Log Service to be available.</p>
- * <p>All external dependencies are Private-Packaged inside the bundle.</p>
+ * <p>All external dependencies (like jgit) are Private-Packaged inside the bundle.</p>
  */
 package io.fabric8.patch.management;
