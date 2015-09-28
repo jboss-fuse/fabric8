@@ -99,6 +99,10 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         this.gitPatchRepository = repository;
     }
 
+    public GitPatchRepository getGitPatchRepository() {
+        return gitPatchRepository;
+    }
+
     @Override
     public ManagedPatch getPatchDetails(PatchDetailsRequest request) {
         return null;
@@ -237,8 +241,20 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
     /**
      * <p>This method turns static information about a patch into managed patch - i.e., patch added to git repository.</p>
+     *
      * <p>Such patch has its own branch ready to be merged (when patch is installed). Before installation we can verify the patch,
      * examine the content, check the differences, conflicts and perform simulation (merge to temporary branch created from <code>master</code>)</p>
+     *
+     * <p>The strategy is as follows:<ul>
+     *     <li><code>master</code> branch in git repository tracks all changes (from baselines, patch-management system, patches and user changes)</li>
+     *     <li>Initially there are 3 commits: baseline, patch-management bundle installation in etc/startup.properties, initial user changes</li>
+     *     <li>We always <strong>tag the commit baseline</strong></li>
+     *     <li>User changes may be applied each time Framework is restarted</li>
+     *     <li>When we add a patch, we create <em>named branch</em> from the <strong>latest baseline</strong></li>
+     *     <li>When we install a patch, we <strong>merge</strong> the patch branch with the master (that may contain additional user changes)</li>
+     *     <li>When patch ZIP contains new baseline distribution, after merging patch branch, we tag the merge commit in <code>master</code> branch as new baseline</li>
+     *     <li>Branches for new patches will then be created from new baseline commit</li>
+     * </ul></p>
      * @param patchData
      * @return
      */
@@ -280,6 +296,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             // 1) git history that tracks patch operations (but not the content of the patches)
             InitializationType state = checkMainRepositoryState(fork);
             switch (state) {
+                case ERROR_NO_VERSIONS:
+                    throw new PatchException("Can't determine Fuse/Fabric8 version. Is KARAF_HOME/fabric directory available?");
                 case INSTALL_BASELINE:
                     // track initial configuration
                     trackBaselineRepository(fork);
@@ -318,8 +336,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      */
     private InitializationType checkMainRepositoryState(Git git) throws GitAPIException, IOException {
         // we need baseline distribution of Fuse/AMQ at current version
-        String currentFuseVersion = determineVersion("fuse");
         String currentFabricVersion = bundleContext.getBundle().getVersion().toString();
+        String currentFuseVersion = determineVersion("fuse");
+        if (currentFuseVersion == null) {
+            return InitializationType.ERROR_NO_VERSIONS;
+        }
 
         if (!gitPatchRepository.containsCommit(git, "master", String.format(MARKER_BASELINE_COMMIT_PATTERN, currentFuseVersion))) {
             // we have empty repository
@@ -376,12 +397,16 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             git.add()
                     .addFilepattern(".")
                     .call();
-            gitPatchRepository.prepareCommit(git, String.format(MARKER_BASELINE_COMMIT_PATTERN, currentFuseVersion)).call();
+            RevCommit commit = gitPatchRepository.prepareCommit(git, String.format(MARKER_BASELINE_COMMIT_PATTERN, currentFuseVersion)).call();
+            git.tag()
+                    .setName(String.format("baseline-%s", currentFuseVersion))
+                    .setObjectId(commit)
+                    .call();
             gitPatchRepository.push(git);
         } else {
             String message = "Can't find baseline distribution \"" + baselineDistribution.getName() + "\" in patches dir or inside system repository.";
             System.err.println("[PATCH-error] " + message);
-            throw new IOException(message);
+            throw new PatchException(message);
         }
     }
 
@@ -619,7 +644,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         /** Baseline is committed into the repository, patch-management bundle is still only in deploy/ directory and not in etc/startup.properties */
         INSTALL_PATCH_MANAGEMENT_BUNDLE,
         /** Baseline isn't installed yet (or isn't installed at desired version) */
-        INSTALL_BASELINE
+        INSTALL_BASELINE,
+        /** Can't determine version from the installation files */
+        ERROR_NO_VERSIONS
     }
 
 }

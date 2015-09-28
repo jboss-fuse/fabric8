@@ -62,6 +62,10 @@ public class PatchData {
 
     private Collection<String> requirements;
 
+    // TODO: ↓
+    private Map<String, Long> fileSizes = new HashMap<>();
+    private Map<String, Long> artifactSizes = new HashMap<>();
+
     public PatchData(String id) {
         this.id = id;
         this.description = id;
