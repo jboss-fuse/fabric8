@@ -25,6 +25,11 @@ public class Patch {
     // dynamic patch information - patch tracked by patch management
     private ManagedPatch managedPatch;
 
+    public Patch(PatchData patchData, ManagedPatch mp) {
+        this.patchData = patchData;
+        this.managedPatch = mp;
+    }
+
     public PatchData getPatchData() {
         return patchData;
     }

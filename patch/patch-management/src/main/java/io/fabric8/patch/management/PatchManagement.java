@@ -29,20 +29,21 @@ public interface PatchManagement {
      * @param request
      * @return
      */
-    ManagedPatch getPatchDetails(PatchDetailsRequest request);
+    ManagedPatch getPatchDetails(PatchDetailsRequest request) throws PatchException;
 
     /**
      * Retriees an artifact from a given URL and returns list of patch data it contains (*.zip) or it is (*.patch)
      * @param url
      * @return
      */
-    List<PatchData> fetchPatches(URL url);
+    List<PatchData> fetchPatches(URL url) throws PatchException;
 
     /**
-     * Takes already downloaded {@link PatchData static patch data} and prepares the patch to be installed, examined and/or simulated
+     * Takes already downloaded {@link PatchData static patch data} and prepares the patch to be installed,
+     * examined and/or simulated
      * @param patchData
      * @return
      */
-    Patch trackPatch(PatchData patchData);
+    Patch trackPatch(PatchData patchData) throws PatchException;
 
 }

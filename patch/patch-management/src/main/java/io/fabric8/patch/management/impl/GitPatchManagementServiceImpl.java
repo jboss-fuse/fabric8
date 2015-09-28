@@ -46,10 +46,9 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffEntry;
-import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevTag;
 import org.eclipse.jgit.revwalk.RevWalk;
-import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Version;
 import org.osgi.framework.startlevel.BundleStartLevel;
@@ -64,7 +63,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
     private static final String[] MANAGED_DIRECTORIES = new String[] { "bin", "etc", "lib", "fabric", "licenses", "metatype" };
 
-    private static final Pattern VERSION = Pattern.compile("patch-management-(\\d+\\.\\d+\\.\\d+(?:\\.[^\\.]+)?)\\.jar");
+    private static final Pattern VERSION_PATTERN = Pattern.compile("patch-management-(\\d+\\.\\d+\\.\\d+(?:\\.[^\\.]+)?)\\.jar");
 
     /** A pattern of commit message when adding baseling distro */
     private static final String MARKER_BASELINE_COMMIT_PATTERN = "[PATCH/baseline] jboss-fuse-full-%s-baseline";
@@ -248,7 +247,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * <p>The strategy is as follows:<ul>
      *     <li><code>master</code> branch in git repository tracks all changes (from baselines, patch-management system, patches and user changes)</li>
      *     <li>Initially there are 3 commits: baseline, patch-management bundle installation in etc/startup.properties, initial user changes</li>
-     *     <li>We always <strong>tag the commit baseline</strong></li>
+     *     <li>We always <strong>tag the baseline commit</strong></li>
      *     <li>User changes may be applied each time Framework is restarted</li>
      *     <li>When we add a patch, we create <em>named branch</em> from the <strong>latest baseline</strong></li>
      *     <li>When we install a patch, we <strong>merge</strong> the patch branch with the master (that may contain additional user changes)</li>
@@ -259,9 +258,53 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * @return
      */
     @Override
-    public Patch trackPatch(PatchData patchData) {
-        //
-        return null;
+    public Patch trackPatch(PatchData patchData) throws PatchException {
+        Git fork = null;
+        try {
+            Git mainRepository = gitPatchRepository.findOrCreateMainGitRepository();
+            // prepare single fork for all the below operations
+            fork = gitPatchRepository.cloneRepository(mainRepository, true);
+
+            // 1. find latest baseline
+            RevTag latestBaseline = gitPatchRepository.findLatestBaseline(fork);
+            if (latestBaseline == null) {
+                throw new PatchException("Can't find baseline distribution tracked in patch management. Is patch management initialized?");
+            }
+
+            // prepare managed patch instance - that contains information after adding patch to patch-branch
+            ManagedPatch mp = new ManagedPatch();
+
+            // the commit from the patch should be available from "master" branch
+            RevCommit commit = new RevWalk(fork.getRepository()).parseCommit(latestBaseline.getObject());
+
+            // create dedicated branch for this patch. We'll immediately add patch content there so we can examine the
+            // changes from the latest baseline
+            fork.checkout()
+                    .setCreateBranch(true)
+                    .setName(patchData.getId())
+                    .setStartPoint(commit)
+                    .call();
+
+            // copy patch resources (but not maven artifacts from system/ or repository/) to working copy
+            copyManagedDirectories(new File(karafHome, patchData.getPatchDirectory()), fork.getRepository().getWorkTree(), false);
+
+            // add the changes
+            fork.add().addFilepattern(".").call();
+
+            // commit the changes (patch vs. baseline) to patch branch
+            gitPatchRepository.prepareCommit(fork, String.format("[PATCH] Tracking patch %s", patchData.getId())).call();
+
+            // push the patch branch
+            gitPatchRepository.push(fork, patchData.getId());
+
+            return new Patch(patchData, mp);
+        } catch (IOException | GitAPIException e) {
+            throw new PatchException(e.getMessage(), e);
+        } finally {
+            if (fork != null) {
+                gitPatchRepository.closeRepository(fork, true);
+            }
+        }
     }
 
     @Override
@@ -342,7 +385,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             return InitializationType.ERROR_NO_VERSIONS;
         }
 
-        if (!gitPatchRepository.containsCommit(git, "master", String.format(MARKER_BASELINE_COMMIT_PATTERN, currentFuseVersion))) {
+        if (!gitPatchRepository.containsTag(git, String.format(MARKER_BASELINE_COMMIT_PATTERN, currentFuseVersion))) {
             // we have empty repository
             return InitializationType.INSTALL_BASELINE;
         } else if (!gitPatchRepository.containsCommit(git, "master", String.format(MARKER_PATCH_MANAGEMENT_INSTALLATION_COMMIT_PATTERN, currentFabricVersion))) {
@@ -423,20 +466,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             // let's simply copy all user files on top of git working copy
             // then we can check the differences simply by committing the changes
             // there should be no conflicts, because we're not merging anything
-            for (String dir : MANAGED_DIRECTORIES) {
-                File destDir = new File(wcDir, dir);
-                // delete content of wc's copy of the dir to handle user removal of files
-                FileUtils.deleteQuietly(destDir);
-                FileUtils.copyDirectory(new File(karafBase, dir), destDir);
-                if ("bin".equals(dir)) {
-                    // repair file permissions
-                    for (File script : destDir.listFiles()) {
-                        if (!script.getName().endsWith(".bat")) {
-                            Files.setPosixFilePermissions(script.toPath(), getPermissionsFromUnixMode(script, 0775));
-                        }
-                    }
-                }
-            }
+            copyManagedDirectories(karafBase, wcDir, false);
 
             // commit the changes to main repository
             Status status = git.status().call();
@@ -445,11 +475,12 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 git.add()
                         .addFilepattern(".")
                         .call();
-                for (String name : status.getMissing()) {
-                    git.rm()
-                            .addFilepattern(name)
-                            .call();
-                }
+                // let's not remove files when user deleted something in managed directories
+//                for (String name : status.getMissing()) {
+//                    git.rm()
+//                            .addFilepattern(name)
+//                            .call();
+//                }
                 gitPatchRepository.prepareCommit(git, MARKER_USER_CHANGES_COMMIT).call();
                 gitPatchRepository.push(git);
 
@@ -464,6 +495,35 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             }
         } catch (GitAPIException | IOException e) {
             System.err.println("[PATCH-error] " + e.getMessage());
+        }
+    }
+
+    /**
+     * Copy content of managed directories from source (like ${karaf.home}) to target (e.g. working copy of git repository)
+     * @param sourceDir
+     * @param targetDir
+     * @param removeTarget whether to delete content of targetDir/<em>managedDirectory</em> first (helpful to detect removals from source)
+     * @throws IOException
+     */
+    private void copyManagedDirectories(File sourceDir, File targetDir, boolean removeTarget) throws IOException {
+        for (String dir : MANAGED_DIRECTORIES) {
+            File managedSrcDir = new File(sourceDir, dir);
+            if (!managedSrcDir.exists()) {
+                continue;
+            }
+            File destDir = new File(targetDir, dir);
+            if (removeTarget) {
+                FileUtils.deleteQuietly(destDir);
+            }
+            FileUtils.copyDirectory(managedSrcDir, destDir);
+            if ("bin".equals(dir)) {
+                // repair file permissions
+                for (File script : destDir.listFiles()) {
+                    if (!script.getName().endsWith(".bat")) {
+                        Files.setPosixFilePermissions(script.toPath(), getPermissionsFromUnixMode(script, 0775));
+                    }
+                }
+            }
         }
     }
 
@@ -517,7 +577,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 newVersion.add(line);
             } else {
                 // is it old, same, (newer??) version?
-                Matcher matcher = VERSION.matcher(line);
+                Matcher matcher = VERSION_PATTERN.matcher(line);
                 if (matcher.find()) {
                     // it should match
                     String alreadyInstalledVersion = matcher.group(1);
@@ -575,21 +635,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     private void applyChanges(Git git, RevCommit ... commits) throws IOException, GitAPIException {
         File wcDir = git.getRepository().getWorkTree();
 
-        ObjectReader reader = git.getRepository().newObjectReader();
         for (RevCommit commit : commits) {
             // assume we don't operate on merge commits, at least now.
             // merges will be needed when we start installing patches
-            RevCommit parent = commit.getParent(0);
-            CanonicalTreeParser ctp1 = new CanonicalTreeParser();
-            ctp1.reset(reader, new RevWalk(git.getRepository()).parseCommit(parent).getTree());
-            CanonicalTreeParser ctp2 = new CanonicalTreeParser();
-            ctp2.reset(reader, commit.getTree());
+            List<DiffEntry> diff = this.gitPatchRepository.diff(git, commit.getParent(0), commit);
 
-            List<DiffEntry> diff = git.diff()
-                    .setShowNameAndStatusOnly(true)
-                    .setOldTree(ctp1)
-                    .setNewTree(ctp2)
-                    .call();
             for (DiffEntry de : diff) {
                 DiffEntry.ChangeType ct = de.getChangeType();
                 /*
@@ -634,11 +684,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         File[] deployedPatchManagementBundles = deploy.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
-                return VERSION.matcher(name).matches();
+                return VERSION_PATTERN.matcher(name).matches();
             }
         });
         for (File anotherPatchManagementBundle : deployedPatchManagementBundles) {
-            Matcher matcher = VERSION.matcher(anotherPatchManagementBundle.getName());
+            Matcher matcher = VERSION_PATTERN.matcher(anotherPatchManagementBundle.getName());
             matcher.find();
             String version = matcher.group(1);
             Version deployedVersion = new Version(version);

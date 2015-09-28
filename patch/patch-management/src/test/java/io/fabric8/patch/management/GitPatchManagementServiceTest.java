@@ -17,17 +17,20 @@ package io.fabric8.patch.management;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Properties;
 
 import io.fabric8.patch.management.impl.GitPatchManagementService;
 import io.fabric8.patch.management.impl.GitPatchManagementServiceImpl;
 import io.fabric8.patch.management.impl.GitPatchRepository;
-import io.fabric8.patch.management.impl.GitPatchRepositoryImpl;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.ListBranchCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevWalk;
 import org.junit.Before;
 import org.junit.Test;
 import org.osgi.framework.startlevel.BundleStartLevel;
@@ -40,8 +43,6 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
     private GitPatchManagementService pm;
     private BundleStartLevel bsl;
-
-    private GitPatchRepositoryImpl repository;
 
     @Before
     public void init() throws IOException {
@@ -82,7 +83,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
     @Test
     public void initializationPerformedNoBaselineDistribution() throws IOException {
-        setVersions();
+        freshKarafDistro();
         pm = new GitPatchManagementServiceImpl(bundleContext);
         pm.start();
         try {
@@ -95,7 +96,6 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
     @Test
     public void initializationPerformedBaselineDistributionFoundInPatches() throws IOException, GitAPIException {
-        setVersions();
         freshKarafDistro();
         preparePatchZip("src/test/resources/baselines/baseline1", "target/karaf/patches/jboss-fuse-full-6.2.0-baseline.zip", true);
         validateInitialGitRepository();
@@ -103,7 +103,6 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
     @Test
     public void initializationPerformedBaselineDistributionFoundInSystem() throws IOException, GitAPIException {
-        setVersions();
         freshKarafDistro();
         preparePatchZip("src/test/resources/baselines/baseline1", "target/karaf/system/org/jboss/fuse/jboss-fuse-full/6.2.0/jboss-fuse-full-6.2.0-baseline.zip", true);
         validateInitialGitRepository();
@@ -120,7 +119,6 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     }
 
     private void testWithAlreadyInstalledPatchManagementBundle(String version) throws IOException, GitAPIException {
-        setVersions();
         freshKarafDistro();
         String line = String.format("io/fabric8/patch/patch-management/%s/patch-management-%s.jar=2\n", version, version);
         FileUtils.write(new File(karafHome, "etc/startup.properties"), line, true);
@@ -138,7 +136,45 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         PatchManagement service = (PatchManagement) pm;
         PatchData patchData = service.fetchPatches(new File("target/karaf/patches/source/patch-4.zip").toURI().toURL()).get(0);
         assertThat(patchData.getId(), equalTo("patch-4"));
-        service.trackPatch(patchData);
+        Patch patch = service.trackPatch(patchData);
+
+        GitPatchRepository repository = ((GitPatchManagementServiceImpl) pm).getGitPatchRepository();
+        Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
+
+        // we should see remote branch for the patch, but without checking it out, it won't be available in the clone's local branches
+        List<Ref> branches = fork.branchList().setListMode(ListBranchCommand.ListMode.REMOTE).call();
+        Ref patchBranch = null;
+        for (Ref remoteBranch : branches) {
+            if (String.format("refs/remotes/origin/%s", patchData.getId()).equals(remoteBranch.getName())) {
+                patchBranch = remoteBranch;
+                break;
+            }
+        }
+        assertNotNull("Should find remote branch for the added patch", patchBranch);
+
+        RevCommit patchCommit = new RevWalk(fork.getRepository()).parseCommit(patchBranch.getObjectId());
+        // patch commit should be child of baseline commit
+        RevCommit baselineCommit = new RevWalk(fork.getRepository()).parseCommit(patchCommit.getParent(0));
+
+        // this baseline commit should be tagged "baseline-VERSION"
+        Ref tag = fork.tagList().call().get(0);
+        assertThat(tag.getName(), equalTo("refs/tags/baseline-6.2.0"));
+        RevCommit baselineCommitFromTag = new RevWalk(fork.getRepository()).parseCommit(tag.getTarget().getObjectId());
+        assertThat(baselineCommit.getId(), equalTo(baselineCommitFromTag.getId()));
+
+        List<DiffEntry> patchDiff = repository.diff(fork, baselineCommit, patchCommit);
+        assertThat("patch-4 should lead to 6 changes", patchDiff.size(), equalTo(6));
+        for (Iterator<DiffEntry> iterator = patchDiff.iterator(); iterator.hasNext(); ) {
+            DiffEntry de = iterator.next();
+            if ("bin/start".equals(de.getNewPath()) && de.getChangeType() == DiffEntry.ChangeType.MODIFY) {
+                iterator.remove();
+            }
+            if ("bin/start".equals(de.getNewPath()) && de.getChangeType() == DiffEntry.ChangeType.MODIFY) {
+                iterator.remove();
+            }
+        }
+
+        repository.closeRepository(fork, true);
     }
 
     private void validateInitialGitRepository() throws IOException, GitAPIException {
@@ -174,6 +210,8 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
                 found = true;
             }
         }
+
+        repository.closeRepository(fork, true);
     }
 
     /**
@@ -184,14 +222,10 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         FileUtils.copyFile(new File("src/test/resources/karaf/bin/start"), new File(karafHome, "bin/start"));
         FileUtils.copyFile(new File("src/test/resources/karaf/bin/stop"), new File(karafHome, "bin/stop"));
         FileUtils.copyFile(new File("src/test/resources/karaf/lib/karaf.jar"), new File(karafHome, "lib/karaf.jar"));
+        FileUtils.copyFile(new File("src/test/resources/karaf/fabric/import/fabric/profiles/default.profile/io.fabric8.version.properties"),
+                new File(karafHome, "fabric/import/fabric/profiles/default.profile/io.fabric8.version.properties"));
         new File(karafHome, "licenses").mkdirs();
         new File(karafHome, "metatype").mkdirs();
-    }
-
-    private void setVersions() throws IOException {
-        String versions = "fuse = 6.2.0\n" +
-                "fabric = 1.2.0\n";
-        FileUtils.write(new File(karafHome, "fabric/import/fabric/profiles/default.profile/io.fabric8.version.properties"), versions);
     }
 
 }
