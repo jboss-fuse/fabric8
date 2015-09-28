@@ -19,19 +19,35 @@ import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.CommitCommand;
 import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.errors.RepositoryNotFoundException;
 import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.ObjectReader;
+import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.RepositoryCache;
 import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevTag;
+import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.transport.RefSpec;
+import org.eclipse.jgit.transport.TagOpt;
+import org.eclipse.jgit.treewalk.CanonicalTreeParser;
+import org.osgi.framework.Version;
 
 /**
  * Data-layer service that uses jGit to perform git operations for patch manageer
@@ -39,6 +55,8 @@ import org.eclipse.jgit.transport.RefSpec;
 public class GitPatchRepositoryImpl implements GitPatchRepository {
 
     public static final String MAIN_GIT_REPO_LOCATION = ".management/history";
+
+    private static final Pattern BASELINE_TAG_PATTERN = Pattern.compile("^baseline-(.+)$");
 
     private static final DateFormat TS = new SimpleDateFormat("yyyyMMdd-HHmmssSSS");
 
@@ -121,7 +139,10 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
         config.save();
 
         if (fetchAndCheckout) {
-            fork.fetch().setRemote("origin").call();
+            fork.fetch()
+                    .setRemote("origin")
+                    .setTagOpt(TagOpt.FETCH_TAGS)
+                    .call();
             fork.checkout()
                     .setCreateBranch(true)
                     .setName("master")
@@ -154,6 +175,16 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
     }
 
     @Override
+    public boolean containsTag(Git git, String tagName) throws GitAPIException {
+        for (Ref tag : git.tagList().call()) {
+            if (tag.getName().startsWith("refs/tags/") && tag.getName().endsWith("/" + tagName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
     public CommitCommand prepareCommit(Git git, String message) {
         return git.commit()
                 .setAuthor(karafHome.getName(), "fuse@redhat.com")
@@ -162,11 +193,74 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
 
     @Override
     public void push(Git git) throws GitAPIException {
+        push(git, "master");
+    }
+
+    @Override
+    public void push(Git git, String branch) throws GitAPIException {
         git.push()
                 .setRemote("origin")
-                .setRefSpecs(new RefSpec("master"))
+                .setRefSpecs(new RefSpec(branch))
                 .setPushTags()
                 .call();
+    }
+
+    @Override
+    public List<DiffEntry> diff(Git git, RevCommit commit1, RevCommit commit2) throws GitAPIException, IOException {
+        ObjectReader reader = git.getRepository().newObjectReader();
+
+        CanonicalTreeParser ctp1 = new CanonicalTreeParser();
+        CanonicalTreeParser ctp2 = new CanonicalTreeParser();
+        if (commit1.getTree() == null) {
+            commit1 = new RevWalk(git.getRepository()).parseCommit(commit1);
+        }
+        if (commit2.getTree() == null) {
+            commit2 = new RevWalk(git.getRepository()).parseCommit(commit2);
+        }
+
+        ctp1.reset(reader, commit1.getTree());
+        ctp2.reset(reader, commit2.getTree());
+
+        return git.diff()
+                .setShowNameAndStatusOnly(true)
+                .setOldTree(ctp1)
+                .setNewTree(ctp2)
+                .call();
+    }
+
+    /**
+     * <p>We have two methods of finding latest tag for baseline - sort tag names by version (not lexicographic!) or iterate down
+     * the <code>master</code> branch and check the latest commit that has a <code>baseline-VERSION</code> tag.
+     * We could also look by commit message pattern, but this isn't cool.</p>
+     * <p>Current implementation: sort tags by VERSION (from <code>baseline-VERSION</code> of tag name)</p>
+     * @param git
+     * @return
+     */
+    @Override
+    public RevTag findLatestBaseline(Git git) throws GitAPIException, IOException {
+        List<Ref> tags = git.tagList().call();
+        // set of tag versions in reversed order (highest version first)
+        Map<Version, Ref> versions = new TreeMap<Version, Ref>(new Comparator<Version>() {
+            @Override
+            public int compare(Version o1, Version o2) {
+                return o2.compareTo(o1);
+            }
+        });
+        for (Ref tag : tags) {
+            String name = tag.getName();
+            name = name.substring(name.lastIndexOf('/') + 1);
+            Matcher matcher = BASELINE_TAG_PATTERN.matcher(name);
+            if (matcher.matches()) {
+                versions.put(new Version(matcher.group(1)), tag);
+            }
+        }
+
+        if (versions.size() > 0) {
+            Ref latest = versions.values().iterator().next();
+            return new RevWalk(git.getRepository()).parseTag(latest.getObjectId());
+        } else {
+            return null;
+        }
     }
 
 }

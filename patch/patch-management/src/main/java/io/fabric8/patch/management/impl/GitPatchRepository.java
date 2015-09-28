@@ -17,10 +17,14 @@ package io.fabric8.patch.management.impl;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 import org.eclipse.jgit.api.CommitCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.diff.DiffEntry;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevTag;
 
 /**
  * <p>Interface for low-level git patch repository operations.</p>
@@ -58,7 +62,7 @@ public interface GitPatchRepository {
      * Retrieves {@link Git} handle to temporary fork of another repository. The returned repository is connected
      * to the forked repo using "origin" remote.
      * @param git
-     * @param fetchAndCheckout
+     * @param fetchAndCheckout whether to checkout <code>master</code> branch tracking <code>refs/remotes/origin/master</code>
      * @return
      */
     Git cloneRepository(Git git, boolean fetchAndCheckout) throws GitAPIException, IOException;
@@ -80,6 +84,14 @@ public interface GitPatchRepository {
     boolean containsCommit(Git git, String branch, String commitMessage) throws IOException, GitAPIException;
 
     /**
+     * Checks whether the repository contains named tag
+     * @param git
+     * @param tagName
+     * @return
+     */
+    boolean containsTag(Git git, String tagName) throws GitAPIException;
+
+    /**
      * Returns {@link CommitCommand} with Author and Message set
      * @param git
      * @return
@@ -91,5 +103,28 @@ public interface GitPatchRepository {
      * @param git
      */
     void push(Git git) throws GitAPIException;
+
+    /**
+     * Shorthand for <code>git push origin <em>branch</em></code>
+     * @param git
+     */
+    void push(Git git, String branch) throws GitAPIException;
+
+    /**
+     * Effectively performs <code>git diff commit1..commit2</code>
+     * @param git
+     * @param commit1
+     * @param commit2
+     * @return
+     */
+    List<DiffEntry> diff(Git git, RevCommit commit1, RevCommit commit2) throws GitAPIException, IOException;
+
+    /**
+     * <p>Patch baselines are always tagged in the form <code>baseline-VERSION</code>. This method finds the latest
+     * baseline.</p>
+     * @param git
+     * @return
+     */
+    RevTag findLatestBaseline(Git git) throws GitAPIException, IOException;
 
 }

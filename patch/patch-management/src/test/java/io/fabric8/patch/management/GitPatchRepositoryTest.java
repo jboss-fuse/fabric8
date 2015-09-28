@@ -26,6 +26,8 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.errors.NoWorkTreeException;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevTag;
+import org.eclipse.jgit.revwalk.RevWalk;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -95,6 +97,9 @@ public class GitPatchRepositoryTest {
         assertThat(clone2.branchList().call().size(), equalTo(0));
 
         assertTrue(repository.containsCommit(clone1, "master", "[PATCH] initialization"));
+
+        repository.cloneRepository(clone1, true);
+        repository.cloneRepository(clone2, true);
     }
 
     @Test
@@ -116,6 +121,46 @@ public class GitPatchRepositoryTest {
         Git clone2 = repository.cloneRepository(repo, true);
         String content = FileUtils.readFileToString(new File(clone2.getRepository().getWorkTree(), "file.txt"));
         assertThat(content, equalTo("hello!"));
+
+        repository.closeRepository(clone1, true);
+        repository.closeRepository(clone2, true);
+    }
+
+    @Test
+    public void containsTag() throws IOException, GitAPIException {
+        Git repo = repository.findOrCreateGitRepository(new File(patchesHome, "r2"), false);
+        RevCommit c1 = repository.prepareCommit(repo, "commit1").call();
+        RevCommit c2 = repository.prepareCommit(repo, "commit2").call();
+        RevCommit c3 = repository.prepareCommit(repo, "commit3").call();
+
+        repo.tag().setName("t1").setObjectId(c1).call();
+        repo.tag().setName("t3").setObjectId(c3).call();
+
+        assertTrue(repository.containsTag(repo, "t1"));
+        assertFalse(repository.containsTag(repo, "t2"));
+        assertTrue(repository.containsTag(repo, "t3"));
+
+        RevWalk rw = new RevWalk(repo.getRepository());
+        RevTag t1 = rw.parseTag(repo.getRepository().getRef("t1").getObjectId());
+        RevTag t3 = rw.parseTag(repo.getRepository().getRef("t3").getObjectId());
+        assertThat(t1.getObject().getId(), equalTo(c1.getId()));
+        assertThat(t3.getObject().getId(), equalTo(c3.getId()));
+    }
+
+    @Test
+    public void latestTag() throws GitAPIException, IOException {
+        Git repo = repository.findOrCreateGitRepository(new File(patchesHome, "r3"), false);
+        RevCommit c1 = repository.prepareCommit(repo, "commit1").call();
+        RevCommit c2 = repository.prepareCommit(repo, "commit2").call();
+        RevCommit c3 = repository.prepareCommit(repo, "commit3").call();
+
+        repo.tag().setName("baseline-1.2.3").setObjectId(c1).call();
+        // lower version, newer commit/tag
+        repo.tag().setName("baseline-1.2.1").setObjectId(c3).call();
+
+        RevTag tag = repository.findLatestBaseline(repo);
+        assertThat(tag.getTagName(), equalTo("baseline-1.2.3"));
+        assertThat(tag.getObject(), equalTo(c1.getId()));
     }
 
 }
