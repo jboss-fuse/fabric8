@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 #  Copyright 2005-2015 Red Hat, Inc.
 #
@@ -15,4 +15,4 @@
 #  permissions and limitations under the License.
 #
 
-echo "started"
+echo "stop baseline2"

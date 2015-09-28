@@ -184,8 +184,9 @@ public class Utils {
             for (Enumeration<ZipArchiveEntry> e = zf.getEntries(); e.hasMoreElements(); ) {
                 ZipArchiveEntry entry = e.nextElement();
                 String name = entry.getName();
-                while (skipInitialDirectories-- > 0) {
-                    name = name.substring(name.indexOf('/'));
+                int skip = skipInitialDirectories;
+                while (skip-- > 0) {
+                    name = name.substring(name.indexOf('/') + 1);
                 }
                 if (entry.isDirectory()) {
                     new File(targetDirectory, name).mkdirs();
