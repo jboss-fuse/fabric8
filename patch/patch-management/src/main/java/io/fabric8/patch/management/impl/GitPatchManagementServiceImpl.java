@@ -64,7 +64,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
     private static final String[] MANAGED_DIRECTORIES = new String[] { "bin", "etc", "lib", "fabric", "licenses", "metatype" };
 
-    private static final Pattern VERSION = Pattern.compile("patch-management-(\\d+\\.\\d+\\.\\d+\\.redhat-[\\d]+)\\.jar");
+    private static final Pattern VERSION = Pattern.compile("patch-management-(\\d+\\.\\d+\\.\\d+(?:\\.[^\\.]+)?)\\.jar");
 
     /** A pattern of commit message when adding baseling distro */
     private static final String MARKER_BASELINE_COMMIT_PATTERN = "[PATCH/baseline] jboss-fuse-full-%s-baseline";
@@ -454,7 +454,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 gitPatchRepository.push(git);
 
                 // now main repository has exactly the same content as ${karaf.home}
-                // TODO we have two methods of synchronization wrt future rollup changes:
+                // We have two methods of synchronization wrt future rollup changes:
                 // 1. we can pull from "origin" in the MAIN working copy (${karaf.hoome}) (making sure the copy is initialized)
                 // 2. we can apply rollup patch to temporary fork + working copy, perform merges, resolve conflicts, etc
                 //    and if everything goes fine, simply override ${karaf.hoome} content with the working copy content
@@ -490,26 +490,73 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             // we will do it in cleanupDeployDir()
         }
 
-        // let's modify etc/startup.properties (first in Git!)
-        if (true /* TODO if it's not already there */) {
-            StringBuilder sb = new StringBuilder();
-            String lf = System.lineSeparator();
-            sb.append(lf);
-            sb.append("# installed by patch-management-").append(bundleVersion).append(lf);
-            sb.append(String.format("io/fabric8/patch/patch-management/%s/patch-management-%s.jar=%d", bundleVersion, bundleVersion, Activator.PATCH_MANAGEMENT_START_LEVEL)).
-                    append(lf);
-            FileUtils.write(new File(git.getRepository().getDirectory().getParent(), "etc/startup.properties"), sb.toString(), true);
+        bundleContext.getBundle().adapt(BundleStartLevel.class).setStartLevel(Activator.PATCH_MANAGEMENT_START_LEVEL);
 
+        replacePatchManagementBundleInStartupPropertiesIfNecessary(git, bundleVersion);
+    }
+
+    /**
+     * One stop method that does everything related to installing patch-management bundle in etc/startup.properties.
+     * It removes old version of the bundle, doesn't do anything if the bundle is already there and appends a declaration if there was none.
+     * @param git
+     * @param bundleVersion
+     * @throws IOException
+     * @throws GitAPIException
+     */
+    private void replacePatchManagementBundleInStartupPropertiesIfNecessary(Git git, String bundleVersion) throws IOException, GitAPIException {
+        boolean modified = false;
+        boolean installed = false;
+
+        File etcStartupProperties = new File(git.getRepository().getDirectory().getParent(), "etc/startup.properties");
+        List<String> lines = FileUtils.readLines(etcStartupProperties);
+        List<String> newVersion = new LinkedList<>();
+        String lf = System.lineSeparator();
+        for (String line : lines) {
+            if (!line.startsWith("io/fabric8/patch/patch-management/")) {
+                // copy unchanged
+                newVersion.add(line);
+            } else {
+                // is it old, same, (newer??) version?
+                Matcher matcher = VERSION.matcher(line);
+                if (matcher.find()) {
+                    // it should match
+                    String alreadyInstalledVersion = matcher.group(1);
+                    Version v1 = new Version(alreadyInstalledVersion);
+                    Version v2 = new Version(bundleVersion);
+                    if (v1.equals(v2)) {
+                        // already installed at correct version
+                        installed = true;
+                    } else if (v1.compareTo(v2) < 0) {
+                        // we'll install new version
+                        modified = true;
+                    } else {
+                        // newer installed? why?
+                    }
+                }
+            }
+        }
+        if (modified && !installed) {
+            newVersion.add("");
+            newVersion.add("# installed by patch-management");
+            newVersion.add(String.format("io/fabric8/patch/patch-management/%s/patch-management-%s.jar=%d",
+                    bundleVersion, bundleVersion, Activator.PATCH_MANAGEMENT_START_LEVEL));
+
+            StringBuilder sb = new StringBuilder();
+            for (String newLine : newVersion) {
+                sb.append(newLine).append(lf);
+            }
+            FileUtils.write(new File(git.getRepository().getDirectory().getParent(), "etc/startup.properties"), sb.toString());
+
+            // now to git working copy
             git.add()
                     .addFilepattern("etc/startup.properties")
                     .call();
+
             RevCommit commit = gitPatchRepository.prepareCommit(git, String.format(MARKER_PATCH_MANAGEMENT_INSTALLATION_COMMIT_PATTERN, bundleVersion)).call();
             gitPatchRepository.push(git);
 
             // "checkout" the above change in main "working copy" (${karaf.home})
             applyChanges(git, commit);
-
-            bundleContext.getBundle().adapt(BundleStartLevel.class).setStartLevel(Activator.PATCH_MANAGEMENT_START_LEVEL);
 
             System.out.println(String.format("[PATCH] patch-management-%s.jar installed in etc/startup.properties. Please restart.", bundleVersion));
         }

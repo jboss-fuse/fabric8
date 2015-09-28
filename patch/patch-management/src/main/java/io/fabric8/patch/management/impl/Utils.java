@@ -218,7 +218,6 @@ public class Utils {
             FileInputStream stream = new FileInputStream(fileinstallCfg);
             props.load(stream);
             deployDir = props.getProperty("felix.fileinstall.dir");
-            // TODO should do full substitution instead of these two (see org.apache.felix.utils.properties.Properties)
             if (deployDir.contains("${karaf.home}")) {
                 deployDir = deployDir.replace("${karaf.home}", System.getProperty("karaf.home"));
             } else if (deployDir.contains("${karaf.base}")) {
