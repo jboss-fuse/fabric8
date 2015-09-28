@@ -1,0 +1,3 @@
+id = my-patch-2
+bundle.0 = mvn:io.fabric8/fabric-tranquility/1.2.3
+bundle.count = 1
