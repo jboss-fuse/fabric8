@@ -17,6 +17,7 @@ package io.fabric8.patch.management.impl;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
@@ -37,11 +38,13 @@ import io.fabric8.patch.management.PatchData;
 import io.fabric8.patch.management.PatchDetailsRequest;
 import io.fabric8.patch.management.PatchException;
 import io.fabric8.patch.management.PatchManagement;
+import io.fabric8.patch.management.PatchResult;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipFile;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.filefilter.FileFileFilter;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -56,19 +59,25 @@ import org.osgi.framework.startlevel.BundleStartLevel;
 import static io.fabric8.patch.management.impl.Utils.*;
 
 /**
- * <p>An implementation of Git-based patch management system. Deals with patch distributions and their unpacked content.</p>
- * <p>This class delegates lower-level operations to {@link GitPatchRepository} and performs more complex git operations in temporary clone+working copies.</p>
+ * <p>An implementation of Git-based patch management system. Deals with patch distributions and their unpacked
+ * content.</p>
+ * <p>This class delegates lower-level operations to {@link GitPatchRepository} and performs more complex git
+ * operations in temporary clone+working copies.</p>
  */
 public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchManagementService {
 
-    private static final String[] MANAGED_DIRECTORIES = new String[] { "bin", "etc", "lib", "fabric", "licenses", "metatype" };
+    private static final String[] MANAGED_DIRECTORIES = new String[] {
+            "bin", "etc", "lib", "fabric", "licenses", "metatype"
+    };
 
-    private static final Pattern VERSION_PATTERN = Pattern.compile("patch-management-(\\d+\\.\\d+\\.\\d+(?:\\.[^\\.]+)?)\\.jar");
+    private static final Pattern VERSION_PATTERN =
+            Pattern.compile("patch-management-(\\d+\\.\\d+\\.\\d+(?:\\.[^\\.]+)?)\\.jar");
 
     /** A pattern of commit message when adding baseling distro */
     private static final String MARKER_BASELINE_COMMIT_PATTERN = "[PATCH/baseline] jboss-fuse-full-%s-baseline";
     /** A pattern of commit message when installing patch-management (this) bundle in etc/startup.properties */
-    private static final String MARKER_PATCH_MANAGEMENT_INSTALLATION_COMMIT_PATTERN = "[PATCH/management] patch-management-%s.jar installed in etc/startup.properties";
+    private static final String MARKER_PATCH_MANAGEMENT_INSTALLATION_COMMIT_PATTERN =
+            "[PATCH/management] patch-management-%s.jar installed in etc/startup.properties";
     /** Commit message when applying user changes to managed directories */
     private static final String MARKER_USER_CHANGES_COMMIT = "[PATCH] Apply user changes";
 
@@ -103,8 +112,82 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     @Override
-    public ManagedPatch getPatchDetails(PatchDetailsRequest request) {
-        return null;
+    public List<Patch> listPatches(boolean details) throws PatchException {
+        List<Patch> patches = new LinkedList<>();
+        File[] patchDescriptors = patchesDir.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.endsWith(".patch") && new File(dir, name).isFile();
+            }
+        });
+
+        try {
+            for (File pd : patchDescriptors) {
+                Patch p = loadPatch(pd, details);
+                patches.add(p);
+            }
+        } catch (IOException e) {
+            throw new PatchException(e.getMessage(), e);
+        }
+
+        return patches;
+    }
+
+    /**
+     * Retrieves patch information from existing file
+     * @param patchDescriptor existing file with patch descriptor (<code>*.patch</code> file)
+     * @param details whether the returned {@link Patch} should contain {@link ManagedPatch} information
+     * @return
+     * @throws IOException
+     */
+    private Patch loadPatch(File patchDescriptor, boolean details) throws IOException {
+        Patch p = new Patch();
+
+        if (!patchDescriptor.exists() || !patchDescriptor.isFile()) {
+            throw new IllegalArgumentException(patchDescriptor.getName() + " doesn't exist");
+        }
+
+        PatchData data = PatchData.load(new FileInputStream(patchDescriptor));
+        p.setPatchData(data);
+
+        File patchDirectory = new File(patchesDir, FilenameUtils.getBaseName(patchDescriptor.getName()));
+        if (patchDirectory.exists() && patchDirectory.isDirectory()) {
+            // not every descriptor downloaded may be a ZIP file, not every patch has content
+            data.setPatchDirectory(patchDirectory);
+        }
+
+        File resultFile = new File(patchDirectory, FilenameUtils.getBaseName(patchDescriptor.getName()) + ".patch.result");
+        if (resultFile.exists() && resultFile.isFile()) {
+            PatchResult result = PatchResult.load(data, new FileInputStream(resultFile));
+            p.setResult(result);
+        }
+
+        if (details) {
+            ManagedPatch mp = gitPatchRepository.getManagedPatch(data.getId());
+            p.setManagedPatch(mp);
+        }
+
+        return p;
+    }
+
+    @Override
+    public Patch loadPatch(PatchDetailsRequest request) throws PatchException {
+        File descriptor = new File(patchesDir, request.getPatchId() + ".patch");
+        try {
+            Patch patch = loadPatch(descriptor, true);
+            if (request.isBundles()) {
+                // TODO
+            }
+            if (request.isFiles()) {
+                // TODO
+            }
+            if (request.isDiff()) {
+                // TODO
+            }
+            return patch;
+        } catch (IOException e) {
+            throw new PatchException(e.getMessage(), e);
+        }
     }
 
     @Override
@@ -130,9 +213,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             // patchFile may "be" a patch descriptor or be a ZIP file containing descriptor
             PatchData patchData = null;
             // in case patch ZIP file has no descriptor, we'll "generate" patch data on the fly
-            PatchData fallbackPatchData = new PatchData(FilenameUtils.removeExtension(FilenameUtils.getBaseName(url.getPath())));
+            PatchData fallbackPatchData = new PatchData(FilenameUtils.getBaseName(url.getPath()));
             fallbackPatchData.setGenerated(true);
-            fallbackPatchData.setPatchDirectory(Utils.relative(karafHome, new File(patchesDir, fallbackPatchData.getId())));
+            fallbackPatchData.setPatchDirectory(new File(patchesDir, fallbackPatchData.getId()));
 
             if (zf != null) {
                 File systemRepo = new File(karafHome, systemContext.getProperty("karaf.default.repository"));
@@ -153,7 +236,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                                     patchData = loadPatchData(target);
                                     patchData.setGenerated(false);
                                     File targetDirForPatchResources = new File(patchesDir, patchData.getId());
-                                    patchData.setPatchDirectory(Utils.relative(karafHome, targetDirForPatchResources));
+                                    patchData.setPatchDirectory(targetDirForPatchResources);
                                     target.renameTo(new File(patchesDir, patchData.getId() + ".patch"));
                                     patches.add(patchData);
                                 } else {
@@ -239,19 +322,26 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     /**
-     * <p>This method turns static information about a patch into managed patch - i.e., patch added to git repository.</p>
+     * <p>This method turns static information about a patch into managed patch - i.e., patch added to git
+     * repository.</p>
      *
-     * <p>Such patch has its own branch ready to be merged (when patch is installed). Before installation we can verify the patch,
-     * examine the content, check the differences, conflicts and perform simulation (merge to temporary branch created from <code>master</code>)</p>
+     * <p>Such patch has its own branch ready to be merged (when patch is installed). Before installation we can verify
+     * the patch,
+     * examine the content, check the differences, conflicts and perform simulation (merge to temporary branch created
+     * from <code>master</code>)</p>
      *
      * <p>The strategy is as follows:<ul>
-     *     <li><code>master</code> branch in git repository tracks all changes (from baselines, patch-management system, patches and user changes)</li>
-     *     <li>Initially there are 3 commits: baseline, patch-management bundle installation in etc/startup.properties, initial user changes</li>
+     *     <li><code>master</code> branch in git repository tracks all changes (from baselines, patch-management
+     *     system, patches and user changes)</li>
+     *     <li>Initially there are 3 commits: baseline, patch-management bundle installation in etc/startup.properties,
+     *     initial user changes</li>
      *     <li>We always <strong>tag the baseline commit</strong></li>
      *     <li>User changes may be applied each time Framework is restarted</li>
      *     <li>When we add a patch, we create <em>named branch</em> from the <strong>latest baseline</strong></li>
-     *     <li>When we install a patch, we <strong>merge</strong> the patch branch with the master (that may contain additional user changes)</li>
-     *     <li>When patch ZIP contains new baseline distribution, after merging patch branch, we tag the merge commit in <code>master</code> branch as new baseline</li>
+     *     <li>When we install a patch, we <strong>merge</strong> the patch branch with the master (that may contain
+     *     additional user changes)</li>
+     *     <li>When patch ZIP contains new baseline distribution, after merging patch branch, we tag the merge commit
+     *     in <code>master</code> branch as new baseline</li>
      *     <li>Branches for new patches will then be created from new baseline commit</li>
      * </ul></p>
      * @param patchData
@@ -286,7 +376,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     .call();
 
             // copy patch resources (but not maven artifacts from system/ or repository/) to working copy
-            copyManagedDirectories(new File(karafHome, patchData.getPatchDirectory()), fork.getRepository().getWorkTree(), false);
+            if (patchData.getPatchDirectory() != null) {
+                copyManagedDirectories(patchData.getPatchDirectory(), fork.getRepository().getWorkTree(), false);
+            }
 
             // add the changes
             fork.add().addFilepattern(".").call();
@@ -324,8 +416,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
     /**
      * Check if Fuse/Fabric8 installation is correctly managed by patch mechanism. Check if main git repository
-     * is created and is intialized with correct content, there are no conflicts and no pending updates in main Karaf directory.
-     * After this method is invoked, we're basically ready to perform rollup patches backed up by git repository
+     * is created and is intialized with correct content, there are no conflicts and no pending updates in main Karaf
+     * directory. After this method is invoked, we're basically ready to perform rollup patches backed up by git
+     * repository.
      */
     @Override
     public void ensurePatchManagementInitialized() {

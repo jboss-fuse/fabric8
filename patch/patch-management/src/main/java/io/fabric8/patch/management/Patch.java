@@ -27,6 +27,9 @@ public class Patch {
     // information about installed patch
     private PatchResult result;
 
+    public Patch() {
+    }
+
     public Patch(PatchData patchData, ManagedPatch mp) {
         this.patchData = patchData;
         this.managedPatch = mp;

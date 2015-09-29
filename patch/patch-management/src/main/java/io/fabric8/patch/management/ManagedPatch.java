@@ -21,7 +21,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Information about already downloaded patch stored and tracked by patch management system.
+ * Information about already downloaded patch stored and tracked by patch management system - dynamic patch
+ * information.
  */
 public class ManagedPatch {
 
