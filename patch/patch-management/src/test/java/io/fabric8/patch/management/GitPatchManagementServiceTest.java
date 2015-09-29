@@ -33,6 +33,7 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.verification.VerificationMode;
 import org.osgi.framework.startlevel.BundleStartLevel;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -55,7 +56,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     }
 
     @Test
-    public void disabledPatchManagement() {
+    public void disabledPatchManagement() throws IOException {
         properties.remove("fuse.patch.location");
         pm = new GitPatchManagementServiceImpl(bundleContext);
         pm.start();
@@ -63,14 +64,14 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     }
 
     @Test
-    public void enabledPatchManagement() {
+    public void enabledPatchManagement() throws IOException {
         pm = new GitPatchManagementServiceImpl(bundleContext);
         pm.start();
         assertTrue(pm.isEnabled());
     }
 
     @Test
-    public void initializationPerformedNoFuseVersion() {
+    public void initializationPerformedNoFuseVersion() throws IOException {
         pm = new GitPatchManagementServiceImpl(bundleContext);
         pm.start();
         try {
@@ -98,6 +99,8 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     public void initializationPerformedBaselineDistributionFoundInPatches() throws IOException, GitAPIException {
         freshKarafDistro();
         preparePatchZip("src/test/resources/baselines/baseline1", "target/karaf/patches/jboss-fuse-full-6.2.0-baseline.zip", true);
+        validateInitialGitRepository();
+        // check one more time - should not do anything harmful
         validateInitialGitRepository();
     }
 
@@ -296,7 +299,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         pm.ensurePatchManagementInitialized();
         GitPatchRepository repository = ((GitPatchManagementServiceImpl) pm).getGitPatchRepository();
 
-        verify(bsl).setStartLevel(2);
+        verify(bsl, atLeastOnce()).setStartLevel(2);
 
         Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
         List<Ref> tags = fork.tagList().call();

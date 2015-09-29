@@ -42,7 +42,7 @@ public class GitPatchRepositoryTest {
     private GitPatchRepository repository;
 
     @Before
-    public void init() {
+    public void init() throws IOException {
         karafHome = new File("target/karaf");
         FileUtils.deleteQuietly(karafHome);
         patchesHome = new File(karafHome, "patches");

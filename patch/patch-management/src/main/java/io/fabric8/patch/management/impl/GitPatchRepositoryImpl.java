@@ -81,7 +81,7 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
     }
 
     @Override
-    public void open() {
+    public void open() throws IOException {
         gitPatchManagement = new File(patchesDir, MAIN_GIT_REPO_LOCATION);
         if (!gitPatchManagement.exists()) {
             gitPatchManagement.mkdirs();
@@ -91,6 +91,7 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
         if (!tmpPatchManagement.exists()) {
             tmpPatchManagement.mkdirs();
         }
+        findOrCreateMainGitRepository();
     }
 
     @Override
@@ -208,6 +209,12 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
 
     @Override
     public List<DiffEntry> diff(Git git, RevCommit commit1, RevCommit commit2) throws GitAPIException, IOException {
+        return diff(git, commit1, commit2, true);
+    }
+
+    @Override
+    public List<DiffEntry> diff(Git git, RevCommit commit1, RevCommit commit2, boolean showNameAndStatusOnly)
+            throws GitAPIException, IOException {
         ObjectReader reader = git.getRepository().newObjectReader();
 
         CanonicalTreeParser ctp1 = new CanonicalTreeParser();
@@ -223,7 +230,7 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
         ctp2.reset(reader, commit2.getTree());
 
         return git.diff()
-                .setShowNameAndStatusOnly(true)
+                .setShowNameAndStatusOnly(showNameAndStatusOnly)
                 .setOldTree(ctp1)
                 .setNewTree(ctp2)
                 .call();

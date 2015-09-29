@@ -17,7 +17,6 @@ package io.fabric8.patch.management.impl;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
@@ -44,11 +43,13 @@ import org.apache.commons.compress.archivers.zip.ZipFile;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.filefilter.FileFileFilter;
+import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffEntry;
+import org.eclipse.jgit.diff.DiffFormatter;
+import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevTag;
 import org.eclipse.jgit.revwalk.RevWalk;
@@ -175,17 +176,48 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         File descriptor = new File(patchesDir, request.getPatchId() + ".patch");
         try {
             Patch patch = loadPatch(descriptor, true);
+            Git repo = gitPatchRepository.findOrCreateMainGitRepository();
+            List<DiffEntry> diff = null;
+            if (request.isFiles() || request.isDiff()) {
+                // fetch the information from git
+                ObjectId commitId = repo.getRepository().resolve(patch.getManagedPatch().getCommitId());
+                RevCommit commit = new RevWalk(repo.getRepository()).parseCommit(commitId);
+                diff = gitPatchRepository.diff(repo, commit.getParent(0), commit);
+            }
             if (request.isBundles()) {
-                // TODO
+                // it's already in PatchData
             }
             if (request.isFiles()) {
-                // TODO
+                for (DiffEntry de : diff) {
+                    DiffEntry.ChangeType ct = de.getChangeType();
+                    String newPath = de.getNewPath();
+                    String oldPath = de.getOldPath();
+                    switch (ct) {
+                        case ADD:
+                            patch.getManagedPatch().getFilesAdded().add(newPath);
+                            break;
+                        case MODIFY:
+                            patch.getManagedPatch().getFilesModified().add(newPath);
+                            break;
+                        case DELETE:
+                            patch.getManagedPatch().getFilesRemoved().add(oldPath);
+                            break;
+                    }
+                }
             }
             if (request.isDiff()) {
-                // TODO
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                DiffFormatter formatter = new DiffFormatter(baos);
+                formatter.setContext(4);
+                formatter.setRepository(repo.getRepository());
+                for (DiffEntry de : diff) {
+                    formatter.format(de);
+                }
+                formatter.flush();
+                patch.getManagedPatch().setUnifiedDiff(new String(baos.toByteArray(), "UTF-8"));
             }
             return patch;
-        } catch (IOException e) {
+        } catch (IOException | GitAPIException e) {
             throw new PatchException(e.getMessage(), e);
         }
     }
@@ -405,13 +437,17 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     @Override
-    public void start() {
-        gitPatchRepository.open();
+    public void start() throws IOException {
+        if (patchesDir != null) {
+            gitPatchRepository.open();
+        }
     }
 
     @Override
     public void stop() {
-        gitPatchRepository.close();
+        if (patchesDir != null) {
+            gitPatchRepository.close();
+        }
     }
 
     /**
@@ -478,7 +514,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             return InitializationType.ERROR_NO_VERSIONS;
         }
 
-        if (!gitPatchRepository.containsTag(git, String.format(MARKER_BASELINE_COMMIT_PATTERN, currentFuseVersion))) {
+        if (!gitPatchRepository.containsTag(git, String.format("baseline-%s", currentFuseVersion))) {
             // we have empty repository
             return InitializationType.INSTALL_BASELINE;
         } else if (!gitPatchRepository.containsCommit(git, "master", String.format(MARKER_PATCH_MANAGEMENT_INSTALLATION_COMMIT_PATTERN, currentFabricVersion))) {
