@@ -152,6 +152,8 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         }
         assertNotNull("Should find remote branch for the added patch", patchBranch);
 
+        assertThat(patch.getManagedPatch().getCommitId(), equalTo(patchBranch.getObjectId().getName()));
+
         RevCommit patchCommit = new RevWalk(fork.getRepository()).parseCommit(patchBranch.getObjectId());
         // patch commit should be child of baseline commit
         RevCommit baselineCommit = new RevWalk(fork.getRepository()).parseCommit(patchCommit.getParent(0));
@@ -258,15 +260,34 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
                 .setStartPoint("refs/remotes/origin/my-patch-1")
                 .call();
 
+        // commit stored in ManagedPatch vs. commit of the patch branch
         assertThat(ref.getObjectId().getName(), equalTo(p.getManagedPatch().getCommitId()));
     }
 
     @Test
-    public void listTrackedAndUntrackedNotInstalledPatches() throws IOException {
+    public void listPatches() throws IOException {
         freshKarafDistro();
         GitPatchRepository repository = patchManagement();
         PatchManagement management = (PatchManagement) pm;
-        assertThat(management.listPatches(false).size(), equalTo(2));
+
+        preparePatchZip("src/test/resources/content/patch1", "target/karaf/patches/source/patch-1.zip", false);
+        preparePatchZip("src/test/resources/content/patch3", "target/karaf/patches/source/patch-3.zip", false);
+
+        // with descriptor
+        management.fetchPatches(new File("target/karaf/patches/source/patch-1.zip").toURI().toURL());
+        // descriptor only
+        management.fetchPatches(new File("src/test/resources/descriptors/my-patch-2.patch").toURI().toURL());
+        // without descriptor
+        management.fetchPatches(new File("target/karaf/patches/source/patch-3.zip").toURI().toURL());
+
+        assertThat(management.listPatches(false).size(), equalTo(3));
+
+        assertTrue(new File(patchesHome, "my-patch-1").isDirectory());
+        assertTrue(new File(patchesHome, "my-patch-1.patch").isFile());
+        assertFalse(new File(patchesHome, "my-patch-2").exists());
+        assertTrue(new File(patchesHome, "my-patch-2.patch").isFile());
+        assertTrue(new File(patchesHome, "patch-3").isDirectory());
+        assertTrue(new File(patchesHome, "patch-3.patch").isFile());
     }
 
     private void validateInitialGitRepository() throws IOException, GitAPIException {

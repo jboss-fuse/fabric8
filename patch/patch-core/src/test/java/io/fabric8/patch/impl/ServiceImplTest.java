@@ -26,7 +26,16 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
 import java.net.URLStreamHandlerFactory;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
@@ -34,14 +43,18 @@ import java.util.zip.Deflater;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import io.fabric8.patch.*;
+import io.fabric8.patch.Service;
 import io.fabric8.patch.management.BundleUpdate;
 import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.management.PatchData;
 import io.fabric8.patch.management.PatchException;
+import io.fabric8.patch.management.PatchManagement;
 import io.fabric8.patch.management.PatchResult;
+import io.fabric8.patch.management.impl.GitPatchManagementServiceImpl;
 import org.easymock.EasyMock;
 import org.easymock.IAnswer;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.errors.GitAPIException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,12 +65,10 @@ import org.osgi.framework.Version;
 import org.osgi.framework.wiring.FrameworkWiring;
 import org.osgi.service.component.ComponentContext;
 
-import static org.easymock.EasyMock.*;
-import static io.fabric8.common.util.IOHelpers.copy;
-import static io.fabric8.common.util.IOHelpers.readFully;
-import static io.fabric8.common.util.IOHelpers.writeFully;
-import static org.junit.Assert.*;
+import static io.fabric8.common.util.IOHelpers.*;
 import static io.fabric8.patch.impl.PatchTestSupport.getDirectoryForResource;
+import static org.easymock.EasyMock.*;
+import static org.junit.Assert.*;
 
 public class ServiceImplTest {
 
@@ -180,38 +191,38 @@ public class ServiceImplTest {
         expect(componentContext.getBundleContext()).andReturn(bundleContext);
         expect(bundleContext.getBundle(0)).andReturn(sysBundle);
         expect(sysBundle.getBundleContext()).andReturn(sysBundleContext);
-        expect(sysBundleContext.getProperty(Service.PATCH_LOCATION))
+        expect(sysBundleContext.getProperty(Service.NEW_PATCH_LOCATION))
                 .andReturn(storage.toString()).anyTimes();
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
 
         ServiceImpl service = new ServiceImpl();
         service.activate(componentContext);
 
-        Patch patch = ServiceImpl.doLoad(service, getClass().getClassLoader().getResourceAsStream("test1.patch"));
-        assertEquals(2, patch.getPatchData().getBundles().size());
-        assertTrue(patch.getPatchData().getRequirements().isEmpty());
+        PatchData pd = PatchData.load(getClass().getClassLoader().getResourceAsStream("test1.patch"));
+        assertEquals(2, pd.getBundles().size());
+        assertTrue(pd.getRequirements().isEmpty());
     }
 
     @Test
     public void testLoadWithRanges() throws IOException {
         ServiceImpl service = createMockServiceImpl();
 
-        Patch patch = ServiceImpl.doLoad(service, getClass().getClassLoader().getResourceAsStream("test2.patch"));
-        assertEquals(2, patch.getPatchData().getBundles().size());
-        assertEquals("[1.0.0,2.0.0)", patch.getPatchData().getVersionRange("mvn:io.fabric8.test/test1/1.0.0"));
-        assertNull(patch.getPatchData().getVersionRange("mvn:io.fabric8.test/test2/1.0.0"));
-        assertTrue(patch.getPatchData().getRequirements().isEmpty());
+        PatchData pd = PatchData.load(getClass().getClassLoader().getResourceAsStream("test2.patch"));
+        assertEquals(2, pd.getBundles().size());
+        assertEquals("[1.0.0,2.0.0)", pd.getVersionRange("mvn:io.fabric8.test/test1/1.0.0"));
+        assertNull(pd.getVersionRange("mvn:io.fabric8.test/test2/1.0.0"));
+        assertTrue(pd.getRequirements().isEmpty());
     }
 
     @Test
     public void testLoadWithPrereqs() throws IOException {
         ServiceImpl service = createMockServiceImpl();
 
-        Patch patch = ServiceImpl.doLoad(service, getClass().getClassLoader().getResourceAsStream("test-with-prereq.patch"));
-        assertEquals(2, patch.getPatchData().getBundles().size());
-        assertEquals(1, patch.getPatchData().getRequirements().size());
-        assertTrue(patch.getPatchData().getRequirements().contains("prereq1"));
-        assertNull(patch.getPatchData().getVersionRange("mvn:io.fabric8.test/test2/1.0.0"));
+        PatchData pd = PatchData.load(getClass().getClassLoader().getResourceAsStream("test-with-prereq.patch"));
+        assertEquals(2, pd.getBundles().size());
+        assertEquals(1, pd.getRequirements().size());
+        assertTrue(pd.getRequirements().contains("prereq1"));
+        assertNull(pd.getVersionRange("mvn:io.fabric8.test/test2/1.0.0"));
     }
 
     @Test
@@ -291,16 +302,43 @@ public class ServiceImplTest {
         //
         // Create a new service, download a patch
         //
+        expect(bundle.getVersion()).andReturn(new Version(1, 2, 0)).anyTimes();
         expect(componentContext.getBundleContext()).andReturn(bundleContext);
-        expect(bundleContext.getBundle(0)).andReturn(sysBundle);
-        expect(sysBundle.getBundleContext()).andReturn(sysBundleContext);
-        expect(sysBundleContext.getProperty(Service.PATCH_LOCATION))
+        expect(bundleContext.getBundle(0)).andReturn(sysBundle).anyTimes();
+        expect(bundleContext.getBundle()).andReturn(bundle).anyTimes();
+        expect(sysBundle.getBundleContext()).andReturn(sysBundleContext).anyTimes();
+        expect(sysBundleContext.getProperty(Service.NEW_PATCH_LOCATION))
                 .andReturn(patches.toString()).anyTimes();
+        try {
+            expect(sysBundleContext.getProperty("karaf.home"))
+                    .andReturn(karaf.getCanonicalPath()).anyTimes();
+        } catch (IOException e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
 
+        PatchManagement pm = new GitPatchManagementServiceImpl(bundleContext) {
+            @Override
+            protected GitPatchManagementServiceImpl.InitializationType checkMainRepositoryState(Git git) throws GitAPIException, IOException {
+                return InitializationType.READY;
+            }
+        };
+
         ServiceImpl service = new ServiceImpl();
+        setField(service, "patchManagement", pm);
         service.activate(componentContext);
         return service;
+    }
+
+    private void setField(ServiceImpl service, String fieldName, Object value) {
+        Field f = null;
+        try {
+            f = service.getClass().getDeclaredField(fieldName);
+            f.setAccessible(true);
+            f.set(service, value);
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
     }
 
     @Test
@@ -327,6 +365,8 @@ public class ServiceImplTest {
         expect(componentContext.getBundleContext()).andReturn(bundleContext);
         expect(bundleContext.getBundle(0)).andReturn(sysBundle);
         expect(sysBundle.getBundleContext()).andReturn(sysBundleContext);
+        expect(sysBundleContext.getProperty(Service.NEW_PATCH_LOCATION))
+                .andReturn(null).anyTimes();
         expect(sysBundleContext.getProperty(Service.PATCH_LOCATION))
                 .andReturn(storage.toString()).anyTimes();
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
@@ -483,7 +523,7 @@ public class ServiceImplTest {
         expect(componentContext.getBundleContext()).andReturn(bundleContext);
         expect(bundleContext.getBundle(0)).andReturn(sysBundle);
         expect(sysBundle.getBundleContext()).andReturn(sysBundleContext);
-        expect(sysBundleContext.getProperty(Service.PATCH_LOCATION))
+        expect(sysBundleContext.getProperty(Service.NEW_PATCH_LOCATION))
                 .andReturn(storage.toString()).anyTimes();
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
 
@@ -526,11 +566,11 @@ public class ServiceImplTest {
     public void testVersionHistory() {
         // the same bundle has been patched twice
         Patch patch1 = new Patch(new PatchData("patch1", "First patch", null, null, null, null), null);
-        patch1.setResult(new PatchResult(patch1, true, System.currentTimeMillis(), new LinkedList<io.fabric8.patch.management.BundleUpdate>(), null, null));
+        patch1.setResult(new PatchResult(patch1.getPatchData(), true, System.currentTimeMillis(), new LinkedList<io.fabric8.patch.management.BundleUpdate>(), null, null));
         patch1.getResult().getUpdates().add(new BundleUpdate("my-bsn", "1.1.0", "mvn:groupId/my-bsn/1.1.0",
                 "1.0.0", "mvn:groupId/my-bsn/1.0.0"));
         Patch patch2 = new Patch(new PatchData("patch2", "Second patch", null, null, null, null), null);
-        patch2.setResult(new PatchResult(patch1, true, System.currentTimeMillis(), new LinkedList<io.fabric8.patch.management.BundleUpdate>(), null, null));
+        patch2.setResult(new PatchResult(patch1.getPatchData(), true, System.currentTimeMillis(), new LinkedList<io.fabric8.patch.management.BundleUpdate>(), null, null));
         patch2.getResult().getUpdates().add(new BundleUpdate("my-bsn;directive1=true", "1.2.0", "mvn:groupId/my-bsn/1.2.0",
                 "1.1.0", "mvn:groupId/my-bsn/1.1.0"));
         Map<String, Patch> patches = new HashMap<String, Patch>();

@@ -40,10 +40,10 @@ public class RollbackAction extends PatchActionSupport {
         if (!patch.isInstalled()) {
             throw new PatchException("Patch '" + patchId + "' is not installed");
         }
-        if (patch.getMigratorBundle() != null) {
+        if (patch.getPatchData().getMigratorBundle() != null) {
             throw new PatchException("Patch '" + patchId + "' does not support rollback");
         }
-        patch.rollback(false);
+//        patch.rollback(false);
     }
 
 }

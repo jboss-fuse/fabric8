@@ -50,7 +50,7 @@ public abstract class AbstractPatchIntegrationTest {
     // Install a patch and wait for installation to complete
     protected void install(String name) throws Exception {
         Patch patch = service.getPatch(name);
-        patch.install(false, false);
+//        patch.install(false, false);
 
         long start = System.currentTimeMillis();
         while (!patch.isInstalled() && System.currentTimeMillis() - start < TIMEOUT) {
@@ -64,7 +64,7 @@ public abstract class AbstractPatchIntegrationTest {
     // Rollback a patch and wait for rollback to complete
     protected void rollback(String name) throws Exception {
         Patch patch = service.getPatch(name);
-        patch.rollback(false);
+//        patch.rollback(false);
 
         long start = System.currentTimeMillis();
         while (patch.isInstalled() && System.currentTimeMillis() - start < TIMEOUT) {

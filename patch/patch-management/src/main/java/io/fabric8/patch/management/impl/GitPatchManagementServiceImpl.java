@@ -389,7 +389,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             // push the patch branch
             gitPatchRepository.push(fork, patchData.getId());
 
-            return new Patch(patchData, mp);
+            return new Patch(patchData, gitPatchRepository.getManagedPatch(patchData.getId()));
         } catch (IOException | GitAPIException e) {
             throw new PatchException(e.getMessage(), e);
         } finally {
@@ -470,7 +470,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * @param git a clone + working copy connected to main repository
      * @return the state the repository is at
      */
-    private InitializationType checkMainRepositoryState(Git git) throws GitAPIException, IOException {
+    protected InitializationType checkMainRepositoryState(Git git) throws GitAPIException, IOException {
         // we need baseline distribution of Fuse/AMQ at current version
         String currentFabricVersion = bundleContext.getBundle().getVersion().toString();
         String currentFuseVersion = determineVersion("fuse");
@@ -826,7 +826,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     /**
      * State of <code>${fuse.patch.location}/.management/history</code> repository indicating next action required
      */
-    private enum InitializationType {
+    public enum InitializationType {
         /** Everything is setup */
         READY,
         /** Baseline is committed into the repository and patch-management bundle is installed in etc/startup.properties */

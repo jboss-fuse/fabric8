@@ -48,12 +48,14 @@ public class ShowAction extends PatchActionSupport {
 
     @Override
     protected void doExecute(Service service) throws Exception {
-        Patch patch = service.getPatch(patchId);
-        ManagedPatch details = patchManagement.getPatchDetails(new PatchDetailsRequest(patchId, bundles, files, diff));
+        Patch patch = patchManagement.loadPatch(new PatchDetailsRequest(patchId, bundles, files, diff));
 
-        System.out.println(String.format("Patch ID: %s", patch.getId()));
-        System.out.println(String.format("Patch Commit ID: %s", details.getCommitId()));
+        System.out.println(String.format("Patch ID: %s", patch.getPatchData().getId()));
+        if (patch.getManagedPatch() != null) {
+            System.out.println(String.format("Patch Commit ID: %s", patch.getManagedPatch().getCommitId()));
+        }
         if (files) {
+            ManagedPatch details = patch.getManagedPatch();
             System.out.println(String.format("%d Files added%s", details.getFilesAdded().size(), details.getFilesAdded().size() == 0 ? "" : ":"));
             iterate(details.getFilesAdded());
             System.out.println(String.format("%d Files modified%s", details.getFilesModified().size(), details.getFilesModified().size() == 0 ? "" : ":"));
