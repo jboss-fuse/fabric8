@@ -187,7 +187,10 @@ public final class KarafContainerRegistration extends AbstractComponent implemen
             //We are creating a dummy container object, since this might be called before the actual container is ready.
             Container current = new ImmutableContainerBuilder().id(runtimeIdentity).ip(ip).build();
 
-            System.setProperty(SystemProperties.JAVA_RMI_SERVER_HOSTNAME, current.getIp());
+            if(System.getProperty(SystemProperties.JAVA_RMI_SERVER_HOSTNAME) == null){
+                System.setProperty(SystemProperties.JAVA_RMI_SERVER_HOSTNAME, current.getIp());
+            }
+
             registerJmx(current);
             registerSsh(current);
             registerHttp(current);
