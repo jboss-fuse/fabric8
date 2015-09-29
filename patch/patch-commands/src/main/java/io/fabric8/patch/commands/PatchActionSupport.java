@@ -15,10 +15,8 @@
  */
 package io.fabric8.patch.commands;
 
-import io.fabric8.patch.BundleUpdate;
-import io.fabric8.patch.management.Patch;
-import io.fabric8.patch.Result;
 import io.fabric8.patch.Service;
+import io.fabric8.patch.management.Patch;
 import org.apache.karaf.shell.console.AbstractAction;
 
 public abstract class PatchActionSupport extends AbstractAction {
@@ -37,25 +35,30 @@ public abstract class PatchActionSupport extends AbstractAction {
 
     protected abstract void doExecute(Service service) throws Exception;
 
-    protected void display(Result result) {
-        System.out.println(String.format("%-40s %-10s %-10s", "[name]", "[old]", "[new]"));
-        for (BundleUpdate update : result.getUpdates()) {
-            System.out.println(String.format("%-40s %-10s %-10s", update.getSymbolicName(), update.getPreviousVersion(), update.getNewVersion()));
-        }
-    }
+//    protected void display(Result result) {
+//        System.out.println(String.format("%-40s %-10s %-10s", "[name]", "[old]", "[new]"));
+//        for (BundleUpdate update : result.getUpdates()) {
+//            System.out.println(String.format("%-40s %-10s %-10s", update.getSymbolicName(), update.getPreviousVersion(), update.getNewVersion()));
+//        }
+//    }
 
+    /**
+     * Displays a list of {@link Patch patches} in short format. Each {@link Patch#getManagedPatch()} is already
+     * tracked.
+     * @param patches
+     * @param listBundles
+     */
     protected void display(Iterable<Patch> patches, boolean listBundles) {
         System.out.println(String.format("%-40s %-11s %s", "[name]", "[installed]", "[description]"));
         for (Patch patch : patches) {
-            String desc = patch.getDescription() != null ? patch.getDescription() : "";
-            System.out.println(String.format("%-40s %-11s %s", patch.getId(), Boolean.toString(patch.isInstalled()), desc));
+            String desc = patch.getPatchData().getDescription() != null ? patch.getPatchData().getDescription() : "";
+            System.out.println(String.format("%-40s %-11s %s", patch.getPatchData().getId(), Boolean.toString(patch.isInstalled()), desc));
             if (listBundles) {
-                for (String b : patch.getBundles()) {
+                for (String b : patch.getPatchData().getBundles()) {
                     System.out.println(String.format("\t%s", b));
                 }
             }
         }
     }
-
 
 }

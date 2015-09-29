@@ -44,7 +44,7 @@ public class InstallPatchCompleter implements Completer {
         for (Patch patch : service.getPatches()) {
             if (isInstalled() && patch.isInstalled()
                     || isUninstalled() && !patch.isInstalled()) {
-                delegate.getStrings().add(patch.getId());
+                delegate.getStrings().add(patch.getPatchData().getId());
             }
         }
         return delegate.complete(buffer, cursor, candidates);

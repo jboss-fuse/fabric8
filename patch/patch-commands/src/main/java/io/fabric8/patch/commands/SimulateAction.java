@@ -15,12 +15,11 @@
  */
 package io.fabric8.patch.commands;
 
-import org.apache.felix.gogo.commands.Argument;
-import org.apache.felix.gogo.commands.Command;
+import io.fabric8.patch.Service;
 import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.management.PatchException;
-import io.fabric8.patch.Result;
-import io.fabric8.patch.Service;
+import org.apache.felix.gogo.commands.Argument;
+import org.apache.felix.gogo.commands.Command;
 
 @Command(scope = "patch", name = "simulate", description = "Simulate a patch installation")
 public class SimulateAction extends PatchActionSupport {
@@ -41,8 +40,8 @@ public class SimulateAction extends PatchActionSupport {
         if (patch.isInstalled()) {
             throw new PatchException("Patch '" + patchId + "' is already installed");
         }
-        Result result = patch.simulate();
-        display(result);
+//        Result result = patch.simulate();
+//        display(result);
     }
 
 }

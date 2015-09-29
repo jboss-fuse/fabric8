@@ -98,8 +98,8 @@ public class GitPatchRepositoryTest {
 
         assertTrue(repository.containsCommit(clone1, "master", "[PATCH] initialization"));
 
-        repository.cloneRepository(clone1, true);
-        repository.cloneRepository(clone2, true);
+        repository.closeRepository(clone1, true);
+        repository.closeRepository(clone2, true);
     }
 
     @Test
