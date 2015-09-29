@@ -37,7 +37,7 @@ public interface GitPatchRepository {
      * Call if needed - when patch manager finds that it should use the repository.
      * Prepares resources (like {@link org.eclipse.jgit.api.Git} instance.
      */
-    void open();
+    void open() throws IOException;
 
     /**
      * Clean up resources
@@ -119,6 +119,17 @@ public interface GitPatchRepository {
      * @return
      */
     List<DiffEntry> diff(Git git, RevCommit commit1, RevCommit commit2) throws GitAPIException, IOException;
+
+    /**
+     * Effectively performs <code>git diff commit1..commit2</code> with details specification
+     * @param git
+     * @param commit1
+     * @param commit2
+     * @param showNameAndStatusOnly
+     * @return
+     */
+    List<DiffEntry> diff(Git git, RevCommit commit1, RevCommit commit2, boolean showNameAndStatusOnly)
+            throws GitAPIException, IOException;
 
     /**
      * <p>Patch baselines are always tagged in the form <code>baseline-VERSION</code>. This method finds the latest

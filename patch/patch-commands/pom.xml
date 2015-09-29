@@ -41,6 +41,7 @@
       org.apache.karaf.shell.console,
       org.apache.karaf.shell.console.completer,
       io.fabric8.patch,
+      io.fabric8.patch.management,
       jline.console,
       org.slf4j
     </fuse.osgi.import>

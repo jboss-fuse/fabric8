@@ -33,7 +33,7 @@ public interface GitPatchManagementService {
     /**
      * Starts the management if it is required.
      */
-    void start();
+    void start() throws IOException;
 
     /**
      * Stops the management, cleans up resources.

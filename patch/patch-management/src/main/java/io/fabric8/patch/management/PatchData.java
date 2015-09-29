@@ -21,7 +21,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -196,23 +195,23 @@ public class PatchData {
         return versionRanges.get(bundle);
     }
 
-    public Collection<String> getBundles() {
+    public List<String> getBundles() {
         return bundles;
     }
 
-    public Collection<String> getFeatureFiles() {
+    public List<String> getFeatureFiles() {
         return featureFiles;
     }
 
-    public Collection<String> getOtherArtifacts() {
+    public List<String> getOtherArtifacts() {
         return otherArtifacts;
     }
 
-    public Collection<String> getRequirements() {
+    public List<String> getRequirements() {
         return requirements;
     }
 
-    public Collection<String> getFiles() {
+    public List<String> getFiles() {
         return files;
     }
 

@@ -54,14 +54,21 @@ public class ShowAction extends PatchActionSupport {
         if (patch.getManagedPatch() != null) {
             System.out.println(String.format("Patch Commit ID: %s", patch.getManagedPatch().getCommitId()));
         }
+        if (bundles) {
+            System.out.println(String.format("#### %d Bundles%s", patch.getPatchData().getBundles().size(), patch.getPatchData().getBundles().size() == 0 ? "" : ":"));
+            iterate(patch.getPatchData().getBundles());
+        }
         if (files) {
             ManagedPatch details = patch.getManagedPatch();
-            System.out.println(String.format("%d Files added%s", details.getFilesAdded().size(), details.getFilesAdded().size() == 0 ? "" : ":"));
+            System.out.println(String.format("#### %d Files added%s", details.getFilesAdded().size(), details.getFilesAdded().size() == 0 ? "" : ":"));
             iterate(details.getFilesAdded());
-            System.out.println(String.format("%d Files modified%s", details.getFilesModified().size(), details.getFilesModified().size() == 0 ? "" : ":"));
+            System.out.println(String.format("#### %d Files modified%s", details.getFilesModified().size(), details.getFilesModified().size() == 0 ? "" : ":"));
             iterate(details.getFilesModified());
-            System.out.println(String.format("%d Files removed%s", details.getFilesRemoved().size(), details.getFilesRemoved().size() == 0 ? "" : ":"));
+            System.out.println(String.format("#### %d Files removed%s", details.getFilesRemoved().size(), details.getFilesRemoved().size() == 0 ? "" : ":"));
             iterate(details.getFilesRemoved());
+        }
+        if (diff) {
+            System.out.println("#### Patch changes:\n" + patch.getManagedPatch().getUnifiedDiff());
         }
     }
 
