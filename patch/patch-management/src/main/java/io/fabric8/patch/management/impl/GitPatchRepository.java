@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+import io.fabric8.patch.management.ManagedPatch;
 import org.eclipse.jgit.api.CommitCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -126,5 +127,12 @@ public interface GitPatchRepository {
      * @return
      */
     RevTag findLatestBaseline(Git git) throws GitAPIException, IOException;
+
+    /**
+     * Queries git repository for basic {@link ManagedPatch} information (details may be fetched later)
+     * @param id
+     * @return
+     */
+    ManagedPatch getManagedPatch(String id) throws IOException;
 
 }

@@ -29,6 +29,7 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.fabric8.patch.management.ManagedPatch;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.CommitCommand;
 import org.eclipse.jgit.api.CreateBranchCommand;
@@ -261,6 +262,22 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
         } else {
             return null;
         }
+    }
+
+    @Override
+    public ManagedPatch getManagedPatch(String id) throws IOException {
+        // basic ManagedPatch information is only commit id of the relevant branch name
+        ObjectId commitId = mainRepository.getRepository().resolve("refs/heads/" + id);
+        if (commitId == null) {
+            // this patch is not tracked (yet?)
+            return null;
+        }
+
+        ManagedPatch mp = new ManagedPatch();
+        mp.setPatchId(id);
+        mp.setCommitId(commitId.getName());
+
+        return mp;
     }
 
 }

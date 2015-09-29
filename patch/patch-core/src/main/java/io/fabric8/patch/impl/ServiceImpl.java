@@ -16,10 +16,7 @@
 package io.fabric8.patch.impl;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,7 +30,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -43,9 +39,11 @@ import java.util.jar.Manifest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.fabric8.patch.Service;
 import io.fabric8.patch.management.BundleUpdate;
 import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.management.PatchData;
+import io.fabric8.patch.management.PatchException;
 import io.fabric8.patch.management.PatchManagement;
 import io.fabric8.patch.management.PatchResult;
 import org.apache.felix.scr.annotations.Activate;
@@ -57,8 +55,6 @@ import org.apache.felix.utils.manifest.Clause;
 import org.apache.felix.utils.manifest.Parser;
 import org.apache.felix.utils.version.VersionRange;
 import org.apache.felix.utils.version.VersionTable;
-import io.fabric8.patch.management.PatchException;
-import io.fabric8.patch.Service;
 import org.apache.karaf.util.bundles.BundleUtils;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
@@ -71,7 +67,6 @@ import org.osgi.framework.Version;
 import org.osgi.framework.wiring.FrameworkWiring;
 import org.osgi.service.component.ComponentContext;
 
-import static io.fabric8.common.util.IOHelpers.close;
 import static io.fabric8.common.util.IOHelpers.readFully;
 import static io.fabric8.common.util.IOHelpers.writeFully;
 
@@ -115,6 +110,7 @@ public class ServiceImpl implements Service {
             if (dir != null) {
                 patchDir = new File(dir);
             } else {
+                // only now fallback to datafile of system bundle
                 patchDir = this.bundleContext.getDataFile("patches");
             }
         }
@@ -124,17 +120,17 @@ public class ServiceImpl implements Service {
                 throw new PatchException("Unable to create patch folder");
             }
         }
-        load();
+        load(true);
     }
 
     @Override
     public Iterable<Patch> getPatches() {
-        return Collections.unmodifiableCollection(load().values());
+        return Collections.unmodifiableCollection(load(true).values());
     }
 
     @Override
     public Patch getPatch(String id) {
-        return load().get(id);
+        return load(false).get(id);
     }
 
     @Override
@@ -150,6 +146,20 @@ public class ServiceImpl implements Service {
         } catch (Exception e) {
             throw new PatchException("Unable to download patch from url " + url, e);
         }
+    }
+
+    /**
+     * Loads available patches without caching
+     * @param details whether to load {@link io.fabric8.patch.management.ManagedPatch} details too
+     * @return
+     */
+    private Map<String, Patch> load(boolean details) {
+        List<Patch> patchesList = patchManagement.listPatches(details);
+        Map<String, Patch> patches = new HashMap<String, Patch>();
+        for (Patch patch : patchesList) {
+            patches.put(patch.getPatchData().getId(), patch);
+        }
+        return patches;
     }
 
     private File getPatchStorage(Patch patch) {
@@ -170,94 +180,6 @@ public class ServiceImpl implements Service {
             patches.add(patch);
         }
         install(patches, false, false);
-    }
-
-    /**
-     * Loads available patches without caching
-     * @return
-     */
-    private Map<String, Patch> load() {
-        Map<String, Patch> patches = new HashMap<String, Patch>();
-        for (File file : patchDir.listFiles()) {
-            if (file.exists() && file.getName().endsWith(".patch")) {
-                try {
-                    Patch patch = load(file);
-                    patches.put(patch.getPatchData().getId(), patch);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-        return patches;
-    }
-
-    Patch load(File file) throws IOException {
-        FileInputStream is = new FileInputStream(file);
-        try {
-            Patch patch = doLoad(this, is);
-            File fr = new File(file.getParent(), file.getName() + ".result");
-            if (fr.isFile()) {
-                patch.setResult(loadResult(patch, fr));
-            }
-            return patch;
-        } finally {
-            close(is);
-        }
-    }
-
-    public static Patch doLoad(Service service, InputStream is) throws IOException {
-        return new Patch(PatchData.load(is), null);
-    }
-
-    PatchResult loadResult(Patch patch, File file) throws IOException {
-        Properties props = new Properties();
-        FileInputStream is = new FileInputStream(file);
-        try {
-            props.load(is);
-            long date = Long.parseLong(props.getProperty(DATE));
-            List<io.fabric8.patch.management.BundleUpdate> updates = new ArrayList<io.fabric8.patch.management.BundleUpdate>();
-            int count = Integer.parseInt(props.getProperty(UPDATES + "." + COUNT, "0"));
-            for (int i = 0; i < count; i++) {
-                String sn = props.getProperty(UPDATES + "." + Integer.toString(i) + "." + SYMBOLIC_NAME);
-                String nv = props.getProperty(UPDATES + "." + Integer.toString(i) + "." + NEW_VERSION);
-                String nl = props.getProperty(UPDATES + "." + Integer.toString(i) + "." + NEW_LOCATION);
-                String ov = props.getProperty(UPDATES + "." + Integer.toString(i) + "." + OLD_VERSION);
-                String ol = props.getProperty(UPDATES + "." + Integer.toString(i) + "." + OLD_LOCATION);
-                updates.add(new BundleUpdate(sn, nv, nl, ov, ol));
-            }
-            String startup = props.getProperty(STARTUP);
-            String overrides = props.getProperty(OVERRIDES);
-            return new PatchResult(patch, false, date, updates, startup, overrides);
-        } finally {
-            close(is);
-        }
-    }
-
-    void saveResult(PatchResult result) throws IOException {
-        File file = new File(patchDir, result.getPatch().getPatchData().getId() + ".patch.result");
-        Properties props  = new Properties();
-        FileOutputStream fos = new FileOutputStream(file);
-        try {
-            props.put(DATE, Long.toString(result.getDate()));
-            props.put(UPDATES + "." + COUNT, Integer.toString(result.getUpdates().size()));
-            int i = 0;
-            for (BundleUpdate update : result.getUpdates()) {
-                props.put(UPDATES + "." + Integer.toString(i) + "." + SYMBOLIC_NAME, update.getSymbolicName());
-                props.put(UPDATES + "." + Integer.toString(i) + "." + NEW_VERSION, update.getNewVersion());
-                props.put(UPDATES + "." + Integer.toString(i) + "." + NEW_LOCATION, update.getNewLocation());
-                props.put(UPDATES + "." + Integer.toString(i) + "." + OLD_VERSION, update.getPreviousVersion());
-                props.put(UPDATES + "." + Integer.toString(i) + "." + OLD_LOCATION, update.getPreviousLocation());
-                i++;
-            }
-            props.put(STARTUP, ((PatchResult) result).getStartup());
-            String overrides = ((PatchResult) result).getOverrides();
-            if (overrides != null) {
-                props.put(OVERRIDES, overrides);
-            }
-            props.store(fos, "Installation results for patch " + result.getPatch().getPatchData().getId());
-        } finally {
-            close(fos);
-        }
     }
 
     public void rollback(final Patch patch, boolean force) throws PatchException {
@@ -314,7 +236,7 @@ public class ServiceImpl implements Service {
                     throw new PatchException("Unable to rollback patch " + patch.getPatchData().getId() + ": " + e.getMessage(), e);
                 }
                 ((Patch) patch).setResult(null);
-                File file = new File(patchDir, result.getPatch().getPatchData().getId() + ".patch.result");
+                File file = new File(patchDir, result.getPatchData().getId() + ".patch.result");
                 file.delete();
             }
         });
@@ -396,7 +318,7 @@ public class ServiceImpl implements Service {
                     new Offline(new File(System.getProperty("karaf.base")))
                             .applyConfigChanges(((Patch) patch).getPatchData(), getPatchStorage(patch));
                 }
-                PatchResult result = new PatchResult(patch, simulate, System.currentTimeMillis(), updates, startup, overrides);
+                PatchResult result = new PatchResult(patch.getPatchData(), simulate, System.currentTimeMillis(), updates, startup, overrides);
                 results.put(patch.getPatchData().getId(), result);
             }
             // Apply results
@@ -418,7 +340,7 @@ public class ServiceImpl implements Service {
                             for (Patch patch : patches) {
                                 PatchResult result = results.get(patch.getPatchData().getId());
                                 ((Patch) patch).setResult(result);
-                                saveResult(result);
+                                result.store();
                             }
                         } catch (Exception e) {
                             e.printStackTrace(System.err);
@@ -644,7 +566,7 @@ public class ServiceImpl implements Service {
      * Create a bundle version history based on the information in the .patch and .patch.result files
      */
     protected BundleVersionHistory createBundleVersionHistory() {
-        return new BundleVersionHistory(load());
+        return new BundleVersionHistory(load(true));
     }
 
     /**

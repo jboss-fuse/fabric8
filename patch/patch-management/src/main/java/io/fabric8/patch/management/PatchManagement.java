@@ -15,6 +15,8 @@
  */
 package io.fabric8.patch.management;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.net.URL;
 import java.util.List;
 
@@ -25,11 +27,20 @@ import java.util.List;
 public interface PatchManagement {
 
     /**
-     * Retrieves information about a patch from the repository
+     * Load all available patches. {@link Patch#getManagedPatch()} returns only basic information.
+     * To get more details, use {@link #loadPatch(PatchDetailsRequest)} with specific details.
+     * @param details whether to retrieve {@link ManagedPatch} information
+     * @return
+     * @throws PatchException
+     */
+    List<Patch> listPatches(boolean details) throws PatchException;
+
+    /**
+     * Load {@link Patch} with required details level, specified in {@link PatchDetailsRequest}.
      * @param request
      * @return
      */
-    ManagedPatch getPatchDetails(PatchDetailsRequest request) throws PatchException;
+    Patch loadPatch(PatchDetailsRequest request) throws PatchException;
 
     /**
      * Retriees an artifact from a given URL and returns list of patch data it contains (*.zip) or it is (*.patch)

@@ -200,6 +200,75 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         repository.closeRepository(fork, true);
     }
 
+    @Test
+    public void listNoPatchesAvailable() throws IOException {
+        freshKarafDistro();
+        GitPatchRepository repository = patchManagement();
+        PatchManagement management = (PatchManagement) pm;
+        assertThat(management.listPatches(false).size(), equalTo(0));
+    }
+
+    @Test
+    public void listSingleUntrackedPatch() throws IOException, GitAPIException {
+        freshKarafDistro();
+        GitPatchRepository repository = patchManagement();
+        PatchManagement management = (PatchManagement) pm;
+        preparePatchZip("src/test/resources/content/patch1", "target/karaf/patches/source/patch-1.zip", false);
+        management.fetchPatches(new File("target/karaf/patches/source/patch-1.zip").toURI().toURL());
+        List<Patch> patches = management.listPatches(true);
+        assertThat(patches.size(), equalTo(1));
+
+        Patch p = patches.get(0);
+        assertNotNull(p.getPatchData());
+        assertNull(p.getResult());
+        assertNull(p.getManagedPatch());
+
+        assertThat(p.getPatchData().getId(), equalTo("my-patch-1"));
+        assertThat(p.getPatchData().getFiles().size(), equalTo(2));
+        assertThat(p.getPatchData().getBundles().size(), equalTo(1));
+        assertThat(p.getPatchData().getBundles().iterator().next(), equalTo("io/fabric8/fabric-tranquility/1.2.3/fabric-tranquility-1.2.3.jar"));
+    }
+
+    @Test
+    public void listSingleTrackedPatch() throws IOException, GitAPIException {
+        freshKarafDistro();
+        GitPatchRepository repository = patchManagement();
+        PatchManagement management = (PatchManagement) pm;
+        preparePatchZip("src/test/resources/content/patch1", "target/karaf/patches/source/patch-1.zip", false);
+        management.fetchPatches(new File("target/karaf/patches/source/patch-1.zip").toURI().toURL());
+        List<Patch> patches = management.listPatches(true);
+        assertThat(patches.size(), equalTo(1));
+
+        Patch p = patches.get(0);
+        assertNotNull(p.getPatchData());
+        assertNull(p.getResult());
+        assertNull(p.getManagedPatch());
+
+        ((PatchManagement) pm).trackPatch(p.getPatchData());
+
+        p = management.listPatches(true).get(0);
+        assertNotNull(p.getPatchData());
+        assertNull(p.getResult());
+        assertNotNull(p.getManagedPatch());
+
+        Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
+        Ref ref = fork.checkout()
+                .setCreateBranch(true)
+                .setName("my-patch-1")
+                .setStartPoint("refs/remotes/origin/my-patch-1")
+                .call();
+
+        assertThat(ref.getObjectId().getName(), equalTo(p.getManagedPatch().getCommitId()));
+    }
+
+    @Test
+    public void listTrackedAndUntrackedNotInstalledPatches() throws IOException {
+        freshKarafDistro();
+        GitPatchRepository repository = patchManagement();
+        PatchManagement management = (PatchManagement) pm;
+        assertThat(management.listPatches(false).size(), equalTo(2));
+    }
+
     private void validateInitialGitRepository() throws IOException, GitAPIException {
         pm = new GitPatchManagementServiceImpl(bundleContext);
         pm.start();
@@ -249,6 +318,19 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
                 new File(karafHome, "fabric/import/fabric/profiles/default.profile/io.fabric8.version.properties"));
         new File(karafHome, "licenses").mkdirs();
         new File(karafHome, "metatype").mkdirs();
+    }
+
+    /**
+     * Install patch management inside fresh karaf distro. No validation is performed.
+     * @return
+     * @throws IOException
+     */
+    private GitPatchRepository patchManagement() throws IOException {
+        preparePatchZip("src/test/resources/baselines/baseline1", "target/karaf/system/org/jboss/fuse/jboss-fuse-full/6.2.0/jboss-fuse-full-6.2.0-baseline.zip", true);
+        pm = new GitPatchManagementServiceImpl(bundleContext);
+        pm.start();
+        pm.ensurePatchManagementInitialized();
+        return ((GitPatchManagementServiceImpl) pm).getGitPatchRepository();
     }
 
 }

@@ -15,6 +15,7 @@
  */
 package io.fabric8.patch.management;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -30,7 +31,9 @@ import java.util.Properties;
 import org.apache.commons.io.IOUtils;
 
 /**
- * Information about patch ZIP content
+ * <p>Information about patch ZIP content - static part of patch information before it is added and installed.</p>
+ * <p>The information from the descriptor is immutable - it isn't altered by patch management after retrieving the
+ * descriptor from ZIP file or URL when <code>patch:add</code>ing.</p>
  */
 public class PatchData {
 
@@ -52,17 +55,18 @@ public class PatchData {
     private String migratorBundle;
 
     // directory base of unpacked patch file. May be null if patch file was *.patch, not a ZIP file.
-    // this path is relative to ${karaf.home}
-    private String patchDirectory;
+    // this field is kind of "transient" - it's not stored in *.patch file, only set after reading the file
+    // to point to real directory where patch was unpacked
+    private File patchDirectory;
 
-    private Collection<String> bundles = new LinkedList<>();
-    private Collection<String> featureFiles = new LinkedList<>();
-    private Collection<String> otherArtifacts = new LinkedList<>();
-    private Collection<String> files = new LinkedList<String>();
+    private List<String> bundles = new LinkedList<>();
+    private List<String> featureFiles = new LinkedList<>();
+    private List<String> otherArtifacts = new LinkedList<>();
+    private List<String> files = new LinkedList<String>();
 
     private Map<String, String> versionRanges;
 
-    private Collection<String> requirements;
+    private List<String> requirements;
 
     // TODO: ↓
     private Map<String, Long> fileSizes = new HashMap<>();
@@ -73,7 +77,7 @@ public class PatchData {
         this.description = id;
     }
 
-    public PatchData(String id, String description, Collection<String> bundles, Map<String, String> versionRanges, Collection<String> requirements, String migratorBundle) {
+    public PatchData(String id, String description, List<String> bundles, Map<String, String> versionRanges, List<String> requirements, String migratorBundle) {
         this.id = id;
         this.description = description;
         this.bundles = bundles;
@@ -224,16 +228,17 @@ public class PatchData {
         this.generated = generated;
     }
 
-    public String getPatchDirectory() {
+    public File getPatchDirectory() {
         return patchDirectory;
     }
 
     /**
-     * Sets a path (relative to ${karaf.home}) to the directory where patch content (without patch descriptor)
-     * is unpacked.
+     * Sets a directory where patch content (without patch descriptor) is unpacked. This directory must exist.
+     * This field isn't stored in <code>*.patch</code> file, it has to be set explicitly after reading the
+     * patch descriptor.
      * @param patchDirectory
      */
-    public void setPatchDirectory(String patchDirectory) {
+    public void setPatchDirectory(File patchDirectory) {
         this.patchDirectory = patchDirectory;
     }
 
