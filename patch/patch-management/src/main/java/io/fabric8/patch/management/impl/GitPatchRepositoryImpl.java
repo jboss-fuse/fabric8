@@ -199,6 +199,7 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
                 .setRemote("origin")
                 .setRefSpecs(new RefSpec(branch))
                 .setPushTags()
+                .setForce(true)
                 .call();
     }
 

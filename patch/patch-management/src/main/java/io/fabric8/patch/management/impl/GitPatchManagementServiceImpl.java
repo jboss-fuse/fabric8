@@ -51,12 +51,16 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.eclipse.jgit.api.CherryPickResult;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.MergeCommand;
+import org.eclipse.jgit.api.ResetCommand;
 import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.diff.DiffFormatter;
 import org.eclipse.jgit.dircache.DirCache;
 import org.eclipse.jgit.dircache.DirCacheEntry;
+import org.eclipse.jgit.errors.AmbiguousObjectException;
+import org.eclipse.jgit.errors.IncorrectObjectTypeException;
 import org.eclipse.jgit.lib.IndexDiff;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
@@ -577,13 +581,97 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         }
     }
 
+    @Override
+    public void commitInstallation(String transaction) {
+        transactionIsValid(transaction, null);
+
+        Git fork = pendingTransactions.get(transaction);
+
+        try {
+            switch (pendingTransactionsTypes.get(transaction)) {
+                case ROLLUP:
+                    // hard reset of master branch to point to transaction branch + apply changes to ${karaf.home}
+                    fork.checkout()
+                            .setName("master")
+                            .call();
+
+                    // before we reset master to originate from new baseline, let's find previous baseline
+                    // apply changes from single range of commits
+                    RevTag baseline = gitPatchRepository.findCurrentBaseline(fork);
+                    RevCommit c1 = new RevWalk(fork.getRepository())
+                            .parseCommit(fork.getRepository().resolve(baseline.getTagName() + "^{commit}"));
+
+                    // hard reset of master branch - to point to other branch, originating from new baseline
+                    fork.reset()
+                            .setMode(ResetCommand.ResetType.HARD)
+                            .setRef(transaction)
+                            .call();
+                    gitPatchRepository.push(fork);
+
+                    RevCommit c2 = new RevWalk(fork.getRepository())
+                            .parseCommit(fork.getRepository().resolve("HEAD"));
+                    applyChanges(fork, c1, c2);
+                    break;
+                case NON_ROLLUP:
+                    // fast forward merge of master branch with transaction branch
+                    fork.checkout()
+                            .setName("master")
+                            .call();
+                    fork.merge()
+                            .setFastForward(MergeCommand.FastForwardMode.FF_ONLY)
+                            .include(fork.getRepository().resolve(transaction))
+                            .call();
+                    gitPatchRepository.push(fork);
+                    // apply a change from single commit
+                    RevCommit c = new RevWalk(fork.getRepository()).parseCommit(fork.getRepository().resolve("HEAD"));
+                    applyChanges(fork, c.getParent(0), c);
+                    break;
+            }
+            gitPatchRepository.push(fork);
+        } catch (GitAPIException e) {
+            throw new PatchException(e.getMessage(), e);
+        } catch (IncorrectObjectTypeException e) {
+            e.printStackTrace();
+        } catch (AmbiguousObjectException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            gitPatchRepository.closeRepository(fork, true);
+        }
+
+        pendingTransactions.remove(transaction);
+        pendingTransactionsTypes.remove(transaction);
+    }
+
+    @Override
+    public void rollbackInstallation(String transaction) {
+        transactionIsValid(transaction, null);
+
+        Git fork = pendingTransactions.get(transaction);
+
+        try {
+            switch (pendingTransactionsTypes.get(transaction)) {
+                case ROLLUP:
+                case NON_ROLLUP:
+                    // simply do nothing - do not push changes to origin
+                    break;
+            }
+        } finally {
+            gitPatchRepository.closeRepository(fork, true);
+        }
+
+        pendingTransactions.remove(transaction);
+        pendingTransactionsTypes.remove(transaction);
+    }
+
     /**
      * Resolve cherry-pick conflict before committing
      * TODO parameterize this conflict resolution
      * @param fork
      * @param result
      * @param commit conflicting commit
-     * @param preferNew whether to use "theirs" change
+     * @param preferNew whether to use "theirs" change - the one from cherry-picked commit
      */
     protected void handleCherryPickConflict(Git fork, CherryPickResult result, ObjectId commit, boolean preferNew)
             throws GitAPIException, IOException {
@@ -608,38 +696,6 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         }
     }
 
-    @Override
-    public void commitInstallation(String transaction) {
-        transactionIsValid(transaction, null);
-
-        switch (pendingTransactionsTypes.get(transaction)) {
-            case ROLLUP:
-                // hard reset of master branch to point to transaction branch + apply changes to ${karaf.home}
-                break;
-            case NON_ROLLUP:
-                // cherry-pick all commits from transaction branch to master
-                break;
-        }
-
-        pendingTransactions.remove(transaction);
-        pendingTransactionsTypes.remove(transaction);
-    }
-
-    @Override
-    public void rollbackInstallation(String transaction) {
-        transactionIsValid(transaction, null);
-
-        switch (pendingTransactionsTypes.get(transaction)) {
-            case ROLLUP:
-            case NON_ROLLUP:
-                // simply get rid of transaction branch + gc
-                break;
-        }
-
-        pendingTransactions.remove(transaction);
-        pendingTransactionsTypes.remove(transaction);
-    }
-
     /**
      * Checks if the commit is user (non P-patch installation) change
      * @param rc
@@ -657,7 +713,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     private void transactionIsValid(String transaction, Patch patch) {
         if (!pendingTransactions.containsKey(transaction)) {
             if (patch != null) {
-                throw new PatchException(String.format("Can't install \"%s\" - illegal transaction \"%s\".",
+                throw new PatchException(String.format("Can't proceed with \"%s\" patch - illegal transaction \"%s\".",
                         patch.getPatchData().getId(),
                         transaction));
             } else {
@@ -991,63 +1047,61 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             gitPatchRepository.push(git);
 
             // "checkout" the above change in main "working copy" (${karaf.home})
-            applyChanges(git, commit);
+            applyChanges(git, commit.getParent(0), commit);
 
             System.out.println(String.format("[PATCH] patch-management-%s.jar installed in etc/startup.properties. Please restart.", bundleVersion));
         }
     }
 
     /**
-     * <p>This method takes a list of commits and performs manual update to ${karaf.home}. If ${karaf.home} was also a
-     * checked out working copy, it'd be a matter of <code>git pull</code>. We may consider this implementation, but now
-     * I don't want to keep <code>.git</code> directory in ${karaf.home}. Also, jgit doesn't support <code>.git</code>
-     * <em>platform agnostic symbolic link</em> (see: <code>git init --separate-git-dir</code>)</p>
+     * <p>This method takes a range of commits (<code>c1..c2</code>(and performs manual update to ${karaf.home}.
+     * If ${karaf.home} was also a checked out working copy, it'd be a matter of <code>git pull</code>. We may consider
+     * this implementation, but now I don't want to keep <code>.git</code> directory in ${karaf.home}. Also, jgit
+     * doesn't support <code>.git</code> <em>platform agnostic symbolic link</em>
+     * (see: <code>git init --separate-git-dir</code>)</p>
      * <p>We don't have to fetch data from repository blobs, because <code>git</code> still points to checked-out
      * working copy</p>
      * @param git
-     * @param commits
+     * @param commit1
+     * @param commit2
      */
-    private void applyChanges(Git git, RevCommit... commits) throws IOException, GitAPIException {
+    private void applyChanges(Git git, RevCommit commit1, RevCommit commit2) throws IOException, GitAPIException {
         File wcDir = git.getRepository().getWorkTree();
 
-        for (RevCommit commit : commits) {
-            // assume we don't operate on merge commits, at least now.
-            // merges will be needed when we start installing patches
-            List<DiffEntry> diff = this.gitPatchRepository.diff(git, commit.getParent(0), commit);
+        List<DiffEntry> diff = this.gitPatchRepository.diff(git, commit1, commit2);
 
-            for (DiffEntry de : diff) {
-                DiffEntry.ChangeType ct = de.getChangeType();
-                /*
-                 * old path:
-                 *  - file add: always /dev/null
-                 *  - file modify: always getNewPath()
-                 *  - file delete: always the file being deleted
-                 *  - file copy: source file the copy originates from
-                 *  - file rename: source file the rename originates from
-                 * new path:
-                 *  - file add: always the file being created
-                 *  - file modify: always getOldPath()
-                 *  - file delete: always /dev/null
-                 *  - file copy: destination file the copy ends up at
-                 *  - file rename: destination file the rename ends up at
-                 */
-                String newPath = de.getNewPath();
-                String oldPath = de.getOldPath();
-                switch (ct) {
-                    case ADD:
-                    case MODIFY:
-                        System.out.println("[PATCH-change] Modifying " + newPath);
-                        FileUtils.copyFile(new File(wcDir, newPath), new File(karafHome, newPath));
-                        break;
-                    case DELETE:
-                        System.out.println("[PATCH-change] Deleting " + oldPath);
-                        FileUtils.deleteQuietly(new File(karafHome, oldPath));
-                        break;
-                    case COPY:
-                    case RENAME:
-                        // not handled now
-                        break;
-                }
+        for (DiffEntry de : diff) {
+            DiffEntry.ChangeType ct = de.getChangeType();
+            /*
+             * old path:
+             *  - file add: always /dev/null
+             *  - file modify: always getNewPath()
+             *  - file delete: always the file being deleted
+             *  - file copy: source file the copy originates from
+             *  - file rename: source file the rename originates from
+             * new path:
+             *  - file add: always the file being created
+             *  - file modify: always getOldPath()
+             *  - file delete: always /dev/null
+             *  - file copy: destination file the copy ends up at
+             *  - file rename: destination file the rename ends up at
+             */
+            String newPath = de.getNewPath();
+            String oldPath = de.getOldPath();
+            switch (ct) {
+                case ADD:
+                case MODIFY:
+                    System.out.println("[PATCH-change] Modifying " + newPath);
+                    FileUtils.copyFile(new File(wcDir, newPath), new File(karafHome, newPath));
+                    break;
+                case DELETE:
+                    System.out.println("[PATCH-change] Deleting " + oldPath);
+                    FileUtils.deleteQuietly(new File(karafHome, oldPath));
+                    break;
+                case COPY:
+                case RENAME:
+                    // not handled now
+                    break;
             }
         }
     }
