@@ -66,6 +66,8 @@ public class Utils {
             }
             String fileName = FilenameUtils.getBaseName(name);
             String extension = FilenameUtils.getExtension(name);
+
+            name = Utils.pathToMvnurl(name);
             if ("jar".equals(extension) || "war".equals(extension)) {
                 patchData.getBundles().add(name);
             } else if ("xml".equals(extension) && FEATURES_FILE.matcher(fileName).matches()) {
