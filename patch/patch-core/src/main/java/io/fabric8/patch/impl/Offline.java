@@ -23,6 +23,7 @@ import java.util.zip.ZipFile;
 import io.fabric8.common.util.IOHelpers;
 import io.fabric8.patch.management.PatchException;
 import io.fabric8.patch.management.PatchData;
+import io.fabric8.patch.management.Utils;
 import org.apache.felix.utils.version.VersionRange;
 import org.apache.felix.utils.version.VersionTable;
 import org.osgi.framework.Version;
@@ -207,7 +208,7 @@ public class Offline {
                 String line = startup.get(i).trim();
                 if (!line.isEmpty() && !line.startsWith("#")) {
                     int index = line.indexOf('=');
-                    String mvnUrl = pathToMvnurl(line.substring(0, index));
+                    String mvnUrl = Utils.pathToMvnurl(line.substring(0, index));
                     if (mvnUrl != null) {
                         Artifact startupArtifact = mvnurlToArtifact(mvnUrl, true);
                         if (startupArtifact != null) {
@@ -416,43 +417,6 @@ public class Offline {
 
     protected void log(int level, String message) {
         logger.log(level, message);
-    }
-
-    protected String pathToMvnurl(String path) {
-        String[] p = path.split("/");
-        if (p.length >= 4 && p[p.length-1].startsWith(p[p.length-3] + "-" + p[p.length-2])) {
-            String artifactId = p[p.length-3];
-            String version = p[p.length-2];
-            String classifier;
-            String type;
-            String artifactIdVersion = artifactId + "-" + version;
-            StringBuffer sb = new StringBuffer();
-            if (p[p.length-1].charAt(artifactIdVersion.length()) == '-') {
-                classifier = p[p.length-1].substring(artifactIdVersion.length() + 1, p[p.length-1].lastIndexOf('.'));
-            } else {
-                classifier = null;
-            }
-            type = p[p.length-1].substring(p[p.length-1].lastIndexOf('.') + 1);
-            sb.append("mvn:");
-            for (int j = 0; j < p.length - 3; j++) {
-                if (j > 0) {
-                    sb.append('.');
-                }
-                sb.append(p[j]);
-            }
-            sb.append('/').append(artifactId).append('/').append(version);
-            if (!"jar".equals(type) || classifier != null) {
-                sb.append('/');
-                if (!"jar".equals(type)) {
-                    sb.append(type);
-                }
-                if (classifier != null) {
-                    sb.append('/').append(classifier);
-                }
-            }
-            return sb.toString();
-        }
-        return null;
     }
 
     static Artifact mvnurlToArtifact(String resourceLocation, boolean skipNonMavenProtocols) {

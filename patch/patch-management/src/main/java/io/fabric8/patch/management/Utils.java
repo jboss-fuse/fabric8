@@ -13,7 +13,7 @@
  *  implied.  See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package io.fabric8.patch.management.impl;
+package io.fabric8.patch.management;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -177,13 +177,13 @@ public class Utils {
 
     /**
      * Unpacks a ZIP file to targetDirectory
-     * @param baselineDistribution
+     * @param zipFile
      * @param targetDirectory
      * @param skipInitialDirectories how many levels of a path to skip when unpacking (like skipping base directory inside ZIP)
      * @throws IOException
      */
-    public static void unpack(File baselineDistribution, File targetDirectory, int skipInitialDirectories) throws IOException {
-        ZipFile zf = new ZipFile(baselineDistribution);
+    public static void unpack(File zipFile, File targetDirectory, int skipInitialDirectories) throws IOException {
+        ZipFile zf = new ZipFile(zipFile);
         try {
             for (Enumeration<ZipArchiveEntry> e = zf.getEntries(); e.hasMoreElements(); ) {
                 ZipArchiveEntry entry = e.nextElement();
@@ -245,4 +245,47 @@ public class Utils {
         Path p2 = f2.toPath();
         return p1.relativize(p2).toString();
     }
+
+    /**
+     * Converts file paths relative to <code>${karaf.default.repository}</code> to <code>mvn:</code> artifacts
+     * @param path
+     * @return
+     */
+    public static String pathToMvnurl(String path) {
+        String[] p = path.split("/");
+        if (p.length >= 4 && p[p.length-1].startsWith(p[p.length-3] + "-" + p[p.length-2])) {
+            String artifactId = p[p.length-3];
+            String version = p[p.length-2];
+            String classifier;
+            String type;
+            String artifactIdVersion = artifactId + "-" + version;
+            StringBuffer sb = new StringBuffer();
+            if (p[p.length-1].charAt(artifactIdVersion.length()) == '-') {
+                classifier = p[p.length-1].substring(artifactIdVersion.length() + 1, p[p.length-1].lastIndexOf('.'));
+            } else {
+                classifier = null;
+            }
+            type = p[p.length-1].substring(p[p.length-1].lastIndexOf('.') + 1);
+            sb.append("mvn:");
+            for (int j = 0; j < p.length - 3; j++) {
+                if (j > 0) {
+                    sb.append('.');
+                }
+                sb.append(p[j]);
+            }
+            sb.append('/').append(artifactId).append('/').append(version);
+            if (!"jar".equals(type) || classifier != null) {
+                sb.append('/');
+                if (!"jar".equals(type)) {
+                    sb.append(type);
+                }
+                if (classifier != null) {
+                    sb.append('/').append(classifier);
+                }
+            }
+            return sb.toString();
+        }
+        return null;
+    }
+
 }

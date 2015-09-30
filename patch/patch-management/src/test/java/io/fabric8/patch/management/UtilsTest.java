@@ -18,10 +18,10 @@ package io.fabric8.patch.management;
 import java.io.File;
 import java.nio.file.attribute.PosixFilePermissions;
 
-import io.fabric8.patch.management.impl.Utils;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 public class UtilsTest {
@@ -44,6 +44,11 @@ public class UtilsTest {
         File f1 = new File("target/karaf/patches");
         File f2 = new File("target/karaf/other");
         assertThat(Utils.relative(f1, f2), equalTo("../other"));
+    }
+
+    @Test
+    public void pathToMvnUris() {
+        assertThat(Utils.pathToMvnurl("a/b/c"), nullValue());
     }
 
 }
