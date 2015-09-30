@@ -23,7 +23,6 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.util.Properties;
 import java.util.Set;
 
-import io.fabric8.patch.management.impl.Utils;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
 import org.apache.commons.io.FileUtils;

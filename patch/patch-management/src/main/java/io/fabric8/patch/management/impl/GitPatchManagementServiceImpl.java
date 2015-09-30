@@ -70,7 +70,7 @@ import org.osgi.framework.BundleContext;
 import org.osgi.framework.Version;
 import org.osgi.framework.startlevel.BundleStartLevel;
 
-import static io.fabric8.patch.management.impl.Utils.*;
+import static io.fabric8.patch.management.Utils.*;
 
 /**
  * <p>An implementation of Git-based patch management system. Deals with patch distributions and their unpacked

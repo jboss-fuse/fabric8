@@ -132,8 +132,7 @@ public class ServiceImpl implements Service {
 
     @Override
     public Patch getPatch(String id) {
-        patchManagement.loadPatch(new PatchDetailsRequest(id));
-        return load(false).get(id);
+        return patchManagement.loadPatch(new PatchDetailsRequest(id));
     }
 
     @Override
@@ -277,12 +276,9 @@ public class ServiceImpl implements Service {
                     }
                 }
 
-                // each patch may change files,
+                // each patch may change files, we're not updating the main files yet - it'll be done when
+                // install transaction is committed
                 patchManagement.install(transaction, patch);
-//                if (!simulate) {
-//                    new Offline(new File(System.getProperty("karaf.base")))
-//                            .applyConfigChanges(((Patch) patch).getPatchData(), getPatchStorage(patch));
-//                }
 
                 // prepare patch result before doing runtime changes
                 PatchResult result = new PatchResult(patch.getPatchData(), simulate, System.currentTimeMillis(), updates, startup, overrides);
@@ -297,7 +293,7 @@ public class ServiceImpl implements Service {
             if (simulate) {
                 System.out.println("Running simulation only - no bundles are being updated at this time");
             } else {
-                System.out.println("Installation will begin.  The connection may be lost or the console restarted.");
+                System.out.println("Installation will begin. The connection may be lost or the console restarted.");
             }
             System.out.flush();
 
