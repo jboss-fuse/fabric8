@@ -59,8 +59,6 @@ import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.diff.DiffFormatter;
 import org.eclipse.jgit.dircache.DirCache;
 import org.eclipse.jgit.dircache.DirCacheEntry;
-import org.eclipse.jgit.errors.AmbiguousObjectException;
-import org.eclipse.jgit.errors.IncorrectObjectTypeException;
 import org.eclipse.jgit.lib.IndexDiff;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
@@ -277,13 +275,20 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 File systemRepo = new File(karafHome, systemContext.getProperty("karaf.default.repository"));
                 try {
                     List<ZipArchiveEntry> otherResources = new LinkedList<>();
-
+                    boolean skipRootDir = false;
                     for (Enumeration<ZipArchiveEntry> e = zf.getEntries(); e.hasMoreElements(); ) {
                         ZipArchiveEntry entry = e.nextElement();
+                        if (!skipRootDir && (entry.getName().startsWith("jboss-fuse-")
+                                || entry.getName().startsWith("jboss-a-mq-"))) {
+                            skipRootDir = true;
+                        }
                         if (entry.isDirectory() || entry.isUnixSymlink()) {
                             continue;
                         }
                         String name = entry.getName();
+                        if (skipRootDir) {
+                            name = name.substring(name.indexOf('/') + 1);
+                        }
                         if (!name.contains("/") && name.endsWith(".patch")) {
                             // patch descriptor in ZIP's root directory
                             // TODO why there must be only one?
@@ -316,7 +321,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                                 otherResources.add(entry);
                             }
                             if (target != null) {
-                                extractAndTrackZipEntry(fallbackPatchData, zf, entry, target);
+                                extractAndTrackZipEntry(fallbackPatchData, zf, entry, target, skipRootDir);
                             }
                         }
                     }
@@ -324,8 +329,12 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     File targetDirForPatchResources = new File(patchesDir, patchData == null ? fallbackPatchData.getId() : patchData.getId());
                     // now copy non-maven resources (we should now know where to copy them)
                     for (ZipArchiveEntry entry : otherResources) {
-                        File target = new File(targetDirForPatchResources, entry.getName());
-                        extractAndTrackZipEntry(fallbackPatchData, zf, entry, target);
+                        String name = entry.getName();
+                        if (skipRootDir) {
+                            name = name.substring(name.indexOf('/'));
+                        }
+                        File target = new File(targetDirForPatchResources, name);
+                        extractAndTrackZipEntry(fallbackPatchData, zf, entry, target, skipRootDir);
                     }
                 } finally {
                     if (zf != null) {
@@ -628,14 +637,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     break;
             }
             gitPatchRepository.push(fork);
-        } catch (GitAPIException e) {
+        } catch (GitAPIException | IOException e) {
             throw new PatchException(e.getMessage(), e);
-        } catch (IncorrectObjectTypeException e) {
-            e.printStackTrace();
-        } catch (AmbiguousObjectException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
         } finally {
             gitPatchRepository.closeRepository(fork, true);
         }

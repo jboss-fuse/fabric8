@@ -49,10 +49,14 @@ public class Utils {
      * @param entry
      * @param target
      */
-    public static void extractAndTrackZipEntry(PatchData patchData, ZipFile zip, ZipArchiveEntry entry, File target) throws IOException {
+    public static void extractAndTrackZipEntry(PatchData patchData, ZipFile zip, ZipArchiveEntry entry, File target,
+                                               boolean skipRootDir) throws IOException {
         extractZipEntry(zip, entry, target);
 
         String name = entry.getName();
+        if (skipRootDir) {
+            name = name.substring(name.indexOf('/') + 1);
+        }
         if (name.startsWith("system/") || name.startsWith("repository/")) {
             // Maven artifact: a bundle, feature definition file, configuration file
             if (name.startsWith("system/")) {
