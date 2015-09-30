@@ -16,7 +16,9 @@
 package io.fabric8.patch.commands;
 
 import io.fabric8.patch.Service;
+import io.fabric8.patch.management.BundleUpdate;
 import io.fabric8.patch.management.Patch;
+import io.fabric8.patch.management.PatchResult;
 import org.apache.karaf.shell.console.AbstractAction;
 
 public abstract class PatchActionSupport extends AbstractAction {
@@ -35,12 +37,12 @@ public abstract class PatchActionSupport extends AbstractAction {
 
     protected abstract void doExecute(Service service) throws Exception;
 
-//    protected void display(Result result) {
-//        System.out.println(String.format("%-40s %-10s %-10s", "[name]", "[old]", "[new]"));
-//        for (BundleUpdate update : result.getUpdates()) {
-//            System.out.println(String.format("%-40s %-10s %-10s", update.getSymbolicName(), update.getPreviousVersion(), update.getNewVersion()));
-//        }
-//    }
+    protected void display(PatchResult result) {
+        System.out.println(String.format("%-40s %-10s %-10s", "[name]", "[old]", "[new]"));
+        for (BundleUpdate update : result.getUpdates()) {
+            System.out.println(String.format("%-40s %-10s %-10s", update.getSymbolicName(), update.getPreviousVersion(), update.getNewVersion()));
+        }
+    }
 
     /**
      * Displays a list of {@link Patch patches} in short format. Each {@link Patch#getManagedPatch()} is already

@@ -30,6 +30,8 @@ public class ManagedPatch {
     private String patchId;
     /** SHA1 commit id inside git repository that points to a patch */
     private String commitId;
+    /** The baseline (tag name, tag points to parent commit of this patch branch) of this patch */
+    private String baseline;
 
     private List<String> filesAdded = new ArrayList<>();
     private List<String> filesModified = new ArrayList<>();
@@ -74,6 +76,14 @@ public class ManagedPatch {
 
     public List<String> getFilesRemoved() {
         return filesRemoved;
+    }
+
+    public String getBaseline() {
+        return baseline;
+    }
+
+    public void setBaseline(String baseline) {
+        this.baseline = baseline;
     }
 
 }

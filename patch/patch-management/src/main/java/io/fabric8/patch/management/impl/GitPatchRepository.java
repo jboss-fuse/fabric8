@@ -17,6 +17,8 @@ package io.fabric8.patch.management.impl;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.List;
 
 import io.fabric8.patch.management.ManagedPatch;
@@ -32,6 +34,8 @@ import org.eclipse.jgit.revwalk.RevTag;
  * <p>(makes mocking easier).</p>
  */
 public interface GitPatchRepository {
+
+    public static final DateFormat TS = new SimpleDateFormat("yyyyMMdd-HHmmssSSS");
 
     /**
      * Call if needed - when patch manager finds that it should use the repository.
@@ -140,10 +144,17 @@ public interface GitPatchRepository {
     RevTag findLatestBaseline(Git git) throws GitAPIException, IOException;
 
     /**
+     * <p>Finds the current baseline, which is the newest baseline tag when traversing down the <code>master</code>
+     * branch</p>
+     * @param repo
+     * @return
+     */
+    RevTag findCurrentBaseline(Git repo) throws GitAPIException, IOException;
+
+    /**
      * Queries git repository for basic {@link ManagedPatch} information (details may be fetched later)
      * @param id
      * @return
      */
     ManagedPatch getManagedPatch(String id) throws IOException;
-
 }

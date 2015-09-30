@@ -17,8 +17,13 @@ package io.fabric8.patch.management;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import io.fabric8.patch.management.impl.GitPatchManagementService;
 import io.fabric8.patch.management.impl.GitPatchManagementServiceImpl;
@@ -28,15 +33,16 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ListBranchCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffEntry;
+import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.verification.VerificationMode;
 import org.osgi.framework.startlevel.BundleStartLevel;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
@@ -129,6 +135,67 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         validateInitialGitRepository();
     }
 
+    /**
+     * Patch 1 is non-rollup patch
+     * @throws IOException
+     * @throws GitAPIException
+     */
+    @Test
+    public void addPatch1() throws IOException, GitAPIException {
+        initializationPerformedBaselineDistributionFoundInSystem();
+
+        // prepare some ZIP patches
+        preparePatchZip("src/test/resources/content/patch1", "target/karaf/patches/source/patch-1.zip", false);
+
+        PatchManagement service = (PatchManagement) pm;
+        PatchData patchData = service.fetchPatches(new File("target/karaf/patches/source/patch-1.zip").toURI().toURL()).get(0);
+        assertThat(patchData.getId(), equalTo("my-patch-1"));
+        Patch patch = service.trackPatch(patchData);
+
+        GitPatchRepository repository = ((GitPatchManagementServiceImpl) pm).getGitPatchRepository();
+        Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
+
+        // we should see remote branch for the patch, but without checking it out, it won't be available in the clone's local branches
+        List<Ref> branches = fork.branchList().setListMode(ListBranchCommand.ListMode.REMOTE).call();
+        Ref patchBranch = null;
+        for (Ref remoteBranch : branches) {
+            if (String.format("refs/remotes/origin/%s", patchData.getId()).equals(remoteBranch.getName())) {
+                patchBranch = remoteBranch;
+                break;
+            }
+        }
+        assertNotNull("Should find remote branch for the added patch", patchBranch);
+
+        assertThat(patch.getManagedPatch().getCommitId(), equalTo(patchBranch.getObjectId().getName()));
+
+        RevCommit patchCommit = new RevWalk(fork.getRepository()).parseCommit(patchBranch.getObjectId());
+        // patch commit should be child of baseline commit
+        RevCommit baselineCommit = new RevWalk(fork.getRepository()).parseCommit(patchCommit.getParent(0));
+
+        // this baseline commit should be tagged "baseline-VERSION"
+        Ref tag = fork.tagList().call().get(0);
+        assertThat(tag.getName(), equalTo("refs/tags/baseline-6.2.0"));
+        RevCommit baselineCommitFromTag = new RevWalk(fork.getRepository()).parseCommit(tag.getTarget().getObjectId());
+        assertThat(baselineCommit.getId(), equalTo(baselineCommitFromTag.getId()));
+
+        // let's see the patch applied to baseline-6.2.0
+        fork.checkout()
+                .setName("my-patch-1")
+                .setStartPoint("origin/my-patch-1")
+                .setCreateBranch(true)
+                .call();
+        String myProperties = FileUtils.readFileToString(new File(fork.getRepository().getWorkTree(), "etc/my.properties"));
+        assertTrue(myProperties.contains("p1 = v1"));
+
+        repository.closeRepository(fork, true);
+    }
+
+    /**
+     * Patch 4 is rollup patch (doesn't contain descriptor, contains default.profile/io.fabric8.version.properties)
+     * Adding it is not different that adding non-rollup patch. Installation is different
+     * @throws IOException
+     * @throws GitAPIException
+     */
     @Test
     public void addPatch4() throws IOException, GitAPIException {
         initializationPerformedBaselineDistributionFoundInSystem();
@@ -168,7 +235,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         assertThat(baselineCommit.getId(), equalTo(baselineCommitFromTag.getId()));
 
         List<DiffEntry> patchDiff = repository.diff(fork, baselineCommit, patchCommit);
-        assertThat("patch-4 should lead to 6 changes", patchDiff.size(), equalTo(6));
+        assertThat("patch-4 should lead to 7 changes", patchDiff.size(), equalTo(7));
         for (Iterator<DiffEntry> iterator = patchDiff.iterator(); iterator.hasNext(); ) {
             DiffEntry de = iterator.next();
             if ("bin/start".equals(de.getNewPath()) && de.getChangeType() == DiffEntry.ChangeType.MODIFY) {
@@ -187,6 +254,9 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
                 iterator.remove();
             }
             if ("fabric/import/fabric/profiles/default.profile/io.fabric8.agent.properties".equals(de.getNewPath()) && de.getChangeType() == DiffEntry.ChangeType.MODIFY) {
+                iterator.remove();
+            }
+            if ("fabric/import/fabric/profiles/default.profile/io.fabric8.version.properties".equals(de.getNewPath()) && de.getChangeType() == DiffEntry.ChangeType.MODIFY) {
                 iterator.remove();
             }
         }
@@ -293,6 +363,152 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         assertTrue(new File(patchesHome, "patch-3.patch").isFile());
     }
 
+    @Test
+    public void beginRollupPatchInstallation() throws IOException {
+        freshKarafDistro();
+        GitPatchRepository repository = patchManagement();
+        PatchManagement management = (PatchManagement) pm;
+        String tx = management.beginInstallation(PatchKind.ROLLUP);
+        assertTrue(tx.startsWith("refs/heads/patch-install-"));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Git> transactions = (Map<String, Git>) getField(management, "pendingTransactions");
+        assertThat(transactions.size(), equalTo(1));
+        Git fork = transactions.values().iterator().next();
+        ObjectId currentBranch = fork.getRepository().resolve("HEAD^{commit}");
+        ObjectId tempBranch = fork.getRepository().resolve(tx + "^{commit}");
+        ObjectId masterBranch = fork.getRepository().resolve("master^{commit}");
+        ObjectId baseline = fork.getRepository().resolve("refs/tags/baseline-6.2.0^{commit}");
+        assertThat(tempBranch, equalTo(currentBranch));
+        assertThat(tempBranch, equalTo(baseline));
+        assertThat(masterBranch, not(equalTo(currentBranch)));
+    }
+
+    @Test
+    public void installRollupPatch() throws IOException, GitAPIException {
+        freshKarafDistro();
+        GitPatchRepository repository = patchManagement();
+        PatchManagement management = (PatchManagement) pm;
+
+        Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
+        repository.prepareCommit(fork, "artificial change, not treated as user change (could be a patch)").call();
+        repository.prepareCommit(fork, "artificial change, not treated as user change").call();
+        ((GitPatchManagementServiceImpl)pm).applyUserChanges(fork); // no changes
+        FileUtils.write(new File(karafHome, "bin/start"), "echo \"another user change\"\n", true);
+        ((GitPatchManagementServiceImpl)pm).applyUserChanges(fork); // conflicting change
+        FileUtils.write(new File(karafHome, "bin/test"), "echo \"another user change\"\n");
+        ((GitPatchManagementServiceImpl)pm).applyUserChanges(fork); // non-conflicting
+        repository.closeRepository(fork, true);
+
+        preparePatchZip("src/test/resources/content/patch4", "target/karaf/patches/source/patch-4.zip", false);
+        List<PatchData> patches = management.fetchPatches(new File("target/karaf/patches/source/patch-4.zip").toURI().toURL());
+        Patch patch = management.trackPatch(patches.get(0));
+
+        String tx = management.beginInstallation(PatchKind.ROLLUP);
+        management.install(tx, patch);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Git> transactions = (Map<String, Git>) getField(management, "pendingTransactions");
+        assertThat(transactions.size(), equalTo(1));
+        fork = transactions.values().iterator().next();
+
+        ObjectId since = fork.getRepository().resolve("baseline-6.2.0^{commit}");
+        ObjectId to = fork.getRepository().resolve(tx);
+        Iterable<RevCommit> commits = fork.log().addRange(since, to).call();
+        // only one "user change", because we had two conflicts with new baseline - they were resolved
+        // by picking what already comes from rollup patch ("ours"):
+        /*
+         * Problem with applying the change 657f11c4b65bb7893a2b82f888bb9731a6d5f7d0:
+         *  - bin/start: BOTH_MODIFIED
+         * Choosing "ours" change
+         * Problem with applying the change d9272b97582582f4b056f7170130ec91fc21aeac:
+         *  - bin/start: BOTH_MODIFIED
+         * Choosing "ours" change
+         */
+        List<String> commitList = Arrays.asList("[PATCH] Apply user changes", "[PATCH] Installing rollup patch patch-4");
+
+        int n = 0;
+        for (RevCommit c : commits) {
+            String msg = c.getFullMessage();
+            assertThat(msg, equalTo(commitList.get(n++)));
+        }
+
+        assertThat(n, equalTo(commitList.size()));
+
+        assertThat(fork.tagList().call().size(), equalTo(2));
+        assertTrue(repository.containsTag(fork, "baseline-6.2.0"));
+        assertTrue(repository.containsTag(fork, "baseline-6.2.0.redhat-002"));
+    }
+
+    @Test
+    public void installNonRollupPatch() throws IOException, GitAPIException {
+        freshKarafDistro();
+        GitPatchRepository repository = patchManagement();
+        PatchManagement management = (PatchManagement) pm;
+
+        Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
+        ((GitPatchManagementServiceImpl)pm).applyUserChanges(fork); // no changes
+        repository.prepareCommit(fork, "artificial change, not treated as user change (could be a patch)").call();
+        repository.push(fork);
+        FileUtils.write(new File(karafHome, "bin/shutdown"), "#!/bin/bash\nexit 42");
+        ((GitPatchManagementServiceImpl)pm).applyUserChanges(fork);
+        repository.closeRepository(fork, true);
+
+        preparePatchZip("src/test/resources/content/patch1", "target/karaf/patches/source/patch-1.zip", false);
+        List<PatchData> patches = management.fetchPatches(new File("target/karaf/patches/source/patch-1.zip").toURI().toURL());
+        Patch patch = management.trackPatch(patches.get(0));
+
+        String tx = management.beginInstallation(PatchKind.NON_ROLLUP);
+        management.install(tx, patch);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Git> transactions = (Map<String, Git>) getField(management, "pendingTransactions");
+        assertThat(transactions.size(), equalTo(1));
+        fork = transactions.values().iterator().next();
+
+        ObjectId since = fork.getRepository().resolve("baseline-6.2.0^{commit}");
+        ObjectId to = fork.getRepository().resolve(tx);
+        Iterable<RevCommit> commits = fork.log().addRange(since, to).call();
+        List<String> commitList = Arrays.asList(
+                "[PATCH] Installing patch my-patch-1",
+                "[PATCH] Apply user changes",
+                "artificial change, not treated as user change (could be a patch)",
+                "[PATCH] Apply user changes");
+
+        int n = 0;
+        for (RevCommit c : commits) {
+            String msg = c.getFullMessage();
+            assertThat(msg, equalTo(commitList.get(n++)));
+        }
+
+        assertThat(n, equalTo(commitList.size()));
+
+        assertThat(fork.tagList().call().size(), equalTo(2));
+        assertTrue(repository.containsTag(fork, "baseline-6.2.0"));
+        assertTrue(repository.containsTag(fork, "patch-my-patch-1"));
+    }
+
+    @Test
+    public void beginNonRollupPatchInstallation() throws IOException {
+        freshKarafDistro();
+        GitPatchRepository repository = patchManagement();
+        PatchManagement management = (PatchManagement) pm;
+        String tx = management.beginInstallation(PatchKind.NON_ROLLUP);
+        assertTrue(tx.startsWith("refs/heads/patch-install-"));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Git> transactions = (Map<String, Git>) getField(management, "pendingTransactions");
+        assertThat(transactions.size(), equalTo(1));
+        Git fork = transactions.values().iterator().next();
+        ObjectId currentBranch = fork.getRepository().resolve("HEAD^{commit}");
+        ObjectId tempBranch = fork.getRepository().resolve(tx + "^{commit}");
+        ObjectId masterBranch = fork.getRepository().resolve("master^{commit}");
+        ObjectId baseline = fork.getRepository().resolve("refs/tags/baseline-6.2.0^{commit}");
+        assertThat(tempBranch, equalTo(currentBranch));
+        assertThat(tempBranch, not(equalTo(baseline)));
+        assertThat(masterBranch, equalTo(currentBranch));
+    }
+
     private void validateInitialGitRepository() throws IOException, GitAPIException {
         pm = new GitPatchManagementServiceImpl(bundleContext);
         pm.start();
@@ -355,6 +571,17 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         pm.start();
         pm.ensurePatchManagementInitialized();
         return ((GitPatchManagementServiceImpl) pm).getGitPatchRepository();
+    }
+
+    private Object getField(Object object, String fieldName) {
+        Field f = null;
+        try {
+            f = object.getClass().getDeclaredField(fieldName);
+            f.setAccessible(true);
+            return f.get(object);
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
     }
 
 }

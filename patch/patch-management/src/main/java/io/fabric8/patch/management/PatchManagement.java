@@ -15,8 +15,6 @@
  */
 package io.fabric8.patch.management;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.net.URL;
 import java.util.List;
 
@@ -56,5 +54,38 @@ public interface PatchManagement {
      * @return
      */
     Patch trackPatch(PatchData patchData) throws PatchException;
+
+    /**
+     * <p>We can install many patches at once, but those have to be of the same {@link PatchKind}.</p>
+     * <p>This method returns a <em>handle</em> to <em>patch transaction</em> that has to be passed around
+     * when installing consecutive patches. This <em>handle</em> is effectively a temporary branch name when patches
+     * are applied</p>
+     * @param kind
+     * @return
+     */
+    String beginInstallation(PatchKind kind);
+
+    /**
+     * <p>When patch installation <em>transaction</em> is started, we can install as many {@link PatchKind#NON_ROLLUP}
+     * patches we like or install single {@link PatchKind#ROLLUP} patch</p>
+     * <p>This won't affect ${karaf.home} until we {@link #commitInstallation(String) commit the installation}.</p>
+     * @param transaction
+     * @param patch
+     */
+    void install(String transaction, Patch patch);
+
+    /**
+     * <p>After successful patch(es) installation, we commit the transaction = do a fast forward merge
+     * of <code>master</code> branch to transaction branch</p>
+     * @param transaction
+     */
+    void commitInstallation(String transaction);
+
+    /**
+     * <p>When something goes wrong (or during simulation?) we delete transaction branch without affecting
+     * <code>master</code> branch.</p>
+     * @param transaction
+     */
+    void rollbackInstallation(String transaction);
 
 }

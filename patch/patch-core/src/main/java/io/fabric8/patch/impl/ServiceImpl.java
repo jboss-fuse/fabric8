@@ -44,6 +44,7 @@ import io.fabric8.patch.management.BundleUpdate;
 import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.management.PatchData;
 import io.fabric8.patch.management.PatchException;
+import io.fabric8.patch.management.PatchKind;
 import io.fabric8.patch.management.PatchManagement;
 import io.fabric8.patch.management.PatchResult;
 import org.apache.felix.scr.annotations.Activate;
@@ -162,10 +163,6 @@ public class ServiceImpl implements Service {
         return patches;
     }
 
-    private File getPatchStorage(Patch patch) {
-        return new File(patchDir, patch.getPatchData().getId());
-    }
-
     /**
      * Used by the patch client when executing the script in the console
      * @param ids
@@ -182,14 +179,177 @@ public class ServiceImpl implements Service {
         install(patches, false, false);
     }
 
+    @Override
+    public PatchResult install(Patch patch, boolean simulate) {
+        return install(patch, simulate, true);
+    }
+
+    @Override
+    public PatchResult install(Patch patch, boolean simulate, boolean synchronous) {
+        Map<String, PatchResult> results = install(Collections.singleton(patch), simulate, synchronous);
+        return results.get(patch.getPatchData().getId());
+    }
+
+    /**
+     * Main installation method. Installing a patch in non-fabric mode is a matter of merging patch branch to
+     * <code>master</code> branch.
+     * @param patches
+     * @param simulate
+     * @param synchronous
+     * @return
+     */
+    private Map<String, PatchResult> install(final Collection<Patch> patches, boolean simulate, boolean synchronous) {
+        PatchKind kind = checkConsistency(patches);
+        checkPrerequisites(patches);
+        String transaction = null;
+        try {
+            // Compute individual patch results (patchId -> Result)
+            final Map<String, PatchResult> results = new LinkedHashMap<String, PatchResult>();
+
+            // current state of the framework
+            Bundle[] allBundles = bundleContext.getBundles();
+
+            // symbolic name -> newest update for the bundle out of all installedpatches
+            Map<String, BundleUpdate> allUpdates = new HashMap<String, BundleUpdate>();
+            // bundle -> url to update the bundle from
+            final Map<Bundle, String> toUpdate = new HashMap<Bundle, String>();
+            // symbolic name -> version -> location
+            final BundleVersionHistory history = createBundleVersionHistory();
+
+            transaction = this.patchManagement.beginInstallation(kind);
+
+            for (Patch patch : patches) {
+                String startup = readFully(new File(System.getProperty("karaf.base"), "etc/startup.properties"));
+                String overrides = readFully(new File(System.getProperty("karaf.base"), "etc/overrides.properties"));
+                // list of bundle updates for the current patch
+                List<BundleUpdate> updates = new ArrayList<BundleUpdate>();
+                for (String url : patch.getPatchData().getBundles()) {
+                    // [symbolicName, version] of the new bundle
+                    String[] symbolicNameVersion = getBundleIdentity(url);
+                    if (symbolicNameVersion == null) {
+                        continue;
+                    }
+                    String sn = symbolicNameVersion[0];
+                    String vr = symbolicNameVersion[1];
+                    Version newV = VersionTable.getVersion(vr);
+
+                    // if existing bundle is withing this range, update is possible
+                    VersionRange range = null;
+                    if (kind == PatchKind.NON_ROLLUP) {
+                        range = getUpdateableRange(patch, url, newV);
+                    } else {
+                        // in rollup patches we simply update all
+                        range = VersionRange.ANY_VERSION;
+                    }
+
+                    if (range != null) {
+                        for (Bundle bundle : allBundles) {
+                            if (bundle.getBundleId() == 0L) {
+                                continue;
+                            }
+                            if (!stripSymbolicName(sn).equals(stripSymbolicName(bundle.getSymbolicName()))) {
+                                continue;
+                            }
+                            Version oldV = bundle.getVersion();
+                            if (range.contains(oldV)) {
+                                String location = history.getLocation(bundle);
+                                BundleUpdate update = new BundleUpdate(sn, newV.toString(), url, oldV.toString(), location);
+                                updates.add(update);
+                                // Merge result
+                                BundleUpdate oldUpdate = allUpdates.get(sn);
+                                if (oldUpdate != null) {
+                                    Version upv = VersionTable.getVersion(oldUpdate.getNewVersion());
+                                    if (upv.compareTo(newV) < 0) {
+                                        // other patch contains newer update for a bundle
+                                        allUpdates.put(sn, update);
+                                        toUpdate.put(bundle, url);
+                                    }
+                                } else {
+                                    // this is the first update of the bundle
+                                    toUpdate.put(bundle, url);
+                                }
+                            }
+                        }
+                    } else {
+                        System.err.printf("Skipping bundle %s - unable to process bundle without a version range configuration%n", url);
+                    }
+                }
+
+                // each patch may change files,
+                patchManagement.install(transaction, patch);
+//                if (!simulate) {
+//                    new Offline(new File(System.getProperty("karaf.base")))
+//                            .applyConfigChanges(((Patch) patch).getPatchData(), getPatchStorage(patch));
+//                }
+
+                // prepare patch result before doing runtime changes
+                PatchResult result = new PatchResult(patch.getPatchData(), simulate, System.currentTimeMillis(), updates, startup, overrides);
+                results.put(patch.getPatchData().getId(), result);
+            }
+
+            // Apply results
+            System.out.println("Bundles to update:");
+            for (Map.Entry<Bundle, String> e : toUpdate.entrySet()) {
+                System.out.println("    " + e.getKey().getSymbolicName() + "/" + e.getKey().getVersion().toString() + " with " + e.getValue());
+            }
+            if (simulate) {
+                System.out.println("Running simulation only - no bundles are being updated at this time");
+            } else {
+                System.out.println("Installation will begin.  The connection may be lost or the console restarted.");
+            }
+            System.out.flush();
+
+            if (!simulate) {
+                Runnable task = new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            applyChanges(toUpdate);
+                            // persist results of all installed patches
+                            for (Patch patch : patches) {
+                                PatchResult result = results.get(patch.getPatchData().getId());
+                                patch.setResult(result);
+                                result.store();
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace(System.err);
+                            System.err.flush();
+                        }
+                    }
+                };
+                if (synchronous) {
+                    task.run();
+                } else {
+                    new Thread(task).start();
+                }
+            }
+
+            if (!simulate) {
+                patchManagement.commitInstallation(transaction);
+            } else {
+                patchManagement.rollbackInstallation(transaction);
+            }
+
+            return results;
+        } catch (Exception e) {
+            if (transaction != null) {
+                patchManagement.rollbackInstallation(transaction);
+            }
+            throw new PatchException(e.getMessage(), e);
+        }
+    }
+
+    @Override
     public void rollback(final Patch patch, boolean force) throws PatchException {
         final PatchResult result = patch.getResult();
         if (result == null) {
             throw new PatchException("Patch " + patch.getPatchData().getId() + " is not installed");
         }
         Bundle[] allBundles = bundleContext.getBundles();
-        List<io.fabric8.patch.management.BundleUpdate> badUpdates = new ArrayList<io.fabric8.patch.management.BundleUpdate>();
-        for (io.fabric8.patch.management.BundleUpdate update : result.getUpdates()) {
+
+        // check if all the bundles that were updated in patch are available (installed)
+        List<BundleUpdate> badUpdates = new ArrayList<BundleUpdate>();
+        for (BundleUpdate update : result.getUpdates()) {
             boolean found = false;
             Version v = Version.parseVersion(update.getNewVersion());
             for (Bundle bundle : allBundles) {
@@ -206,14 +366,15 @@ public class ServiceImpl implements Service {
         if (!badUpdates.isEmpty() && !force) {
             StringBuilder sb = new StringBuilder();
             sb.append("Unable to rollback patch ").append(patch.getPatchData().getId()).append(" because of the following missing bundles:\n");
-            for (io.fabric8.patch.management.BundleUpdate up : badUpdates) {
+            for (BundleUpdate up : badUpdates) {
                 sb.append("\t").append(up.getSymbolicName()).append("/").append(up.getNewVersion()).append("\n");
             }
             throw new PatchException(sb.toString());
         }
 
+        // bundle -> old location of the bundle to downgrade from
         final Map<Bundle, String> toUpdate = new HashMap<Bundle, String>();
-        for (io.fabric8.patch.management.BundleUpdate update : result.getUpdates()) {
+        for (BundleUpdate update : result.getUpdates()) {
             Version v = Version.parseVersion(update.getNewVersion());
             for (Bundle bundle : allBundles) {
                 if (stripSymbolicName(bundle.getSymbolicName()).equals(stripSymbolicName(update.getSymbolicName()))
@@ -223,6 +384,7 @@ public class ServiceImpl implements Service {
             }
         }
 
+        // restore startup.properties and overrides.properties
         final Offline offline = new Offline(new File(System.getProperty("karaf.base")));
         Executors.newSingleThreadExecutor().execute(new Runnable() {
             @Override
@@ -242,122 +404,54 @@ public class ServiceImpl implements Service {
         });
     }
 
-    public PatchResult install(Patch patch, boolean simulate) {
-        return install(patch, simulate, true);
-    }
-
-    public PatchResult install(Patch patch, boolean simulate, boolean synchronous) {
-        Map<String, PatchResult> results = install(Collections.singleton(patch), simulate, synchronous);
-        return results.get(patch.getPatchData().getId());
-    }
-
-    Map<String, PatchResult> install(final Collection<Patch> patches, boolean simulate, boolean synchronous) {
-        checkPrerequisites(patches);
-        try {
-            // Compute individual patch results
-            final Map<String, PatchResult> results = new LinkedHashMap<String, PatchResult>();
-            final Map<Bundle, String> toUpdate = new HashMap<Bundle, String>();
-            final BundleVersionHistory history = createBundleVersionHistory();
-            Map<String, io.fabric8.patch.management.BundleUpdate> allUpdates = new HashMap<String, io.fabric8.patch.management.BundleUpdate>();
-            for (Patch patch : patches) {
-                String startup = readFully(new File(System.getProperty("karaf.base"), "etc/startup.properties"));
-                String overrides = readFully(new File(System.getProperty("karaf.base"), "etc/overrides.properties"));
-                List<io.fabric8.patch.management.BundleUpdate> updates = new ArrayList<io.fabric8.patch.management.BundleUpdate>();
-                Bundle[] allBundles = bundleContext.getBundles();
-                for (String url : patch.getPatchData().getBundles()) {
-                    JarInputStream jis = new JarInputStream(new URL(url).openStream());
-                    jis.close();
-                    Manifest manifest = jis.getManifest();
-                    Attributes att = manifest != null ? manifest.getMainAttributes() : null;
-                    String sn = att != null ? att.getValue(Constants.BUNDLE_SYMBOLICNAME) : null;
-                    String vr = att != null ? att.getValue(Constants.BUNDLE_VERSION) : null;
-                    if (sn == null || vr == null) {
-                        continue;
-                    }
-                    Version v = VersionTable.getVersion(vr);
-
-                    VersionRange range = null;
-
-                    if (patch.getPatchData().getVersionRange(url) == null) {
-                        // default version range starts with x.y.0 as the lower bound
-                        Version lower = new Version(v.getMajor(), v.getMinor(), 0);
-
-                        // We can't really upgrade with versions such as 2.1.0
-                        if (v.compareTo(lower) > 0) {
-                            range = new VersionRange(false, lower, v, true);
-                        }
-                    } else {
-                        range = new VersionRange(patch.getPatchData().getVersionRange(url));
-                    }
-
-                    if (range != null) {
-                        for (Bundle bundle : allBundles) {
-                            Version oldV = bundle.getVersion();
-                            if (bundle.getBundleId() != 0 && stripSymbolicName(sn).equals(stripSymbolicName(bundle.getSymbolicName())) && range.contains(oldV)) {
-                                String location = history.getLocation(bundle);
-                                io.fabric8.patch.management.BundleUpdate update = new BundleUpdate(sn, v.toString(), url, oldV.toString(), location);
-                                updates.add(update);
-                                // Merge result
-                                io.fabric8.patch.management.BundleUpdate oldUpdate = allUpdates.get(sn);
-                                if (oldUpdate != null) {
-                                    Version upv = VersionTable.getVersion(oldUpdate.getNewVersion());
-                                    if (upv.compareTo(v) < 0) {
-                                        allUpdates.put(sn, update);
-                                        toUpdate.put(bundle, url);
-                                    }
-                                } else {
-                                    toUpdate.put(bundle, url);
-                                }
-                            }
-                        }
-                    } else {
-                        System.err.printf("Skipping bundle %s - unable to process bundle without a version range configuration%n", url);
-                    }
-                }
-                if (!simulate) {
-                    new Offline(new File(System.getProperty("karaf.base")))
-                            .applyConfigChanges(((Patch) patch).getPatchData(), getPatchStorage(patch));
-                }
-                PatchResult result = new PatchResult(patch.getPatchData(), simulate, System.currentTimeMillis(), updates, startup, overrides);
-                results.put(patch.getPatchData().getId(), result);
-            }
-            // Apply results
-            System.out.println("Bundles to update:");
-            for (Map.Entry<Bundle, String> e : toUpdate.entrySet()) {
-                System.out.println("    " + e.getKey().getSymbolicName() + "/" + e.getKey().getVersion().toString() + " with " + e.getValue());
-            }
-            if (simulate) {
-                System.out.println("Running simulation only - no bundles are being updated at this time");
-            } else {
-                System.out.println("Installation will begin.  The connection may be lost or the console restarted.");
-            }
-            System.out.flush();
-            if (!simulate) {
-                Thread thread = new Thread() {
-                    public void run() {
-                        try {
-                            applyChanges(toUpdate);
-                            for (Patch patch : patches) {
-                                PatchResult result = results.get(patch.getPatchData().getId());
-                                ((Patch) patch).setResult(result);
-                                result.store();
-                            }
-                        } catch (Exception e) {
-                            e.printStackTrace(System.err);
-                            System.err.flush();
-                        }
-                    }
-                };
-                if (synchronous) {
-                    thread.run();
-                } else {
-                    thread.start();
-                }
-            }
-            return results;
-        } catch (Exception e) {
-            throw new PatchException(e);
+    /**
+     * Returns two element table: symbolic name and version
+     * @param url
+     * @return
+     * @throws IOException
+     */
+    private String[] getBundleIdentity(String url) throws IOException {
+        JarInputStream jis = new JarInputStream(new URL(url).openStream());
+        jis.close();
+        Manifest manifest = jis.getManifest();
+        Attributes att = manifest != null ? manifest.getMainAttributes() : null;
+        String sn = att != null ? att.getValue(Constants.BUNDLE_SYMBOLICNAME) : null;
+        String vr = att != null ? att.getValue(Constants.BUNDLE_VERSION) : null;
+        if (sn == null || vr == null) {
+            return null;
         }
+        return new String[] { sn, vr };
+    }
+
+    /**
+     * <p>Returns a {@link VersionRange} that existing bundle has to satisfy in order to be updated to
+     * <code>newVersion</code></p>
+     * <p>If we're upgrading to <code>1.2.3</code>, existing bundle has to be in range
+     * <code>[1.2.0,1.2.3)</code></p>
+     * @param patch
+     * @param url
+     * @param newVersion
+     * @return
+     */
+    private VersionRange getUpdateableRange(Patch patch, String url, Version newVersion) {
+        VersionRange range = null;
+        if (patch.getPatchData().getVersionRange(url) == null) {
+            // default version range starts with x.y.0 as the lower bound
+            Version lower = new Version(newVersion.getMajor(), newVersion.getMinor(), 0);
+
+            // We can't really upgrade with versions such as 2.1.0
+            if (newVersion.compareTo(lower) > 0) {
+                range = new VersionRange(false, lower, newVersion, true);
+            }
+        } else {
+            range = new VersionRange(patch.getPatchData().getVersionRange(url));
+        }
+
+        return range;
+    }
+
+    private File getPatchStorage(Patch patch) {
+        return new File(patchDir, patch.getPatchData().getId());
     }
 
     private void applyChanges(Map<Bundle, String> toUpdate) throws BundleException, IOException {
@@ -382,7 +476,7 @@ public class ServiceImpl implements Service {
             toStart.add(bundle);
         }
         findBundlesWithOptionalPackagesToRefresh(toRefresh);
-        findBundlesWithFramentsToRefresh(toRefresh);
+        findBundlesWithFragmentsToRefresh(toRefresh);
         if (!toRefresh.isEmpty()) {
             final CountDownLatch l = new CountDownLatch(1);
             FrameworkListener listener = new FrameworkListener() {
@@ -460,7 +554,7 @@ public class ServiceImpl implements Service {
         return nb;
     }
 
-    protected void findBundlesWithFramentsToRefresh(Set<Bundle> toRefresh) {
+    protected void findBundlesWithFragmentsToRefresh(Set<Bundle> toRefresh) {
         for (Bundle b : toRefresh) {
             if (b.getState() != Bundle.UNINSTALLED) {
                 String hostHeader = (String) b.getHeaders().get(Constants.FRAGMENT_HOST);
@@ -584,6 +678,42 @@ public class ServiceImpl implements Service {
     }
 
     /**
+     * Check if the set of patches mixes P and R patches. We can install several {@link PatchKind#NON_ROLLUP}
+     * patches at once, but only one {@link PatchKind#ROLLUP} patch.
+     * @param patches
+     * @return kind of patches in the set
+     */
+    private PatchKind checkConsistency(Collection<Patch> patches) throws PatchException {
+        boolean hasP = false, hasR = false;
+        for (Patch patch : patches) {
+            if (patch.getPatchData().isRollupPatch()) {
+                if (hasR) {
+                    throw new PatchException("Can't install more than one rollup patch at once");
+                }
+                hasR = true;
+            } else {
+                hasP = true;
+            }
+        }
+        if (hasR && hasP) {
+            throw new PatchException("Can't install both rollup and non-rollup patches in single run");
+        }
+
+        return hasR ? PatchKind.ROLLUP : PatchKind.NON_ROLLUP;
+    }
+
+    /**
+     * Check if the requirements for all specified patches have been installed
+     * @param patches the set of patches to check
+     * @throws PatchException if at least one of the patches has missing requirements
+     */
+    protected void checkPrerequisites(Collection<Patch> patches) throws PatchException {
+        for (Patch patch : patches) {
+            checkPrerequisites(patch);
+        }
+    }
+
+    /**
      * Check if the requirements for the specified patch have been installed
      * @param patch the patch to check
      * @throws PatchException if the requirements for the patch are missing or not yet installed
@@ -601,29 +731,18 @@ public class ServiceImpl implements Service {
     }
 
     /**
-     * Check if the requirements for all specified patches have been installed
-     * @param patches the set of patches to check
-     * @throws PatchException if at least one of the patches has missing requirements
-     */
-    protected void checkPrerequisites(Collection<Patch> patches) throws PatchException {
-        for (Patch patch : patches) {
-            checkPrerequisites(patch);
-        }
-    }
-
-    /**
      * Contains the history of bundle versions that have been applied through the patching mechanism
      */
     protected static final class BundleVersionHistory {
 
+        // symbolic name -> version -> location
         private Map<String, Map<String, String>> bundleVersions = new HashMap<String, Map<String, String>>();
 
         public BundleVersionHistory(Map<String, Patch> patches) {
-            super();
             for (Map.Entry<String, Patch> patch : patches.entrySet()) {
                 PatchResult result = patch.getValue().getResult();
                 if (result != null) {
-                    for (io.fabric8.patch.management.BundleUpdate update : result.getUpdates()) {
+                    for (BundleUpdate update : result.getUpdates()) {
                         String symbolicName = stripSymbolicName(update.getSymbolicName());
                         Map<String, String> versions = bundleVersions.get(symbolicName);
                         if (versions == null) {

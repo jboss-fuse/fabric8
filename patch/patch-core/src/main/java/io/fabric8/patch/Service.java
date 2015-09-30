@@ -18,6 +18,7 @@ package io.fabric8.patch;
 import java.net.URL;
 
 import io.fabric8.patch.management.Patch;
+import io.fabric8.patch.management.PatchResult;
 
 /**
  * High-level patch management service to be used by commands
@@ -47,10 +48,27 @@ public interface Service {
      */
     Iterable<Patch> download(URL url);
 
-//    void install(Patch patch, boolean simulate);
-//
-//    void install(Patch patch, boolean force, boolean synchronous);
-//
-//    void rollback(Patch patch, boolean force);
+    /**
+     * Install already added patch
+     * @param patch
+     * @param simulate
+     * @return
+     */
+    PatchResult install(Patch patch, boolean simulate);
+
+    /**
+     * Install already added patch
+     * @param patch
+     * @param simulate
+     * @return
+     */
+    PatchResult install(Patch patch, boolean simulate, boolean synchronous);
+
+    /**
+     * Rolls back an installed patch
+     * @param patch
+     * @param force
+     */
+    void rollback(Patch patch, boolean force);
 
 }

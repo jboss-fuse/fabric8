@@ -18,6 +18,7 @@ package io.fabric8.patch.commands;
 import io.fabric8.patch.Service;
 import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.management.PatchException;
+import io.fabric8.patch.management.PatchResult;
 import io.fabric8.utils.shell.ShellUtils;
 import org.apache.felix.gogo.commands.Argument;
 import org.apache.felix.gogo.commands.Command;
@@ -29,8 +30,8 @@ public class InstallAction extends PatchActionSupport {
     @Argument(name = "PATCH", description = "name of the patch to install", required = true, multiValued = false)
     String patchId;
 
-    @Option(name = "--force", description = "Force the installation of the patch")
-    boolean force;
+    @Option(name = "--simulation", description = "Simulates installation of the patch")
+    boolean simulation = false;
 
     @Option(name = "--synchronous", description = "Synchronous installation (use with caution)")
     boolean synchronous;
@@ -64,8 +65,8 @@ public class InstallAction extends PatchActionSupport {
                 }
             }
         }
-//        Result result = patch.install(force, synchronous);
-//        display(result);
+        PatchResult result = service.install(patch, simulation, synchronous);
+        display(result);
     }
 
 }
