@@ -25,6 +25,10 @@ public class PatchDetailsRequest {
     private boolean files;
     private boolean diff;
 
+    public PatchDetailsRequest(String patchId) {
+        this.patchId = patchId;
+    }
+
     public PatchDetailsRequest(String patchId, boolean bundles, boolean files, boolean diff) {
         this.patchId = patchId;
         this.bundles = bundles;
