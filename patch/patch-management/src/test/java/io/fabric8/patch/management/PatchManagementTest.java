@@ -84,7 +84,7 @@ public class PatchManagementTest extends PatchTestSupport {
         assertTrue(data.isGenerated());
         assertThat(data.getId(), equalTo("patch-3"));
         assertThat(data.getBundles().size(), equalTo(1));
-        assertThat(data.getBundles().iterator().next(), equalTo("io/fabric8/fabric-colours/1.2.3/fabric-colours-1.2.3.jar"));
+        assertThat(data.getBundles().iterator().next(), equalTo("mvn:io.fabric8/fabric-colours/1.2.3"));
         assertThat(data.getFiles().size(), equalTo(2));
 
         assertTrue(FileUtils.readFileToString(new File(karafHome, "patches/patch-3/bin/stop")).contains("echo \"stopped\"\n"));
