@@ -47,6 +47,7 @@ public class PatchData {
     private static final String COUNT = "count";
     private static final String RANGE = "range";
     private static final String MIGRATOR_BUNDLE = "migrator-bundle";
+    private static final String FEATURE_DESCRIPTOR = "featureDescriptor";
 
     // when ZIP file doesn't contain *.patch descriptor, we'll generate it on the fly
     private boolean generated;
@@ -87,10 +88,11 @@ public class PatchData {
         this.description = id;
     }
 
-    public PatchData(String id, String description, List<String> bundles, Map<String, String> versionRanges, List<String> requirements, String migratorBundle) {
+    public PatchData(String id, String description, List<String> bundles, List<String> featureFiles, Map<String, String> versionRanges, List<String> requirements, String migratorBundle) {
         this.id = id;
         this.description = description;
         this.bundles = bundles;
+        this.featureFiles = featureFiles;
         this.versionRanges = versionRanges;
         this.requirements = requirements;
         this.migratorBundle = migratorBundle;
@@ -122,6 +124,7 @@ public class PatchData {
         boolean rollupPatch = "true".equals(props.getProperty(ROLLUP));
 
         List<String> bundles = new ArrayList<String>();
+        List<String> featureDescriptors = new ArrayList<String>();
         Map<String, String> ranges = new HashMap<String, String>();
         int count = Integer.parseInt(props.getProperty(BUNDLES + "." + COUNT, "0"));
 
@@ -135,6 +138,12 @@ public class PatchData {
             }
         }
 
+        count = Integer.parseInt(props.getProperty(FEATURE_DESCRIPTOR + "." + COUNT, "0"));
+        for (int i = 0; i < count; i++) {
+            String key = FEATURE_DESCRIPTOR + "." + Integer.toString(i);
+            featureDescriptors.add(props.getProperty(key));
+        }
+
         List<String> requirements = new ArrayList<String>();
         int requirementCount = Integer.parseInt(props.getProperty(REQUIREMENTS + "." + COUNT, "0"));
         for (int i = 0; i < requirementCount; i++) {
@@ -143,7 +152,7 @@ public class PatchData {
             requirements.add(requirement);
         }
 
-        PatchData result = new PatchData(id, desc, bundles, ranges, requirements, installerBundle);
+        PatchData result = new PatchData(id, desc, bundles, featureDescriptors, ranges, requirements, installerBundle);
         result.setRollupPatch(rollupPatch);
         // add info for patched files
         count = Integer.parseInt(props.getProperty(FILES + "." + COUNT, "0"));
@@ -173,9 +182,9 @@ public class PatchData {
         n = 0;
         if (featureFiles.size() > 0) {
             for (String ff : featureFiles) {
-                pw.write(String.format("featureDescriptor.%d = %s\n", n++, ff));
+                pw.write(String.format("%s.%d = %s\n", FEATURE_DESCRIPTOR, n++, ff));
             }
-            pw.write(String.format("featureDescriptor.count = %d\n", n));
+            pw.write(String.format("%s.%s = %d\n", FEATURE_DESCRIPTOR, COUNT, n));
         }
         n = 0;
         if (otherArtifacts.size() > 0) {

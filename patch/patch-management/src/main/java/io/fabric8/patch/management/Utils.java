@@ -37,7 +37,7 @@ import org.apache.commons.io.IOUtils;
 
 public class Utils {
 
-    private static final Pattern FEATURES_FILE = Pattern.compile(".+features.*\\.xml$");
+    private static final Pattern FEATURES_FILE = Pattern.compile(".+\\-features$");
 
     private Utils() {
     }
