@@ -17,7 +17,10 @@ package io.fabric8.patch.management;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 
 import io.fabric8.patch.management.impl.GitPatchRepository;
 import io.fabric8.patch.management.impl.GitPatchRepositoryImpl;
@@ -25,6 +28,8 @@ import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.errors.NoWorkTreeException;
+import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevTag;
 import org.eclipse.jgit.revwalk.RevWalk;
@@ -161,6 +166,47 @@ public class GitPatchRepositoryTest {
         RevTag tag = repository.findLatestBaseline(repo);
         assertThat(tag.getTagName(), equalTo("baseline-1.2.3"));
         assertThat(tag.getObject(), equalTo(c1.getId()));
+    }
+
+    @Test
+    public void currentBaseline() throws GitAPIException, IOException {
+        Git repo = repository.findOrCreateGitRepository(new File(patchesHome, "r4"), false);
+        RevCommit c1 = repository.prepareCommit(repo, "commit1").call();
+        repo.tag().setName("baseline-1.2.3").setObjectId(c1).call();
+        RevCommit c2 = repository.prepareCommit(repo, "commit2").call();
+        repo.tag().setName("baseline-1.2.1").setObjectId(c2).call(); // for the purpose of test
+        RevCommit c3 = repository.prepareCommit(repo, "commit3").call();
+
+        RevTag tag1 = repository.findLatestBaseline(repo);
+        assertThat(tag1.getTagName(), equalTo("baseline-1.2.3"));
+        assertThat(tag1.getObject(), equalTo(c1.getId()));
+        RevTag tag2 = repository.findCurrentBaseline(repo);
+        assertThat(tag2.getTagName(), equalTo("baseline-1.2.1"));
+        assertThat(tag2.getObject(), equalTo(c2.getId()));
+    }
+
+    @Test
+    public void logTwoDots() throws GitAPIException, IOException {
+        Git repo = repository.findOrCreateGitRepository(new File(patchesHome, "r5"), false);
+        RevCommit c1 = repository.prepareCommit(repo, "commit1").call();
+        RevCommit c2 = repository.prepareCommit(repo, "commit2").call();
+        RevCommit c3 = repository.prepareCommit(repo, "commit3").call();
+        repo.tag().setName("x").setObjectId(c1).call();
+        RevCommit c4 = repository.prepareCommit(repo, "commit4").call();
+        RevCommit c5 = repository.prepareCommit(repo, "commit5").call();
+        RevCommit c6 = repository.prepareCommit(repo, "commit6").call();
+
+        ObjectId tag = repo.getRepository().resolve("x^{commit}");
+        Iterable<RevCommit> commits = repo.log().addRange(tag, c6).call();
+        Set<String> messages = new HashSet<>(Arrays.asList("commit4", "commit5", "commit6"));
+        int n = 6;
+        for (RevCommit c : commits) {
+            String msg = c.getFullMessage();
+            assertThat(msg, equalTo(String.format("commit%d", n--)));
+            messages.remove(msg);
+        }
+
+        assertTrue(messages.isEmpty());
     }
 
 }

@@ -38,6 +38,7 @@ public class PatchData {
 
     private static final String ID = "id";
     private static final String DESCRIPTION = "description";
+    private static final String ROLLUP = "rollup";
     private static final String BUNDLES = "bundle";
     private static final String REQUIREMENTS = "requirement";
     private static final String FILES = "file";
@@ -47,7 +48,14 @@ public class PatchData {
     private static final String RANGE = "range";
     private static final String MIGRATOR_BUNDLE = "migrator-bundle";
 
+    // when ZIP file doesn't contain *.patch descriptor, we'll generate it on the fly
     private boolean generated;
+
+    // patch may or may not be a rollup patch. Rollup patch creates new baseline when installed
+    // non-rollup patch is a simple diff that may be committed (or cherry-picked) and reverted along the user changes
+    // commits in "master" branch. When rollup patch is installed, all user changes without non-rollup cherry-picks
+    // are rebased (git rebase) on top of new baseline tag
+    private boolean rollupPatch;
 
     private final String id;
     private String description;
@@ -108,6 +116,7 @@ public class PatchData {
         String id = props.getProperty(ID);
         String desc = props.getProperty(DESCRIPTION);
         String installerBundle = props.getProperty(MIGRATOR_BUNDLE);
+        boolean rollupPatch = "true".equals(props.getProperty(ROLLUP));
 
         List<String> bundles = new ArrayList<String>();
         Map<String, String> ranges = new HashMap<String, String>();
@@ -132,6 +141,7 @@ public class PatchData {
         }
 
         PatchData result = new PatchData(id, desc, bundles, ranges, requirements, installerBundle);
+        result.setRollupPatch(rollupPatch);
         // add info for patched files
         count = Integer.parseInt(props.getProperty(FILES + "." + COUNT, "0"));
         for (int i = 0; i < count; i++) {
@@ -225,6 +235,14 @@ public class PatchData {
 
     public void setGenerated(boolean generated) {
         this.generated = generated;
+    }
+
+    public boolean isRollupPatch() {
+        return rollupPatch;
+    }
+
+    public void setRollupPatch(boolean rollupPatch) {
+        this.rollupPatch = rollupPatch;
     }
 
     public File getPatchDirectory() {

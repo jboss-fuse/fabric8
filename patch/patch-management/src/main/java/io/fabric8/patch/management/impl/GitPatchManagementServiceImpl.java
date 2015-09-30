@@ -24,9 +24,13 @@ import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -36,6 +40,7 @@ import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.management.PatchData;
 import io.fabric8.patch.management.PatchDetailsRequest;
 import io.fabric8.patch.management.PatchException;
+import io.fabric8.patch.management.PatchKind;
 import io.fabric8.patch.management.PatchManagement;
 import io.fabric8.patch.management.PatchResult;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
@@ -44,12 +49,18 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
+import org.eclipse.jgit.api.CherryPickResult;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.diff.DiffFormatter;
+import org.eclipse.jgit.dircache.DirCache;
+import org.eclipse.jgit.dircache.DirCacheEntry;
+import org.eclipse.jgit.lib.IndexDiff;
 import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.ObjectLoader;
+import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevTag;
 import org.eclipse.jgit.revwalk.RevWalk;
@@ -76,6 +87,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
     /** A pattern of commit message when adding baseling distro */
     private static final String MARKER_BASELINE_COMMIT_PATTERN = "[PATCH/baseline] jboss-fuse-full-%s-baseline";
+    private static final String MARKER_R_PATCH_INSTALLATION_PATTERN = "[PATCH] Installing rollup patch %s";
+    private static final String MARKER_P_PATCH_INSTALLATION_PATTERN = "[PATCH] Installing patch %s";
     /** A pattern of commit message when installing patch-management (this) bundle in etc/startup.properties */
     private static final String MARKER_PATCH_MANAGEMENT_INSTALLATION_COMMIT_PATTERN =
             "[PATCH/management] patch-management-%s.jar installed in etc/startup.properties";
@@ -92,6 +105,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     // main patches directory at ${fuse.patch.location} (defaults to ${karaf.home}/patches)
     private File patchesDir;
 
+    /* patch installation support */
+
+    private Map<String, Git> pendingTransactions = new HashMap<>();
+    private Map<String, PatchKind> pendingTransactionsTypes = new HashMap<>();
+
     public GitPatchManagementServiceImpl(BundleContext context) {
         this.bundleContext = context;
         this.systemContext = context.getBundle(0).getBundleContext();
@@ -104,12 +122,12 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         setGitPatchRepository(repository);
     }
 
-    public void setGitPatchRepository(GitPatchRepository repository) {
-        this.gitPatchRepository = repository;
-    }
-
     public GitPatchRepository getGitPatchRepository() {
         return gitPatchRepository;
+    }
+
+    public void setGitPatchRepository(GitPatchRepository repository) {
+        this.gitPatchRepository = repository;
     }
 
     @Override
@@ -245,8 +263,10 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             // patchFile may "be" a patch descriptor or be a ZIP file containing descriptor
             PatchData patchData = null;
             // in case patch ZIP file has no descriptor, we'll "generate" patch data on the fly
+            // no descriptor -> assume we have rollup patch or even full, new distribution
             PatchData fallbackPatchData = new PatchData(FilenameUtils.getBaseName(url.getPath()));
             fallbackPatchData.setGenerated(true);
+            fallbackPatchData.setRollupPatch(true);
             fallbackPatchData.setPatchDirectory(new File(patchesDir, fallbackPatchData.getId()));
 
             if (zf != null) {
@@ -256,41 +276,43 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
                     for (Enumeration<ZipArchiveEntry> e = zf.getEntries(); e.hasMoreElements(); ) {
                         ZipArchiveEntry entry = e.nextElement();
-                        if (!entry.isDirectory() && !entry.isUnixSymlink()) {
-                            String name = entry.getName();
-                            if (!name.contains("/") && name.endsWith(".patch")) {
-                                // patch descriptor in ZIP's root directory
-                                // TODO why there must be only one?
-                                if (patchData == null) {
-                                    // load data from patch descriptor inside ZIP
-                                    File target = new File(patchesDir, name);
-                                    extractZipEntry(zf, entry, target);
-                                    patchData = loadPatchData(target);
-                                    patchData.setGenerated(false);
-                                    File targetDirForPatchResources = new File(patchesDir, patchData.getId());
-                                    patchData.setPatchDirectory(targetDirForPatchResources);
-                                    target.renameTo(new File(patchesDir, patchData.getId() + ".patch"));
-                                    patches.add(patchData);
-                                } else {
-                                    throw new PatchException(
-                                            String.format("Multiple patch descriptors: already have patch %s and now encountered entry %s",
-                                                    patchData.getId(), name));
-                                }
+                        if (entry.isDirectory() || entry.isUnixSymlink()) {
+                            continue;
+                        }
+                        String name = entry.getName();
+                        if (!name.contains("/") && name.endsWith(".patch")) {
+                            // patch descriptor in ZIP's root directory
+                            // TODO why there must be only one?
+                            if (patchData == null) {
+                                // load data from patch descriptor inside ZIP. This may or may not be a rollup
+                                // patch
+                                File target = new File(patchesDir, name);
+                                extractZipEntry(zf, entry, target);
+                                patchData = loadPatchData(target);
+                                patchData.setGenerated(false);
+                                File targetDirForPatchResources = new File(patchesDir, patchData.getId());
+                                patchData.setPatchDirectory(targetDirForPatchResources);
+                                target.renameTo(new File(patchesDir, patchData.getId() + ".patch"));
+                                patches.add(patchData);
                             } else {
-                                File target = null;
-                                if (name.startsWith("system/")) {
-                                    // copy to ${karaf.default.repository}
-                                    target = new File(systemRepo, name.substring("system/".length()));
-                                } else if (name.startsWith("repository/")) {
-                                    // copy to ${karaf.default.repository}
-                                    target = new File(systemRepo, name.substring("repository/".length()));
-                                } else {
-                                    // other files that should be applied to ${karaf.home} when the patch is installed
-                                    otherResources.add(entry);
-                                }
-                                if (target != null) {
-                                    extractAndTrackZipEntry(fallbackPatchData, zf, entry, target);
-                                }
+                                throw new PatchException(
+                                        String.format("Multiple patch descriptors: already have patch %s and now encountered entry %s",
+                                                patchData.getId(), name));
+                            }
+                        } else {
+                            File target = null;
+                            if (name.startsWith("system/")) {
+                                // copy to ${karaf.default.repository}
+                                target = new File(systemRepo, name.substring("system/".length()));
+                            } else if (name.startsWith("repository/")) {
+                                // copy to ${karaf.default.repository}
+                                target = new File(systemRepo, name.substring("repository/".length()));
+                            } else {
+                                // other files that should be applied to ${karaf.home} when the patch is installed
+                                otherResources.add(entry);
+                            }
+                            if (target != null) {
+                                extractAndTrackZipEntry(fallbackPatchData, zf, entry, target);
                             }
                         }
                     }
@@ -387,8 +409,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             // prepare single fork for all the below operations
             fork = gitPatchRepository.cloneRepository(mainRepository, true);
 
-            // 1. find latest baseline
-            RevTag latestBaseline = gitPatchRepository.findLatestBaseline(fork);
+            // 1. find current baseline
+            RevTag latestBaseline = gitPatchRepository.findCurrentBaseline(fork);
             if (latestBaseline == null) {
                 throw new PatchException("Can't find baseline distribution tracked in patch management. Is patch management initialized?");
             }
@@ -427,6 +449,220 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         } finally {
             if (fork != null) {
                 gitPatchRepository.closeRepository(fork, true);
+            }
+        }
+    }
+
+    @Override
+    public String beginInstallation(PatchKind kind) {
+        String tx = null;
+        try {
+            Git fork = gitPatchRepository.cloneRepository(gitPatchRepository.findOrCreateMainGitRepository(), true);
+            Ref installationBranch = null;
+
+            switch (kind) {
+                case ROLLUP:
+                    // create temporary branch from the current baseline
+                    RevTag currentBaseline = gitPatchRepository.findCurrentBaseline(fork);
+                    installationBranch = fork.checkout()
+                            .setName(String.format("patch-install-%s", GitPatchRepository.TS.format(new Date())))
+                            .setCreateBranch(true)
+                            .setStartPoint(currentBaseline.getName() + "^{commit}")
+                            .call();
+                    break;
+                case NON_ROLLUP:
+                    // create temporary branch from master/HEAD
+                    installationBranch = fork.checkout()
+                            .setName(String.format("patch-install-%s", GitPatchRepository.TS.format(new Date())))
+                            .setCreateBranch(true)
+                            .setStartPoint("master")
+                            .call();
+                    break;
+            }
+
+            pendingTransactionsTypes.put(installationBranch.getName(), kind);
+            pendingTransactions.put(installationBranch.getName(), fork);
+
+            return installationBranch.getName();
+        } catch (IOException | GitAPIException e) {
+            if (tx != null) {
+                pendingTransactions.remove(tx);
+                pendingTransactionsTypes.remove(tx);
+            }
+            throw new PatchException(e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void install(String transaction, Patch patch) {
+        transactionIsValid(transaction, patch);
+
+        Git fork = pendingTransactions.get(transaction);
+        try {
+            switch (pendingTransactionsTypes.get(transaction)) {
+                case ROLLUP: {
+                    // we can install only one rollup patch withing single transaction
+                    // and it is equal to cherry-picking all user changes on top of transaction branch
+                    // after cherry-picking the commit from the rollup patch branch
+                    // rollup patches do their own update to startup.properties
+                    // we're operating on patch branch, HEAD of the patch branch points to the baseline
+                    ObjectId since = fork.getRepository().resolve("HEAD^{commit}");
+                    // we'll pick all user changes between baseline and master without P installations
+                    ObjectId to = fork.getRepository().resolve("master^{commit}");
+                    Iterable<RevCommit> masterChanges = fork.log().addRange(since, to).call();
+                    List<RevCommit> userChanges = new LinkedList<>();
+                    for (RevCommit rc : masterChanges) {
+                        if (isUserChangeCommit(rc)) {
+                            userChanges.add(rc);
+                        }
+                    }
+
+                    // pick the rollup patch
+                    fork.cherryPick()
+                            .include(fork.getRepository().resolve(patch.getManagedPatch().getCommitId()))
+                            .setNoCommit(true)
+                            .call();
+                    RevCommit c = gitPatchRepository.prepareCommit(fork,
+                            String.format(MARKER_R_PATCH_INSTALLATION_PATTERN, patch.getPatchData().getId())).call();
+
+                    // tag the new baseline
+                    String newFuseVersion = determineVersion(fork.getRepository().getWorkTree(), "fuse");
+                    fork.tag()
+                            .setName(String.format("baseline-%s", newFuseVersion))
+                            .setObjectId(c)
+                            .call();
+
+                    // reapply those user changes that are not conflicting
+                    ListIterator<RevCommit> it = userChanges.listIterator(userChanges.size());
+                    while (it.hasPrevious()) {
+                        RevCommit userChange = it.previous();
+                        CherryPickResult result = fork.cherryPick()
+                                .include(userChange)
+                                .setNoCommit(true)
+                                .call();
+                        handleCherryPickConflict(fork, result, userChange, false);
+                        if (!fork.status().call().isClean()) {
+                            gitPatchRepository.prepareCommit(fork,
+                                    userChange.getFullMessage()).call();
+                        }
+                    }
+                    break;
+                }
+                case NON_ROLLUP: {
+                    // simply cherry-pick patch commit to transaction branch
+                    // non-rollup patches require manual change to artifact references in all files
+
+                    // pick the non-rollup patch
+                    ObjectId commit = fork.getRepository().resolve(patch.getManagedPatch().getCommitId());
+                    CherryPickResult result = fork.cherryPick()
+                            .include(commit)
+                            .setNoCommit(true)
+                            .call();
+                    handleCherryPickConflict(fork, result, commit, true);
+
+                    RevCommit c = gitPatchRepository.prepareCommit(fork,
+                            String.format(MARKER_P_PATCH_INSTALLATION_PATTERN, patch.getPatchData().getId())).call();
+
+                    // tag the installed patch (to easily rollback and to prevent another installation)
+                    fork.tag()
+                            .setName(String.format("patch-%s", patch.getPatchData().getId().replace(' ', '-')))
+                            .setObjectId(c)
+                            .call();
+
+                    break;
+                }
+            }
+        } catch (IOException | GitAPIException e) {
+            throw new PatchException(e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Resolve cherry-pick conflict before committing
+     * TODO parameterize this conflict resolution
+     * @param fork
+     * @param result
+     * @param commit conflicting commit
+     * @param preferNew whether to use "theirs" change
+     */
+    protected void handleCherryPickConflict(Git fork, CherryPickResult result, ObjectId commit, boolean preferNew)
+            throws GitAPIException, IOException {
+        if (result.getStatus() == CherryPickResult.CherryPickStatus.CONFLICTING) {
+            System.err.println("Problem with applying the change " + commit.getName() + ":");
+            Map<String, IndexDiff.StageState> conflicts = fork.status().call().getConflictingStageState();
+            for (Map.Entry<String, IndexDiff.StageState> e : conflicts.entrySet()) {
+                System.err.println(" - " + e.getKey() + ": " + e.getValue().name());
+            }
+            System.err.printf("Choosing \"%s\" change%n", preferNew ? "theirs" : "ours");
+            System.err.flush();
+            DirCache cache = fork.getRepository().readDirCache();
+            for (int i = 0; i < cache.getEntryCount(); i++) {
+                DirCacheEntry entry = cache.getEntry(i);
+                if ((preferNew && entry.getStage() == DirCacheEntry.STAGE_3)
+                        || (!preferNew && entry.getStage() == DirCacheEntry.STAGE_2)) {
+                    ObjectLoader loader = fork.getRepository().newObjectReader().open(entry.getObjectId());
+                    loader.copyTo(new FileOutputStream(new File(fork.getRepository().getWorkTree(), entry.getPathString())));
+                    fork.add().addFilepattern(entry.getPathString()).call();
+                }
+            }
+        }
+    }
+
+    @Override
+    public void commitInstallation(String transaction) {
+        transactionIsValid(transaction, null);
+
+        switch (pendingTransactionsTypes.get(transaction)) {
+            case ROLLUP:
+                // hard reset of master branch to point to transaction branch + apply changes to ${karaf.home}
+                break;
+            case NON_ROLLUP:
+                // cherry-pick all commits from transaction branch to master
+                break;
+        }
+
+        pendingTransactions.remove(transaction);
+        pendingTransactionsTypes.remove(transaction);
+    }
+
+    @Override
+    public void rollbackInstallation(String transaction) {
+        transactionIsValid(transaction, null);
+
+        switch (pendingTransactionsTypes.get(transaction)) {
+            case ROLLUP:
+            case NON_ROLLUP:
+                // simply get rid of transaction branch + gc
+                break;
+        }
+
+        pendingTransactions.remove(transaction);
+        pendingTransactionsTypes.remove(transaction);
+    }
+
+    /**
+     * Checks if the commit is user (non P-patch installation) change
+     * @param rc
+     * @return
+     */
+    protected boolean isUserChangeCommit(RevCommit rc) {
+        return MARKER_USER_CHANGES_COMMIT.equals(rc.getFullMessage());
+    }
+
+    /**
+     * Validates state of the transaction for install/commit/rollback purposes
+     * @param transaction
+     * @param patch
+     */
+    private void transactionIsValid(String transaction, Patch patch) {
+        if (!pendingTransactions.containsKey(transaction)) {
+            if (patch != null) {
+                throw new PatchException(String.format("Can't install \"%s\" - illegal transaction \"%s\".",
+                        patch.getPatchData().getId(),
+                        transaction));
+            } else {
+                throw new PatchException(String.format("Can't proceed - illegal transaction \"%s\".",
+                        transaction));
             }
         }
     }
@@ -534,7 +770,17 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * @return
      */
     private String determineVersion(String product) {
-        File versions = new File(karafHome, "fabric/import/fabric/profiles/default.profile/io.fabric8.version.properties");
+        return determineVersion(karafHome, product);
+    }
+
+    /**
+     * Return version of product (Fuse, Fabric8) used, but probably based on different karafHome
+     * @param home
+     * @param product
+     * @return
+     */
+    private String determineVersion(File home, String product) {
+        File versions = new File(home, "fabric/import/fabric/profiles/default.profile/io.fabric8.version.properties");
         if (versions.exists() && versions.isFile()) {
             Properties props = new Properties();
             try {
@@ -587,7 +833,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * management Git repository, doesn't modify ${karaf.home}
      * @param git non-bare repository to perform the operation
      */
-    private void applyUserChanges(Git git) throws GitAPIException, IOException {
+    public void applyUserChanges(Git git) throws GitAPIException, IOException {
         File wcDir = git.getRepository().getDirectory().getParentFile();
         File karafBase = karafHome;
 
@@ -761,7 +1007,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * @param git
      * @param commits
      */
-    private void applyChanges(Git git, RevCommit ... commits) throws IOException, GitAPIException {
+    private void applyChanges(Git git, RevCommit... commits) throws IOException, GitAPIException {
         File wcDir = git.getRepository().getWorkTree();
 
         for (RevCommit commit : commits) {

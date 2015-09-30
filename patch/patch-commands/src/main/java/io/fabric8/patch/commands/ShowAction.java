@@ -24,7 +24,7 @@ import org.apache.felix.gogo.commands.Argument;
 import org.apache.felix.gogo.commands.Command;
 import org.apache.felix.gogo.commands.Option;
 
-@Command(scope = "patch", name = "show", description = "Display known patches")
+@Command(scope = "patch", name = "show", description = "Display information about added/installed patch")
 public class ShowAction extends PatchActionSupport {
 
     private final PatchManagement patchManagement;

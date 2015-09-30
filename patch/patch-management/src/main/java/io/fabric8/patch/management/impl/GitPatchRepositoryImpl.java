@@ -17,15 +17,12 @@ package io.fabric8.patch.management.impl;
 
 import java.io.File;
 import java.io.IOException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -58,8 +55,6 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
     public static final String MAIN_GIT_REPO_LOCATION = ".management/history";
 
     private static final Pattern BASELINE_TAG_PATTERN = Pattern.compile("^baseline-(.+)$");
-
-    private static final DateFormat TS = new SimpleDateFormat("yyyyMMdd-HHmmssSSS");
 
     // ${karaf.home}
     private File karafHome;
@@ -269,6 +264,30 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
         } else {
             return null;
         }
+    }
+
+    @Override
+    public RevTag findCurrentBaseline(Git git) throws GitAPIException, IOException {
+        List<Ref> tags = git.tagList().call();
+        RevWalk walk = new RevWalk(git.getRepository());
+        Map<ObjectId, RevTag> tagMap = new HashMap<>();
+        for (Ref tag : tags) {
+            Ref peeled = git.getRepository().peel(tag);
+            if (peeled.getPeeledObjectId() != null) {
+                tagMap.put(peeled.getPeeledObjectId(), walk.parseTag(tag.getObjectId()));
+            } else {
+                tagMap.put(peeled.getObjectId(), walk.parseTag(tag.getObjectId()));
+            }
+        }
+
+        Iterable<RevCommit> log = git.log().add(git.getRepository().resolve("master")).call();
+        for (RevCommit rc : log) {
+            if (tagMap.containsKey(rc.getId())) {
+                return tagMap.get(rc.getId());
+            }
+        }
+
+        return null;
     }
 
     @Override
