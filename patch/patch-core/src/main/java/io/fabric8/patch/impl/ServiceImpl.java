@@ -43,6 +43,7 @@ import io.fabric8.patch.Service;
 import io.fabric8.patch.management.BundleUpdate;
 import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.management.PatchData;
+import io.fabric8.patch.management.PatchDetailsRequest;
 import io.fabric8.patch.management.PatchException;
 import io.fabric8.patch.management.PatchKind;
 import io.fabric8.patch.management.PatchManagement;
@@ -131,6 +132,7 @@ public class ServiceImpl implements Service {
 
     @Override
     public Patch getPatch(String id) {
+        patchManagement.loadPatch(new PatchDetailsRequest(id));
         return load(false).get(id);
     }
 
