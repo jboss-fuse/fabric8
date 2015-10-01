@@ -317,13 +317,28 @@ public class ServiceImpl implements Service {
             // would break our patching bundle.
             for (Map.Entry<Bundle, String> entry : new HashSet<>(toUpdate.entrySet())) {
                 Bundle bundle = entry.getKey();
-                if( SPECIAL_BUNDLE_SYMBOLIC_NAMES.contains(bundle.getSymbolicName()) ) {
-                    System.out.println("Skipping bundle update of: "+bundle);
-                    toUpdate.remove(bundle);
-                } else if( bundle.getLocation().equals(entry.getValue()) ) {
-                    System.out.println("Bundle is up to date: "+bundle);
+                if ("org.ops4j.pax.url.mvn".equals(bundle.getSymbolicName())) {
+                    // handle this bundle specially - update it here
+                    Artifact artifact = Utils.mvnurlToArtifact(entry.getValue(), true);
+                    File repo = new File(bundleContext.getBundle(0).getBundleContext().getProperty("karaf.default.repository"));
+                    URL location = new File(repo,
+                            String.format("org/ops4j/pax/url/pax-url-aether/%s/pax-url-aether-%s.jar",
+                                    artifact.getVersion(), artifact.getVersion())).toURI().toURL();
+                    System.out.printf("Special update of bundle \"%s\" from \"%s\"%n",
+                            bundle.getSymbolicName(), location);
+                    if (!simulate) {
+                        BundleUtils.update(bundle, location);
+                        bundle.start();
+                    }
                     toUpdate.remove(bundle);
                 }
+//                if (SPECIAL_BUNDLE_SYMBOLIC_NAMES.contains(bundle.getSymbolicName())) {
+//                    System.out.println("Skipping bundle update of: " + bundle);
+//                    toUpdate.remove(bundle);
+//                } else if (bundle.getLocation().equals(entry.getValue())) {
+//                    System.out.println("Bundle is up to date: " + bundle);
+//                    toUpdate.remove(bundle);
+//                }
             }
 
             // Apply results
@@ -339,7 +354,33 @@ public class ServiceImpl implements Service {
             }
             System.out.flush();
 
-            // poor-mans lifecycle management in case when SCR nullify our reference
+            if (!simulate) {
+                // let's stop fileinstall and configadmin
+                Bundle fileinstal = null;
+                Bundle configadmin = null;
+                for (Bundle b : allBundles) {
+                    if ("org.apache.felix.fileinstall".equals(b.getSymbolicName())) {
+                        fileinstal = b;
+                    } else if ("org.apache.felix.configadmin".equals(b.getSymbolicName())) {
+                        configadmin = b;
+                    }
+                }
+                if (fileinstal != null) {
+                    fileinstal.stop(Bundle.STOP_TRANSIENT);
+                }
+                if (configadmin != null) {
+                    configadmin.stop(Bundle.STOP_TRANSIENT);
+                }
+            }
+
+            if (featuresService != null) {
+                // TODO: it may be null in tests
+                for (Patch patch : patches) {
+                    reinstallFeatures(patch, simulate);
+                }
+            }
+
+            // poor-man's lifecycle management in case when SCR nullifies our reference
             PatchManagement pm = patchManagement;
 
             if (!simulate) {
@@ -373,13 +414,6 @@ public class ServiceImpl implements Service {
                 patchManagement.rollbackInstallation(transaction);
             }
 
-            if (featuresService != null) {
-                // TODO: it may be null in tests
-                for (Patch patch : patches) {
-                    installFeatures(patch, simulate);
-                }
-            }
-
             return results;
         } catch (Exception e) {
             if (transaction != null) {
@@ -406,7 +440,14 @@ public class ServiceImpl implements Service {
         }
     }
 
-    private void installFeatures(Patch patch, boolean simulate) throws Exception {
+    /**
+     * Instead of relying on etc/overrides.properties, let's reinstall the features, for which we have
+     * new versions - new feature repository files shipped with patch.
+     * @param patch
+     * @param simulate
+     * @throws Exception
+     */
+    private void reinstallFeatures(Patch patch, boolean simulate) throws Exception {
 
         // install the new feature repos, tracking the set the were
         // installed before and after
@@ -477,7 +518,6 @@ public class ServiceImpl implements Service {
                 featuresService.removeRepository(new URI(url));
             }
         }
-
     }
 
     private HashMap<String, Repository> getFeatureRepos() {
