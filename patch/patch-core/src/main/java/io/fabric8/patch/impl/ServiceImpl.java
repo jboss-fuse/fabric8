@@ -28,7 +28,6 @@ import java.util.jar.Manifest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.fabric8.common.util.Pair;
 import io.fabric8.patch.Service;
 import io.fabric8.patch.management.Artifact;
 import io.fabric8.patch.management.BundleUpdate;
@@ -341,8 +340,11 @@ public class ServiceImpl implements Service {
                 patchManagement.rollbackInstallation(transaction);
             }
 
-            for (Patch patch : patches) {
-                installFeatures(patch, simulate);
+            if (featuresService != null) {
+                // TODO: it may be null in tests
+                for (Patch patch : patches) {
+                    installFeatures(patch, simulate);
+                }
             }
 
             return results;
