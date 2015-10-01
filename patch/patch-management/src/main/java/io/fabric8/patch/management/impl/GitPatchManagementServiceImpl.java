@@ -514,6 +514,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         try {
             switch (pendingTransactionsTypes.get(transaction)) {
                 case ROLLUP: {
+                    System.out.printf("Installing rollup patch \"%s\"%n", patch.getPatchData().getId());
+                    System.out.flush();
                     // we can install only one rollup patch withing single transaction
                     // and it is equal to cherry-picking all user changes on top of transaction branch
                     // after cherry-picking the commit from the rollup patch branch
@@ -553,8 +555,12 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                                 .include(userChange)
                                 .setNoCommit(true)
                                 .call();
-                        handleCherryPickConflict(fork, result, userChange, false);
+                        handleCherryPickConflict(patch.getPatchData().getPatchDirectory(), fork, result, userChange,
+                                false, PatchKind.ROLLUP);
+
                         if (!fork.status().call().isClean()) {
+                            // only commit if there's a change - user change on top of rollup patch may be resolved
+                            // by dropping entire change
                             gitPatchRepository.prepareCommit(fork,
                                     userChange.getFullMessage()).call();
                         }
@@ -562,6 +568,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     break;
                 }
                 case NON_ROLLUP: {
+                    System.out.printf("Installing non-rollup patch \"%s\"%n", patch.getPatchData().getId());
+                    System.out.flush();
                     // simply cherry-pick patch commit to transaction branch
                     // non-rollup patches require manual change to artifact references in all files
 
@@ -571,10 +579,12 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             .include(commit)
                             .setNoCommit(true)
                             .call();
-                    handleCherryPickConflict(fork, result, commit, true);
+                    handleCherryPickConflict(patch.getPatchData().getPatchDirectory(), fork, result, commit,
+                            true, PatchKind.NON_ROLLUP);
 
+                    // always commit non-rollup patch - even if there are no changes to files (only bundles)
                     RevCommit c = gitPatchRepository.prepareCommit(fork,
-                            String.format(MARKER_P_PATCH_INSTALLATION_PATTERN, patch.getPatchData().getId())).call();
+                        String.format(MARKER_P_PATCH_INSTALLATION_PATTERN, patch.getPatchData().getId())).call();
 
                     // tag the installed patch (to easily rollback and to prevent another installation)
                     fork.tag()
@@ -669,33 +679,61 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     /**
-     * Resolve cherry-pick conflict before committing
-     * TODO parameterize this conflict resolution
+     * Resolve cherry-pick conflict before committing. Always prefer the change from patch, backup custom change
+     * @param patchDirectory the source directory of the applied patch - used as a reference for backing up
+     * conflicting files.
      * @param fork
      * @param result
      * @param commit conflicting commit
-     * @param preferNew whether to use "theirs" change - the one from cherry-picked commit
+     * @param preferNew whether to use "theirs" change - the one from cherry-picked commit. for rollup patch, "theirs"
+     * is user change, for non-rollup change, "theirs" is custom change
      */
-    protected void handleCherryPickConflict(Git fork, CherryPickResult result, ObjectId commit, boolean preferNew)
+    protected void handleCherryPickConflict(File patchDirectory, Git fork, CherryPickResult result, ObjectId commit,
+                                            boolean preferNew, PatchKind kind)
             throws GitAPIException, IOException {
         if (result.getStatus() == CherryPickResult.CherryPickStatus.CONFLICTING) {
-            System.err.println("Problem with applying the change " + commit.getName() + ":");
+            System.out.println("Problem with applying the change " + commit.getName() + ":");
             Map<String, IndexDiff.StageState> conflicts = fork.status().call().getConflictingStageState();
             for (Map.Entry<String, IndexDiff.StageState> e : conflicts.entrySet()) {
-                System.err.println(" - " + e.getKey() + ": " + e.getValue().name());
+                System.out.println(" - " + e.getKey() + ": " + e.getValue().name());
             }
-            System.err.printf("Choosing \"%s\" change%n", preferNew ? "theirs" : "ours");
-            System.err.flush();
+
+            String choose = null, backup = null;
+            switch (kind) {
+                case ROLLUP:
+                    choose = !preferNew ? "change from patch" : "custom change";
+                    backup = !preferNew ? "custom change" : "change from patch";
+                    break;
+                case NON_ROLLUP:
+                    choose = preferNew ? "change from patch" : "custom change";
+                    backup = preferNew ? "custom change" : "change from patch";
+                    break;
+            }
+
+            System.out.printf("Choosing %s%n", choose);
             DirCache cache = fork.getRepository().readDirCache();
             for (int i = 0; i < cache.getEntryCount(); i++) {
                 DirCacheEntry entry = cache.getEntry(i);
+                if (entry.getStage() == DirCacheEntry.STAGE_0 || entry.getStage() == DirCacheEntry.STAGE_1) {
+                    continue;
+                }
                 if ((preferNew && entry.getStage() == DirCacheEntry.STAGE_3)
                         || (!preferNew && entry.getStage() == DirCacheEntry.STAGE_2)) {
                     ObjectLoader loader = fork.getRepository().newObjectReader().open(entry.getObjectId());
                     loader.copyTo(new FileOutputStream(new File(fork.getRepository().getWorkTree(), entry.getPathString())));
                     fork.add().addFilepattern(entry.getPathString()).call();
+                } else {
+                    // the other entry should be backed up
+                    ObjectLoader loader = fork.getRepository().newObjectReader().open(entry.getObjectId());
+                    File target = new File(patchDirectory.getParent(), patchDirectory.getName() + ".backup");
+                    File file = new File(target, entry.getPathString());
+                    System.out.printf("Backing up %s to \"%s\"%n",
+                            backup, file.getCanonicalPath());
+                    file.getParentFile().mkdirs();
+                    loader.copyTo(new FileOutputStream(file));
                 }
             }
+            System.out.flush();
         }
     }
 
@@ -788,6 +826,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         } catch (GitAPIException | IOException e) {
             System.err.println("[PATCH-error] " + e.getMessage());
             e.printStackTrace(System.err);
+            System.err.flush();
             // PANIC
         } finally {
             if (fork != null) {
@@ -847,10 +886,12 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 return props.getProperty(product);
             } catch (IOException e) {
                 System.err.println("[PATCH-error] " + e.getMessage());
+                System.err.flush();
                 return null;
             }
         } else {
             System.err.println("[PATCH-error] Can't find io.fabric8.version.properties file in default profile");
+            System.err.flush();
         }
         return null;
     }
@@ -883,6 +924,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         } else {
             String message = "Can't find baseline distribution \"" + baselineDistribution.getName() + "\" in patches dir or inside system repository.";
             System.err.println("[PATCH-error] " + message);
+            System.err.flush();
             throw new PatchException(message);
         }
     }
@@ -929,6 +971,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             }
         } catch (GitAPIException | IOException e) {
             System.err.println("[PATCH-error] " + e.getMessage());
+            System.err.flush();
         }
     }
 

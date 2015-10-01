@@ -514,8 +514,13 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         assertTrue(repository.containsTag(fork, "baseline-6.2.0.redhat-002"));
 
         String binStart = FileUtils.readFileToString(new File(karafHome, "bin/start"));
-        assertTrue("bin/startup should be patched by patch-4",
+        assertTrue("bin/start should be patched by patch-4",
                 binStart.contains("echo \"we had to add this line, because without it, everything crashed\""));
+
+        // we had conflict, so expect the backup
+        String oldBinStart = FileUtils.readFileToString(new File(karafHome, "patches/patch-4.backup/bin/start"));
+        assertTrue("bin/start should be backed up",
+                oldBinStart.contains("echo \"This is user's change\""));
     }
 
     @Test
@@ -618,7 +623,12 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         assertTrue(repository.containsTag(fork, "patch-my-patch-1"));
 
         String binStart = FileUtils.readFileToString(new File(karafHome, "bin/start"));
-        assertTrue("bin/startup should be patched by patch-1", binStart.contains("echo \"started\""));
+        assertTrue("bin/start should be patched by patch-1", binStart.contains("echo \"started\""));
+
+        // we had conflict, so expect the backup
+        String oldBinStart = FileUtils.readFileToString(new File(karafHome, "patches/my-patch-1.backup/bin/start"));
+        assertTrue("bin/start should be backed up",
+                oldBinStart.contains("echo \"This is user's change\""));
     }
 
     private void validateInitialGitRepository() throws IOException, GitAPIException {
