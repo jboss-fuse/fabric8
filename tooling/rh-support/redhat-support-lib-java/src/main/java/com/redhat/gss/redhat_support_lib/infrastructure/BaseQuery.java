@@ -1,22 +1,18 @@
 package com.redhat.gss.redhat_support_lib.infrastructure;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.text.ParseException;
 
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.GenericEntity;
-import javax.ws.rs.core.Link.Builder;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.apache.commons.net.util.Base64;
-import org.apache.log4j.Logger;
+import org.jboss.logging.Logger;
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
-import org.jboss.resteasy.plugins.providers.multipart.MultipartConstants;
 import org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataOutput;
-import org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataWriter;
 
 import com.redhat.gss.redhat_support_lib.api.API;
 import com.redhat.gss.redhat_support_lib.errors.RequestException;
@@ -37,7 +33,6 @@ public class BaseQuery {
 					+ " - " + response.getStatusInfo().getReasonPhrase());
 		}
 		T returnObject = response.readEntity(c);
-		client.close();
 		return returnObject;
 
 	}
@@ -73,7 +68,6 @@ public class BaseQuery {
 		}
 
 		T returnObject = response.readEntity(c);
-		client.close();
 		return returnObject;
 	}
 

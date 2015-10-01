@@ -5,8 +5,6 @@ import java.net.MalformedURLException;
 import java.net.URLEncoder;
 import java.util.List;
 
-import org.jboss.resteasy.client.jaxrs.ResteasyWebTarget;
-
 import com.redhat.gss.redhat_support_lib.errors.RequestException;
 import com.redhat.gss.redhat_support_lib.helpers.FilterHelper;
 import com.redhat.gss.redhat_support_lib.parsers.Product;
