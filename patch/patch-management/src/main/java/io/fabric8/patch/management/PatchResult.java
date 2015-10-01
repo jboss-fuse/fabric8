@@ -138,9 +138,9 @@ public class PatchResult {
             pw.write(UPDATES + "." + Integer.toString(i) + "." + OLD_LOCATION + " = " + update.getPreviousLocation() + "\n");
             i++;
         }
-        pw.write(STARTUP + " = " + getStartup() + "\n");
+        pw.write(STARTUP + " = " + getStartup().replace(" ", "\\ ") + "\n");
         if (overrides != null) {
-            pw.write(OVERRIDES + " = " + overrides + "\n");
+            pw.write(OVERRIDES + " = " + overrides.replace(" ", "\\ ") + "\n");
         }
         pw.close();
     }

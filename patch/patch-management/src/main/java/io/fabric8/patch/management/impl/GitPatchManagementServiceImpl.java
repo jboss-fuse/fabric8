@@ -495,6 +495,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             Git fork = gitPatchRepository.cloneRepository(gitPatchRepository.findOrCreateMainGitRepository(), true);
             Ref installationBranch = null;
 
+            // let's pick up latest user changes
+            applyUserChanges(fork);
+
             switch (kind) {
                 case ROLLUP:
                     // create temporary branch from the current baseline
@@ -702,8 +705,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
     @Override
     public void rollback(PatchResult result) {
+        Git fork = null;
         try {
-            Git fork = gitPatchRepository.cloneRepository(gitPatchRepository.findOrCreateMainGitRepository(), true);
+            fork = gitPatchRepository.cloneRepository(gitPatchRepository.findOrCreateMainGitRepository(), true);
             Ref installationBranch = null;
 
             PatchData patchData = result.getPatchData();
@@ -824,6 +828,10 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             }
         } catch (IOException | GitAPIException e) {
             throw new PatchException(e.getMessage(), e);
+        } finally {
+            if (fork != null) {
+                gitPatchRepository.closeRepository(fork, true);
+            }
         }
     }
 
@@ -1092,7 +1100,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             // let's simply copy all user files on top of git working copy
             // then we can check the differences simply by committing the changes
             // there should be no conflicts, because we're not merging anything
-            copyManagedDirectories(karafBase, wcDir, false);
+            // "true" means that target dir is first deleted to detect removal of files
+            copyManagedDirectories(karafBase, wcDir, true);
 
             // commit the changes to main repository
             Status status = git.status().call();
@@ -1101,12 +1110,12 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 git.add()
                         .addFilepattern(".")
                         .call();
-                // let's not remove files when user deleted something in managed directories
-//                for (String name : status.getMissing()) {
-//                    git.rm()
-//                            .addFilepattern(name)
-//                            .call();
-//                }
+                // TODO: maybe we should not track deletes?
+                for (String name : status.getMissing()) {
+                    git.rm()
+                            .addFilepattern(name)
+                            .call();
+                }
                 gitPatchRepository.prepareCommit(git, MARKER_USER_CHANGES_COMMIT).call();
                 gitPatchRepository.push(git);
 

@@ -21,6 +21,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import io.fabric8.common.util.IOHelpers;
+import io.fabric8.patch.management.Artifact;
 import io.fabric8.patch.management.PatchException;
 import io.fabric8.patch.management.PatchData;
 import io.fabric8.patch.management.Utils;
@@ -28,10 +29,11 @@ import org.apache.felix.utils.version.VersionRange;
 import org.apache.felix.utils.version.VersionTable;
 import org.osgi.framework.Version;
 
-import static io.fabric8.patch.impl.Offline.Artifact.isSameButVersion;
 import static io.fabric8.common.util.IOHelpers.close;
 import static io.fabric8.common.util.IOHelpers.readLines;
 import static io.fabric8.common.util.IOHelpers.writeLines;
+import static io.fabric8.patch.management.Artifact.isSameButVersion;
+import static io.fabric8.patch.management.Utils.mvnurlToArtifact;
 
 public class Offline {
 
@@ -419,56 +421,6 @@ public class Offline {
         logger.log(level, message);
     }
 
-    static Artifact mvnurlToArtifact(String resourceLocation, boolean skipNonMavenProtocols) {
-        resourceLocation = resourceLocation.replace("\r\n", "").replace("\n", "").replace(" ", "").replace("\t", "");
-        final int index = resourceLocation.indexOf("mvn:");
-        if (index < 0) {
-            if (skipNonMavenProtocols) {
-                return null;
-            }
-            throw new IllegalArgumentException("Resource URL is not a maven URL: " + resourceLocation);
-        } else {
-            resourceLocation = resourceLocation.substring(index + "mvn:".length());
-        }
-        // Truncate the URL when a '#', a '?' or a '$' is encountered
-        final int index1 = resourceLocation.indexOf('?');
-        final int index2 = resourceLocation.indexOf('#');
-        int endIndex = -1;
-        if (index1 > 0) {
-            if (index2 > 0) {
-                endIndex = Math.min(index1, index2);
-            } else {
-                endIndex = index1;
-            }
-        } else if (index2 > 0) {
-            endIndex = index2;
-        }
-        if (endIndex >= 0) {
-            resourceLocation = resourceLocation.substring(0, endIndex);
-        }
-        final int index3 = resourceLocation.indexOf('$');
-        if (index3 > 0) {
-            resourceLocation = resourceLocation.substring(0, index3);
-        }
-
-        String[] parts = resourceLocation.split("/");
-        if (parts.length > 2) {
-            String groupId = parts[0];
-            String artifactId = parts[1];
-            String version = parts[2];
-            String type = "jar";
-            String classifier = null;
-            if (parts.length > 3) {
-                type = parts[3];
-                if (parts.length > 4) {
-                    classifier = parts[4];
-                }
-            }
-            return new Artifact(groupId, artifactId, version, type, classifier);
-        }
-        throw new IllegalArgumentException("Bad maven url: " + resourceLocation);
-    }
-
     /*
      * Copy file
      */
@@ -486,83 +438,4 @@ public class Offline {
         }
     }
 
-    public static class Artifact {
-        private final String groupId;
-        private final String artifactId;
-        private final String version;
-        private final String type;
-        private final String classifier;
-
-        public Artifact(String groupId, String artifactId, String version, String type, String classifier) {
-            this.groupId = groupId;
-            this.artifactId = artifactId;
-            this.version = version;
-            this.type = type;
-            this.classifier = classifier;
-        }
-
-        public String getGroupId() {
-            return groupId;
-        }
-
-        public String getArtifactId() {
-            return artifactId;
-        }
-
-        public String getVersion() {
-            return version;
-        }
-
-        public String getType() {
-            return type;
-        }
-
-        public String getClassifier() {
-            return classifier;
-        }
-
-        public boolean hasClassifier() {
-            return classifier != null;
-        }
-
-        public String getPath() {
-            return groupId.replace('.', '/')
-                    + '/'
-                    + artifactId
-                    + '/'
-                    + version
-                    + '/'
-                    + artifactId
-                    + (classifier != null ? "-" + classifier : "")
-                    + '-'
-                    + version
-                    + '.'
-                    + type;
-        }
-
-        public String toString() {
-            StringBuilder sb = new StringBuilder();
-            sb.append(groupId)
-                    .append(":")
-                    .append(artifactId)
-                    .append(":")
-                    .append(version);
-            if (!"jar".equals(type) || classifier != null) {
-                sb.append(":").append(type);
-                if (classifier != null) {
-                    sb.append(":").append(classifier);
-                }
-            }
-            return sb.toString();
-        }
-
-        public static boolean isSameButVersion(Artifact a1, Artifact a2) {
-            return a1.getGroupId().equals(a2.getGroupId())
-                    && a1.getArtifactId().equals(a2.getArtifactId())
-                    && a1.hasClassifier() == a2.hasClassifier()
-                    && (!a1.hasClassifier() || a1.getClassifier().equals(a2.getClassifier()))
-                    && a1.getType().equals(a2.getType());
-        }
-
-    }
 }

@@ -51,6 +51,7 @@ import io.fabric8.patch.management.PatchException;
 import io.fabric8.patch.management.PatchKind;
 import io.fabric8.patch.management.PatchManagement;
 import io.fabric8.patch.management.PatchResult;
+import io.fabric8.patch.management.Utils;
 import io.fabric8.patch.management.impl.GitPatchManagementServiceImpl;
 import io.fabric8.patch.management.impl.GitPatchRepository;
 import org.easymock.EasyMock;
@@ -731,7 +732,7 @@ public class ServiceImplTest {
         FileOutputStream fos = new FileOutputStream(pd);
         props.store(fos, null);
         fos.close();
-        File bf = new File(storage, "temp/" + id + "/repository/" + Offline.mvnurlToArtifact(mvnUrl, true).getPath());
+        File bf = new File(storage, "temp/" + id + "/repository/" + Utils.mvnurlToArtifact(mvnUrl, true).getPath());
         bf.getParentFile().mkdirs();
         copy(new FileInputStream(bundle), new FileOutputStream(bf));
         fos = new FileOutputStream(patchFile);
