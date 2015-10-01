@@ -297,10 +297,14 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
         Map<ObjectId, RevTag> tagMap = new HashMap<>();
         for (Ref tag : tags) {
             Ref peeled = git.getRepository().peel(tag);
+            RevTag revTag = walk.parseTag(tag.getObjectId());
+            if (!BASELINE_TAG_PATTERN.matcher(revTag.getTagName()).matches()) {
+                continue;
+            }
             if (peeled.getPeeledObjectId() != null) {
-                tagMap.put(peeled.getPeeledObjectId(), walk.parseTag(tag.getObjectId()));
+                tagMap.put(peeled.getPeeledObjectId(), revTag);
             } else {
-                tagMap.put(peeled.getObjectId(), walk.parseTag(tag.getObjectId()));
+                tagMap.put(peeled.getObjectId(), revTag);
             }
         }
 

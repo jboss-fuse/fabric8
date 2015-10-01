@@ -88,4 +88,11 @@ public interface PatchManagement {
      */
     void rollbackInstallation(String transaction);
 
+    /**
+     * <p>Rolling back a patch (which is different that rolling back transaction for patches installation) is
+     * a matter of restoring to previous point in history</p>
+     * @param result
+     */
+    void rollback(PatchResult result);
+
 }

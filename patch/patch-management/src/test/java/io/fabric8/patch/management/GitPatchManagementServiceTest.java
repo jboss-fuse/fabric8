@@ -19,11 +19,9 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import io.fabric8.patch.management.impl.GitPatchManagementService;
 import io.fabric8.patch.management.impl.GitPatchManagementServiceImpl;
@@ -37,7 +35,6 @@ import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
-import org.eclipse.jgit.transport.TagOpt;
 import org.junit.Before;
 import org.junit.Test;
 import org.osgi.framework.startlevel.BundleStartLevel;
@@ -463,7 +460,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     }
 
     @Test
-    public void rollbackRollupPatch() throws IOException, GitAPIException {
+    public void rollbackRollupPatchInstallation() throws IOException, GitAPIException {
         freshKarafDistro();
         GitPatchRepository repository = patchManagement();
         PatchManagement management = (PatchManagement) pm;
@@ -512,6 +509,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         assertThat(fork.tagList().call().size(), equalTo(2));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0"));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0.redhat-002"));
+        assertThat("Baseline should change", repository.findCurrentBaseline(fork).getTagName(), equalTo("baseline-6.2.0.redhat-002"));
 
         String binStart = FileUtils.readFileToString(new File(karafHome, "bin/start"));
         assertTrue("bin/start should be patched by patch-4",
@@ -521,6 +519,40 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         String oldBinStart = FileUtils.readFileToString(new File(karafHome, "patches/patch-4.backup/bin/start"));
         assertTrue("bin/start should be backed up",
                 oldBinStart.contains("echo \"This is user's change\""));
+    }
+
+    @Test
+    public void rollbackInstalledRollupPatch() throws IOException, GitAPIException {
+        freshKarafDistro();
+        GitPatchRepository repository = patchManagement();
+        PatchManagement management = (PatchManagement) pm;
+
+        preparePatchZip("src/test/resources/content/patch4", "target/karaf/patches/source/patch-4.zip", false);
+        List<PatchData> patches = management.fetchPatches(new File("target/karaf/patches/source/patch-4.zip").toURI().toURL());
+        Patch patch = management.trackPatch(patches.get(0));
+
+        Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
+        ObjectId master1 = fork.getRepository().resolve("master");
+
+        String tx = management.beginInstallation(PatchKind.ROLLUP);
+        management.install(tx, patch);
+        management.commitInstallation(tx);
+
+        PatchResult result = new PatchResult(patch.getPatchData());
+        management.rollback(result);
+
+        repository.closeRepository(fork, true);
+        fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
+        ObjectId master2 = fork.getRepository().resolve("master");
+
+        assertThat(master1, not(equalTo(master2)));
+        assertThat(fork.tagList().call().size(), equalTo(1));
+        assertTrue(repository.containsTag(fork, "baseline-6.2.0"));
+        assertThat(repository.findCurrentBaseline(fork).getTagName(), equalTo("baseline-6.2.0"));
+
+        String binStart = FileUtils.readFileToString(new File(karafHome, "bin/start"));
+        assertTrue("bin/start should be at previous version",
+                binStart.contains("echo \"This is user's change\""));
     }
 
     @Test
@@ -572,7 +604,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     }
 
     @Test
-    public void rollbackNonRollupPatch() throws IOException, GitAPIException {
+    public void rollbackNonRollupPatchInstallation() throws IOException, GitAPIException {
         freshKarafDistro();
         GitPatchRepository repository = patchManagement();
         PatchManagement management = (PatchManagement) pm;
@@ -621,6 +653,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         assertThat(fork.tagList().call().size(), equalTo(2));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0"));
         assertTrue(repository.containsTag(fork, "patch-my-patch-1"));
+        assertThat("Baseline should not change", repository.findCurrentBaseline(fork).getTagName(), equalTo("baseline-6.2.0"));
 
         String binStart = FileUtils.readFileToString(new File(karafHome, "bin/start"));
         assertTrue("bin/start should be patched by patch-1", binStart.contains("echo \"started\""));
@@ -629,6 +662,39 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         String oldBinStart = FileUtils.readFileToString(new File(karafHome, "patches/my-patch-1.backup/bin/start"));
         assertTrue("bin/start should be backed up",
                 oldBinStart.contains("echo \"This is user's change\""));
+    }
+
+    @Test
+    public void rollbackInstalledNonRollupPatch() throws IOException, GitAPIException {
+        freshKarafDistro();
+        GitPatchRepository repository = patchManagement();
+        PatchManagement management = (PatchManagement) pm;
+
+        preparePatchZip("src/test/resources/content/patch1", "target/karaf/patches/source/patch-1.zip", false);
+        List<PatchData> patches = management.fetchPatches(new File("target/karaf/patches/source/patch-1.zip").toURI().toURL());
+        Patch patch = management.trackPatch(patches.get(0));
+
+        Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
+        ObjectId master1 = fork.getRepository().resolve("master");
+
+        String tx = management.beginInstallation(PatchKind.NON_ROLLUP);
+        management.install(tx, patch);
+        management.commitInstallation(tx);
+
+        PatchResult result = new PatchResult(patch.getPatchData());
+        management.rollback(result);
+
+        repository.closeRepository(fork, true);
+        fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
+        ObjectId master2 = fork.getRepository().resolve("master");
+
+        assertThat(master1, not(equalTo(master2)));
+        assertThat(fork.tagList().call().size(), equalTo(1));
+        assertTrue(repository.containsTag(fork, "baseline-6.2.0"));
+        assertFalse(repository.containsTag(fork, "patch-my-patch-1"));
+
+        String binStart = FileUtils.readFileToString(new File(karafHome, "bin/start"));
+        assertTrue("bin/start should be at previous version", binStart.contains("echo \"This is user's change\""));
     }
 
     private void validateInitialGitRepository() throws IOException, GitAPIException {
