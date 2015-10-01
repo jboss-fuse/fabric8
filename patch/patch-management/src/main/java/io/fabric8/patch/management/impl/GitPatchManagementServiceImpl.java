@@ -32,6 +32,8 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -66,6 +68,7 @@ import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevTag;
 import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.transport.RefSpec;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Version;
 import org.osgi.framework.startlevel.BundleStartLevel;
@@ -106,6 +109,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     private File karafHome;
     // main patches directory at ${fuse.patch.location} (defaults to ${karaf.home}/patches)
     private File patchesDir;
+
+    // latched when git repository is initialized
+    private CountDownLatch initialized = new CountDownLatch(1);
 
     /* patch installation support */
 
@@ -420,6 +426,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      */
     @Override
     public Patch trackPatch(PatchData patchData) throws PatchException {
+        try {
+            awaitInitialization();
+        } catch (InterruptedException e) {
+            throw new PatchException("Patch management system is not ready yet");
+        }
         Git fork = null;
         try {
             Git mainRepository = gitPatchRepository.findOrCreateMainGitRepository();
@@ -468,6 +479,13 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 gitPatchRepository.closeRepository(fork, true);
             }
         }
+    }
+
+    /**
+     * This service is published before it can initialize the system. It may be an issue in integration tests.
+     */
+    private void awaitInitialization() throws InterruptedException {
+        initialized.await(30, TimeUnit.SECONDS);
     }
 
     @Override
@@ -682,6 +700,133 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         pendingTransactionsTypes.remove(transaction);
     }
 
+    @Override
+    public void rollback(PatchResult result) {
+        try {
+            Git fork = gitPatchRepository.cloneRepository(gitPatchRepository.findOrCreateMainGitRepository(), true);
+            Ref installationBranch = null;
+
+            PatchData patchData = result.getPatchData();
+            PatchKind kind = patchData.isRollupPatch() ? PatchKind.ROLLUP : PatchKind.NON_ROLLUP;
+
+            switch (kind) {
+                case ROLLUP:
+                    // rolling back a rollup patch should rebase all user commits on top of current baseline
+                    // to previous basline
+                    RevTag currentBaseline = gitPatchRepository.findCurrentBaseline(fork);
+                    RevCommit c1 = new RevWalk(fork.getRepository())
+                            .parseCommit(fork.getRepository().resolve(currentBaseline.getTagName() + "^{commit}"));
+                    RevCommit c2 = new RevWalk(fork.getRepository())
+                            .parseCommit(fork.getRepository().resolve("HEAD"));
+                    Iterable<RevCommit> masterChangesSinceRollupPatch = fork.log().addRange(c1, c2).call();
+                    List<RevCommit> userChanges = new LinkedList<>();
+                    for (RevCommit rc : masterChangesSinceRollupPatch) {
+                        if (isUserChangeCommit(rc)) {
+                            userChanges.add(rc);
+                        } else {
+                            // TODO if it is a commit related to patch tag (non rollup), we have to remove the tag
+                            // to be able to install this patch again on older baseline (prevent tag conflict)
+                        }
+                    }
+
+                    // remove the tag
+                    fork.tagDelete()
+                            .setTags(currentBaseline.getTagName())
+                            .call();
+
+                    // baselines are stacked on each other
+                    RevTag previousBaseline = gitPatchRepository.findCurrentBaseline(fork);
+                    c1 = new RevWalk(fork.getRepository())
+                            .parseCommit(fork.getRepository().resolve(previousBaseline.getTagName() + "^{commit}"));
+
+                    // hard reset of master branch - to point to other branch, originating from previous baseline
+                    fork.reset()
+                            .setMode(ResetCommand.ResetType.HARD)
+                            .setRef(previousBaseline.getTagName() + "^{commit}")
+                            .call();
+
+                    // reapply those user changes that are not conflicting
+                    ListIterator<RevCommit> it = userChanges.listIterator(userChanges.size());
+                    while (it.hasPrevious()) {
+                        RevCommit userChange = it.previous();
+                        CherryPickResult cpr = fork.cherryPick()
+                                .include(userChange)
+                                .setNoCommit(true)
+                                .call();
+                        // this time prefer usr change on top of previous baselin
+                        handleCherryPickConflict(patchData.getPatchDirectory(), fork, cpr, userChange,
+                                true, PatchKind.ROLLUP);
+
+                        if (!fork.status().call().isClean()) {
+                            // only commit if there's a change - user change on top of rollup patch may be resolved
+                            // by dropping entire change
+                            gitPatchRepository.prepareCommit(fork,
+                                    userChange.getFullMessage()).call();
+                        }
+                    }
+
+                    if (userChanges.size() == 0) {
+                        // if there are no user changes found above previous rollup patch, maybe when we were
+                        // installing the rollup patch, no user change was cherry-picked because of coflicts?
+                        File backupDir = new File(patchesDir, patchData.getId() + ".backup");
+                        if (backupDir.exists() && backupDir.isDirectory()) {
+                            System.out.printf("Restoring content of %s", backupDir.getCanonicalPath());
+                            copyManagedDirectories(backupDir, karafHome, false);
+                        }
+                    }
+
+                    gitPatchRepository.push(fork);
+                    // remove remote tag
+                    fork.push()
+                            .setRefSpecs(new RefSpec()
+                                    .setSource(null)
+                                    .setDestination("refs/tags/" + currentBaseline.getTagName()))
+                            .call();
+
+                    // HEAD of master branch after reset and cherry-picks
+                    c2 = new RevWalk(fork.getRepository())
+                            .parseCommit(fork.getRepository().resolve("HEAD"));
+                    applyChanges(fork, c1, c2);
+
+                    break;
+                case NON_ROLLUP:
+                    // rolling back a non-rollup patch is a revert of the patch commit and removal of patch tag
+
+                    ObjectId oid = fork.getRepository().resolve(String.format("refs/tags/patch-%s^{commit}",
+                            patchData.getId()));
+                    if (oid == null) {
+                        throw new PatchException(String.format("Can't find installed patch (tag patch-%s is missing)",
+                                patchData.getId()));
+                    }
+                    RevCommit commit = new RevWalk(fork.getRepository()).parseCommit(oid);
+
+                    fork.revert().include(commit).call();
+
+                    // remove the tag
+                    fork.tagDelete()
+                            .setTags(String.format("patch-%s", patchData.getId()))
+                            .call();
+
+                    gitPatchRepository.push(fork);
+                    // remove remote tag
+                    fork.push()
+                            .setRefSpecs(new RefSpec()
+                                    .setSource(null)
+                                    .setDestination(String.format("refs/tags/patch-%s", patchData.getId())))
+                            .call();
+
+                    // HEAD of master branch after reset and cherry-picks
+                    c2 = new RevWalk(fork.getRepository())
+                            .parseCommit(fork.getRepository().resolve("HEAD"));
+                    applyChanges(fork, c2.getParent(0), c2);
+
+                    break;
+            }
+        } catch (IOException | GitAPIException e) {
+            throw new PatchException(e.getMessage(), e);
+        }
+    }
+
     /**
      * Resolve cherry-pick conflict before committing. Always prefer the change from patch, backup custom change
      * @param patchDirectory the source directory of the applied patch - used as a reference for backing up
@@ -833,6 +978,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             System.err.flush();
             // PANIC
         } finally {
+            initialized.countDown();
             if (fork != null) {
                 gitPatchRepository.closeRepository(fork, true);
             }

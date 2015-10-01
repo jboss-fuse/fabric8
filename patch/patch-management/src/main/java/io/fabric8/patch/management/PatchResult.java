@@ -50,13 +50,17 @@ public class PatchResult {
     private static final String OVERRIDES = "overrides";
 
     private final PatchData patchData;
-    private final boolean simulation;
-    private final long date;
+    private boolean simulation;
+    private long date;
     // TODO: the smae for list of updated features
-    private final Collection<BundleUpdate> updates;
+    private Collection<BundleUpdate> updates;
 
-    private final String startup;
-    private final String overrides;
+    private String startup;
+    private String overrides;
+
+    public PatchResult(PatchData patchData) {
+        this.patchData = patchData;
+    }
 
     public PatchResult(PatchData patchData, boolean simulation, long date, Collection<BundleUpdate> updates, String startup,
                        String overrides) {

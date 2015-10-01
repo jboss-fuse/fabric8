@@ -70,7 +70,6 @@ import org.osgi.framework.wiring.FrameworkWiring;
 import org.osgi.service.component.ComponentContext;
 
 import static io.fabric8.common.util.IOHelpers.readFully;
-import static io.fabric8.common.util.IOHelpers.writeFully;
 
 @Component(immediate = true, metatype = false)
 @org.apache.felix.scr.annotations.Service(Service.class)
@@ -343,6 +342,8 @@ public class ServiceImpl implements Service {
         if (result == null) {
             throw new PatchException("Patch " + patch.getPatchData().getId() + " is not installed");
         }
+
+        // current state of the framework
         Bundle[] allBundles = bundleContext.getBundles();
 
         // check if all the bundles that were updated in patch are available (installed)
@@ -383,15 +384,13 @@ public class ServiceImpl implements Service {
         }
 
         // restore startup.properties and overrides.properties
-        final Offline offline = new Offline(new File(System.getProperty("karaf.base")));
         Executors.newSingleThreadExecutor().execute(new Runnable() {
             @Override
             public void run() {
                 try {
                     applyChanges(toUpdate);
-                    writeFully(new File(System.getProperty("karaf.base"), "etc/startup.properties"), ((PatchResult) result).getStartup());
-                    writeFully(new File(System.getProperty("karaf.base"), "etc/overrides.properties"), ((PatchResult) result).getOverrides());
-                    offline.rollbackPatch(((Patch) patch).getPatchData());
+
+                    patchManagement.rollback(result);
                 } catch (Exception e) {
                     throw new PatchException("Unable to rollback patch " + patch.getPatchData().getId() + ": " + e.getMessage(), e);
                 }
