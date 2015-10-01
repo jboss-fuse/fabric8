@@ -159,6 +159,7 @@ public class PatchData {
         PrintWriter pw = new PrintWriter(out);
         pw.write("# generated file, do not modify\n");
         pw.write("id = " + getId() + "\n");
+        pw.write(ROLLUP + " = " + Boolean.toString(rollupPatch) + "\n");
         int n = 0;
         if (bundles.size() > 0) {
             for (String bundle : bundles) {
