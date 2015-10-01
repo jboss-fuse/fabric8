@@ -63,6 +63,10 @@
       <artifactId>patch-core</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.fabric8.patch</groupId>
+      <artifactId>patch-management</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.fabric8</groupId>
       <artifactId>fabric-boot-commands</artifactId>
     </dependency>

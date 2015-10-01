@@ -15,11 +15,15 @@
  */
 package io.fabric8.patch.commands;
 
+import java.util.*;
+
 import io.fabric8.patch.Service;
 import io.fabric8.patch.management.BundleUpdate;
 import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.management.PatchResult;
 import org.apache.karaf.shell.console.AbstractAction;
+
+import static io.fabric8.patch.management.Utils.stripSymbolicName;
 
 public abstract class PatchActionSupport extends AbstractAction {
 
@@ -38,9 +42,28 @@ public abstract class PatchActionSupport extends AbstractAction {
     protected abstract void doExecute(Service service) throws Exception;
 
     protected void display(PatchResult result) {
-        System.out.println(String.format("%-40s %-10s %-10s", "[name]", "[old]", "[new]"));
+        int l1 = 0, l2 = 0, l3 = 0;
         for (BundleUpdate update : result.getUpdates()) {
-            System.out.println(String.format("%-40s %-10s %-10s", update.getSymbolicName(), update.getPreviousVersion(), update.getNewVersion()));
+            if (stripSymbolicName(update.getSymbolicName()).length() > l1) {
+                l1 = stripSymbolicName(update.getSymbolicName()).length();
+            }
+            if (update.getPreviousVersion().length() > l2) {
+                l2 = update.getPreviousVersion().length();
+            }
+            if (update.getNewVersion().length() > l3) {
+                l3 = update.getNewVersion().length();
+            }
+        }
+        System.out.println(String.format("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s", "[name]", "[old]", "[new]"));
+        java.util.List<BundleUpdate> updates = new ArrayList<>(result.getUpdates());
+        Collections.sort(updates, new Comparator<BundleUpdate>() {
+            @Override
+            public int compare(BundleUpdate o1, BundleUpdate o2) {
+                return o1.getSymbolicName().compareTo(o2.getSymbolicName());
+            }
+        });
+        for (BundleUpdate update : updates) {
+            System.out.println(String.format("%-" + l1 + "s | %-" + l2 + "s | %-" + l3 + "s", stripSymbolicName(update.getSymbolicName()), update.getPreviousVersion(), update.getNewVersion()));
         }
     }
 
