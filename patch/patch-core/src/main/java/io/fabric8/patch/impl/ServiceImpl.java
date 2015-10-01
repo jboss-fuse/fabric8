@@ -71,6 +71,12 @@ import static io.fabric8.patch.management.Utils.mvnurlToArtifact;
 @org.apache.felix.scr.annotations.Service(Service.class)
 public class ServiceImpl implements Service {
 
+    HashSet<String> SPECIAL_BUNDLE_SYMBOLIC_NAMES = new HashSet<>(Arrays.asList(
+            "org.ops4j.pax.url.mvn",
+            "org.ops4j.pax.logging.pax-logging-api",
+            "org.ops4j.pax.logging.pax-logging-service"
+            ));
+
     private static final String ID = "id";
     private static final String DESCRIPTION = "description";
     private static final String DATE = "date";
@@ -297,7 +303,21 @@ public class ServiceImpl implements Service {
                 results.put(patch.getPatchData().getId(), result);
             }
 
+            // Remove bundles from the udpate list where an update is not needed or
+            // would break our patching bundle.
+            for (Map.Entry<Bundle, String> entry : new HashSet<>(toUpdate.entrySet())) {
+                Bundle bundle = entry.getKey();
+                if( SPECIAL_BUNDLE_SYMBOLIC_NAMES.contains(bundle.getSymbolicName()) ) {
+                    System.out.println("Skipping bundle update of: "+bundle);
+                    toUpdate.remove(bundle);
+                } else if( bundle.getLocation().equals(entry.getValue()) ) {
+                    System.out.println("Bundle is up to date: "+bundle);
+                    toUpdate.remove(bundle);
+                }
+            }
+
             // Apply results
+
             System.out.println("Bundles to update:");
             for (Map.Entry<Bundle, String> e : toUpdate.entrySet()) {
                 System.out.println("    " + e.getKey().getSymbolicName() + "/" + e.getKey().getVersion().toString() + " with " + e.getValue());
@@ -588,7 +608,12 @@ public class ServiceImpl implements Service {
         Set<Bundle> toStart = new HashSet<Bundle>();
         for (Map.Entry<Bundle, String> e : toUpdate.entrySet()) {
             Bundle bundle = e.getKey();
-            BundleUtils.update(bundle, new URL(e.getValue()));
+            System.out.println("updating: "+bundle.getSymbolicName());
+            try {
+                BundleUtils.update(bundle, new URL(e.getValue()));
+            } catch (BundleException ex) {
+                System.err.println("Failed to update: " + bundle.getSymbolicName()+", due to: "+e);
+            }
             toRefresh.add(bundle);
             toStart.add(bundle);
         }
@@ -613,7 +638,11 @@ public class ServiceImpl implements Service {
         for (Bundle bundle : toStart) {
             String hostHeader = (String) bundle.getHeaders().get(Constants.FRAGMENT_HOST);
             if (hostHeader == null) {
-                bundle.start();
+                try {
+                    bundle.start();
+                } catch (BundleException e) {
+                    System.err.println("Failed to start: " + bundle.getSymbolicName()+", due to: "+e);
+                }
             }
         }
     }
