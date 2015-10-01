@@ -43,7 +43,7 @@ public class RollbackAction extends PatchActionSupport {
         if (patch.getPatchData().getMigratorBundle() != null) {
             throw new PatchException("Patch '" + patchId + "' does not support rollback");
         }
-//        patch.rollback(false);
+        service.rollback(patch, false);
     }
 
 }

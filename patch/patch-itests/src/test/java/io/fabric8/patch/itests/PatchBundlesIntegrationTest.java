@@ -18,6 +18,7 @@ package io.fabric8.patch.itests;
 import io.fabric8.api.gravia.ServiceLocator;
 import io.fabric8.common.util.IOHelpers;
 import io.fabric8.patch.Service;
+import io.fabric8.patch.management.PatchManagement;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.osgi.metadata.OSGiManifestBuilder;
@@ -58,7 +59,7 @@ public class PatchBundlesIntegrationTest extends AbstractPatchIntegrationTest {
                 OSGiManifestBuilder builder = OSGiManifestBuilder.newInstance();
                 builder.addBundleSymbolicName(archive.getName());
                 builder.addBundleManifestVersion(2);
-                builder.addImportPackages(Bundle.class, Service.class);
+                builder.addImportPackages(Bundle.class, Service.class, PatchManagement.class);
                 return builder.openStream();
             }
         });

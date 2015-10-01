@@ -290,4 +290,54 @@ public class Utils {
         return null;
     }
 
+    public static Artifact mvnurlToArtifact(String resourceLocation, boolean skipNonMavenProtocols) {
+        resourceLocation = resourceLocation.replace("\r\n", "").replace("\n", "").replace(" ", "").replace("\t", "");
+        final int index = resourceLocation.indexOf("mvn:");
+        if (index < 0) {
+            if (skipNonMavenProtocols) {
+                return null;
+            }
+            throw new IllegalArgumentException("Resource URL is not a maven URL: " + resourceLocation);
+        } else {
+            resourceLocation = resourceLocation.substring(index + "mvn:".length());
+        }
+        // Truncate the URL when a '#', a '?' or a '$' is encountered
+        final int index1 = resourceLocation.indexOf('?');
+        final int index2 = resourceLocation.indexOf('#');
+        int endIndex = -1;
+        if (index1 > 0) {
+            if (index2 > 0) {
+                endIndex = Math.min(index1, index2);
+            } else {
+                endIndex = index1;
+            }
+        } else if (index2 > 0) {
+            endIndex = index2;
+        }
+        if (endIndex >= 0) {
+            resourceLocation = resourceLocation.substring(0, endIndex);
+        }
+        final int index3 = resourceLocation.indexOf('$');
+        if (index3 > 0) {
+            resourceLocation = resourceLocation.substring(0, index3);
+        }
+
+        String[] parts = resourceLocation.split("/");
+        if (parts.length > 2) {
+            String groupId = parts[0];
+            String artifactId = parts[1];
+            String version = parts[2];
+            String type = "jar";
+            String classifier = null;
+            if (parts.length > 3) {
+                type = parts[3];
+                if (parts.length > 4) {
+                    classifier = parts[4];
+                }
+            }
+            return new Artifact(groupId, artifactId, version, type, classifier);
+        }
+        throw new IllegalArgumentException("Bad maven url: " + resourceLocation);
+    }
+
 }

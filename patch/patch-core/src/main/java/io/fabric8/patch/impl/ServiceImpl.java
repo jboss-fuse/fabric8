@@ -40,6 +40,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.fabric8.patch.Service;
+import io.fabric8.patch.management.Artifact;
 import io.fabric8.patch.management.BundleUpdate;
 import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.management.PatchData;
@@ -48,6 +49,7 @@ import io.fabric8.patch.management.PatchException;
 import io.fabric8.patch.management.PatchKind;
 import io.fabric8.patch.management.PatchManagement;
 import io.fabric8.patch.management.PatchResult;
+import io.fabric8.patch.management.Utils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
@@ -69,7 +71,9 @@ import org.osgi.framework.Version;
 import org.osgi.framework.wiring.FrameworkWiring;
 import org.osgi.service.component.ComponentContext;
 
+import static io.fabric8.common.util.Files.copy;
 import static io.fabric8.common.util.IOHelpers.readFully;
+import static io.fabric8.patch.management.Utils.mvnurlToArtifact;
 
 @Component(immediate = true, metatype = false)
 @org.apache.felix.scr.annotations.Service(Service.class)
@@ -279,6 +283,18 @@ public class ServiceImpl implements Service {
                 // install transaction is committed
                 patchManagement.install(transaction, patch);
 
+                if (patch.getPatchData().getMigratorBundle() != null) {
+                    Artifact artifact = mvnurlToArtifact(patch.getPatchData().getMigratorBundle(), true);
+                    if (artifact != null) {
+                        // Copy it to the deploy dir
+                        File repo = new File(bundleContext.getBundle(0).getBundleContext().getProperty("karaf.default.repository"));
+                        File karafHome = new File(bundleContext.getBundle(0).getBundleContext().getProperty("karaf.home"));
+                        File src = new File(repo, artifact.getPath());
+                        File target = new File(Utils.getDeployDir(karafHome), artifact.getArtifactId() + ".jar");
+                        copy(src, target);
+                    }
+                }
+
                 // prepare patch result before doing runtime changes
                 PatchResult result = new PatchResult(patch.getPatchData(), simulate, System.currentTimeMillis(), updates, startup, overrides);
                 results.put(patch.getPatchData().getId(), result);
@@ -388,9 +404,10 @@ public class ServiceImpl implements Service {
             @Override
             public void run() {
                 try {
+                    PatchManagement pm = patchManagement;
                     applyChanges(toUpdate);
 
-                    patchManagement.rollback(result);
+                    pm.rollback(result);
                 } catch (Exception e) {
                     throw new PatchException("Unable to rollback patch " + patch.getPatchData().getId() + ": " + e.getMessage(), e);
                 }
