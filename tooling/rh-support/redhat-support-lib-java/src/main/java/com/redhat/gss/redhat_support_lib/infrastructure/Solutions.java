@@ -8,8 +8,7 @@ import java.util.List;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 
-import org.apache.log4j.Logger;
-import org.jboss.resteasy.client.jaxrs.ResteasyWebTarget;
+import org.jboss.logging.Logger;
 
 import com.redhat.gss.redhat_support_lib.api.API;
 import com.redhat.gss.redhat_support_lib.errors.RequestException;

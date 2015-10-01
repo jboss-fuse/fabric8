@@ -6,19 +6,20 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPHTTPClient;
-import org.apache.log4j.Logger;
 import org.jboss.resteasy.client.jaxrs.BasicAuthentication;
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
+
 import com.redhat.gss.redhat_support_lib.errors.FTPException;
+import com.redhat.gss.redhat_support_lib.filters.RedHatCookieFilter;
 import com.redhat.gss.redhat_support_lib.filters.UserAgentFilter;
 import com.redhat.gss.redhat_support_lib.helpers.ConfigHelper;
 
 public class ConnectionManager {
 
-	private final static Logger LOGGER = Logger.getLogger(ConnectionManager.class.getName());
 	ResteasyClientBuilder clientBuilder = new ResteasyClientBuilder().connectionPoolSize(100);
 	ConfigHelper config = null;
+    ResteasyClient client = null;
 
 	public ConnectionManager(ConfigHelper config) {
 		this.config = config;
@@ -29,17 +30,29 @@ public class ConnectionManager {
 		clientBuilder.httpEngine(httpEngine);
 		if (config.isDevel()) {
 			clientBuilder.disableTrustManager();
-		} 
+		}
 		if (config.getProxyUrl() != null) {
-			clientBuilder.defaultProxy("10.13.49.98", config.getProxyPort());
+			clientBuilder.defaultProxy(config.getProxyUrl().getHost(), config.getProxyPort());
 		}
 	}
 
-	public ResteasyClient getConnection() throws MalformedURLException {
-		ResteasyClient client =  clientBuilder.build();
-		client.register(new BasicAuthentication(config.getUsername(), config
-				.getPassword()));
-		client.register(new UserAgentFilter(config.getUserAgent()));
+    public ConnectionManager(ConfigHelper config, ResteasyClientBuilder clientBuilder) {
+        this.config = config;
+        this.clientBuilder = clientBuilder;
+    }
+
+    public ResteasyClient getConnection() throws MalformedURLException {
+        if(client == null) {
+            client = clientBuilder.build();
+            if (config.getUsername() != null) {
+                client.register(new BasicAuthentication(config.getUsername(), config
+                        .getPassword()));
+            }
+            client.register(new UserAgentFilter(config.getUserAgent()));
+            if(config.getCookies() != null){
+            	client.register(new RedHatCookieFilter(config.getCookies()));
+            }
+        }
 		return client;
 	}
 

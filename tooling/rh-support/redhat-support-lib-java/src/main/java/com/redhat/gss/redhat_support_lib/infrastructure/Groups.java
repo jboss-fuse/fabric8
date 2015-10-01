@@ -1,25 +1,14 @@
 package com.redhat.gss.redhat_support_lib.infrastructure;
 
 import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.ArrayList;
 import java.util.List;
-
-import javax.ws.rs.core.MultivaluedMap;
-
-import org.apache.log4j.Logger;
-import org.jboss.resteasy.client.jaxrs.ResteasyWebTarget;
 
 import com.redhat.gss.redhat_support_lib.errors.RequestException;
 import com.redhat.gss.redhat_support_lib.helpers.FilterHelper;
-import com.redhat.gss.redhat_support_lib.helpers.QueryBuilder;
-import com.redhat.gss.redhat_support_lib.parsers.Case;
 import com.redhat.gss.redhat_support_lib.parsers.Group;
 import com.redhat.gss.redhat_support_lib.web.ConnectionManager;
 
 public class Groups extends BaseQuery {
-	private final static Logger LOGGER = Logger.getLogger(Groups.class
-			.getName());
 	ConnectionManager connectionManager = null;
 	static String url = "/rs/groups/";
 

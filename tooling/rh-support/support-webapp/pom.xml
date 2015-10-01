@@ -52,7 +52,7 @@
 
 
         <!--<redhat-support-lib.version>1.0.4.jbossorg-1</redhat-support-lib.version>-->
-        <redhat-support-lib.version>2.0</redhat-support-lib.version>
+        <redhat-support-lib.version>2.0.7.redhat-2</redhat-support-lib.version>
 
         <webapp-dir>${project.artifactId}-${project.version}</webapp-dir>
         <webapp-outdir>${basedir}/target/${webapp-dir}</webapp-outdir>

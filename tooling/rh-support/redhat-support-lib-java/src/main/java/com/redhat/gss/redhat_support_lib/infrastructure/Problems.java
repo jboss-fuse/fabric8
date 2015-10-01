@@ -1,16 +1,10 @@
 package com.redhat.gss.redhat_support_lib.infrastructure;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.net.MalformedURLException;
 import java.util.List;
-import java.util.Scanner;
 
 import javax.ws.rs.core.Response;
-
-import org.apache.log4j.Logger;
-import org.jboss.resteasy.client.jaxrs.ResteasyWebTarget;
 
 import com.redhat.gss.redhat_support_lib.errors.RequestException;
 import com.redhat.gss.redhat_support_lib.helpers.ParseHelper;
@@ -18,8 +12,6 @@ import com.redhat.gss.redhat_support_lib.parsers.Link;
 import com.redhat.gss.redhat_support_lib.web.ConnectionManager;
 
 public class Problems extends BaseQuery {
-	private final static Logger LOGGER = Logger.getLogger(Problems.class
-			.getName());
 	ConnectionManager connectionManager = null;
 	static String url = "/rs/problems/";
 

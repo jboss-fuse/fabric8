@@ -5,7 +5,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.jboss.logging.Logger;
 
 public class FilterHelper {
 	private final static Logger LOGGER = Logger.getLogger(FilterHelper.class.getName());

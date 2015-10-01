@@ -17,5 +17,4 @@ public class UserAgentFilter implements ClientRequestFilter {
 		requestContext.getHeaders().add(HttpHeaders.USER_AGENT,
 				userAgent);
 	}
-
 }

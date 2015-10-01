@@ -2,22 +2,15 @@ package com.redhat.gss.redhat_support_lib.infrastructure;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.net.MalformedURLException;
-import java.net.Proxy;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.mail.internet.MimeUtility;
 import javax.ws.rs.core.Response;
 
-import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Logger;
-import org.jboss.resteasy.client.jaxrs.ResteasyClient;
-import org.jboss.resteasy.client.jaxrs.ResteasyWebTarget;
+import org.apache.commons.net.ftp.FTPClient;
 
 import com.redhat.gss.redhat_support_lib.errors.FTPException;
 import com.redhat.gss.redhat_support_lib.errors.RequestException;
@@ -28,8 +21,6 @@ import com.redhat.gss.redhat_support_lib.parsers.Comment;
 import com.redhat.gss.redhat_support_lib.web.ConnectionManager;
 
 public class Attachments extends BaseQuery {
-	private final static Logger LOGGER = Logger.getLogger(Attachments.class
-			.getName());
 	ConnectionManager connectionManager = null;
 
 	public Attachments(ConnectionManager connectionManager) {

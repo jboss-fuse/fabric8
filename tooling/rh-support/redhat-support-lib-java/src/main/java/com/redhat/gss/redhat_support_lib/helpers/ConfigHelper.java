@@ -1,7 +1,9 @@
 package com.redhat.gss.redhat_support_lib.helpers;
 
+import javax.ws.rs.core.Cookie;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Map;
 import java.util.Properties;
 
 public class ConfigHelper {
@@ -22,6 +24,7 @@ public class ConfigHelper {
 	long ftpFileSize = 900000000L;
 	String ftpDir = "/incoming";
 	String userAgent = "";
+    Map<String, Cookie> cookies = null;
 
 	public ConfigHelper(String username, String password, String url,
 			String proxyUser, String proxyPassword, URL proxyUrl,
@@ -39,8 +42,41 @@ public class ConfigHelper {
 		this.devel = devel;
 		this.userAgent = userAgent;
 	}
-
+	
 	public ConfigHelper(String username, String password, String url,
+			String proxyUser, String proxyPassword, URL proxyUrl,
+			int proxyPort, String userAgent, int timeout, boolean devel) {
+		this.username = username;
+		this.password = password.toCharArray();
+		if (url != null) {
+			this.url = url;
+
+		}
+		this.proxyUser = proxyUser;
+		this.proxyPassword = proxyPassword;
+		this.proxyUrl = proxyUrl;
+		this.proxyPort = proxyPort;
+		this.devel = devel;
+		this.userAgent = userAgent;
+		this.timeout = timeout;
+	}
+
+    public ConfigHelper(String url, String proxyUser, String proxyPassword, URL proxyUrl,
+                        int proxyPort, String userAgent, Map<String, Cookie> cookies, boolean devel) {
+        if (url != null) {
+            this.url = url;
+
+        }
+        this.proxyUser = proxyUser;
+        this.proxyPassword = proxyPassword;
+        this.proxyUrl = proxyUrl;
+        this.proxyPort = proxyPort;
+        this.devel = devel;
+        this.userAgent = userAgent;
+        this.cookies = cookies;
+    }
+
+    public ConfigHelper(String username, String password, String url,
 			String proxyUser, String proxyPassword, URL proxyUrl,
 			int proxyPort, String ftpHost, int ftpPort, String ftpUsername,
 			String ftpPassword, boolean devel) {
@@ -60,7 +96,7 @@ public class ConfigHelper {
 		this.ftpPassword = ftpPassword;
 		this.devel = devel;
 	}
-	
+
 	public ConfigHelper(String configFileName) throws IOException{
 		Properties props = ParseHelper.parseConfigFile(configFileName);
 		this.username = props.getProperty("username");
@@ -228,4 +264,12 @@ public class ConfigHelper {
 	public void setUserAgent(String userAgent) {
 		this.userAgent = userAgent;
 	}
+
+    public Map<String, Cookie> getCookies() {
+        return cookies;
+    }
+
+    public void setCookies(Map<String, Cookie> cookies) {
+        this.cookies = cookies;
+    }
 }

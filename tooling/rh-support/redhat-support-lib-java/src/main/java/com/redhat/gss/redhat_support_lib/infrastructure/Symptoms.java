@@ -2,18 +2,14 @@ package com.redhat.gss.redhat_support_lib.infrastructure;
 
 import java.io.File;
 import java.util.List;
-import javax.ws.rs.core.Response;
 
-import org.apache.log4j.Logger;
-import org.jboss.resteasy.client.jaxrs.ResteasyWebTarget;
+import javax.ws.rs.core.Response;
 
 import com.redhat.gss.redhat_support_lib.parsers.ExtractedSymptom;
 import com.redhat.gss.redhat_support_lib.web.ConnectionManager;
 
 public class Symptoms extends BaseQuery {
-    private final static Logger LOGGER = Logger
-            .getLogger(Symptoms.class.getName());
-	ConnectionManager connectionManager = null;
+    ConnectionManager connectionManager = null;
 	static String url = "/rs/symptoms/extractor/";
 
 	public Symptoms(ConnectionManager connectionManager) {
