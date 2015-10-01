@@ -19,14 +19,24 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.jar.Attributes;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import io.fabric8.patch.Service;
 import io.fabric8.patch.management.Artifact;
@@ -49,6 +59,7 @@ import org.apache.felix.utils.manifest.Parser;
 import org.apache.felix.utils.version.VersionRange;
 import org.apache.felix.utils.version.VersionTable;
 import org.apache.karaf.features.Feature;
+import org.apache.karaf.features.FeaturesService;
 import org.apache.karaf.features.Repository;
 import org.apache.karaf.util.bundles.BundleUtils;
 import org.osgi.framework.Bundle;
@@ -63,9 +74,9 @@ import org.osgi.framework.wiring.FrameworkWiring;
 import org.osgi.service.component.ComponentContext;
 
 import static io.fabric8.common.util.Files.copy;
-import org.apache.karaf.features.FeaturesService;
 import static io.fabric8.common.util.IOHelpers.readFully;
 import static io.fabric8.patch.management.Utils.mvnurlToArtifact;
+import static io.fabric8.patch.management.Utils.stripSymbolicName;
 
 @Component(immediate = true, metatype = false)
 @org.apache.felix.scr.annotations.Service(Service.class)
@@ -91,8 +102,6 @@ public class ServiceImpl implements Service {
     private static final String OLD_LOCATION = "old-location";
     private static final String STARTUP = "startup";
     private static final String OVERRIDES = "overrides";
-
-    private static final Pattern SYMBOLIC_NAME_PATTERN = Pattern.compile("([^;: ]+)(.*)");
 
     private BundleContext bundleContext;
     private File patchDir;
@@ -241,13 +250,7 @@ public class ServiceImpl implements Service {
                     Version newV = VersionTable.getVersion(vr);
 
                     // if existing bundle is withing this range, update is possible
-                    VersionRange range = null;
-                    if (kind == PatchKind.NON_ROLLUP) {
-                        range = getUpdateableRange(patch, url, newV);
-                    } else {
-                        // in rollup patches we simply update all
-                        range = VersionRange.ANY_VERSION;
-                    }
+                    VersionRange range = getUpdateableRange(patch, url, newV);
 
                     if (range != null) {
                         for (Bundle bundle : allBundles) {
@@ -278,7 +281,14 @@ public class ServiceImpl implements Service {
                             }
                         }
                     } else {
-                        System.err.printf("Skipping bundle %s - unable to process bundle without a version range configuration%n", url);
+                        if (kind == PatchKind.ROLLUP) {
+                            // we simply do not touch the bundle from patch - it is installed in KARAF_HOME/system
+                            // and available to be installed when new features are detected
+                        } else {
+                            // for non-rollup patches however, we signal an error - all the bundles from P patch
+                            // should be used to update already installed bundles
+                            System.err.printf("Skipping bundle %s - unable to process bundle without a version range configuration%n", url);
+                        }
                     }
                 }
 
@@ -807,20 +817,6 @@ public class ServiceImpl implements Service {
      */
     protected BundleVersionHistory createBundleVersionHistory() {
         return new BundleVersionHistory(load(true));
-    }
-
-    /**
-     * Strips symbolic name from directives.
-     * @param symbolicName
-     * @return
-     */
-    static String stripSymbolicName(String symbolicName) {
-        Matcher m = SYMBOLIC_NAME_PATTERN.matcher(symbolicName);
-        if (m.matches() && m.groupCount() >= 1) {
-            return m.group(1);
-        } else {
-            return symbolicName;
-        }
     }
 
     /**

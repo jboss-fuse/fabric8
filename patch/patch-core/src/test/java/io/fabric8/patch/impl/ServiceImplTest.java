@@ -70,6 +70,7 @@ import org.osgi.service.component.ComponentContext;
 
 import static io.fabric8.common.util.IOHelpers.*;
 import static io.fabric8.patch.impl.PatchTestSupport.getDirectoryForResource;
+import static io.fabric8.patch.management.Utils.stripSymbolicName;
 import static org.easymock.EasyMock.*;
 import static org.junit.Assert.*;
 
@@ -364,14 +365,6 @@ public class ServiceImplTest {
         }
     }
 
-    @Test
-    public void testSymbolicNameStrip() {
-        assertEquals("my.bundle", ServiceImpl.stripSymbolicName("my.bundle"));
-        assertEquals("my.bundle", ServiceImpl.stripSymbolicName("my.bundle;singleton:=true"));
-        assertEquals("my.bundle", ServiceImpl.stripSymbolicName("my.bundle;blueprint.graceperiod:=false;"));
-        assertEquals("my.bundle", ServiceImpl.stripSymbolicName("my.bundle;blueprint.graceperiod:=false; blueprint.timeout=10000;"));
-    }
-    
     @Test
     public void testPatch() throws Exception {
         ComponentContext componentContext = createMock(ComponentContext.class);
@@ -742,8 +735,8 @@ public class ServiceImplTest {
     }
 
     private File createBundle(String bundleSymbolicName, String version) throws Exception {
-        File jar = new File(storage, "temp/" + ServiceImpl.stripSymbolicName(bundleSymbolicName) + "-" + version + ".jar");
-        File man = new File(storage, "temp/" + ServiceImpl.stripSymbolicName(bundleSymbolicName) + "-" + version + "/META-INF/MANIFEST.MF");
+        File jar = new File(storage, "temp/" + stripSymbolicName(bundleSymbolicName) + "-" + version + ".jar");
+        File man = new File(storage, "temp/" + stripSymbolicName(bundleSymbolicName) + "-" + version + "/META-INF/MANIFEST.MF");
         man.getParentFile().mkdirs();
         Manifest mf = new Manifest();
         mf.getMainAttributes().putValue("Manifest-Version", "1.0");

@@ -23,6 +23,7 @@ import org.junit.Test;
 import static io.fabric8.patch.management.Utils.*;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 public class UtilsTest {
@@ -61,6 +62,14 @@ public class UtilsTest {
 
         assertThat(pathToMvnurl("a/b/c/b-c-x.war"), equalTo("mvn:a/b/c/war/x"));
         assertThat(pathToMvnurl("a/b/c/b-c-x-y.xml"), equalTo("mvn:a/b/c/xml/x-y"));
+    }
+
+    @Test
+    public void testSymbolicNameStrip() {
+        assertEquals("my.bundle", stripSymbolicName("my.bundle"));
+        assertEquals("my.bundle", stripSymbolicName("my.bundle;singleton:=true"));
+        assertEquals("my.bundle", stripSymbolicName("my.bundle;blueprint.graceperiod:=false;"));
+        assertEquals("my.bundle", stripSymbolicName("my.bundle;blueprint.graceperiod:=false; blueprint.timeout=10000;"));
     }
 
 }

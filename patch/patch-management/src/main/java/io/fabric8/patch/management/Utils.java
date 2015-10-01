@@ -27,9 +27,9 @@ import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.fabric8.patch.management.PatchData;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipFile;
 import org.apache.commons.io.FilenameUtils;
@@ -38,6 +38,7 @@ import org.apache.commons.io.IOUtils;
 public class Utils {
 
     private static final Pattern FEATURES_FILE = Pattern.compile(".+\\-features$");
+    private static final Pattern SYMBOLIC_NAME_PATTERN = Pattern.compile("([^;: ]+)(.*)");
 
     private Utils() {
     }
@@ -338,6 +339,21 @@ public class Utils {
             return new Artifact(groupId, artifactId, version, type, classifier);
         }
         throw new IllegalArgumentException("Bad maven url: " + resourceLocation);
+    }
+
+
+    /**
+     * Strips symbolic name from directives.
+     * @param symbolicName
+     * @return
+     */
+    public static String stripSymbolicName(String symbolicName) {
+        Matcher m = SYMBOLIC_NAME_PATTERN.matcher(symbolicName);
+        if (m.matches() && m.groupCount() >= 1) {
+            return m.group(1);
+        } else {
+            return symbolicName;
+        }
     }
 
 }
