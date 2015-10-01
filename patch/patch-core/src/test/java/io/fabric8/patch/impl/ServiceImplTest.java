@@ -48,9 +48,11 @@ import io.fabric8.patch.management.BundleUpdate;
 import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.management.PatchData;
 import io.fabric8.patch.management.PatchException;
+import io.fabric8.patch.management.PatchKind;
 import io.fabric8.patch.management.PatchManagement;
 import io.fabric8.patch.management.PatchResult;
 import io.fabric8.patch.management.impl.GitPatchManagementServiceImpl;
+import io.fabric8.patch.management.impl.GitPatchRepository;
 import org.easymock.EasyMock;
 import org.easymock.IAnswer;
 import org.eclipse.jgit.api.Git;
@@ -184,18 +186,34 @@ public class ServiceImplTest {
         Bundle bundle = createMock(Bundle.class);
         Bundle bundle2 = createMock(Bundle.class);
         FrameworkWiring wiring = createMock(FrameworkWiring.class);
+        GitPatchRepository repository = createMock(GitPatchRepository.class);
 
         //
         // Create a new service, download a patch
         //
         expect(componentContext.getBundleContext()).andReturn(bundleContext);
-        expect(bundleContext.getBundle(0)).andReturn(sysBundle);
-        expect(sysBundle.getBundleContext()).andReturn(sysBundleContext);
+        expect(bundleContext.getBundle(0)).andReturn(sysBundle).anyTimes();
+        expect(sysBundle.getBundleContext()).andReturn(sysBundleContext).anyTimes();
         expect(sysBundleContext.getProperty(Service.NEW_PATCH_LOCATION))
                 .andReturn(storage.toString()).anyTimes();
-        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
+        expect(repository.getManagedPatch(anyString())).andReturn(null).anyTimes();
+        expect(repository.findOrCreateMainGitRepository()).andReturn(null).anyTimes();
+        expect(sysBundleContext.getProperty("karaf.default.repository"))
+                .andReturn(karaf.getCanonicalPath() + "/system").anyTimes();
+        expect(sysBundleContext.getProperty("karaf.home"))
+                .andReturn(karaf.getCanonicalPath()).anyTimes();
+        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository);
+
+        PatchManagement pm = new GitPatchManagementServiceImpl(bundleContext) {
+            @Override
+            protected GitPatchManagementServiceImpl.InitializationType checkMainRepositoryState(Git git) throws GitAPIException, IOException {
+                return InitializationType.READY;
+            }
+        };
+        ((GitPatchManagementServiceImpl)pm).setGitPatchRepository(repository);
 
         ServiceImpl service = new ServiceImpl();
+        setField(service, "patchManagement", pm);
         service.activate(componentContext);
 
         PatchData pd = PatchData.load(getClass().getClassLoader().getResourceAsStream("test1.patch"));
@@ -298,6 +316,7 @@ public class ServiceImplTest {
         Bundle sysBundle = createMock(Bundle.class);
         BundleContext sysBundleContext = createMock(BundleContext.class);
         Bundle bundle = createMock(Bundle.class);
+        GitPatchRepository repository = createMock(GitPatchRepository.class);
 
         //
         // Create a new service, download a patch
@@ -310,12 +329,14 @@ public class ServiceImplTest {
         expect(sysBundleContext.getProperty(Service.NEW_PATCH_LOCATION))
                 .andReturn(patches.toString()).anyTimes();
         try {
+            expect(repository.getManagedPatch(anyString())).andReturn(null).anyTimes();
+            expect(repository.findOrCreateMainGitRepository()).andReturn(null).anyTimes();
             expect(sysBundleContext.getProperty("karaf.home"))
                     .andReturn(karaf.getCanonicalPath()).anyTimes();
         } catch (IOException e) {
             throw new RuntimeException(e.getMessage(), e);
         }
-        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
+        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository);
 
         PatchManagement pm = new GitPatchManagementServiceImpl(bundleContext) {
             @Override
@@ -323,6 +344,7 @@ public class ServiceImplTest {
                 return InitializationType.READY;
             }
         };
+        ((GitPatchManagementServiceImpl)pm).setGitPatchRepository(repository);
 
         ServiceImpl service = new ServiceImpl();
         setField(service, "patchManagement", pm);
@@ -358,20 +380,30 @@ public class ServiceImplTest {
         Bundle bundle = createMock(Bundle.class);
         Bundle bundle2 = createMock(Bundle.class);
         FrameworkWiring wiring = createMock(FrameworkWiring.class);
+        GitPatchRepository repository = createMock(GitPatchRepository.class);
 
         //
         // Create a new service, download a patch
         //
         expect(componentContext.getBundleContext()).andReturn(bundleContext);
-        expect(bundleContext.getBundle(0)).andReturn(sysBundle);
-        expect(sysBundle.getBundleContext()).andReturn(sysBundleContext);
+        expect(bundleContext.getBundle(0)).andReturn(sysBundle).anyTimes();
+        expect(sysBundle.getBundleContext()).andReturn(sysBundleContext).anyTimes();
         expect(sysBundleContext.getProperty(Service.NEW_PATCH_LOCATION))
-                .andReturn(null).anyTimes();
-        expect(sysBundleContext.getProperty(Service.PATCH_LOCATION))
                 .andReturn(storage.toString()).anyTimes();
-        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
+        expect(repository.getManagedPatch(anyString())).andReturn(null).anyTimes();
+        expect(repository.findOrCreateMainGitRepository()).andReturn(null).anyTimes();
+        expect(sysBundleContext.getProperty("karaf.default.repository"))
+                .andReturn(karaf.getCanonicalPath() + "/system").anyTimes();
+        expect(sysBundleContext.getProperty("karaf.home"))
+                .andReturn(karaf.getCanonicalPath()).anyTimes();
+
+        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository);
+
+        PatchManagement pm = mockManagementService(bundleContext);
+        ((GitPatchManagementServiceImpl)pm).setGitPatchRepository(repository);
 
         ServiceImpl service = new ServiceImpl();
+        setField(service, "patchManagement", pm);
         service.activate(componentContext);
         
         try {
@@ -418,16 +450,20 @@ public class ServiceImplTest {
         // Recreate a new service and verify the downloaded patch is still available
         //
 
-        reset(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
+        reset(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository);
         expect(componentContext.getBundleContext()).andReturn(bundleContext);
         expect(bundleContext.getBundle(0)).andReturn(sysBundle);
         expect(sysBundle.getBundleContext()).andReturn(sysBundleContext);
-        expect(sysBundleContext.getProperty(Service.PATCH_LOCATION))
+        expect(sysBundleContext.getProperty(Service.NEW_PATCH_LOCATION))
                 .andReturn(storage.toString()).anyTimes();
-        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
+        expect(repository.getManagedPatch(anyString())).andReturn(null).anyTimes();
+        expect(repository.findOrCreateMainGitRepository()).andReturn(null).anyTimes();
+        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository);
 
         service = new ServiceImpl();
+        setField(service, "patchManagement", pm);
         service.activate(componentContext);
+
         patches = service.getPatches();
         assertNotNull(patches);
         it = patches.iterator();
@@ -482,16 +518,19 @@ public class ServiceImplTest {
         // Recreate a new service and verify the downloaded patch is still available and installed
         //
 
-        reset(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
+        reset(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository);
         expect(componentContext.getBundleContext()).andReturn(bundleContext);
         expect(bundleContext.getBundle(0)).andReturn(sysBundle);
         expect(sysBundle.getBundleContext()).andReturn(sysBundleContext);
-        expect(sysBundleContext.getProperty(Service.PATCH_LOCATION))
+        expect(repository.getManagedPatch(anyString())).andReturn(null).anyTimes();
+        expect(sysBundleContext.getProperty(Service.NEW_PATCH_LOCATION))
                 .andReturn(storage.toString()).anyTimes();
-        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
+        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository);
 
         service = new ServiceImpl();
+        setField(service, "patchManagement", pm);
         service.activate(componentContext);
+
         patches = service.getPatches();
         assertNotNull(patches);
         it = patches.iterator();
@@ -507,6 +546,34 @@ public class ServiceImplTest {
         verify(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
     }
 
+    private GitPatchManagementServiceImpl mockManagementService(final BundleContext bundleContext) {
+        return new GitPatchManagementServiceImpl(bundleContext) {
+            @Override
+            protected InitializationType checkMainRepositoryState(Git git) throws GitAPIException, IOException {
+                return InitializationType.READY;
+            }
+            @Override
+            public Patch trackPatch(PatchData patchData) throws PatchException {
+                return new Patch(patchData, null);
+            }
+            @Override
+            public String beginInstallation(PatchKind kind) {
+                this.pendingTransactionsTypes.put("tx", kind);
+                this.pendingTransactions.put("tx", null);
+                return "tx";
+            }
+            @Override
+            public void install(String transaction, Patch patch) {
+            }
+            @Override
+            public void rollbackInstallation(String transaction) {
+            }
+            @Override
+            public void commitInstallation(String transaction) {
+            }
+        };
+    }
+
     @Test
     public void testPatchWithVersionRanges() throws Exception {
         ComponentContext componentContext = createMock(ComponentContext.class);
@@ -516,18 +583,29 @@ public class ServiceImplTest {
         Bundle bundle = createMock(Bundle.class);
         Bundle bundle2 = createMock(Bundle.class);
         FrameworkWiring wiring = createMock(FrameworkWiring.class);
+        GitPatchRepository repository = createMock(GitPatchRepository.class);
 
         //
         // Create a new service, download a patch
         //
         expect(componentContext.getBundleContext()).andReturn(bundleContext);
-        expect(bundleContext.getBundle(0)).andReturn(sysBundle);
-        expect(sysBundle.getBundleContext()).andReturn(sysBundleContext);
+        expect(bundleContext.getBundle(0)).andReturn(sysBundle).anyTimes();
+        expect(sysBundle.getBundleContext()).andReturn(sysBundleContext).anyTimes();
         expect(sysBundleContext.getProperty(Service.NEW_PATCH_LOCATION))
                 .andReturn(storage.toString()).anyTimes();
-        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
+        expect(repository.getManagedPatch(anyString())).andReturn(null).anyTimes();
+        expect(repository.findOrCreateMainGitRepository()).andReturn(null).anyTimes();
+        expect(sysBundleContext.getProperty("karaf.default.repository"))
+                .andReturn(karaf.getCanonicalPath() + "/system").anyTimes();
+        expect(sysBundleContext.getProperty("karaf.home"))
+                .andReturn(karaf.getCanonicalPath()).anyTimes();
+        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository);
+
+        PatchManagement pm = mockManagementService(bundleContext);
+        ((GitPatchManagementServiceImpl)pm).setGitPatchRepository(repository);
 
         ServiceImpl service = new ServiceImpl();
+        setField(service, "patchManagement", pm);
         service.activate(componentContext);
         Iterable<Patch> patches = service.download(patch140.toURI().toURL());
         assertNotNull(patches);
@@ -793,7 +871,6 @@ public class ServiceImplTest {
                 return null;
             }
         }
-
     }
 
     public class MvnHandler extends URLStreamHandler {
