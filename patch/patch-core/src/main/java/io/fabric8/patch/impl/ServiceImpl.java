@@ -17,20 +17,9 @@ package io.fabric8.patch.impl;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.jar.Attributes;
@@ -39,6 +28,7 @@ import java.util.jar.Manifest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.fabric8.common.util.Pair;
 import io.fabric8.patch.Service;
 import io.fabric8.patch.management.Artifact;
 import io.fabric8.patch.management.BundleUpdate;
@@ -59,6 +49,8 @@ import org.apache.felix.utils.manifest.Clause;
 import org.apache.felix.utils.manifest.Parser;
 import org.apache.felix.utils.version.VersionRange;
 import org.apache.felix.utils.version.VersionTable;
+import org.apache.karaf.features.Feature;
+import org.apache.karaf.features.Repository;
 import org.apache.karaf.util.bundles.BundleUtils;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
@@ -72,6 +64,7 @@ import org.osgi.framework.wiring.FrameworkWiring;
 import org.osgi.service.component.ComponentContext;
 
 import static io.fabric8.common.util.Files.copy;
+import org.apache.karaf.features.FeaturesService;
 import static io.fabric8.common.util.IOHelpers.readFully;
 import static io.fabric8.patch.management.Utils.mvnurlToArtifact;
 
@@ -101,6 +94,10 @@ public class ServiceImpl implements Service {
 
     @Reference(referenceInterface = PatchManagement.class, cardinality = ReferenceCardinality.MANDATORY_UNARY, policy = ReferencePolicy.STATIC)
     private PatchManagement patchManagement;
+
+    @Reference(referenceInterface = FeaturesService.class, cardinality = ReferenceCardinality.MANDATORY_UNARY, policy = ReferencePolicy.STATIC)
+    private FeaturesService featuresService;
+
 
     @Activate
     void activate(ComponentContext componentContext) {
@@ -227,6 +224,7 @@ public class ServiceImpl implements Service {
                 String overrides = readFully(new File(System.getProperty("karaf.base"), "etc/overrides.properties"));
                 // list of bundle updates for the current patch
                 List<BundleUpdate> updates = new ArrayList<BundleUpdate>();
+
                 for (String url : patch.getPatchData().getBundles()) {
                     // [symbolicName, version] of the new bundle
                     String[] symbolicNameVersion = getBundleIdentity(url);
@@ -343,6 +341,10 @@ public class ServiceImpl implements Service {
                 patchManagement.rollbackInstallation(transaction);
             }
 
+            for (Patch patch : patches) {
+                installFeatures(patch, simulate);
+            }
+
             return results;
         } catch (Exception e) {
             if (transaction != null) {
@@ -350,6 +352,105 @@ public class ServiceImpl implements Service {
             }
             throw new PatchException(e.getMessage(), e);
         }
+    }
+
+    static class MultiMap<K,V>  {
+        HashMap<K,ArrayList<V>> delegate = new HashMap<>();
+
+        public List<V> get(Object key) {
+            return delegate.get(key);
+        }
+
+        public void put(K key, V value) {
+            ArrayList<V> list = delegate.get(key);
+            if( list == null ) {
+                list = new ArrayList<>();
+                delegate.put(key, list);
+            }
+            list.add(value);
+        }
+    }
+
+    private void installFeatures(Patch patch, boolean simulate) throws Exception {
+
+        // install the new feature repos, tracking the set the were
+        // installed before and after
+        HashMap<String, Repository> before = getFeatureRepos();
+        for (String url : patch.getPatchData().getFeatureFiles() ) {
+            featuresService.addRepository(new URI(url));
+        }
+        HashMap<String, Repository> after = getFeatureRepos();
+
+        // track which repos provide which features..
+        MultiMap<String, String> features = new MultiMap<String, String>();
+        for (Repository repository : before.values()) {
+            for (Feature feature : repository.getFeatures()) {
+                features.put(feature.getName(), repository.getName());
+            }
+        }
+
+        // Use the before and after set to figure out which repos were added.
+        Set<String> addedKeys = new HashSet<>(after.keySet());
+        addedKeys.removeAll(before.keySet());
+
+        // Figure out which old repos were updated:  Do they have feature
+        // with the same name as one contained in a repo being added?
+        HashSet<String> oldRepos = new HashSet<String>();
+        for (String key : addedKeys) {
+            Repository added = after.get(key);
+            for (Feature feature : added.getFeatures()) {
+                List<String> repos = features.get(feature.getName());
+                if( repos!=null ) {
+                    oldRepos.addAll(repos);
+                }
+            }
+        }
+
+        // Now we know which are the old repos that have been udpated.
+        // We need to uninstall them.  Before we uninstall, track which features
+        // were installed.
+        HashSet<String> featuresToInstall = new HashSet<String>();
+        for (String repoName : oldRepos) {
+            Repository repository = before.get(repoName);
+            for (Feature feature : repository.getFeatures()) {
+                if( featuresService.isInstalled(feature) ) {
+                    featuresToInstall.add(feature.getName());
+                }
+            }
+            if (simulate) {
+                System.out.println("Simulation: Remove feature repository: "+repository.getURI());
+            } else {
+                System.out.println("Remove feature repository: "+repository.getURI());
+                featuresService.removeRepository(repository.getURI(), true);
+            }
+        }
+
+        // Now that we don't have any of the old feature repos installed
+        // Lets re-install the features that were previously installed.
+        for (String f : featuresToInstall) {
+            if (simulate) {
+                System.out.println("Simulation: Enable feature: "+f);
+            } else {
+                System.out.println("Enable feature: "+f);
+                featuresService.installFeature(f);
+            }
+        }
+
+        if( simulate ) {
+            // Undo the add we had done.
+            for (String url : patch.getPatchData().getFeatureFiles() ) {
+                featuresService.removeRepository(new URI(url));
+            }
+        }
+
+    }
+
+    private HashMap<String, Repository> getFeatureRepos() {
+        HashMap<String, Repository> before = new HashMap<String, Repository>();
+        for (Repository repository : featuresService.listRepositories()) {
+            before.put(repository.getName(), repository);
+        }
+        return before;
     }
 
     @Override
