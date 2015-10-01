@@ -588,6 +588,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             // by dropping entire change
                             gitPatchRepository.prepareCommit(fork,
                                     userChange.getFullMessage()).call();
+
+                            // we may have unadded changes - when file mode is changed
+                            fork.reset().setMode(ResetCommand.ResetType.HARD).call();
                         }
                     }
                     break;
@@ -610,6 +613,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     // always commit non-rollup patch - even if there are no changes to files (only bundles)
                     RevCommit c = gitPatchRepository.prepareCommit(fork,
                         String.format(MARKER_P_PATCH_INSTALLATION_PATTERN, patch.getPatchData().getId())).call();
+
+                    // we may have unadded changes - when file mode is changed
+                    fork.reset().setMode(ResetCommand.ResetType.HARD).call();
 
                     // tag the installed patch (to easily rollback and to prevent another installation)
                     fork.tag()
