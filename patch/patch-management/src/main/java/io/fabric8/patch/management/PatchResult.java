@@ -20,7 +20,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -122,27 +121,50 @@ public class PatchResult {
      * Persist the result. The <code>out</code> {@link OutputStream} is closed after the write.
      * @param out
      */
-    public void storeTo(OutputStream out) {
-        PrintWriter pw = new PrintWriter(out);
-        pw.write("# generated file, do not modify\n");
-        pw.write("# Installation results for patch \"" + patchData.getId() + "\"\n");
-
-        pw.write(DATE + " = " + Long.toString(getDate()) + "\n");
-        pw.write(UPDATES + "." + COUNT + " = " + Integer.toString(getUpdates().size()) + "\n");
-        int i = 0;
-        for (BundleUpdate update : getUpdates()) {
-            pw.write(UPDATES + "." + Integer.toString(i) + "." + SYMBOLIC_NAME + " = " + update.getSymbolicName() + "\n");
-            pw.write(UPDATES + "." + Integer.toString(i) + "." + NEW_VERSION + " = " + update.getNewVersion() + "\n");
-            pw.write(UPDATES + "." + Integer.toString(i) + "." + NEW_LOCATION + " = " + update.getNewLocation() + "\n");
-            pw.write(UPDATES + "." + Integer.toString(i) + "." + OLD_VERSION + " = " + update.getPreviousVersion() + "\n");
-            pw.write(UPDATES + "." + Integer.toString(i) + "." + OLD_LOCATION + " = " + update.getPreviousLocation() + "\n");
-            i++;
+    public void storeTo(OutputStream out) throws IOException {
+        Properties props  = new Properties();
+        try {
+            props.put(DATE, Long.toString(getDate()));
+            props.put(UPDATES + "." + COUNT, Integer.toString(getUpdates().size()));
+            int i = 0;
+            for (BundleUpdate update : getUpdates()) {
+                props.put(UPDATES + "." + Integer.toString(i) + "." + SYMBOLIC_NAME, update.getSymbolicName());
+                props.put(UPDATES + "." + Integer.toString(i) + "." + NEW_VERSION, update.getNewVersion());
+                props.put(UPDATES + "." + Integer.toString(i) + "." + NEW_LOCATION, update.getNewLocation());
+                props.put(UPDATES + "." + Integer.toString(i) + "." + OLD_VERSION, update.getPreviousVersion());
+                props.put(UPDATES + "." + Integer.toString(i) + "." + OLD_LOCATION, update.getPreviousLocation());
+                i++;
+            }
+            props.put(STARTUP, getStartup());
+            String overrides = getOverrides();
+            if (overrides != null) {
+                props.put(OVERRIDES, overrides);
+            }
+            props.store(out, "Installation results for patch " + getPatchData().getId());
+        } finally {
+            out.close();
         }
-        pw.write(STARTUP + " = " + getStartup().replace(" ", "\\ ") + "\n");
-        if (overrides != null) {
-            pw.write(OVERRIDES + " = " + overrides.replace(" ", "\\ ") + "\n");
-        }
-        pw.close();
+//
+//        PrintWriter pw = new PrintWriter(out);
+//        pw.write("# generated file, do not modify\n");
+//        pw.write("# Installation results for patch \"" + patchData.getId() + "\"\n");
+//
+//        pw.write(DATE + " = " + Long.toString(getDate()) + "\n");
+//        pw.write(UPDATES + "." + COUNT + " = " + Integer.toString(getUpdates().size()) + "\n");
+//        int i = 0;
+//        for (BundleUpdate update : getUpdates()) {
+//            pw.write(UPDATES + "." + Integer.toString(i) + "." + SYMBOLIC_NAME + " = " + update.getSymbolicName() + "\n");
+//            pw.write(UPDATES + "." + Integer.toString(i) + "." + NEW_VERSION + " = " + update.getNewVersion() + "\n");
+//            pw.write(UPDATES + "." + Integer.toString(i) + "." + NEW_LOCATION + " = " + update.getNewLocation() + "\n");
+//            pw.write(UPDATES + "." + Integer.toString(i) + "." + OLD_VERSION + " = " + update.getPreviousVersion() + "\n");
+//            pw.write(UPDATES + "." + Integer.toString(i) + "." + OLD_LOCATION + " = " + update.getPreviousLocation() + "\n");
+//            i++;
+//        }
+//        pw.write(STARTUP + " = " + getStartup().replace(" ", "\\ ") + "\n");
+//        if (overrides != null) {
+//            pw.write(OVERRIDES + " = " + overrides.replace(" ", "\\ ") + "\n");
+//        }
+//        pw.close();
     }
 
     public boolean isSimulation() {
