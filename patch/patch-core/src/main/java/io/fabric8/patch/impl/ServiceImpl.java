@@ -339,6 +339,9 @@ public class ServiceImpl implements Service {
             }
             System.out.flush();
 
+            // poor-mans lifecycle management in case when SCR nullify our reference
+            PatchManagement pm = patchManagement;
+
             if (!simulate) {
                 Runnable task = new Runnable() {
                     @Override
@@ -365,7 +368,7 @@ public class ServiceImpl implements Service {
             }
 
             if (!simulate) {
-                patchManagement.commitInstallation(transaction);
+                pm.commitInstallation(transaction);
             } else {
                 patchManagement.rollbackInstallation(transaction);
             }
