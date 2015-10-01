@@ -76,4 +76,5 @@ public class OfflineTest extends PatchTestSupport {
         offline.rollback(patch);
         assertFalse(patched.exists());
     }
+
 }

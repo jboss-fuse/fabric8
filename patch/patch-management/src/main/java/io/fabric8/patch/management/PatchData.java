@@ -65,6 +65,9 @@ public class PatchData {
     // this field is kind of "transient" - it's not stored in *.patch file, only set after reading the file
     // to point to real directory where patch was unpacked
     private File patchDirectory;
+    // even if patch has no content, we'll keep the directory where *.patch descriptor itself is stored
+    // e.g., to be able to write *.patch.result file
+    private File patchLocation;
 
     private List<String> bundles = new LinkedList<>();
     private List<String> featureFiles = new LinkedList<>();
@@ -258,6 +261,18 @@ public class PatchData {
      */
     public void setPatchDirectory(File patchDirectory) {
         this.patchDirectory = patchDirectory;
+    }
+
+    public File getPatchLocation() {
+        return patchLocation;
+    }
+
+    /**
+     * Sets a directory where patch descriptor itself is stored
+     * @param patchLocation
+     */
+    public void setPatchLocation(File patchLocation) {
+        this.patchLocation = patchLocation;
     }
 
 }

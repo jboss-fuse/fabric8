@@ -31,6 +31,8 @@ public class UtilsTest {
     public void fromNumericUnixPermissions() {
         assertThat(getPermissionsFromUnixMode(new File("target"), 0775), equalTo(PosixFilePermissions.fromString("rwxrwxr-x")));
         assertThat(getPermissionsFromUnixMode(new File("target"), 0641), equalTo(PosixFilePermissions.fromString("rw-r----x")));
+        assertThat(getPermissionsFromUnixMode(new File("target"), 00), equalTo(PosixFilePermissions.fromString("rwxrwxr-x")));
+        assertThat(getPermissionsFromUnixMode(new File("target/test-classes/logback-test.xml"), 00), equalTo(PosixFilePermissions.fromString("rw-rw-r--")));
     }
 
     @Test

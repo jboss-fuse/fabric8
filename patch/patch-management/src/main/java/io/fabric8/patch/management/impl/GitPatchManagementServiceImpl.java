@@ -109,8 +109,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
     /* patch installation support */
 
-    private Map<String, Git> pendingTransactions = new HashMap<>();
-    private Map<String, PatchKind> pendingTransactionsTypes = new HashMap<>();
+    protected Map<String, Git> pendingTransactions = new HashMap<>();
+    protected Map<String, PatchKind> pendingTransactionsTypes = new HashMap<>();
 
     public GitPatchManagementServiceImpl(BundleContext context) {
         this.bundleContext = context;
@@ -165,7 +165,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         Patch p = new Patch();
 
         if (!patchDescriptor.exists() || !patchDescriptor.isFile()) {
-            throw new IllegalArgumentException(patchDescriptor.getName() + " doesn't exist");
+            return null;
         }
 
         PatchData data = PatchData.load(new FileInputStream(patchDescriptor));
@@ -176,8 +176,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             // not every descriptor downloaded may be a ZIP file, not every patch has content
             data.setPatchDirectory(patchDirectory);
         }
+        data.setPatchLocation(patchesDir);
 
-        File resultFile = new File(patchDirectory, FilenameUtils.getBaseName(patchDescriptor.getName()) + ".patch.result");
+        File resultFile = new File(patchesDir, FilenameUtils.getBaseName(patchDescriptor.getName()) + ".patch.result");
         if (resultFile.exists() && resultFile.isFile()) {
             PatchResult result = PatchResult.load(data, new FileInputStream(resultFile));
             p.setResult(result);
@@ -196,6 +197,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         File descriptor = new File(patchesDir, request.getPatchId() + ".patch");
         try {
             Patch patch = loadPatch(descriptor, true);
+            if (patch == null) {
+                return null;
+            }
             Git repo = gitPatchRepository.findOrCreateMainGitRepository();
             List<DiffEntry> diff = null;
             if (request.isFiles() || request.isDiff()) {

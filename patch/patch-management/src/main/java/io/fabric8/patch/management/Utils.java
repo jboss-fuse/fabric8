@@ -108,7 +108,7 @@ public class Utils {
         if (numeric != null && numeric.length() > 3) {
             numeric = numeric.substring(numeric.length() - 3);
         }
-        if (numeric == null) {
+        if (numeric == null || unixMode == 0) {
             return PosixFilePermissions.fromString(file.isDirectory() ? "rwxrwxr-x" : "rw-rw-r--");
         }
 

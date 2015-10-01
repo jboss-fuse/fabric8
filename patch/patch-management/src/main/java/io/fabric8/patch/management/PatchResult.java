@@ -108,7 +108,7 @@ public class PatchResult {
     }
 
     public void store() throws IOException {
-        FileOutputStream fos = new FileOutputStream(new File(patchData.getPatchDirectory().getParent(),
+        FileOutputStream fos = new FileOutputStream(new File(patchData.getPatchLocation(),
                 patchData.getId() + ".patch.result"));
         storeTo(fos);
         fos.close();
@@ -123,20 +123,20 @@ public class PatchResult {
         pw.write("# generated file, do not modify\n");
         pw.write("# Installation results for patch \"" + patchData.getId() + "\"\n");
 
-        pw.write(DATE + " = " + Long.toString(getDate()));
-        pw.write(UPDATES + "." + COUNT + " = " + Integer.toString(getUpdates().size()));
+        pw.write(DATE + " = " + Long.toString(getDate()) + "\n");
+        pw.write(UPDATES + "." + COUNT + " = " + Integer.toString(getUpdates().size()) + "\n");
         int i = 0;
         for (BundleUpdate update : getUpdates()) {
-            pw.write(UPDATES + "." + Integer.toString(i) + "." + SYMBOLIC_NAME + " = " + update.getSymbolicName());
-            pw.write(UPDATES + "." + Integer.toString(i) + "." + NEW_VERSION + " = " + update.getNewVersion());
-            pw.write(UPDATES + "." + Integer.toString(i) + "." + NEW_LOCATION + " = " + update.getNewLocation());
-            pw.write(UPDATES + "." + Integer.toString(i) + "." + OLD_VERSION + " = " + update.getPreviousVersion());
-            pw.write(UPDATES + "." + Integer.toString(i) + "." + OLD_LOCATION + " = " + update.getPreviousLocation());
+            pw.write(UPDATES + "." + Integer.toString(i) + "." + SYMBOLIC_NAME + " = " + update.getSymbolicName() + "\n");
+            pw.write(UPDATES + "." + Integer.toString(i) + "." + NEW_VERSION + " = " + update.getNewVersion() + "\n");
+            pw.write(UPDATES + "." + Integer.toString(i) + "." + NEW_LOCATION + " = " + update.getNewLocation() + "\n");
+            pw.write(UPDATES + "." + Integer.toString(i) + "." + OLD_VERSION + " = " + update.getPreviousVersion() + "\n");
+            pw.write(UPDATES + "." + Integer.toString(i) + "." + OLD_LOCATION + " = " + update.getPreviousLocation() + "\n");
             i++;
         }
-        pw.write(STARTUP + " = " + getStartup());
+        pw.write(STARTUP + " = " + getStartup() + "\n");
         if (overrides != null) {
-            pw.write(OVERRIDES + " = " + overrides);
+            pw.write(OVERRIDES + " = " + overrides + "\n");
         }
         pw.close();
     }
