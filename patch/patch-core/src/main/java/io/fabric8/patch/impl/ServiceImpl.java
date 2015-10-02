@@ -234,7 +234,6 @@ public class ServiceImpl implements Service {
 
         // poor-man's lifecycle management in case when SCR nullifies our reference
         final PatchManagement pm = patchManagement;
-        final FeaturesService fs = featuresService;
 
         try {
             // Compute individual patch results (patchId -> Result)
@@ -332,8 +331,8 @@ public class ServiceImpl implements Service {
                     @Override
                     public void run() {
                         try {
-                            // bundles
-                            applyChanges(bundleUpdateLocations);
+                            // collect features to uninstall
+                            List<String[]> featuresToUninstallAfterUpdatingBundles = new LinkedList<>();
 
                             // uninstall old features and repositories repositories
                             if (!simulate) {
@@ -344,33 +343,52 @@ public class ServiceImpl implements Service {
                                     newRepositories.add(fu.getNewRepository());
                                 }
                                 Map<String, Repository> repos = new HashMap<>();
-                                for (Repository r : fs.listRepositories()) {
+                                for (Repository r : featuresService.listRepositories()) {
                                     repos.put(r.getURI().toString(), r);
                                 }
                                 for (String uri : oldRepositories) {
                                     if (repos.containsKey(uri)) {
                                         Repository r = repos.get(uri);
                                         for (Feature f : r.getFeatures()) {
-                                            try {
-                                                if (fs.isInstalled(f)) {
-                                                    fs.uninstallFeature(f.getName(), f.getVersion(), EnumSet.of(FeaturesService.Option.NoAutoRefreshBundles));
-                                                }
-                                            } catch (Exception e) {
-                                                System.err.println(e.getMessage());
+                                            if (featuresService.isInstalled(f)) {
+                                                featuresToUninstallAfterUpdatingBundles.add(new String[] {
+                                                        f.getName(),
+                                                        f.getVersion()
+                                                });
+//                                                    fs.uninstallFeature(f.getName(), f.getVersion(), EnumSet.of(FeaturesService.Option.NoAutoRefreshBundles));
                                             }
                                         }
                                     }
                                 }
+                                // we can already remove repositories
                                 for (String uri : oldRepositories) {
-                                    fs.removeRepository(URI.create(uri));
+                                    featuresService.removeRepository(URI.create(uri));
                                 }
+
                                 // TODO: we should add not only repositories related to updated features, but also all from
                                 // "featureRepositories" property from new etc/org.apache.karaf.features.cfg
                                 for (Patch p : patches) {
                                     for (String uri : p.getPatchData().getFeatureFiles()) {
-                                        fs.addRepository(URI.create(uri));
+                                        featuresService.addRepository(URI.create(uri));
                                     }
                                 }
+                            }
+
+                            // update bundles
+                            applyChanges(bundleUpdateLocations);
+
+                            Object featuresService = null;
+                            try {
+                                ServiceTracker<?, ?> tracker = new ServiceTracker<>(bundleContext, "org.apache.karaf.features.FeaturesService", null);
+                                tracker.open();
+                                Object service = tracker.waitForService(30000);
+                                if (service != null) {
+                                    featuresService = service;
+                                }
+                            } catch (Exception e) {
+                                System.err.println(e.getMessage());
+                                e.printStackTrace(System.err);
+                                System.err.flush();
                             }
 
                             // update KARAF_HOME
@@ -379,6 +397,8 @@ public class ServiceImpl implements Service {
                             } else {
                                 patchManagement.rollbackInstallation(finalTransaction);
                             }
+
+                            // TODO: uninstall features?
 
                             // install new features - in order
                             Properties properties = new Properties();
