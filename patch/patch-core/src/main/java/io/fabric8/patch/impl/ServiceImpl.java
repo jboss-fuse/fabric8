@@ -234,7 +234,7 @@ public class ServiceImpl implements Service {
 
         // poor-man's lifecycle management in case when SCR nullifies our reference
         final PatchManagement pm = patchManagement;
-        FeaturesService fs = featuresService;
+        final FeaturesService fs = featuresService;
 
         try {
             // Compute individual patch results (patchId -> Result)
@@ -335,6 +335,44 @@ public class ServiceImpl implements Service {
                             // bundles
                             applyChanges(bundleUpdateLocations);
 
+                            // uninstall old features and repositories repositories
+                            if (!simulate) {
+                                Set<String> oldRepositories = new HashSet<>();
+                                Set<String> newRepositories = new HashSet<>();
+                                for (FeatureUpdate fu : updatesForFeatureKeys.values()) {
+                                    oldRepositories.add(fu.getPreviousRepository());
+                                    newRepositories.add(fu.getNewRepository());
+                                }
+                                Map<String, Repository> repos = new HashMap<>();
+                                for (Repository r : fs.listRepositories()) {
+                                    repos.put(r.getURI().toString(), r);
+                                }
+                                for (String uri : oldRepositories) {
+                                    if (repos.containsKey(uri)) {
+                                        Repository r = repos.get(uri);
+                                        for (Feature f : r.getFeatures()) {
+                                            try {
+                                                if (fs.isInstalled(f)) {
+                                                    fs.uninstallFeature(f.getName(), f.getVersion(), EnumSet.of(FeaturesService.Option.NoAutoRefreshBundles));
+                                                }
+                                            } catch (Exception e) {
+                                                System.err.println(e.getMessage());
+                                            }
+                                        }
+                                    }
+                                }
+                                for (String uri : oldRepositories) {
+                                    fs.removeRepository(URI.create(uri));
+                                }
+                                // TODO: we should add not only repositories related to updated features, but also all from
+                                // "featureRepositories" property from new etc/org.apache.karaf.features.cfg
+                                for (Patch p : patches) {
+                                    for (String uri : p.getPatchData().getFeatureFiles()) {
+                                        fs.addRepository(URI.create(uri));
+                                    }
+                                }
+                            }
+
                             // update KARAF_HOME
                             if (!simulate) {
                                 pm.commitInstallation(finalTransaction);
@@ -402,44 +440,6 @@ public class ServiceImpl implements Service {
                         }
                     }
                 };
-            }
-
-            // uninstall old features and repositories repositories
-            if (!simulate) {
-                Set<String> oldRepositories = new HashSet<>();
-                Set<String> newRepositories = new HashSet<>();
-                for (FeatureUpdate fu : updatesForFeatureKeys.values()) {
-                    oldRepositories.add(fu.getPreviousRepository());
-                    newRepositories.add(fu.getNewRepository());
-                }
-                Map<String, Repository> repos = new HashMap<>();
-                for (Repository r : fs.listRepositories()) {
-                    repos.put(r.getURI().toString(), r);
-                }
-                for (String uri : oldRepositories) {
-                    if (repos.containsKey(uri)) {
-                        Repository r = repos.get(uri);
-                        for (Feature f : r.getFeatures()) {
-                            try {
-                                if (fs.isInstalled(f)) {
-                                    fs.uninstallFeature(f.getName(), f.getVersion(), EnumSet.of(FeaturesService.Option.NoAutoRefreshBundles));
-                                }
-                            } catch (Exception e) {
-                                System.err.println(e.getMessage());
-                            }
-                        }
-                    }
-                }
-                for (String uri : oldRepositories) {
-                    fs.removeRepository(URI.create(uri));
-                }
-                // TODO: we should add not only repositories related to updated features, but also all from
-                // "featureRepositories" property from new etc/org.apache.karaf.features.cfg
-                for (Patch p : patches) {
-                    for (String uri : p.getPatchData().getFeatureFiles()) {
-                        fs.addRepository(URI.create(uri));
-                    }
-                }
             }
 
 //            Bundle fileinstal = null;
@@ -601,11 +601,13 @@ public class ServiceImpl implements Service {
             Version newVersion = VersionTable.getVersion(vr);
 
             // if existing bundle is withing this range, update is possible
-            VersionRange range = null;
+            VersionRange range = getUpdateableRange(patch, newLocation, newVersion);
             if (coreBundles.containsKey(sn)) {
-                range = VersionRange.ANY_VERSION;
-            } else {
-                range = getUpdateableRange(patch, newLocation, newVersion);
+                if (range == null) {
+                    range = new VersionRange(false, Version.emptyVersion, newVersion, true);
+                } else {
+                    range = new VersionRange(false, Version.emptyVersion, range.getCeiling(), true);
+                }
             }
 
             if (range != null) {
