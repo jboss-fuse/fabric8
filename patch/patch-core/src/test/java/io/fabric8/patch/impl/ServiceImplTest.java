@@ -331,6 +331,8 @@ public class ServiceImplTest {
         expect(sysBundle.getBundleContext()).andReturn(sysBundleContext).anyTimes();
         expect(sysBundleContext.getProperty(Service.NEW_PATCH_LOCATION))
                 .andReturn(patches.toString()).anyTimes();
+        expect(sysBundleContext.getProperty("karaf.default.repository"))
+                .andReturn(patches.getParent() + "/system").anyTimes();
         try {
             expect(repository.getManagedPatch(anyString())).andReturn(null).anyTimes();
             expect(repository.findOrCreateMainGitRepository()).andReturn(null).anyTimes();
@@ -430,7 +432,7 @@ public class ServiceImplTest {
         expect(sysBundleContext.getBundles()).andReturn(new Bundle[] { bundle });
         expect(bundle.getSymbolicName()).andReturn("my-bsn").anyTimes();
         expect(bundle.getVersion()).andReturn(new Version("1.3.1")).anyTimes();
-        expect(bundle.getLocation()).andReturn("location");
+        expect(bundle.getLocation()).andReturn("location").anyTimes();
         expect(bundle.getBundleId()).andReturn(123L);
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
 
@@ -451,6 +453,10 @@ public class ServiceImplTest {
         expect(sysBundle.getBundleContext()).andReturn(sysBundleContext);
         expect(sysBundleContext.getProperty(Service.NEW_PATCH_LOCATION))
                 .andReturn(storage.toString()).anyTimes();
+        expect(sysBundleContext.getProperty("karaf.home"))
+                .andReturn(karaf.toString()).anyTimes();
+        expect(sysBundleContext.getProperty("karaf.default.repository"))
+                .andReturn(karaf.getCanonicalPath() + "/system").anyTimes();
         expect(repository.getManagedPatch(anyString())).andReturn(null).anyTimes();
         expect(repository.findOrCreateMainGitRepository()).andReturn(null).anyTimes();
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository);
@@ -482,13 +488,13 @@ public class ServiceImplTest {
         expect(sysBundleContext.getBundles()).andReturn(new Bundle[] { bundle });
         expect(bundle.getSymbolicName()).andReturn("my-bsn").anyTimes();
         expect(bundle.getVersion()).andReturn(new Version("1.3.1")).anyTimes();
-        expect(bundle.getLocation()).andReturn("location");
+        expect(bundle.getLocation()).andReturn("location").anyTimes();
         expect(bundle.getHeaders()).andReturn(new Hashtable<String, String>()).anyTimes();
         expect(bundle.getBundleId()).andReturn(123L);
         bundle.update(EasyMock.<InputStream>anyObject());
         expect(sysBundleContext.getBundles()).andReturn(new Bundle[] { bundle });
         expect(bundle.getState()).andReturn(Bundle.INSTALLED).anyTimes();
-        expect(bundle.getRegisteredServices()).andReturn(null);
+//        expect(bundle.getRegisteredServices()).andReturn(null);
         expect(sysBundleContext.getBundle(0)).andReturn(sysBundle);
         expect(sysBundle.adapt(FrameworkWiring.class)).andReturn(wiring);
         bundle.start();
@@ -624,7 +630,7 @@ public class ServiceImplTest {
         expect(sysBundleContext.getBundles()).andReturn(new Bundle[] { bundle });
         expect(bundle.getSymbolicName()).andReturn("my-bsn").anyTimes();
         expect(bundle.getVersion()).andReturn(new Version("1.3.1")).anyTimes();
-        expect(bundle.getLocation()).andReturn("location");
+        expect(bundle.getLocation()).andReturn("location").anyTimes();
         expect(bundle.getBundleId()).andReturn(123L);
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
 

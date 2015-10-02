@@ -921,8 +921,10 @@ public class ServiceImpl implements Service {
      */
     private HashMap<String, Repository> getAvailableFeatureRepositories() {
         HashMap<String, Repository> before = new HashMap<String, Repository>();
-        for (Repository repository : featuresService.listRepositories()) {
-            before.put(repository.getName(), repository);
+        if (featuresService != null) {
+            for (Repository repository : featuresService.listRepositories()) {
+                before.put(repository.getName(), repository);
+            }
         }
         return before;
     }
