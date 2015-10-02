@@ -42,8 +42,8 @@ public abstract class PatchActionSupport extends AbstractAction {
     protected abstract void doExecute(Service service) throws Exception;
 
     protected void display(PatchResult result) {
-        int l1 = 0, l2 = 0, l3 = 0;
-        for (BundleUpdate update : result.getUpdates()) {
+        int l1 = "[name]".length(), l2 = "[old]".length(), l3 = "[new]".length();
+        for (BundleUpdate update : result.getBundleUpdates()) {
             if (stripSymbolicName(update.getSymbolicName()).length() > l1) {
                 l1 = stripSymbolicName(update.getSymbolicName()).length();
             }
@@ -55,7 +55,7 @@ public abstract class PatchActionSupport extends AbstractAction {
             }
         }
         System.out.println(String.format("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s", "[name]", "[old]", "[new]"));
-        java.util.List<BundleUpdate> updates = new ArrayList<>(result.getUpdates());
+        java.util.List<BundleUpdate> updates = new ArrayList<>(result.getBundleUpdates());
         Collections.sort(updates, new Comparator<BundleUpdate>() {
             @Override
             public int compare(BundleUpdate o1, BundleUpdate o2) {

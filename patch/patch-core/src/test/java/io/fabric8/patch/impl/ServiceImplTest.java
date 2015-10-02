@@ -54,6 +54,8 @@ import io.fabric8.patch.management.PatchResult;
 import io.fabric8.patch.management.Utils;
 import io.fabric8.patch.management.impl.GitPatchManagementServiceImpl;
 import io.fabric8.patch.management.impl.GitPatchRepository;
+import org.apache.aries.util.io.IOUtils;
+import org.apache.commons.io.FileUtils;
 import org.easymock.EasyMock;
 import org.easymock.IAnswer;
 import org.eclipse.jgit.api.Git;
@@ -68,7 +70,6 @@ import org.osgi.framework.Version;
 import org.osgi.framework.wiring.FrameworkWiring;
 import org.osgi.service.component.ComponentContext;
 
-import static io.fabric8.common.util.IOHelpers.*;
 import static io.fabric8.patch.impl.PatchTestSupport.getDirectoryForResource;
 import static io.fabric8.patch.management.Utils.stripSymbolicName;
 import static org.easymock.EasyMock.*;
@@ -110,8 +111,8 @@ public class ServiceImplTest {
         String overrides;
 
         offline.apply(patch132);
-        startup = readFully(new File(karaf, "etc/startup.properties"));
-        overrides = readFully(new File(karaf, "etc/overrides.properties"));
+        startup = FileUtils.readFileToString(new File(karaf, "etc/startup.properties"));
+        overrides = FileUtils.readFileToString(new File(karaf, "etc/overrides.properties"));
 
         assertEquals("", startup.trim());
         assertEquals("mvn:foo/my-bsn/1.3.2", overrides.trim());
@@ -120,8 +121,8 @@ public class ServiceImplTest {
         assertFalse(new File(karaf, "system/foo/my-bsn/2.0.0/my-bsn-2.0.0.jar").exists());
 
         offline.apply(patch140);
-        startup = readFully(new File(karaf, "etc/startup.properties"));
-        overrides = readFully(new File(karaf, "etc/overrides.properties"));
+        startup = FileUtils.readFileToString(new File(karaf, "etc/startup.properties"));
+        overrides = FileUtils.readFileToString(new File(karaf, "etc/overrides.properties"));
 
         assertEquals("", startup.trim());
         assertEquals("mvn:foo/my-bsn/1.4.0;range=[1.3.0,1.5.0)", overrides.trim());
@@ -130,8 +131,8 @@ public class ServiceImplTest {
         assertFalse(new File(karaf, "system/foo/my-bsn/2.0.0/my-bsn-2.0.0.jar").exists());
 
         offline.apply(patch200);
-        startup = readFully(new File(karaf, "etc/startup.properties"));
-        overrides = readFully(new File(karaf, "etc/overrides.properties"));
+        startup = FileUtils.readFileToString(new File(karaf, "etc/startup.properties"));
+        overrides = FileUtils.readFileToString(new File(karaf, "etc/overrides.properties"));
 
         assertEquals("", startup.trim());
         assertEquals("mvn:foo/my-bsn/1.4.0;range=[1.3.0,1.5.0)\nmvn:foo/my-bsn/2.0.0", overrides.trim().replaceAll("\r", ""));
@@ -146,11 +147,11 @@ public class ServiceImplTest {
         String startup;
         String overrides;
 
-        writeFully(new File(karaf, "etc/startup.properties"), "foo/my-bsn/1.3.1/my-bsn-1.3.1.jar=1");
+        FileUtils.write(new File(karaf, "etc/startup.properties"), "foo/my-bsn/1.3.1/my-bsn-1.3.1.jar=1");
 
         offline.apply(patch132);
-        startup = readFully(new File(karaf, "etc/startup.properties"));
-        overrides = readFully(new File(karaf, "etc/overrides.properties"));
+        startup = FileUtils.readFileToString(new File(karaf, "etc/startup.properties"));
+        overrides = FileUtils.readFileToString(new File(karaf, "etc/overrides.properties"));
 
         assertEquals("foo/my-bsn/1.3.2/my-bsn-1.3.2.jar=1", startup.trim());
         assertEquals("mvn:foo/my-bsn/1.3.2", overrides.trim());
@@ -159,8 +160,8 @@ public class ServiceImplTest {
         assertFalse(new File(karaf, "system/foo/my-bsn/2.0.0/my-bsn-2.0.0.jar").exists());
 
         offline.apply(patch140);
-        startup = readFully(new File(karaf, "etc/startup.properties"));
-        overrides = readFully(new File(karaf, "etc/overrides.properties"));
+        startup = FileUtils.readFileToString(new File(karaf, "etc/startup.properties"));
+        overrides = FileUtils.readFileToString(new File(karaf, "etc/overrides.properties"));
 
         assertEquals("foo/my-bsn/1.4.0/my-bsn-1.4.0.jar=1", startup.trim());
         assertEquals("mvn:foo/my-bsn/1.4.0;range=[1.3.0,1.5.0)", overrides.trim());
@@ -169,8 +170,8 @@ public class ServiceImplTest {
         assertFalse(new File(karaf, "system/foo/my-bsn/2.0.0/my-bsn-2.0.0.jar").exists());
 
         offline.apply(patch200);
-        startup = readFully(new File(karaf, "etc/startup.properties"));
-        overrides = readFully(new File(karaf, "etc/overrides.properties"));
+        startup = FileUtils.readFileToString(new File(karaf, "etc/startup.properties"));
+        overrides = FileUtils.readFileToString(new File(karaf, "etc/overrides.properties"));
 
         assertEquals("foo/my-bsn/1.4.0/my-bsn-1.4.0.jar=1", startup.trim());
         assertEquals("mvn:foo/my-bsn/1.4.0;range=[1.3.0,1.5.0)\nmvn:foo/my-bsn/2.0.0", overrides.trim().replaceAll("\r", ""));
@@ -630,7 +631,7 @@ public class ServiceImplTest {
         PatchResult result = service.install(patch, true);
         assertNotNull( result );
         assertNull( patch.getResult() );
-        assertEquals(1, result.getUpdates().size());
+        assertEquals(1, result.getBundleUpdates().size());
         assertTrue(result.isSimulation());
     }
 
@@ -638,12 +639,12 @@ public class ServiceImplTest {
     public void testVersionHistory() {
         // the same bundle has been patched twice
         Patch patch1 = new Patch(new PatchData("patch1", "First patch", null, null, null, null, null), null);
-        patch1.setResult(new PatchResult(patch1.getPatchData(), true, System.currentTimeMillis(), new LinkedList<io.fabric8.patch.management.BundleUpdate>(), null, null));
-        patch1.getResult().getUpdates().add(new BundleUpdate("my-bsn", "1.1.0", "mvn:groupId/my-bsn/1.1.0",
+        patch1.setResult(new PatchResult(patch1.getPatchData(), true, System.currentTimeMillis(), new LinkedList<io.fabric8.patch.management.BundleUpdate>(), null));
+        patch1.getResult().getBundleUpdates().add(new BundleUpdate("my-bsn", "1.1.0", "mvn:groupId/my-bsn/1.1.0",
                 "1.0.0", "mvn:groupId/my-bsn/1.0.0"));
         Patch patch2 = new Patch(new PatchData("patch2", "Second patch", null, null, null, null, null), null);
-        patch2.setResult(new PatchResult(patch1.getPatchData(), true, System.currentTimeMillis(), new LinkedList<io.fabric8.patch.management.BundleUpdate>(), null, null));
-        patch2.getResult().getUpdates().add(new BundleUpdate("my-bsn;directive1=true", "1.2.0", "mvn:groupId/my-bsn/1.2.0",
+        patch2.setResult(new PatchResult(patch1.getPatchData(), true, System.currentTimeMillis(), new LinkedList<io.fabric8.patch.management.BundleUpdate>(), null));
+        patch2.getResult().getBundleUpdates().add(new BundleUpdate("my-bsn;directive1=true", "1.2.0", "mvn:groupId/my-bsn/1.2.0",
                 "1.1.0", "mvn:groupId/my-bsn/1.1.0"));
         Map<String, Patch> patches = new HashMap<String, Patch>();
         patches.put("patch1", patch1);
@@ -727,7 +728,7 @@ public class ServiceImplTest {
         fos.close();
         File bf = new File(storage, "temp/" + id + "/repository/" + Utils.mvnurlToArtifact(mvnUrl, true).getPath());
         bf.getParentFile().mkdirs();
-        copy(new FileInputStream(bundle), new FileOutputStream(bf));
+        IOUtils.copy(new FileInputStream(bundle), new FileOutputStream(bf));
         fos = new FileOutputStream(patchFile);
         jarDir(pd.getParentFile(), fos);
         fos.close();

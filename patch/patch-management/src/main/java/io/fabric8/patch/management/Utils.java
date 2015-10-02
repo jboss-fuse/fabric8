@@ -34,10 +34,11 @@ import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipFile;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
+import org.osgi.framework.Version;
 
 public class Utils {
 
-    private static final Pattern FEATURES_FILE = Pattern.compile(".+\\-features$");
+    private static final Pattern FEATURES_FILE = Pattern.compile(".+-features(?:-core)?$");
     private static final Pattern SYMBOLIC_NAME_PATTERN = Pattern.compile("([^;: ]+)(.*)");
 
     private Utils() {
@@ -354,6 +355,44 @@ public class Utils {
         } else {
             return symbolicName;
         }
+    }
+
+    /**
+     * Feature versions may not have 4 positions. Let's make them canonical
+     * @param version
+     * @return
+     */
+    public static Version getFeatureVersion(String version) {
+        if (version == null || "".equals(version.trim())) {
+            return Version.emptyVersion;
+        }
+        String[] vt = version.split("\\.");
+        String[] nvt = new String[4];
+        int[] v123 = new int[] { 0, 0, 0 };
+        String v4 = null;
+
+        // let's assume we don't parse versions like 1.3-fuse.3
+        if (vt.length < 4) {
+            try {
+                Integer.parseInt(vt[vt.length - 1]);
+                for (int i=0; i<vt.length; i++) {
+                    v123[i] = Integer.parseInt(vt[i]);
+                }
+            } catch (NumberFormatException e) {
+                v4 = vt[vt.length - 1];
+                for (int i=0; i<vt.length-1; i++) {
+                    v123[i] = Integer.parseInt(vt[i]);
+                }
+                v4 = vt[vt.length - 1];
+            }
+        } else {
+            for (int i=0; i<3; i++) {
+                v123[i] = Integer.parseInt(vt[i]);
+            }
+            v4 = vt[vt.length - 1];
+        }
+
+        return new Version(v123[0], v123[1], v123[2], v4);
     }
 
 }

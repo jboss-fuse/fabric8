@@ -43,16 +43,11 @@
             org.apache.felix.utils.manifest,
             org.apache.felix.utils.version,
             org.apache.karaf.util.bundles,
-            io.fabric8.common.util
+            org.apache.commons.io
         </fuse.osgi.private.pkg>
     </properties>
 
     <dependencies>
-
-        <dependency>
-            <groupId>io.fabric8</groupId>
-            <artifactId>common-util</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>io.fabric8.patch</groupId>
@@ -71,6 +66,10 @@
         <dependency>
             <groupId>org.apache.karaf</groupId>
             <artifactId>org.apache.karaf.util</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
         </dependency>
 
         <dependency>
@@ -104,12 +103,6 @@
             <groupId>cglib</groupId>
             <artifactId>cglib-nodep</artifactId>
             <version>3.1</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
             <scope>test</scope>
         </dependency>
 

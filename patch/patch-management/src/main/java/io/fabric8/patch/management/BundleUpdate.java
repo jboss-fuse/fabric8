@@ -15,13 +15,19 @@
  */
 package io.fabric8.patch.management;
 
+/**
+ * Command object to update a bundle with <code>symbolicName</code> from previous version:location to new
+ * version:location.
+ */
 public class BundleUpdate {
 
     private final String symbolicName;
-    private final String newVersion;
-    private final String newLocation;
+
     private final String previousVersion;
     private final String previousLocation;
+
+    private final String newVersion;
+    private final String newLocation;
 
     public BundleUpdate(String symbolicName, String newVersion, String newLocation, String previousVersion, String previousLocation) {
         this.symbolicName = symbolicName;

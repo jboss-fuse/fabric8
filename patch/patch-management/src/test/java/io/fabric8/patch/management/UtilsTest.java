@@ -72,4 +72,21 @@ public class UtilsTest {
         assertEquals("my.bundle", stripSymbolicName("my.bundle;blueprint.graceperiod:=false; blueprint.timeout=10000;"));
     }
 
+    @Test
+    public void canonicalVersions() {
+        assertEquals("1.1.1.1", Utils.getFeatureVersion("1.1.1.1").toString());
+        assertEquals("1.1.1", Utils.getFeatureVersion("1.1.1").toString());
+        assertEquals("1.1.0", Utils.getFeatureVersion("1.1").toString());
+        assertEquals("1.0.0", Utils.getFeatureVersion("1").toString());
+        assertEquals("0.0.0", Utils.getFeatureVersion("").toString());
+        assertEquals("0.0.0", Utils.getFeatureVersion(null).toString());
+
+        assertEquals("1.1.1.redhat-1", Utils.getFeatureVersion("1.1.1.redhat-1").toString());
+        assertEquals("1.1.0.redhat-1", Utils.getFeatureVersion("1.1.redhat-1").toString());
+        assertEquals("1.0.0.redhat-1", Utils.getFeatureVersion("1.redhat-1").toString());
+
+        assertEquals("1.1.1.redhat-1", Utils.getFeatureVersion("1.1.1.1.1.redhat-1").toString());
+        assertEquals("1.1.1.redhat-1", Utils.getFeatureVersion("1.1.1.1.redhat-1").toString());
+    }
+
 }
