@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -232,7 +233,7 @@ public class ServiceImpl implements Service {
         String transaction = null;
 
         // poor-man's lifecycle management in case when SCR nullifies our reference
-        PatchManagement pm = patchManagement;
+        final PatchManagement pm = patchManagement;
         FeaturesService fs = featuresService;
 
         try {
@@ -267,14 +268,14 @@ public class ServiceImpl implements Service {
             // bundles from etc/startup.properties + felix.framework = all bundles not managed by features
             // these bundles will be treated in special way
             // symbolic name -> Bundle
-            Map<String, Bundle> coreBundles = getCoreBundles(allBundles);
+            final Map<String, Bundle> coreBundles = getCoreBundles(allBundles);
 
             // collect runtime information from patches (features, bundles) and static information (files)
             // runtime info is prepared to apply runtime changes and static info is prepared to update KARAF_HOME files
             for (Patch patch : patches) {
                 // list of bundle updates for the current patch - only for the purpose of storing result
                 List<BundleUpdate> bundleUpdatesInThisPatch = bundleUpdatesInPatch(patch, allBundles,
-                        bundleUpdateLocations, history, updatesForBundleKeys, kind);
+                        bundleUpdateLocations, history, updatesForBundleKeys, kind, coreBundles);
                 // list of feature updates for the current patch - only for the purpose of storing result
                 List<FeatureUpdate> featureUpdatesInThisPatch = featureUpdatesInPatch(patch, allFeatureRepositories,
                         featureUpdateRepositories, singleFeatureUpdateRepositories, updatesForFeatureKeys, kind);
@@ -306,10 +307,7 @@ public class ServiceImpl implements Service {
                 Bundle bundle = entry.getKey();
                 if ("org.ops4j.pax.url.mvn".equals(stripSymbolicName(bundle.getSymbolicName()))) {
                     // handle this bundle specially - update it here
-                    Artifact artifact = Utils.mvnurlToArtifact(entry.getValue(), true);
-                    URL location = new File(repository,
-                            String.format("org/ops4j/pax/url/pax-url-aether/%s/pax-url-aether-%s.jar",
-                                    artifact.getVersion(), artifact.getVersion())).toURI().toURL();
+                    URL location = new URL(entry.getValue());
                     System.out.printf("Special update of bundle \"%s\" from \"%s\"%n",
                             bundle.getSymbolicName(), location);
                     if (!simulate) {
@@ -329,13 +327,28 @@ public class ServiceImpl implements Service {
 
             Runnable task = null;
             if (!simulate) {
+                final String finalTransaction = transaction;
                 task = new Runnable() {
                     @Override
                     public void run() {
                         try {
+                            // bundles
                             applyChanges(bundleUpdateLocations);
 
-                            // install new features
+                            // update KARAF_HOME
+                            if (!simulate) {
+                                pm.commitInstallation(finalTransaction);
+                            } else {
+                                patchManagement.rollbackInstallation(finalTransaction);
+                            }
+
+                            // install new features - in order
+                            Properties properties = new Properties();
+                            FileInputStream inStream = new FileInputStream(new File(karafHome, "etc/org.apache.karaf.features.cfg"));
+                            properties.load(inStream);
+                            IOUtils.closeQuietly(inStream);
+                            String featuresBoot = properties.getProperty("featuresBoot");
+                            Set<String> coreFeatures = new LinkedHashSet<>(Arrays.asList(featuresBoot.split(", *")));
 
                             // Now that we don't have any of the old feature repos installed
                             // Lets re-install the features that were previously installed.
@@ -344,9 +357,23 @@ public class ServiceImpl implements Service {
                                 tracker.open();
                                 Object service = tracker.waitForService(30000);
                                 if (service != null) {
-                                    Method m = service.getClass().getDeclaredMethod("installFeature", String.class, String.class );
+                                    Method m = service.getClass().getDeclaredMethod("installFeature", String.class );
+                                    if (m != null) {
+                                        for (String cf : coreFeatures) {
+                                            if (simulate) {
+                                                System.out.println("Simulation: Enable core feature: " + cf);
+                                            } else {
+                                                System.out.println("Enable core feature: " + cf);
+                                                m.invoke(service, cf);
+                                            }
+                                        }
+                                    }
+                                    m = service.getClass().getDeclaredMethod("installFeature", String.class, String.class );
                                     if (m != null) {
                                         for (FeatureUpdate update : updatesForFeatureKeys.values()) {
+                                            if (coreFeatures.contains(update.getName())) {
+                                                continue;
+                                            }
                                             if (simulate) {
                                                 System.out.println("Simulation: Enable feature: " + update.getName() + "/" + update.getNewVersion());
                                             } else {
@@ -452,14 +479,6 @@ public class ServiceImpl implements Service {
 //                }
 //            }
 
-            // update KARAF_HOME
-
-            if (!simulate) {
-                pm.commitInstallation(transaction);
-            } else {
-                patchManagement.rollbackInstallation(transaction);
-            }
-
             return results;
         } catch (Exception e) {
             if (transaction != null) {
@@ -558,6 +577,7 @@ public class ServiceImpl implements Service {
      * @param history
      * @param updatesForBundleKeys
      * @param kind
+     * @param coreBundles
      * @return
      * @throws IOException
      */
@@ -566,7 +586,8 @@ public class ServiceImpl implements Service {
                                                     Map<Bundle, String> bundleUpdateLocations,
                                                     BundleVersionHistory history,
                                                     Map<String, BundleUpdate> updatesForBundleKeys,
-                                                    PatchKind kind) throws IOException {
+                                                    PatchKind kind,
+                                                    Map<String, Bundle> coreBundles) throws IOException {
         List<BundleUpdate> updatesInThisPatch = new LinkedList<>();
 
         for (String newLocation : patch.getPatchData().getBundles()) {
@@ -580,7 +601,12 @@ public class ServiceImpl implements Service {
             Version newVersion = VersionTable.getVersion(vr);
 
             // if existing bundle is withing this range, update is possible
-            VersionRange range = getUpdateableRange(patch, newLocation, newVersion);
+            VersionRange range = null;
+            if (coreBundles.containsKey(sn)) {
+                range = VersionRange.ANY_VERSION;
+            } else {
+                range = getUpdateableRange(patch, newLocation, newVersion);
+            }
 
             if (range != null) {
                 for (Bundle bundle : allBundles) {
@@ -593,6 +619,13 @@ public class ServiceImpl implements Service {
                     Version oldVersion = bundle.getVersion();
                     if (range.contains(oldVersion)) {
                         String oldLocation = history.getLocation(bundle);
+                        if ("org.ops4j.pax.url.mvn".equals(stripSymbolicName(sn))) {
+                            Artifact artifact = Utils.mvnurlToArtifact(newLocation, true);
+                            URL location = new File(repository,
+                                    String.format("org/ops4j/pax/url/pax-url-aether/%s/pax-url-aether-%s.jar",
+                                            artifact.getVersion(), artifact.getVersion())).toURI().toURL();
+                            newLocation = location.toString();
+                        }
                         BundleUpdate update = new BundleUpdate(sn, newVersion.toString(), newLocation,
                                 oldVersion.toString(), oldLocation);
                         updatesInThisPatch.add(update);
