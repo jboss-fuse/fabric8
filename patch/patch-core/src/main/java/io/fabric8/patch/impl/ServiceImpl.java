@@ -18,6 +18,7 @@ package io.fabric8.patch.impl;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -225,7 +226,7 @@ public class ServiceImpl implements Service {
      * @param synchronous
      * @return
      */
-    private Map<String, PatchResult> install(final Collection<Patch> patches, boolean simulate, boolean synchronous) {
+    private Map<String, PatchResult> install(final Collection<Patch> patches, final boolean simulate, boolean synchronous) {
         PatchKind kind = checkConsistency(patches);
         checkPrerequisites(patches);
         String transaction = null;
@@ -255,7 +256,7 @@ public class ServiceImpl implements Service {
             // [symbolic name|updateable-version] -> newest update for the bundle out of all installed patches
             Map<String, BundleUpdate> updatesForBundleKeys = new HashMap<>();
             // [feature name|updateable-version] -> newest update for the feature out of all installed patches
-            Map<String, FeatureUpdate> updatesForFeatureKeys = new HashMap<>();
+            final Map<String, FeatureUpdate> updatesForFeatureKeys = new HashMap<>();
 
             // symbolic name -> version -> location
             final BundleVersionHistory history = createBundleVersionHistory();
@@ -333,6 +334,35 @@ public class ServiceImpl implements Service {
                     public void run() {
                         try {
                             applyChanges(bundleUpdateLocations);
+
+                            // install new features
+
+                            // Now that we don't have any of the old feature repos installed
+                            // Lets re-install the features that were previously installed.
+                            try {
+                                ServiceTracker<FeaturesService, FeaturesService> tracker = new ServiceTracker<>(bundleContext, FeaturesService.class, null);
+                                tracker.open();
+                                Object service = tracker.waitForService(30000);
+                                if (service != null) {
+                                    Method m = service.getClass().getDeclaredMethod("installFeature", String.class, String.class );
+                                    if (m != null) {
+                                        for (FeatureUpdate update : updatesForFeatureKeys.values()) {
+                                            if (simulate) {
+                                                System.out.println("Simulation: Enable feature: " + update.getName() + "/" + update.getNewVersion());
+                                            } else {
+                                                System.out.println("Enable feature: " + update.getName() + "/" + update.getNewVersion());
+                                                m.invoke(service, update.getName(), update.getNewVersion());
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    System.err.println("Can't get OSGi reference to FeaturesService");
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                System.err.flush();
+                            }
+
                             // persist results of all installed patches
                             for (Patch patch : patches) {
                                 PatchResult result = results.get(patch.getPatchData().getId());
@@ -347,7 +377,7 @@ public class ServiceImpl implements Service {
                 };
             }
 
-            // uninstall repositories
+            // uninstall old features and repositories repositories
             if (!simulate) {
                 Set<String> oldRepositories = new HashSet<>();
                 Set<String> newRepositories = new HashSet<>();
@@ -376,6 +406,8 @@ public class ServiceImpl implements Service {
                 for (String uri : oldRepositories) {
                     fs.removeRepository(URI.create(uri));
                 }
+                // TODO: we should add not only repositories related to updated features, but also all from
+                // "featureRepositories" property from new etc/org.apache.karaf.features.cfg
                 for (Patch p : patches) {
                     for (String uri : p.getPatchData().getFeatureFiles()) {
                         fs.addRepository(URI.create(uri));
@@ -402,38 +434,13 @@ public class ServiceImpl implements Service {
 //                }
 //            }
 
-            // update bundles (special case: pax-url-aether)
+            // update bundles (special case: pax-url-aether) and install features
             if (!simulate) {
-//                if (synchronous) {
+                if (synchronous) {
                     task.run();
-//                } else {
-//                    new Thread(task).start();
-//                }
-            }
-
-            // install new features
-
-            // Now that we don't have any of the old feature repos installed
-            // Lets re-install the features that were previously installed.
-            try {
-                ServiceTracker<FeaturesService, FeaturesService> tracker = new ServiceTracker<>(bundleContext, FeaturesService.class, null);
-                tracker.open();
-                FeaturesService service = tracker.waitForService(30000);
-                if (service != null) {
-                    for (FeatureUpdate update : updatesForFeatureKeys.values()) {
-                        if (simulate) {
-                            System.out.println("Simulation: Enable feature: " + update.getName() + "/" + update.getNewVersion());
-                        } else {
-                            System.out.println("Enable feature: " + update.getName() + "/" + update.getNewVersion());
-                            service.installFeature(update.getName(), update.getNewVersion());
-                        }
-                    }
                 } else {
-                    System.err.println("Can't get OSGi reference to FeaturesService");
+                    new Thread(task).start();
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
-                System.err.flush();
             }
 
 //            if (!simulate) {
@@ -983,7 +990,13 @@ public class ServiceImpl implements Service {
 
     private void applyChanges(Map<Bundle, String> toUpdate) throws BundleException, IOException {
         List<Bundle> toStop = new ArrayList<Bundle>();
-        toStop.addAll(toUpdate.keySet());
+        Map<Bundle, String> lessToUpdate = new HashMap<>();
+        for (Bundle b : toUpdate.keySet()) {
+            if (b.getState() != Bundle.UNINSTALLED) {
+                toStop.add(b);
+                lessToUpdate.put(b, toUpdate.get(b));
+            }
+        }
         while (!toStop.isEmpty()) {
             List<Bundle> bs = getBundlesToDestroy(toStop);
             for (Bundle bundle : bs) {
@@ -998,7 +1011,7 @@ public class ServiceImpl implements Service {
         }
         Set<Bundle> toRefresh = new HashSet<Bundle>();
         Set<Bundle> toStart = new HashSet<Bundle>();
-        for (Map.Entry<Bundle, String> e : toUpdate.entrySet()) {
+        for (Map.Entry<Bundle, String> e : lessToUpdate.entrySet()) {
             Bundle bundle = e.getKey();
             if (!"org.ops4j.pax.url.mvn".equals(bundle.getSymbolicName())) {
                 System.out.println("updating: " + bundle.getSymbolicName());
