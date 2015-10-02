@@ -15,25 +15,33 @@
  */
 package io.fabric8.patch.impl;
 
-import java.io.*;
-import java.util.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import io.fabric8.common.util.IOHelpers;
 import io.fabric8.patch.management.Artifact;
-import io.fabric8.patch.management.PatchException;
 import io.fabric8.patch.management.PatchData;
+import io.fabric8.patch.management.PatchException;
 import io.fabric8.patch.management.Utils;
+import org.apache.commons.io.IOUtils;
 import org.apache.felix.utils.version.VersionRange;
 import org.apache.felix.utils.version.VersionTable;
 import org.osgi.framework.Version;
 
-import static io.fabric8.common.util.IOHelpers.close;
-import static io.fabric8.common.util.IOHelpers.readLines;
-import static io.fabric8.common.util.IOHelpers.writeLines;
 import static io.fabric8.patch.management.Artifact.isSameButVersion;
 import static io.fabric8.patch.management.Utils.mvnurlToArtifact;
+import static org.apache.commons.io.FileUtils.readLines;
+import static org.apache.commons.io.FileUtils.writeLines;
 
 public class Offline {
 
@@ -85,7 +93,7 @@ public class Offline {
                 }
             }
         } finally {
-            close(zipFile);
+            IOUtils.closeQuietly(zipFile);
         }
     }
 
@@ -101,7 +109,7 @@ public class Offline {
                 }
             }
         } finally {
-            close(zipFile);
+            IOUtils.closeQuietly(zipFile);
         }
     }
 
@@ -129,7 +137,7 @@ public class Offline {
                         PatchData patch = PatchData.load(fis);
                         patches.add(patch);
                     } finally {
-                        close(fis);
+                        IOUtils.closeQuietly(fis);
                     }
                 }
             }
@@ -254,9 +262,10 @@ public class Offline {
                     InputStream fis = zipFile.getInputStream(entry);
                     FileOutputStream fos = new FileOutputStream(f);
                     try {
-                        IOHelpers.copy(fis, fos);
+                        IOUtils.copy(fis, fos);
                     } finally {
-                        IOHelpers.close(fis, fos);
+                        IOUtils.closeQuietly(fis);
+                        IOUtils.closeQuietly(fos);
                     }
                 }
             }
@@ -384,9 +393,10 @@ public class Offline {
         target.getParentFile().mkdirs();
         FileOutputStream fos = new FileOutputStream(target);
         try {
-            IOHelpers.copy(is, fos);
+            IOUtils.copy(is, fos);
         } finally {
-            IOHelpers.close(is, fos);
+            IOUtils.closeQuietly(is);
+            IOUtils.closeQuietly(fos);
         }
     }
 
@@ -432,9 +442,10 @@ public class Offline {
             fis = new FileInputStream(from);
             fos = new FileOutputStream(to);
 
-            IOHelpers.copy(fis, fos);
+            IOUtils.copy(fis, fos);
         } finally {
-            close(fis, fos);
+            IOUtils.closeQuietly(fis);
+            IOUtils.closeQuietly(fos);
         }
     }
 

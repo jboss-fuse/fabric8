@@ -20,8 +20,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
 
@@ -37,38 +37,40 @@ public class PatchResult {
     private static final String DESCRIPTION = "description";
     private static final String DATE = "date";
     private static final String BUNDLES = "bundle";
-    private static final String UPDATES = "update";
-    private static final String COUNT = "count";
-    private static final String RANGE = "range";
+
+    private static final String BUNDLE_UPDATES = "update";
     private static final String SYMBOLIC_NAME = "symbolic-name";
     private static final String NEW_VERSION = "new-version";
     private static final String NEW_LOCATION = "new-location";
     private static final String OLD_VERSION = "old-version";
     private static final String OLD_LOCATION = "old-location";
-    private static final String STARTUP = "startup";
-    private static final String OVERRIDES = "overrides";
+
+    private static final String FEATURE_UPDATES = "feature-update";
+    private static final String FEATURE_NAME = "name";
+    private static final String FEATURE_NEW_REPOSITORY = "new-repository";
+    private static final String FEATURE_OLD_REPOSITORY = "old-repository";
+
+    private static final String COUNT = "count";
+    private static final String RANGE = "range";
 
     private final PatchData patchData;
     private boolean simulation;
     private long date;
-    // TODO: the smae for list of updated features
-    private Collection<BundleUpdate> updates;
 
-    private String startup;
-    private String overrides;
+    private List<BundleUpdate> bundleUpdates;
+    private List<FeatureUpdate> featureUpdates;
 
     public PatchResult(PatchData patchData) {
         this.patchData = patchData;
     }
 
-    public PatchResult(PatchData patchData, boolean simulation, long date, Collection<BundleUpdate> updates, String startup,
-                       String overrides) {
+    public PatchResult(PatchData patchData, boolean simulation, long date,
+                       List<BundleUpdate> bundleUpdates, List<FeatureUpdate> featureUpdates) {
         this.patchData = patchData;
         this.simulation = simulation;
         this.date = date;
-        this.updates = updates;
-        this.startup = startup;
-        this.overrides = overrides;
+        this.bundleUpdates = bundleUpdates;
+        this.featureUpdates = featureUpdates;
     }
 
     /**
@@ -94,20 +96,30 @@ public class PatchResult {
      */
     public static PatchResult load(PatchData patchData, Properties props) {
         long date = Long.parseLong(props.getProperty(DATE));
-        List<BundleUpdate> updates = new ArrayList<BundleUpdate>();
-        int count = Integer.parseInt(props.getProperty(UPDATES + "." + COUNT, "0"));
-        for (int i = 0; i < count; i++) {
-            String sn = props.getProperty(UPDATES + "." + Integer.toString(i) + "." + SYMBOLIC_NAME);
-            String nv = props.getProperty(UPDATES + "." + Integer.toString(i) + "." + NEW_VERSION);
-            String nl = props.getProperty(UPDATES + "." + Integer.toString(i) + "." + NEW_LOCATION);
-            String ov = props.getProperty(UPDATES + "." + Integer.toString(i) + "." + OLD_VERSION);
-            String ol = props.getProperty(UPDATES + "." + Integer.toString(i) + "." + OLD_LOCATION);
-            updates.add(new BundleUpdate(sn, nv, nl, ov, ol));
-        }
-        String startup = props.getProperty(STARTUP);
-        String overrides = props.getProperty(OVERRIDES);
 
-        return new PatchResult(patchData, false, date, updates, startup, overrides);
+        List<BundleUpdate> bupdates = new ArrayList<>();
+        int count = Integer.parseInt(props.getProperty(BUNDLE_UPDATES + "." + COUNT, "0"));
+        for (int i = 0; i < count; i++) {
+            String sn = props.getProperty(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + SYMBOLIC_NAME);
+            String nv = props.getProperty(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + NEW_VERSION);
+            String nl = props.getProperty(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + NEW_LOCATION);
+            String ov = props.getProperty(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + OLD_VERSION);
+            String ol = props.getProperty(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + OLD_LOCATION);
+            bupdates.add(new BundleUpdate(sn, nv, nl, ov, ol));
+        }
+
+        List<FeatureUpdate> fupdates = new ArrayList<>();
+        count = Integer.parseInt(props.getProperty(FEATURE_UPDATES + "." + COUNT, "0"));
+        for (int i = 0; i < count; i++) {
+            String n = props.getProperty(FEATURE_UPDATES + "." + Integer.toString(i) + "." + FEATURE_NAME);
+            String nr = props.getProperty(FEATURE_UPDATES + "." + Integer.toString(i) + "." + FEATURE_NEW_REPOSITORY);
+            String nv = props.getProperty(FEATURE_UPDATES + "." + Integer.toString(i) + "." + NEW_VERSION);
+            String or = props.getProperty(FEATURE_UPDATES + "." + Integer.toString(i) + "." + FEATURE_OLD_REPOSITORY);
+            String ov = props.getProperty(FEATURE_UPDATES + "." + Integer.toString(i) + "." + OLD_VERSION);
+            fupdates.add(new FeatureUpdate(n, or, ov, nr, nv));
+        }
+
+        return new PatchResult(patchData, false, date, bupdates, fupdates);
     }
 
     public void store() throws IOException {
@@ -122,49 +134,35 @@ public class PatchResult {
      * @param out
      */
     public void storeTo(OutputStream out) throws IOException {
-        Properties props  = new Properties();
-        try {
-            props.put(DATE, Long.toString(getDate()));
-            props.put(UPDATES + "." + COUNT, Integer.toString(getUpdates().size()));
-            int i = 0;
-            for (BundleUpdate update : getUpdates()) {
-                props.put(UPDATES + "." + Integer.toString(i) + "." + SYMBOLIC_NAME, update.getSymbolicName());
-                props.put(UPDATES + "." + Integer.toString(i) + "." + NEW_VERSION, update.getNewVersion());
-                props.put(UPDATES + "." + Integer.toString(i) + "." + NEW_LOCATION, update.getNewLocation());
-                props.put(UPDATES + "." + Integer.toString(i) + "." + OLD_VERSION, update.getPreviousVersion());
-                props.put(UPDATES + "." + Integer.toString(i) + "." + OLD_LOCATION, update.getPreviousLocation());
-                i++;
-            }
-            props.put(STARTUP, getStartup());
-            String overrides = getOverrides();
-            if (overrides != null) {
-                props.put(OVERRIDES, overrides);
-            }
-            props.store(out, "Installation results for patch " + getPatchData().getId());
-        } finally {
-            out.close();
+        PrintWriter pw = new PrintWriter(out);
+        pw.write("# generated file, do not modify\n");
+        pw.write("# Installation results for patch \"" + patchData.getId() + "\"\n");
+
+        pw.write(DATE + " = " + Long.toString(getDate()) + "\n");
+
+        pw.write(BUNDLE_UPDATES + "." + COUNT + " = " + Integer.toString(getBundleUpdates().size()) + "\n");
+        int i = 0;
+        for (BundleUpdate update : getBundleUpdates()) {
+            pw.write(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + SYMBOLIC_NAME + " = " + update.getSymbolicName() + "\n");
+            pw.write(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + NEW_VERSION + " = " + update.getNewVersion() + "\n");
+            pw.write(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + NEW_LOCATION + " = " + update.getNewLocation() + "\n");
+            pw.write(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + OLD_VERSION + " = " + update.getPreviousVersion() + "\n");
+            pw.write(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + OLD_LOCATION + " = " + update.getPreviousLocation() + "\n");
+            i++;
         }
-//
-//        PrintWriter pw = new PrintWriter(out);
-//        pw.write("# generated file, do not modify\n");
-//        pw.write("# Installation results for patch \"" + patchData.getId() + "\"\n");
-//
-//        pw.write(DATE + " = " + Long.toString(getDate()) + "\n");
-//        pw.write(UPDATES + "." + COUNT + " = " + Integer.toString(getUpdates().size()) + "\n");
-//        int i = 0;
-//        for (BundleUpdate update : getUpdates()) {
-//            pw.write(UPDATES + "." + Integer.toString(i) + "." + SYMBOLIC_NAME + " = " + update.getSymbolicName() + "\n");
-//            pw.write(UPDATES + "." + Integer.toString(i) + "." + NEW_VERSION + " = " + update.getNewVersion() + "\n");
-//            pw.write(UPDATES + "." + Integer.toString(i) + "." + NEW_LOCATION + " = " + update.getNewLocation() + "\n");
-//            pw.write(UPDATES + "." + Integer.toString(i) + "." + OLD_VERSION + " = " + update.getPreviousVersion() + "\n");
-//            pw.write(UPDATES + "." + Integer.toString(i) + "." + OLD_LOCATION + " = " + update.getPreviousLocation() + "\n");
-//            i++;
-//        }
-//        pw.write(STARTUP + " = " + getStartup().replace(" ", "\\ ") + "\n");
-//        if (overrides != null) {
-//            pw.write(OVERRIDES + " = " + overrides.replace(" ", "\\ ") + "\n");
-//        }
-//        pw.close();
+
+        pw.write(FEATURE_UPDATES + "." + COUNT + " = " + Integer.toString(getFeatureUpdates().size()) + "\n");
+        i = 0;
+        for (FeatureUpdate update : getFeatureUpdates()) {
+            pw.write(FEATURE_UPDATES + "." + Integer.toString(i) + "." + FEATURE_NAME + " = " + update.getName() + "\n");
+            pw.write(FEATURE_UPDATES + "." + Integer.toString(i) + "." + FEATURE_NEW_REPOSITORY + " = " + update.getNewRepository() + "\n");
+            pw.write(FEATURE_UPDATES + "." + Integer.toString(i) + "." + NEW_VERSION + " = " + update.getNewVersion() + "\n");
+            pw.write(FEATURE_UPDATES + "." + Integer.toString(i) + "." + FEATURE_OLD_REPOSITORY + " = " + update.getPreviousRepository() + "\n");
+            pw.write(FEATURE_UPDATES + "." + Integer.toString(i) + "." + OLD_VERSION + " = " + update.getPreviousVersion() + "\n");
+            i++;
+        }
+
+        pw.close();
     }
 
     public boolean isSimulation() {
@@ -175,16 +173,12 @@ public class PatchResult {
         return date;
     }
 
-    public Collection<BundleUpdate> getUpdates() {
-        return updates;
+    public List<BundleUpdate> getBundleUpdates() {
+        return bundleUpdates;
     }
 
-    public String getStartup() {
-        return startup;
-    }
-
-    public String getOverrides() {
-        return overrides;
+    public List<FeatureUpdate> getFeatureUpdates() {
+        return featureUpdates;
     }
 
     public PatchData getPatchData() {
