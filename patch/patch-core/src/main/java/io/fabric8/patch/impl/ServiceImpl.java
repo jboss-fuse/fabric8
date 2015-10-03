@@ -324,6 +324,38 @@ public class ServiceImpl implements Service {
             // as part of feature installation
             displayBundleUpdates(bundleUpdateLocations, simulate);
 
+
+            if (!simulate) {
+                // update KARAF_HOME
+                pm.commitInstallation(transaction);
+
+                for (Patch patch : patches) {
+                    PatchResult result = results.get(patch.getPatchData().getId());
+                    patch.setResult(result);
+                    result.store();
+                }
+
+                storeWorkForPendingRestart(results);
+
+                System.out.println("Restarting Karaf..");
+                File karafData = new File(bundleContext.getProperty("karaf.data"));
+                File cleanCache = new File(karafData, "clean_cache");
+                cleanCache.createNewFile();
+
+                System.setProperty("karaf.restart", "true");
+                bundleContext.getBundle(0l).stop();
+
+            } else {
+                patchManagement.rollbackInstallation(transaction);
+            }
+
+            ///
+            //  Leaving all of this in place for nw
+            ///
+            if( true ) {
+                return results;
+            }
+
             Runnable task = null;
             if (!simulate) {
                 final String finalTransaction = transaction;
@@ -510,6 +542,64 @@ public class ServiceImpl implements Service {
             }
             throw new PatchException(e.getMessage(), e);
         }
+    }
+
+    private void storeWorkForPendingRestart(Map<String, PatchResult> results) throws Exception {
+        for (PatchResult patchResult : results.values()) {
+
+            HashMap<String, BundleUpdate> bundleUpdates = new HashMap<>();
+            for (BundleUpdate update : patchResult.getBundleUpdates()) {
+                bundleUpdates.put(update.getSymbolicName() + ";" + update.getPreviousVersion(), update);
+            }
+
+            HashSet<String> bundlesToInstall = new HashSet<>();
+            for (Bundle bundle : bundleContext.getBundles()) {
+                if( bundle.getState() == Bundle.UNINSTALLED ) {
+                    continue;
+                }
+                BundleUpdate update = bundleUpdates.get(bundle.getSymbolicName() + ":" + bundle.getVersion());
+                if( update!=null ) {
+                    bundlesToInstall.add(bundle.getLocation());
+                } else {
+                    bundlesToInstall.add(update.getNewLocation());
+                }
+            }
+
+            HashMap<String, FeatureUpdate> featureUpdates = new HashMap<>();
+            for (FeatureUpdate update : patchResult.getFeatureUpdates()) {
+                String key = update.getPreviousRepository()+";"+update.getName()+";"+update.getPreviousVersion();
+                featureUpdates.put(key, update);
+            }
+
+            HashSet<String> featuresReposToInstall = new HashSet<>();
+            HashSet<String> featuresToInstall = new HashSet<>();
+            for (Repository repo : featuresService.listRepositories()) {
+                for (Feature feature : repo.getFeatures()) {
+                    if( featuresService.isInstalled(feature) ) {
+                        String key = repo.getURI()+";"+feature.getName()+";"+feature.getVersion();
+                        FeatureUpdate update = featureUpdates.get(key);
+                        if( update!=null ) {
+                            featuresReposToInstall.add(update.getNewRepository());
+                            featuresToInstall.add(update.getName()+":"+update.getNewVersion());
+                        } else {
+                            featuresReposToInstall.add(repo.getURI().toString());
+                            featuresToInstall.add(feature.getName()+":"+feature.getVersion());
+                        }
+                    }
+                }
+            }
+
+            // Ok lets store  bundlesToInstall, featuresReposToInstall, featuresToInstall
+
+        }
+    }
+
+    // Lets create a pending restart work file that
+    // re-instates the container state.
+    private void storeWorkForPendingRestart() {
+
+
+
     }
 
     private void displayFeatureUpdates(Map<String, FeatureUpdate> featureUpdates, boolean simulate) {
