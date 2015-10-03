@@ -79,5 +79,4 @@ public class Simulate extends AbstractCommandComponent {
         unbindCompleter(completer);
     }
 
-
 }

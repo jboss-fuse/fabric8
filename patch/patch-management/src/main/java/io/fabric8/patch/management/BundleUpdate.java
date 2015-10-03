@@ -18,6 +18,8 @@ package io.fabric8.patch.management;
 /**
  * Command object to update a bundle with <code>symbolicName</code> from previous version:location to new
  * version:location.
+ * If <code>newVersion/newLocation</code> are null, this update means we should reinstall the bundle as is (in rollup
+ * patch).
  */
 public class BundleUpdate {
 

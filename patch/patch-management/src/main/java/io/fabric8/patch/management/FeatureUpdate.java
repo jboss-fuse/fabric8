@@ -18,6 +18,8 @@ package io.fabric8.patch.management;
 /**
  * Command object to update a feature with <code>name</code> defined in previous repository to new version defined
  * in new repository.
+ * If <code>newVersion/newRepository</code> are null, this object represents a feature that is not update'able
+ * by patch and which must be preserved during patch installation.
  */
 public class FeatureUpdate {
 

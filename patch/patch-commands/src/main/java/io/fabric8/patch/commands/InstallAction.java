@@ -66,7 +66,7 @@ public class InstallAction extends PatchActionSupport {
             }
         }
         PatchResult result = service.install(patch, simulation, synchronous);
-        display(result);
+//        display(result);
     }
 
 }

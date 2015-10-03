@@ -247,7 +247,7 @@ public class ServiceImplTest {
     }
 
     @Test
-    public void testCheckPrerequisitesMissing() {
+    public void testCheckPrerequisitesMissing() throws IOException {
         ServiceImpl service = createMockServiceImpl(getDirectoryForResource("prereq/patch1.patch"));
 
         Patch patch = service.getPatch("patch1");
@@ -261,7 +261,7 @@ public class ServiceImplTest {
     }
 
     @Test
-    public void testCheckPrerequisitesNotInstalled() {
+    public void testCheckPrerequisitesNotInstalled() throws IOException {
         ServiceImpl service = createMockServiceImpl(getDirectoryForResource("prereq/patch2.patch"));
 
         Patch patch = service.getPatch("patch2");
@@ -275,7 +275,7 @@ public class ServiceImplTest {
     }
 
     @Test
-    public void testCheckPrerequisitesSatisfied() {
+    public void testCheckPrerequisitesSatisfied() throws IOException {
         ServiceImpl service = createMockServiceImpl(getDirectoryForResource("prereq/patch3.patch"));
 
         Patch patch = service.getPatch("patch3");
@@ -285,7 +285,7 @@ public class ServiceImplTest {
     }
 
     @Test
-    public void testCheckPrerequisitesMultiplePatches() {
+    public void testCheckPrerequisitesMultiplePatches() throws IOException {
         ServiceImpl service = createMockServiceImpl(getDirectoryForResource("prereq/patch1.patch"));
 
         Collection<Patch> patches = new LinkedList<Patch>();
@@ -306,14 +306,14 @@ public class ServiceImplTest {
     /*
      * Create a mock patch service implementation with access to the generated data directory
      */
-    private ServiceImpl createMockServiceImpl() {
+    private ServiceImpl createMockServiceImpl() throws IOException {
         return createMockServiceImpl(storage);
     }
 
     /*
      * Create a mock patch service implementation with a provided patch storage location
      */
-    private ServiceImpl createMockServiceImpl(File patches) {
+    private ServiceImpl createMockServiceImpl(File patches) throws IOException {
         ComponentContext componentContext = createMock(ComponentContext.class);
         BundleContext bundleContext = createMock(BundleContext.class);
         Bundle sysBundle = createMock(Bundle.class);

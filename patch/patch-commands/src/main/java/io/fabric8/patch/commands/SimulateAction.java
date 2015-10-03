@@ -18,6 +18,7 @@ package io.fabric8.patch.commands;
 import io.fabric8.patch.Service;
 import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.management.PatchException;
+import io.fabric8.patch.management.PatchResult;
 import org.apache.felix.gogo.commands.Argument;
 import org.apache.felix.gogo.commands.Command;
 
@@ -40,7 +41,7 @@ public class SimulateAction extends PatchActionSupport {
         if (patch.isInstalled()) {
             throw new PatchException("Patch '" + patchId + "' is already installed");
         }
-//        Result result = patch.simulate();
+        PatchResult result = service.install(patch, true);
 //        display(result);
     }
 

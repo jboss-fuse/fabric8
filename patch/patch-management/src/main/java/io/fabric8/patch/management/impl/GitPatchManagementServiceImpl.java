@@ -1303,10 +1303,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 case ADD:
                 case MODIFY:
                     System.out.println("[PATCH-change] Modifying " + newPath);
+                    String targetPath = newPath;
                     if (newPath.startsWith("lib/")) {
-                        newPath = "lib.next/" + newPath.substring(4);
+                        targetPath = "lib.next/" + newPath.substring(4);
                     }
-                    FileUtils.copyFile(new File(wcDir, newPath), new File(karafHome, newPath));
+                    FileUtils.copyFile(new File(wcDir, newPath), new File(karafHome, targetPath));
                     break;
                 case DELETE:
                     System.out.println("[PATCH-change] Deleting " + oldPath);

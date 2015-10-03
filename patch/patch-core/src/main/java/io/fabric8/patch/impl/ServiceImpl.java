@@ -16,9 +16,10 @@
 package io.fabric8.patch.impl;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -26,12 +27,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -81,7 +80,6 @@ import org.osgi.framework.ServiceReference;
 import org.osgi.framework.Version;
 import org.osgi.framework.wiring.FrameworkWiring;
 import org.osgi.service.component.ComponentContext;
-import org.osgi.util.tracker.ServiceTracker;
 
 import static io.fabric8.patch.management.Utils.mvnurlToArtifact;
 import static io.fabric8.patch.management.Utils.stripSymbolicName;
@@ -119,7 +117,7 @@ public class ServiceImpl implements Service {
     private File repository;
 
     @Activate
-    void activate(ComponentContext componentContext) {
+    void activate(ComponentContext componentContext) throws IOException {
         // Use system bundle' bundle context to avoid running into
         // "Invalid BundleContext" exceptions when updating bundles
         this.bundleContext = componentContext.getBundleContext().getBundle(0).getBundleContext();
@@ -146,6 +144,73 @@ public class ServiceImpl implements Service {
         this.repository = new File(bundleContext.getProperty("karaf.default.repository"));
 
         load(true);
+
+        resumePendingPatchTasks();
+    }
+
+    /**
+     * Upon startup (activation), we check if there are any *.patch.pending files. if yes, we're finishing the
+     * installation
+     */
+    private void resumePendingPatchTasks() throws IOException {
+        File[] pendingPatches = patchDir.listFiles(new FileFilter() {
+            @Override
+            public boolean accept(File pathname) {
+                return pathname.exists() && pathname.getName().endsWith(".pending");
+            }
+        });
+        for (File pending : pendingPatches) {
+            File patchFile = new File(pending.getParentFile(), pending.getName().replaceFirst("\\.pending$", ""));
+            PatchData patchData = PatchData.load(new FileInputStream(patchFile));
+            Patch patch = patchManagement.loadPatch(new PatchDetailsRequest(patchData.getId()));
+            System.out.printf("Resume installation of %spatch \"%s\"%n",
+                    patch.getPatchData().isRollupPatch() ? "rollup " : "",
+                    patch.getPatchData().getId());
+
+            Set<String> newRepositories = new HashSet<>();
+            Set<String> features = new HashSet<>();
+            for (FeatureUpdate featureUpdate : patch.getResult().getFeatureUpdates()) {
+                if (featureUpdate.getNewRepository() == null) {
+                    newRepositories.add(featureUpdate.getPreviousRepository());
+                    features.add(String.format("%s|%s", featureUpdate.getName(), featureUpdate.getPreviousVersion()));
+                }
+            }
+            for (String repo : newRepositories) {
+                System.out.println("Restoring feature repository: " + repo);
+                try {
+                    featuresService.addRepository(URI.create(repo));
+                } catch (Exception e) {
+                    System.err.println(e.getMessage());
+                    e.printStackTrace(System.err);
+                    System.err.flush();
+                }
+            }
+            for (String f : features) {
+                String[] fv = f.split("|");
+                System.out.printf("Restoring feature %s/%s%n", fv[0], fv[1]);
+                try {
+                    featuresService.installFeature(fv[0], fv[1]);
+                } catch (Exception e) {
+                    System.err.println(e.getMessage());
+                    e.printStackTrace(System.err);
+                    System.err.flush();
+                }
+            }
+            for (BundleUpdate update : patch.getResult().getBundleUpdates()) {
+                if (update.getNewVersion() == null) {
+                    System.out.printf("Restoring bundle %s from %s%n", update.getSymbolicName(), update.getPreviousLocation());
+                    // this bundle was available previously
+                    // TODO restore start level? restore state? restore data?
+                    try {
+                        bundleContext.installBundle(update.getPreviousLocation());
+                    } catch (BundleException e) {
+                        System.err.println(e.getMessage());
+                        e.printStackTrace(System.err);
+                        System.err.flush();
+                    }
+                }
+            }
+        }
     }
 
     @Override
@@ -217,11 +282,11 @@ public class ServiceImpl implements Service {
     /**
      * <p>Main installation method. Installing a patch in non-fabric mode is a matter of correct merge (cherry-pick, merge,
      * rebase) of patch branch into <code>master</code> branch.</p>
-     * <p>Instaling a patch has three goals:<ul>
-     *     <li>update static files/libs in KARAF_HOME</li>
-     *     <li>update (uninstall+install) features</li>
-     *     <li>update remaining bundles (not yet updated during feature update)</li>
+     * <p>Static changes are handled by git, runtime changes (bundles, features) are handled depending on patch type:<ul>
+     *     <li>Rollup: clear OSGi bundle cache, reinstall features that were installed after restart</li>
+     *     <li>Non-Rollup: update bundles, generate overrides.properties and update scripts to reference new versions</li>
      * </ul></p>
+     * <p>For Rollup patches we don't update bundles - we clear the bundle cache instead.</p>
      * @param patches
      * @param simulate
      * @param synchronous
@@ -232,29 +297,26 @@ public class ServiceImpl implements Service {
         checkPrerequisites(patches);
         String transaction = null;
 
-        // poor-man's lifecycle management in case when SCR nullifies our reference
-        final PatchManagement pm = patchManagement;
-
         try {
             // Compute individual patch results (patchId -> Result)
             final Map<String, PatchResult> results = new LinkedHashMap<String, PatchResult>();
 
             // current state of the framework
             Bundle[] allBundles = bundleContext.getBundles();
-            Map<String, Repository> allFeatureRepositories = getAvailableFeatureRepositories();
 
             // bundle -> url to update the bundle from
             final Map<Bundle, String> bundleUpdateLocations = new HashMap<>();
             // [feature name|updateable-version] -> url of repository to get it from
             final Map<String, String> featureUpdateRepositories = new HashMap<>();
             // feature name -> url of repository to get it from - in case we have only one feature with that name
-            // like "transaction" in karaf-enterprise features
+            // like "transaction" in karaf-enterprise features, to handle obvious updates of features differing
+            // with more than only micro version
             final Map<String, String> singleFeatureUpdateRepositories = new HashMap<>();
 
             /* A "key" is name + "update'able version". Such version is current version with micro version == 0 */
 
             // [symbolic name|updateable-version] -> newest update for the bundle out of all installed patches
-            Map<String, BundleUpdate> updatesForBundleKeys = new HashMap<>();
+            final Map<String, BundleUpdate> updatesForBundleKeys = new HashMap<>();
             // [feature name|updateable-version] -> newest update for the feature out of all installed patches
             final Map<String, FeatureUpdate> updatesForFeatureKeys = new HashMap<>();
 
@@ -275,9 +337,13 @@ public class ServiceImpl implements Service {
                 // list of bundle updates for the current patch - only for the purpose of storing result
                 List<BundleUpdate> bundleUpdatesInThisPatch = bundleUpdatesInPatch(patch, allBundles,
                         bundleUpdateLocations, history, updatesForBundleKeys, kind, coreBundles);
-                // list of feature updates for the current patch - only for the purpose of storing result
-                List<FeatureUpdate> featureUpdatesInThisPatch = featureUpdatesInPatch(patch, allFeatureRepositories,
-                        featureUpdateRepositories, singleFeatureUpdateRepositories, updatesForFeatureKeys, kind);
+
+                List<FeatureUpdate> featureUpdatesInThisPatch = null;
+                if (kind == PatchKind.ROLLUP) {
+                    // list of feature updates for the current patch - only for the purpose of storing result
+                    featureUpdatesInThisPatch = featureUpdatesInPatch(patch,
+                            featureUpdateRepositories, singleFeatureUpdateRepositories, updatesForFeatureKeys, kind);
+                }
 
                 // each patch may change files, we're not updating the main files yet - it'll be done when
                 // install transaction is committed
@@ -301,20 +367,23 @@ public class ServiceImpl implements Service {
             // - felix.framework (system bundle)
             // - all bundles referenced in etc/startup.properties
 
-            // Some special cases
-            for (Map.Entry<Bundle, String> entry : bundleUpdateLocations.entrySet()) {
-                Bundle bundle = entry.getKey();
-                if ("org.ops4j.pax.url.mvn".equals(stripSymbolicName(bundle.getSymbolicName()))) {
-                    // handle this bundle specially - update it here
-                    URL location = new URL(entry.getValue());
-                    System.out.printf("Special update of bundle \"%s\" from \"%s\"%n",
-                            bundle.getSymbolicName(), location);
-                    if (!simulate) {
-                        BundleUtils.update(bundle, location);
-                        bundle.start();
+            // One special case
+            if (kind == PatchKind.NON_ROLLUP) {
+                // for rollup patch, this bundle will be installed from scratch
+                for (Map.Entry<Bundle, String> entry : bundleUpdateLocations.entrySet()) {
+                    Bundle bundle = entry.getKey();
+                    if ("org.ops4j.pax.url.mvn".equals(stripSymbolicName(bundle.getSymbolicName()))) {
+                        // handle this bundle specially - update it here
+                        URL location = new URL(entry.getValue());
+                        System.out.printf("Special update of bundle \"%s\" from \"%s\"%n",
+                                bundle.getSymbolicName(), location);
+                        if (!simulate) {
+                            BundleUtils.update(bundle, location);
+                            bundle.start();
+                        }
+                        // replace location - to be stored in result
+                        bundleUpdateLocations.put(bundle, location.toString());
                     }
-                    // replace location - to be stored in result
-                    bundleUpdateLocations.put(bundle, location.toString());
                 }
             }
 
@@ -324,165 +393,62 @@ public class ServiceImpl implements Service {
             // as part of feature installation
             displayBundleUpdates(bundleUpdateLocations, simulate);
 
+            // now, if we're installing rollup patch, we just restart with clean cache
+            // then required repositories, features and bundles will be reinstalled
+            if (kind == PatchKind.ROLLUP) {
+                if (!simulate) {
+                    // update KARAF_HOME
+                    patchManagement.commitInstallation(transaction);
 
-            if (!simulate) {
-                // update KARAF_HOME
-                pm.commitInstallation(transaction);
+                    if (patches.size() == 1) {
+                        Patch patch = patches.iterator().next();
+                        PatchResult result = results.get(patch.getPatchData().getId());
+                        patch.setResult(result);
+                        result.setPending(true);
+                        result.store();
 
-                for (Patch patch : patches) {
-                    PatchResult result = results.get(patch.getPatchData().getId());
-                    patch.setResult(result);
-                    result.store();
+//                        storeWorkForPendingRestart(result);
+
+                        boolean handlesFullRestart = Boolean.getBoolean("karaf.restart.jvm.supported");
+                        if (handlesFullRestart) {
+                            System.out.println("Rollup patch " + patch.getPatchData().getId() + " installed. Restarting Karaf..");
+                        } else {
+                            System.out.println("Rollup patch " + patch.getPatchData().getId() + " installed. Shutting down Karaf, please restart...");
+                        }
+
+                        File karafData = new File(bundleContext.getProperty("karaf.data"));
+                        File cleanCache = new File(karafData, "clean_cache");
+                        cleanCache.createNewFile();
+
+                        if (handlesFullRestart) {
+                            System.setProperty("karaf.restart.jvm", "true");
+                        }
+                        bundleContext.getBundle(0l).stop();
+                    }
+                } else {
+                    patchManagement.rollbackInstallation(transaction);
                 }
 
-                storeWorkForPendingRestart(results);
+                return results;
+            }
 
-                System.out.println("Restarting Karaf..");
-                File karafData = new File(bundleContext.getProperty("karaf.data"));
-                File cleanCache = new File(karafData, "clean_cache");
-                cleanCache.createNewFile();
+            // continue with NON_ROLLUP patch
 
-                System.setProperty("karaf.restart", "true");
-                bundleContext.getBundle(0l).stop();
-
+            // update KARAF_HOME
+            if (!simulate) {
+                patchManagement.commitInstallation(transaction);
             } else {
                 patchManagement.rollbackInstallation(transaction);
             }
 
-            ///
-            //  Leaving all of this in place for nw
-            ///
-            if( true ) {
-                return results;
-            }
-
             Runnable task = null;
             if (!simulate) {
-                final String finalTransaction = transaction;
                 task = new Runnable() {
                     @Override
                     public void run() {
                         try {
-                            // collect features to uninstall
-                            List<String[]> featuresToUninstallAfterUpdatingBundles = new LinkedList<>();
-
-                            // uninstall old features and repositories repositories
-                            if (!simulate && updatesForFeatureKeys.size() > 0) {
-                                Set<String> oldRepositories = new HashSet<>();
-                                Set<String> newRepositories = new HashSet<>();
-                                for (FeatureUpdate fu : updatesForFeatureKeys.values()) {
-                                    oldRepositories.add(fu.getPreviousRepository());
-                                    newRepositories.add(fu.getNewRepository());
-                                }
-                                Map<String, Repository> repos = new HashMap<>();
-                                for (Repository r : featuresService.listRepositories()) {
-                                    repos.put(r.getURI().toString(), r);
-                                }
-                                for (String uri : oldRepositories) {
-                                    if (repos.containsKey(uri)) {
-                                        Repository r = repos.get(uri);
-                                        for (Feature f : r.getFeatures()) {
-                                            if (featuresService.isInstalled(f)) {
-                                                featuresToUninstallAfterUpdatingBundles.add(new String[] {
-                                                        f.getName(),
-                                                        f.getVersion()
-                                                });
-//                                                    fs.uninstallFeature(f.getName(), f.getVersion(), EnumSet.of(FeaturesService.Option.NoAutoRefreshBundles));
-                                            }
-                                        }
-                                    }
-                                }
-                                // we can already remove repositories
-                                for (String uri : oldRepositories) {
-                                    featuresService.removeRepository(URI.create(uri));
-                                }
-
-                                // TODO: we should add not only repositories related to updated features, but also all from
-                                // "featureRepositories" property from new etc/org.apache.karaf.features.cfg
-                                for (Patch p : patches) {
-                                    for (String uri : p.getPatchData().getFeatureFiles()) {
-                                        featuresService.addRepository(URI.create(uri));
-                                    }
-                                }
-                            }
-
                             // update bundles
                             applyChanges(bundleUpdateLocations);
-
-                            if (updatesForFeatureKeys.size() > 0) {
-                                Object featuresService = null;
-                                try {
-                                    ServiceTracker<?, ?> tracker = new ServiceTracker<>(bundleContext, "org.apache.karaf.features.FeaturesService", null);
-                                    tracker.open();
-                                    Object service = tracker.waitForService(30000);
-                                    if (service != null) {
-                                        featuresService = service;
-                                    }
-                                } catch (Exception e) {
-                                    System.err.println(e.getMessage());
-                                    e.printStackTrace(System.err);
-                                    System.err.flush();
-                                }
-                            }
-
-                            // update KARAF_HOME
-                            if (!simulate) {
-                                pm.commitInstallation(finalTransaction);
-                            } else {
-                                patchManagement.rollbackInstallation(finalTransaction);
-                            }
-
-                            // TODO: uninstall features?
-
-                            // install new features - in order
-                            if (updatesForFeatureKeys.size() > 0) {
-                                Properties properties = new Properties();
-                                FileInputStream inStream = new FileInputStream(new File(karafHome, "etc/org.apache.karaf.features.cfg"));
-                                properties.load(inStream);
-                                IOUtils.closeQuietly(inStream);
-                                String featuresBoot = properties.getProperty("featuresBoot");
-                                Set<String> coreFeatures = new LinkedHashSet<>(Arrays.asList(featuresBoot.split(", *")));
-
-                                // Now that we don't have any of the old feature repos installed
-                                // Lets re-install the features that were previously installed.
-                                try {
-                                    ServiceTracker<FeaturesService, FeaturesService> tracker = new ServiceTracker<>(bundleContext, FeaturesService.class, null);
-                                    tracker.open();
-                                    Object service = tracker.waitForService(30000);
-                                    if (service != null) {
-                                        Method m = service.getClass().getDeclaredMethod("installFeature", String.class );
-                                        if (m != null) {
-                                            for (String cf : coreFeatures) {
-                                                if (simulate) {
-                                                    System.out.println("Simulation: Enable core feature: " + cf);
-                                                } else {
-                                                    System.out.println("Enable core feature: " + cf);
-                                                    m.invoke(service, cf);
-                                                }
-                                            }
-                                        }
-                                        m = service.getClass().getDeclaredMethod("installFeature", String.class, String.class );
-                                        if (m != null) {
-                                            for (FeatureUpdate update : updatesForFeatureKeys.values()) {
-                                                if (coreFeatures.contains(update.getName())) {
-                                                    continue;
-                                                }
-                                                if (simulate) {
-                                                    System.out.println("Simulation: Enable feature: " + update.getName() + "/" + update.getNewVersion());
-                                                } else {
-                                                    System.out.println("Enable feature: " + update.getName() + "/" + update.getNewVersion());
-                                                    m.invoke(service, update.getName(), update.getNewVersion());
-                                                }
-                                            }
-                                        }
-                                    } else {
-                                        System.err.println("Can't get OSGi reference to FeaturesService");
-                                    }
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                    System.err.flush();
-                                }
-                            }
 
                             // persist results of all installed patches
                             for (Patch patch : patches) {
@@ -498,25 +464,6 @@ public class ServiceImpl implements Service {
                 };
             }
 
-//            Bundle fileinstal = null;
-//            Bundle configadmin = null;
-//            if (!simulate) {
-//                // let's stop fileinstall and configadmin
-//                for (Bundle b : allBundles) {
-//                    if ("org.apache.felix.fileinstall".equals(b.getSymbolicName())) {
-//                        fileinstal = b;
-//                    } else if ("org.apache.felix.configadmin".equals(b.getSymbolicName())) {
-//                        configadmin = b;
-//                    }
-//                }
-//                if (fileinstal != null) {
-//                    fileinstal.stop(Bundle.STOP_TRANSIENT);
-//                }
-//                if (configadmin != null) {
-//                    configadmin.stop(Bundle.STOP_TRANSIENT);
-//                }
-//            }
-
             // update bundles (special case: pax-url-aether) and install features
             if (!simulate) {
                 if (synchronous) {
@@ -526,99 +473,45 @@ public class ServiceImpl implements Service {
                 }
             }
 
-//            if (!simulate) {
-//                if (configadmin != null) {
-//                    configadmin.start(Bundle.START_TRANSIENT);
-//                }
-//                if (fileinstal != null) {
-//                    fileinstal.start(Bundle.START_TRANSIENT);
-//                }
-//            }
-
             return results;
         } catch (Exception e) {
-            if (transaction != null) {
-                pm.rollbackInstallation(transaction);
+            e.printStackTrace(System.err);
+            System.err.flush();
+
+            if (transaction != null && patchManagement != null) {
+                patchManagement.rollbackInstallation(transaction);
             }
             throw new PatchException(e.getMessage(), e);
         }
     }
 
-    private void storeWorkForPendingRestart(Map<String, PatchResult> results) throws Exception {
-        for (PatchResult patchResult : results.values()) {
-
-            HashMap<String, BundleUpdate> bundleUpdates = new HashMap<>();
-            for (BundleUpdate update : patchResult.getBundleUpdates()) {
-                bundleUpdates.put(update.getSymbolicName() + ";" + update.getPreviousVersion(), update);
-            }
-
-            HashSet<String> bundlesToInstall = new HashSet<>();
-            for (Bundle bundle : bundleContext.getBundles()) {
-                if( bundle.getState() == Bundle.UNINSTALLED ) {
-                    continue;
-                }
-                BundleUpdate update = bundleUpdates.get(bundle.getSymbolicName() + ":" + bundle.getVersion());
-                if( update!=null ) {
-                    bundlesToInstall.add(bundle.getLocation());
-                } else {
-                    bundlesToInstall.add(update.getNewLocation());
-                }
-            }
-
-            HashMap<String, FeatureUpdate> featureUpdates = new HashMap<>();
-            for (FeatureUpdate update : patchResult.getFeatureUpdates()) {
-                String key = update.getPreviousRepository()+";"+update.getName()+";"+update.getPreviousVersion();
-                featureUpdates.put(key, update);
-            }
-
-            HashSet<String> featuresReposToInstall = new HashSet<>();
-            HashSet<String> featuresToInstall = new HashSet<>();
-            for (Repository repo : featuresService.listRepositories()) {
-                for (Feature feature : repo.getFeatures()) {
-                    if( featuresService.isInstalled(feature) ) {
-                        String key = repo.getURI()+";"+feature.getName()+";"+feature.getVersion();
-                        FeatureUpdate update = featureUpdates.get(key);
-                        if( update!=null ) {
-                            featuresReposToInstall.add(update.getNewRepository());
-                            featuresToInstall.add(update.getName()+":"+update.getNewVersion());
-                        } else {
-                            featuresReposToInstall.add(repo.getURI().toString());
-                            featuresToInstall.add(feature.getName()+":"+feature.getVersion());
-                        }
-                    }
-                }
-            }
-
-            // Ok lets store  bundlesToInstall, featuresReposToInstall, featuresToInstall
-
-        }
-    }
-
-    // Lets create a pending restart work file that
-    // re-instates the container state.
-    private void storeWorkForPendingRestart() {
-
-
-
-    }
-
     private void displayFeatureUpdates(Map<String, FeatureUpdate> featureUpdates, boolean simulate) {
+        Set<String> toKeep = new TreeSet<>();
         Set<String> toRemove = new TreeSet<>();
         Set<String> toAdd = new TreeSet<>();
         for (FeatureUpdate fu : featureUpdates.values()) {
             toRemove.add(fu.getPreviousRepository());
-            toAdd.add(fu.getNewRepository());
+            if (fu.getNewRepository() != null) {
+                toAdd.add(fu.getNewRepository());
+            } else {
+                toKeep.add(fu.getPreviousRepository());
+            }
         }
-        System.out.println("Repositories to remove:");
+        toRemove.removeAll(toKeep);
+        System.out.println("========== Repositories to remove:");
         for (String repo : toRemove) {
             System.out.println(" - " + repo);
         }
-        System.out.println("Repositories to add:");
+        System.out.println("========== Repositories to add:");
         for (String repo : toAdd) {
             System.out.println(" - " + repo);
         }
+        System.out.println("========== Repositories to keep:");
+        for (String repo : toKeep) {
+            System.out.println(" - " + repo);
+        }
 
-        System.out.println("Features to update:");
+        System.out.println("========== Features to update:");
         int l1 = "[name]".length();
         int l2 = "[version]".length();
         int l3 = "[new version]".length();
@@ -629,27 +522,24 @@ public class ServiceImpl implements Service {
             if (fu.getPreviousVersion().length() > l2) {
                 l2 = fu.getPreviousVersion().length();
             }
-            if (fu.getNewVersion().length() > l3) {
-                l3 = fu.getNewVersion().length();
+            if (fu.getNewVersion() != null) {
+                if (fu.getNewVersion().length() > l3) {
+                    l3 = fu.getNewVersion().length();
+                }
             }
         }
         System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
                 "[name]", "[version]", "[new version]");
         for (FeatureUpdate fu : featureUpdates.values()) {
             System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
-                    fu.getName(), fu.getPreviousVersion(), fu.getNewVersion());
+                    fu.getName(), fu.getPreviousVersion(), fu.getNewVersion() == null ? "<reinstall>" : fu.getNewVersion());
         }
 
-        if (simulate) {
-            System.out.println("Running simulation only - no features are being updated at this time");
-        } else {
-            System.out.println("Installation of features will begin.");
-        }
         System.out.flush();
     }
 
     private void displayBundleUpdates(Map<Bundle, String> bundleUpdateLocations, boolean simulate) {
-        System.out.println("Bundles to update:");
+        System.out.println("========== Bundles to update:");
         int l1 = "[symbolic name]".length();
         int l2 = "[version]".length();
         int l3 = "[new location]".length();
@@ -675,11 +565,6 @@ public class ServiceImpl implements Service {
                     e.getKey().getVersion().toString(), e.getValue());
         }
 
-        if (simulate) {
-            System.out.println("Running simulation only - no bundles are being updated at this time");
-        } else {
-            System.out.println("Installation will begin. The connection may be lost or the console restarted.");
-        }
         System.out.flush();
     }
 
@@ -717,6 +602,7 @@ public class ServiceImpl implements Service {
             // if existing bundle is withing this range, update is possible
             VersionRange range = getUpdateableRange(patch, newLocation, newVersion);
             if (coreBundles.containsKey(sn)) {
+                // for core bundles, we don't want to miss the update - for example fileinstall 3.4.2->3.5.0
                 if (range == null) {
                     range = new VersionRange(false, Version.emptyVersion, newVersion, true);
                 } else {
@@ -749,8 +635,11 @@ public class ServiceImpl implements Service {
                         String key = String.format("%s|%s", sn, range.getFloor());
                         BundleUpdate oldUpdate = updatesForBundleKeys.get(key);
                         if (oldUpdate != null) {
-                            Version upv = VersionTable.getVersion(oldUpdate.getNewVersion());
-                            if (upv.compareTo(newVersion) < 0) {
+                            Version upv = null;
+                            if (oldUpdate.getNewVersion() != null) {
+                                VersionTable.getVersion(oldUpdate.getNewVersion());
+                            }
+                            if (upv == null || upv.compareTo(newVersion) < 0) {
                                 // other patch contains newer update for a bundle
                                 updatesForBundleKeys.put(key, update);
                                 bundleUpdateLocations.put(bundle, newLocation);
@@ -774,20 +663,34 @@ public class ServiceImpl implements Service {
             }
         }
 
+        if (kind == PatchKind.ROLLUP) {
+            // we have to detect the bundles that have no available update in the patch, or at least doesn't have
+            // corresponding symbolic name among bundles from patch
+            // we can assume that those bundles are user bundles (which may be part of user features) and we have
+            // (at least try) to install them after restart.
+            for (Bundle b : allBundles) {
+                String symbolicName = stripSymbolicName(b.getSymbolicName());
+                Version v = b.getVersion();
+                Version updateableVersion = new Version(v.getMajor(), v.getMinor(), 0);
+                String key = String.format("%s|%s", symbolicName, updateableVersion.toString());
+                if (!updatesForBundleKeys.containsKey(key)) {
+                    updatesForBundleKeys.put(key, new BundleUpdate(symbolicName, null, null, v.toString(), history.getLocation(b)));
+                }
+            }
+        }
+
         return updatesInThisPatch;
     }
 
     /**
      * Returns a list of {@link FeatureUpdate} for single patch, taking into account already discovered updates
      * @param patch
-     * @param allFeatureRepositories
      * @param featureUpdateRepositories
      * @param singleFeatureUpdateRepositories
      * @param updatesForFeatureKeys
      * @param kind   @return
      */
     private List<FeatureUpdate> featureUpdatesInPatch(Patch patch,
-                                                      Map<String, Repository> allFeatureRepositories,
                                                       Map<String, String> featureUpdateRepositories,
                                                       Map<String, String> singleFeatureUpdateRepositories,
                                                       Map<String, FeatureUpdate> updatesForFeatureKeys,
@@ -809,7 +712,7 @@ public class ServiceImpl implements Service {
             // install the new feature repos, tracking the set the were
             // installed before and after
             // (e.g, "karaf-enterprise-2.4.0.redhat-620133" -> Repository)
-            Map<String, Repository> before = new HashMap<>(allFeatureRepositories);
+            Map<String, Repository> before = new HashMap<>(getAvailableFeatureRepositories());
             for (String url : patch.getPatchData().getFeatureFiles()) {
                 featuresService.addRepository(new URI(url));
             }
@@ -822,14 +725,15 @@ public class ServiceImpl implements Service {
             // key is only name, without version - used when there's single feature in old and in new repositories
             MultiMap<String, String> singleFeaturesInOldRepositories = new MultiMap<>();
             Map<String, Version> actualOldFeatureVersions = new HashMap<>();
-            for (Repository repository : before.values()) {
-                for (Feature feature : repository.getFeatures()) {
+
+            for (Repository existingRepository : before.values()) {
+                for (Feature feature : existingRepository.getFeatures()) {
                     Version v = Utils.getFeatureVersion(feature.getVersion());
                     Version lowestUpdateableVersion = new Version(v.getMajor(), v.getMinor(), 0);
                     // assume that we can update feature XXX-2.2.3 to XXX-2.2.142, but not to XXX-2.3.0.alpha-1
                     String key = String.format("%s|%s", feature.getName(), lowestUpdateableVersion.toString());
-                    featuresInOldRepositories.put(key, repository.getName());
-                    singleFeaturesInOldRepositories.put(feature.getName(), repository.getName());
+                    featuresInOldRepositories.put(key, existingRepository.getName());
+                    singleFeaturesInOldRepositories.put(feature.getName(), existingRepository.getName());
                     actualOldFeatureVersions.put(key, v);
                 }
             }
@@ -858,12 +762,15 @@ public class ServiceImpl implements Service {
                     singleFeaturesInNewRepositories.put(feature.getName(), addedRepositoryName);
                     actualNewFeatureVersions.put(key, v.toString());
                     singleActualNewFeatureVersions.put(feature.getName(), v.toString());
+
                     String oldRepositoryWithUpdateableFeature = featuresInOldRepositories.get(key);
                     if (oldRepositoryWithUpdateableFeature == null
-                            && singleFeaturesInOldRepositories.get(feature.getName()) != null) {
+                            && singleFeaturesInOldRepositories.get(feature.getName()) != null
+                            && singleFeaturesInOldRepositories.get(feature.getName()).size() == 1) {
                         oldRepositoryWithUpdateableFeature = singleFeaturesInOldRepositories.get(feature.getName()).get(0);
                     }
                     if (oldRepositoryWithUpdateableFeature != null) {
+                        // track the old repository to be removed
                         oldRepositoryNames.add(oldRepositoryWithUpdateableFeature);
                     }
                 }
@@ -879,16 +786,16 @@ public class ServiceImpl implements Service {
                         Version v = Utils.getFeatureVersion(feature.getVersion());
                         Version lowestUpdateableVersion = new Version(v.getMajor(), v.getMinor(), 0);
                         String key = String.format("%s|%s", feature.getName(), lowestUpdateableVersion.toString());
-                        String newRepository = featuresInNewRepositories.get(key);
+                        String newRepositoryName = featuresInNewRepositories.get(key);
                         String newVersion = actualNewFeatureVersions.get(key);
-                        if (newRepository == null) {
+                        if (newRepositoryName == null) {
                             // try looking up the feature without version - e.g., like in updating "transaction"
                             // feature from 1.1.1 to 1.3.0
                             if (singleFeaturesInOldRepositories.get(feature.getName()) != null
                                     && singleFeaturesInOldRepositories.get(feature.getName()).size() == 1
                                     && singleFeaturesInNewRepositories.get(feature.getName()) != null
                                     && singleFeaturesInNewRepositories.get(feature.getName()).size() == 1) {
-                                newRepository = singleFeaturesInNewRepositories.get(feature.getName()).get(0);
+                                newRepositoryName = singleFeaturesInNewRepositories.get(feature.getName()).get(0);
                             }
                         }
                         if (newVersion == null) {
@@ -897,26 +804,49 @@ public class ServiceImpl implements Service {
                                 newVersion = singleActualNewFeatureVersions.get(feature.getName()).get(0);
                             }
                         }
-                        FeatureUpdate featureUpdate = new FeatureUpdate(feature.getName(),
-                                after.get(oldRepositoryName).getURI().toString(),
-                                feature.getVersion(),
-                                after.get(newRepository).getURI().toString(),
-                                newVersion);
+                        FeatureUpdate featureUpdate = null;
+                        if (newVersion != null && newRepositoryName != null) {
+                            featureUpdate = new FeatureUpdate(feature.getName(),
+                                    after.get(oldRepositoryName).getURI().toString(),
+                                    feature.getVersion(),
+                                    after.get(newRepositoryName).getURI().toString(),
+                                    newVersion);
+                        } else {
+                            // we didn't find an update for installed features among feature repositories from patch
+                            // which means we have to preserve both the feature and the repository - this may
+                            // be user's feature
+                            featureUpdate = new FeatureUpdate(feature.getName(),
+                                    after.get(oldRepositoryName).getURI().toString(),
+                                    feature.getVersion(),
+                                    null,
+                                    null);
+                        }
                         updatesInThisPatch.add(featureUpdate);
                         // Merge result
                         FeatureUpdate oldUpdate = updatesForFeatureKeys.get(key);
                         if (oldUpdate != null) {
-                            Version upv = VersionTable.getVersion(oldUpdate.getNewVersion());
-                            Version newV = VersionTable.getVersion(actualNewFeatureVersions.get(key));
-                            if (upv.compareTo(newV) < 0) {
-                                // other patch contains newer update for the feature
-                                updatesForFeatureKeys.put(key, featureUpdate);
-                                featureUpdateRepositories.put(key, featuresInNewRepositories.get(key));
+                            Version upv = null, newV = null;
+                            if (oldUpdate.getNewVersion() != null) {
+                                upv = VersionTable.getVersion(oldUpdate.getNewVersion());
+                            }
+                            if (newVersion != null) {
+                                newV = VersionTable.getVersion(newVersion);
+                            }
+                            if (upv == null && newV == null) {
+                                // weird...
+                            } else {
+                                if (upv == null || (newV != null && upv.compareTo(newV) < 0)) {
+                                    // other patch contains newer update for the feature
+                                    updatesForFeatureKeys.put(key, featureUpdate);
+                                    featureUpdateRepositories.put(key, newRepositoryName);
+                                }
                             }
                         } else {
                             // this is the first update of the bundle
                             updatesForFeatureKeys.put(key, featureUpdate);
-                            featureUpdateRepositories.put(key, featuresInNewRepositories.get(key));
+                            if (newRepositoryName != null) {
+                                featureUpdateRepositories.put(key, newRepositoryName);
+                            }
                         }
                     }
                 }
@@ -926,7 +856,7 @@ public class ServiceImpl implements Service {
         } catch (Exception e) {
             throw new PatchException(e.getMessage(), e);
         } finally {
-            // we'll add new feature repositories again. here we've added them only to track the updates
+            // we'll add new feature repositories again later. here we've added them only to track the updates
             if (addedRepositoryNames != null && after != null) {
                 for (String repo : addedRepositoryNames) {
                     if (after.get(repo) != null) {
@@ -990,8 +920,8 @@ public class ServiceImpl implements Service {
 
         return coreBundles;
     }
-    static class MultiMap<K,V>  {
 
+    static class MultiMap<K,V>  {
         HashMap<K,ArrayList<V>> delegate = new HashMap<>();
 
         public List<V> get(Object key) {
@@ -1005,7 +935,6 @@ public class ServiceImpl implements Service {
             }
             list.add(value);
         }
-
     }
 
     /**
@@ -1433,13 +1362,15 @@ public class ServiceImpl implements Service {
                 PatchResult result = patch.getValue().getResult();
                 if (result != null) {
                     for (BundleUpdate update : result.getBundleUpdates()) {
-                        String symbolicName = stripSymbolicName(update.getSymbolicName());
-                        Map<String, String> versions = bundleVersions.get(symbolicName);
-                        if (versions == null) {
-                            versions = new HashMap<String, String>();
-                            bundleVersions.put(symbolicName, versions);
+                        if (update.getNewVersion() != null) {
+                            String symbolicName = stripSymbolicName(update.getSymbolicName());
+                            Map<String, String> versions = bundleVersions.get(symbolicName);
+                            if (versions == null) {
+                                versions = new HashMap<String, String>();
+                                bundleVersions.put(symbolicName, versions);
+                            }
+                            versions.put(update.getNewVersion(), update.getNewLocation());
                         }
-                        versions.put(update.getNewVersion(), update.getNewLocation());
                     }
                 }
             }

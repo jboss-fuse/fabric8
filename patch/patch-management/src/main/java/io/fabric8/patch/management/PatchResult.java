@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 
@@ -57,8 +58,11 @@ public class PatchResult {
     private boolean simulation;
     private long date;
 
-    private List<BundleUpdate> bundleUpdates;
-    private List<FeatureUpdate> featureUpdates;
+    // whether this result is not ready yet - there are some tasks left to be done after restart
+    private boolean pending = false;
+
+    private List<BundleUpdate> bundleUpdates = new LinkedList<>();
+    private List<FeatureUpdate> featureUpdates = new LinkedList<>();
 
     public PatchResult(PatchData patchData) {
         this.patchData = patchData;
@@ -69,8 +73,12 @@ public class PatchResult {
         this.patchData = patchData;
         this.simulation = simulation;
         this.date = date;
-        this.bundleUpdates = bundleUpdates;
-        this.featureUpdates = featureUpdates;
+        if (bundleUpdates != null) {
+            this.bundleUpdates.addAll(bundleUpdates);
+        }
+        if (featureUpdates != null) {
+            this.featureUpdates.addAll(featureUpdates);
+        }
     }
 
     /**
@@ -127,6 +135,9 @@ public class PatchResult {
                 patchData.getId() + ".patch.result"));
         storeTo(fos);
         fos.close();
+        if (pending) {
+            new File(patchData.getPatchLocation(), patchData.getId() + ".patch.pending").createNewFile();
+        }
     }
 
     /**
@@ -144,8 +155,10 @@ public class PatchResult {
         int i = 0;
         for (BundleUpdate update : getBundleUpdates()) {
             pw.write(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + SYMBOLIC_NAME + " = " + update.getSymbolicName() + "\n");
-            pw.write(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + NEW_VERSION + " = " + update.getNewVersion() + "\n");
-            pw.write(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + NEW_LOCATION + " = " + update.getNewLocation() + "\n");
+            if (update.getNewVersion() != null) {
+                pw.write(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + NEW_VERSION + " = " + update.getNewVersion() + "\n");
+                pw.write(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + NEW_LOCATION + " = " + update.getNewLocation() + "\n");
+            }
             pw.write(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + OLD_VERSION + " = " + update.getPreviousVersion() + "\n");
             pw.write(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + OLD_LOCATION + " = " + update.getPreviousLocation() + "\n");
             i++;
@@ -155,10 +168,12 @@ public class PatchResult {
         i = 0;
         for (FeatureUpdate update : getFeatureUpdates()) {
             pw.write(FEATURE_UPDATES + "." + Integer.toString(i) + "." + FEATURE_NAME + " = " + update.getName() + "\n");
-            pw.write(FEATURE_UPDATES + "." + Integer.toString(i) + "." + FEATURE_NEW_REPOSITORY + " = " + update.getNewRepository() + "\n");
-            pw.write(FEATURE_UPDATES + "." + Integer.toString(i) + "." + NEW_VERSION + " = " + update.getNewVersion() + "\n");
-            pw.write(FEATURE_UPDATES + "." + Integer.toString(i) + "." + FEATURE_OLD_REPOSITORY + " = " + update.getPreviousRepository() + "\n");
+            if (update.getNewVersion() != null) {
+                pw.write(FEATURE_UPDATES + "." + Integer.toString(i) + "." + NEW_VERSION + " = " + update.getNewVersion() + "\n");
+                pw.write(FEATURE_UPDATES + "." + Integer.toString(i) + "." + FEATURE_NEW_REPOSITORY + " = " + update.getNewRepository() + "\n");
+            }
             pw.write(FEATURE_UPDATES + "." + Integer.toString(i) + "." + OLD_VERSION + " = " + update.getPreviousVersion() + "\n");
+            pw.write(FEATURE_UPDATES + "." + Integer.toString(i) + "." + FEATURE_OLD_REPOSITORY + " = " + update.getPreviousRepository() + "\n");
             i++;
         }
 
@@ -183,6 +198,14 @@ public class PatchResult {
 
     public PatchData getPatchData() {
         return patchData;
+    }
+
+    public boolean isPending() {
+        return pending;
+    }
+
+    public void setPending(boolean pending) {
+        this.pending = pending;
     }
 
 }
