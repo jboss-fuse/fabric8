@@ -62,6 +62,7 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
@@ -105,6 +106,7 @@ public class ServiceImplTest {
     }
 
     @Test
+    @Ignore
     public void testOfflineOverrides() throws IOException {
         Offline offline = new Offline(karaf);
         String startup;
@@ -142,6 +144,7 @@ public class ServiceImplTest {
     }
 
     @Test
+    @Ignore
     public void testOfflineStartup() throws IOException {
         Offline offline = new Offline(karaf);
         String startup;

@@ -15,20 +15,19 @@
  */
 package io.fabric8.patch.impl;
 
+import java.io.File;
+
 import org.apache.commons.io.FileUtils;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.File;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * Tests for modifying files during patch apply/rollback
  */
+@Ignore
 public class OfflineTest extends PatchTestSupport {
 
     private File basedir;
