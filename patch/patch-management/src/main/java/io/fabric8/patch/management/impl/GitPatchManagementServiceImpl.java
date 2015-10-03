@@ -282,6 +282,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             fallbackPatchData.setPatchDirectory(new File(patchesDir, fallbackPatchData.getId()));
 
             if (zf != null) {
+                File libNextDir = new File(karafHome, "lib.next");
                 File systemRepo = new File(karafHome, systemContext.getProperty("karaf.default.repository"));
                 try {
                     List<ZipArchiveEntry> otherResources = new LinkedList<>();
@@ -326,6 +327,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             } else if (name.startsWith("repository/")) {
                                 // copy to ${karaf.default.repository}
                                 target = new File(systemRepo, name.substring("repository/".length()));
+                            } else if (name.startsWith("lib/")) {
+                                // copy to ${karaf.home}/lib.next
+                                target = new File(libNextDir, name.substring("lib/".length()));
                             } else {
                                 // other files that should be applied to ${karaf.home} when the patch is installed
                                 otherResources.add(entry);
