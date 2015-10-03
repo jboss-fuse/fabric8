@@ -29,7 +29,6 @@ import static org.junit.Assert.assertTrue;
 /**
  * Tests for modifying files during patch apply/rollback
  */
-@Ignore
 public class OfflineTest extends PatchTestSupport {
 
     private File basedir;

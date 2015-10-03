@@ -494,7 +494,7 @@ public class ServiceImplTest {
         bundle.update(EasyMock.<InputStream>anyObject());
         expect(sysBundleContext.getBundles()).andReturn(new Bundle[] { bundle });
         expect(bundle.getState()).andReturn(Bundle.INSTALLED).anyTimes();
-//        expect(bundle.getRegisteredServices()).andReturn(null);
+        expect(bundle.getRegisteredServices()).andReturn(null);
         expect(sysBundleContext.getBundle(0)).andReturn(sysBundle);
         expect(sysBundle.adapt(FrameworkWiring.class)).andReturn(wiring);
         bundle.start();
@@ -526,6 +526,10 @@ public class ServiceImplTest {
         expect(repository.getManagedPatch(anyString())).andReturn(null).anyTimes();
         expect(sysBundleContext.getProperty(Service.NEW_PATCH_LOCATION))
                 .andReturn(storage.toString()).anyTimes();
+        expect(sysBundleContext.getProperty("karaf.home"))
+                .andReturn(karaf.toString()).anyTimes();
+        expect(sysBundleContext.getProperty("karaf.default.repository"))
+                .andReturn(karaf.getCanonicalPath() + "/system").anyTimes();
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository);
 
         service = new ServiceImpl();

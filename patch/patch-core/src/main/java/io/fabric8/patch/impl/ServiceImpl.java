@@ -335,7 +335,7 @@ public class ServiceImpl implements Service {
                             List<String[]> featuresToUninstallAfterUpdatingBundles = new LinkedList<>();
 
                             // uninstall old features and repositories repositories
-                            if (!simulate) {
+                            if (!simulate && updatesForFeatureKeys.size() > 0) {
                                 Set<String> oldRepositories = new HashSet<>();
                                 Set<String> newRepositories = new HashSet<>();
                                 for (FeatureUpdate fu : updatesForFeatureKeys.values()) {
@@ -377,18 +377,20 @@ public class ServiceImpl implements Service {
                             // update bundles
                             applyChanges(bundleUpdateLocations);
 
-                            Object featuresService = null;
-                            try {
-                                ServiceTracker<?, ?> tracker = new ServiceTracker<>(bundleContext, "org.apache.karaf.features.FeaturesService", null);
-                                tracker.open();
-                                Object service = tracker.waitForService(30000);
-                                if (service != null) {
-                                    featuresService = service;
+                            if (updatesForFeatureKeys.size() > 0) {
+                                Object featuresService = null;
+                                try {
+                                    ServiceTracker<?, ?> tracker = new ServiceTracker<>(bundleContext, "org.apache.karaf.features.FeaturesService", null);
+                                    tracker.open();
+                                    Object service = tracker.waitForService(30000);
+                                    if (service != null) {
+                                        featuresService = service;
+                                    }
+                                } catch (Exception e) {
+                                    System.err.println(e.getMessage());
+                                    e.printStackTrace(System.err);
+                                    System.err.flush();
                                 }
-                            } catch (Exception e) {
-                                System.err.println(e.getMessage());
-                                e.printStackTrace(System.err);
-                                System.err.flush();
                             }
 
                             // update KARAF_HOME
@@ -401,51 +403,53 @@ public class ServiceImpl implements Service {
                             // TODO: uninstall features?
 
                             // install new features - in order
-                            Properties properties = new Properties();
-                            FileInputStream inStream = new FileInputStream(new File(karafHome, "etc/org.apache.karaf.features.cfg"));
-                            properties.load(inStream);
-                            IOUtils.closeQuietly(inStream);
-                            String featuresBoot = properties.getProperty("featuresBoot");
-                            Set<String> coreFeatures = new LinkedHashSet<>(Arrays.asList(featuresBoot.split(", *")));
+                            if (updatesForFeatureKeys.size() > 0) {
+                                Properties properties = new Properties();
+                                FileInputStream inStream = new FileInputStream(new File(karafHome, "etc/org.apache.karaf.features.cfg"));
+                                properties.load(inStream);
+                                IOUtils.closeQuietly(inStream);
+                                String featuresBoot = properties.getProperty("featuresBoot");
+                                Set<String> coreFeatures = new LinkedHashSet<>(Arrays.asList(featuresBoot.split(", *")));
 
-                            // Now that we don't have any of the old feature repos installed
-                            // Lets re-install the features that were previously installed.
-                            try {
-                                ServiceTracker<FeaturesService, FeaturesService> tracker = new ServiceTracker<>(bundleContext, FeaturesService.class, null);
-                                tracker.open();
-                                Object service = tracker.waitForService(30000);
-                                if (service != null) {
-                                    Method m = service.getClass().getDeclaredMethod("installFeature", String.class );
-                                    if (m != null) {
-                                        for (String cf : coreFeatures) {
-                                            if (simulate) {
-                                                System.out.println("Simulation: Enable core feature: " + cf);
-                                            } else {
-                                                System.out.println("Enable core feature: " + cf);
-                                                m.invoke(service, cf);
+                                // Now that we don't have any of the old feature repos installed
+                                // Lets re-install the features that were previously installed.
+                                try {
+                                    ServiceTracker<FeaturesService, FeaturesService> tracker = new ServiceTracker<>(bundleContext, FeaturesService.class, null);
+                                    tracker.open();
+                                    Object service = tracker.waitForService(30000);
+                                    if (service != null) {
+                                        Method m = service.getClass().getDeclaredMethod("installFeature", String.class );
+                                        if (m != null) {
+                                            for (String cf : coreFeatures) {
+                                                if (simulate) {
+                                                    System.out.println("Simulation: Enable core feature: " + cf);
+                                                } else {
+                                                    System.out.println("Enable core feature: " + cf);
+                                                    m.invoke(service, cf);
+                                                }
                                             }
                                         }
-                                    }
-                                    m = service.getClass().getDeclaredMethod("installFeature", String.class, String.class );
-                                    if (m != null) {
-                                        for (FeatureUpdate update : updatesForFeatureKeys.values()) {
-                                            if (coreFeatures.contains(update.getName())) {
-                                                continue;
-                                            }
-                                            if (simulate) {
-                                                System.out.println("Simulation: Enable feature: " + update.getName() + "/" + update.getNewVersion());
-                                            } else {
-                                                System.out.println("Enable feature: " + update.getName() + "/" + update.getNewVersion());
-                                                m.invoke(service, update.getName(), update.getNewVersion());
+                                        m = service.getClass().getDeclaredMethod("installFeature", String.class, String.class );
+                                        if (m != null) {
+                                            for (FeatureUpdate update : updatesForFeatureKeys.values()) {
+                                                if (coreFeatures.contains(update.getName())) {
+                                                    continue;
+                                                }
+                                                if (simulate) {
+                                                    System.out.println("Simulation: Enable feature: " + update.getName() + "/" + update.getNewVersion());
+                                                } else {
+                                                    System.out.println("Enable feature: " + update.getName() + "/" + update.getNewVersion());
+                                                    m.invoke(service, update.getName(), update.getNewVersion());
+                                                }
                                             }
                                         }
+                                    } else {
+                                        System.err.println("Can't get OSGi reference to FeaturesService");
                                     }
-                                } else {
-                                    System.err.println("Can't get OSGi reference to FeaturesService");
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                    System.err.flush();
                                 }
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                                System.err.flush();
                             }
 
                             // persist results of all installed patches
