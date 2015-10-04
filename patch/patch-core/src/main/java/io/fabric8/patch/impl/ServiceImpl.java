@@ -209,6 +209,10 @@ public class ServiceImpl implements Service {
                     }
                 }
             }
+            pending.delete();
+            System.out.printf("%spatch \"%s\" installed successfully%n",
+                    patch.getPatchData().isRollupPatch() ? "Rollup " : "",
+                    patchData.getId());
         }
     }
 
