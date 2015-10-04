@@ -410,22 +410,23 @@ public class ServiceImpl implements Service {
                         result.setPending(true);
                         result.store();
 
-//                        storeWorkForPendingRestart(result);
-
-                        boolean handlesFullRestart = Boolean.getBoolean("karaf.restart.jvm.supported");
-                        if (handlesFullRestart) {
-                            System.out.println("Rollup patch " + patch.getPatchData().getId() + " installed. Restarting Karaf..");
+                        // Some updates need a full JVM restart.
+                        if( isJvmRestartNeeded(results) ) {
+                            boolean handlesFullRestart = Boolean.getBoolean("karaf.restart.jvm.supported");
+                            if (handlesFullRestart) {
+                                System.out.println("Rollup patch " + patch.getPatchData().getId() + " installed. Restarting Karaf..");
+                                System.setProperty("karaf.restart.jvm", "true");
+                            } else {
+                                System.out.println("Rollup patch " + patch.getPatchData().getId() + " installed. Shutting down Karaf, please restart...");
+                            }
                         } else {
-                            System.out.println("Rollup patch " + patch.getPatchData().getId() + " installed. Shutting down Karaf, please restart...");
+                            // We don't need a JVM restart, so lets just do a OSGi framework restart
+                            System.setProperty("karaf.restart", "true");
                         }
 
                         File karafData = new File(bundleContext.getProperty("karaf.data"));
                         File cleanCache = new File(karafData, "clean_cache");
                         cleanCache.createNewFile();
-
-                        if (handlesFullRestart) {
-                            System.setProperty("karaf.restart.jvm", "true");
-                        }
                         bundleContext.getBundle(0l).stop();
                     }
                 } else {
@@ -486,6 +487,18 @@ public class ServiceImpl implements Service {
             }
             throw new PatchException(e.getMessage(), e);
         }
+    }
+
+    private boolean isJvmRestartNeeded(Map<String, PatchResult> results) {
+        for (PatchResult result : results.values()) {
+            for (String file : result.getPatchData().getFiles()) {
+                if( file.startsWith("lib/") ||
+                    file.equals("etc/jre.properties") ) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private void displayFeatureUpdates(Map<String, FeatureUpdate> featureUpdates, boolean simulate) {

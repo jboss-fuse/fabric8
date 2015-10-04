@@ -1286,6 +1286,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
         List<DiffEntry> diff = this.gitPatchRepository.diff(git, commit1, commit2);
 
+        // Changes to the lib dir get done in the lib.next directory.  Lets copy
+        // the lib dir just in case we do have modification to it.
+        FileUtils.copyDirectory(new File(karafHome, "lib"), new File(karafHome, "lib.next"));
+        boolean libDirectoryChanged = false;
+
         for (DiffEntry de : diff) {
             DiffEntry.ChangeType ct = de.getChangeType();
             /*
@@ -1311,11 +1316,16 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     String targetPath = newPath;
                     if (newPath.startsWith("lib/")) {
                         targetPath = "lib.next/" + newPath.substring(4);
+                        libDirectoryChanged = true;
                     }
                     FileUtils.copyFile(new File(wcDir, newPath), new File(karafHome, targetPath));
                     break;
                 case DELETE:
                     System.out.println("[PATCH-change] Deleting " + oldPath);
+                    if (oldPath.startsWith("lib/")) {
+                        oldPath = "lib.next/" + oldPath.substring(4);
+                        libDirectoryChanged = true;
+                    }
                     FileUtils.deleteQuietly(new File(karafHome, oldPath));
                     break;
                 case COPY:
@@ -1323,6 +1333,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     // not handled now
                     break;
             }
+        }
+
+        if( !libDirectoryChanged ) {
+            // lib.next directory might not be needed.
+            FileUtils.deleteDirectory(new File(karafHome, "lib.next"));
         }
         System.out.flush();
     }
