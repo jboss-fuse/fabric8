@@ -56,6 +56,7 @@ public class Activator implements BundleActivator {
 
         if (!patchManagementService.isEnabled()) {
             System.out.println("[PATCH] Not a Fuse/AMQ installation, ignore now");
+            System.out.flush();
             return;
         }
 

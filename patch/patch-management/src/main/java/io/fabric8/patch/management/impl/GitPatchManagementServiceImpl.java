@@ -781,6 +781,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         File backupDir = new File(patchesDir, patchData.getId() + ".backup");
                         if (backupDir.exists() && backupDir.isDirectory()) {
                             System.out.printf("Restoring content of %s", backupDir.getCanonicalPath());
+                            System.out.flush();
                             copyManagedDirectories(backupDir, karafHome, false);
                         }
                     }
@@ -955,6 +956,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     @Override
     public void ensurePatchManagementInitialized() {
         System.out.println("[PATCH] INITIALIZING PATCH MANAGEMENT SYSTEM");
+        System.out.flush();
         Git fork = null;
         try {
             Git mainRepository = gitPatchRepository.findOrCreateMainGitRepository();
@@ -1021,6 +1023,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         } else {
             System.out.println("[PATCH] Baseline distribution already committed for version " + currentFuseVersion);
             System.out.println("[PATCH] patch-management bundle is already installed in etc/startup.properties at version " + currentFabricVersion);
+            System.out.flush();
             // we don't check if there are any user changes now, but we will be doing it anyway at each startup of this bundle
             return InitializationType.ADD_USER_CHANGES;
         }
@@ -1134,6 +1137,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             } else {
                 System.out.println("[PATCH] No user changes");
             }
+            System.out.flush();
         } catch (GitAPIException | IOException e) {
             System.err.println("[PATCH-error] " + e.getMessage());
             System.err.flush();
@@ -1261,6 +1265,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             applyChanges(git, commit.getParent(0), commit);
 
             System.out.println(String.format("[PATCH] patch-management-%s.jar installed in etc/startup.properties. Please restart.", bundleVersion));
+            System.out.flush();
         }
     }
 
@@ -1319,6 +1324,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     break;
             }
         }
+        System.out.flush();
     }
 
     @Override
@@ -1341,6 +1347,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 FileUtils.deleteQuietly(anotherPatchManagementBundle);
             }
         }
+        System.out.flush();
     }
 
     /**
