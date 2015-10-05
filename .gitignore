@@ -14,3 +14,4 @@ overlays
 *.fmd
 .cache
 dependency-reduced-pom.xml
+tooling/rh-support/redhat-support-lib-java/build.properties
