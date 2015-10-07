@@ -45,6 +45,7 @@ import io.fabric8.patch.management.PatchException;
 import io.fabric8.patch.management.PatchKind;
 import io.fabric8.patch.management.PatchManagement;
 import io.fabric8.patch.management.PatchResult;
+import io.fabric8.patch.management.Utils;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipFile;
 import org.apache.commons.io.FileUtils;
@@ -282,7 +283,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             fallbackPatchData.setPatchDirectory(new File(patchesDir, fallbackPatchData.getId()));
 
             if (zf != null) {
-                File systemRepo = new File(karafHome, systemContext.getProperty("karaf.default.repository"));
+                File systemRepo = getSystemRepository(karafHome, systemContext);
                 try {
                     List<ZipArchiveEntry> otherResources = new LinkedList<>();
                     boolean skipRootDir = false;
@@ -1072,12 +1073,31 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         String currentFuseVersion = determineVersion("fuse");
         String currentFabricVersion = determineVersion("fabric");
 
-        File baselineDistribution = new File(patchesDir, String.format("jboss-fuse-full-%s-baseline.zip", currentFuseVersion));
-        if (!(baselineDistribution.exists() && baselineDistribution.isFile())) {
-            File repositoryDir = new File(karafHome.getCanonicalPath() + String.format("/system/org/jboss/fuse/jboss-fuse-full/%s", currentFuseVersion));
-            baselineDistribution = new File(repositoryDir, String.format("jboss-fuse-full-%s-baseline.zip", currentFuseVersion));
+        // check what product are we in
+        String baselineLocation = Utils.getBaselineLocationForProduct(karafHome, systemContext, currentFuseVersion);
+        File systemRepo = getSystemRepository(karafHome, systemContext);
+        File baselineDistribution = null;
+        if (baselineLocation != null) {
+            baselineDistribution = new File(patchesDir, baselineLocation);
+        } else {
+            // do some guessing - first JBoss Fuse, then JBoss A-MQ
+            String[] locations = new String[] {
+                    systemRepo.getCanonicalPath() + "/org/jboss/fuse/jboss-fuse-full/%1$s/jboss-fuse-full-%1$s-baseline.zip",
+                    patchesDir.getCanonicalPath() + "/jboss-fuse-full-%1$s-baseline.zip",
+                    systemRepo.getCanonicalPath() + "/org/jboss/amq/jboss-a-mq/%s/jboss-a-mq-%1$s-baseline.zip",
+                    patchesDir.getCanonicalPath() + "/jboss-a-mq-%1$s-baseline.zip"
+            };
+
+            for (String location : locations) {
+                location = String.format(location, currentFuseVersion);
+                if (new File(location).isFile()) {
+                    baselineDistribution = new File(location);
+                    System.out.println("[PATCH] Found baseline distribution: " + baselineDistribution.getCanonicalPath());
+                    break;
+                }
+            }
         }
-        if (baselineDistribution.exists() && baselineDistribution.isFile()) {
+        if (baselineDistribution != null) {
             unpack(baselineDistribution, git.getRepository().getWorkTree(), 1);
             git.add()
                     .addFilepattern(".")
@@ -1089,7 +1109,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     .call();
             gitPatchRepository.push(git);
         } else {
-            String message = "Can't find baseline distribution \"" + baselineDistribution.getName() + "\" in patches dir or inside system repository.";
+            String message = "Can't find baseline distribution for version \"" + currentFuseVersion + "\" in patches dir or inside system repository.";
             System.err.println("[PATCH-error] " + message);
             System.err.flush();
             throw new PatchException(message);
@@ -1187,7 +1207,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         File deployedPatchManagement = new File(fileinstallDeployDir, patchManagementArtifact);
         if (deployedPatchManagement.exists() && deployedPatchManagement.isFile()) {
             // let's copy it to system/
-            File systemRepo = new File(karafHome, systemContext.getProperty("karaf.default.repository"));
+            File systemRepo = getSystemRepository(karafHome, systemContext);
             String targetFile = String.format("io/fabric8/patch/patch-management/%s/patch-management-%s.jar", bundleVersion, bundleVersion);
             File target = new File(systemRepo, targetFile);
             target.getParentFile().mkdirs();

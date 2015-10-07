@@ -34,6 +34,7 @@ import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipFile;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
+import org.osgi.framework.BundleContext;
 import org.osgi.framework.Version;
 
 public class Utils {
@@ -236,6 +237,40 @@ public class Utils {
             deployDir = karafHome.getAbsolutePath() + "/deploy";
         }
         return new File(deployDir);
+    }
+
+    /**
+     * Returns location of system repository - by default <code>${karaf.home}/system</code>.
+     * @param karafHome
+     * @param systemContext
+     * @return
+     */
+    public static File getSystemRepository(File karafHome, BundleContext systemContext) {
+        return new File(karafHome, systemContext.getProperty("karaf.default.repository"));
+    }
+
+    /**
+     * Returns the canonical location of the baseline distribution - it'll work in versions where baseline
+     * is already shipped and correct properties are set. In distribution being just upgraded, this method returns
+     * <code>null</code> which is an indication that some guessing must be performed.
+     * @param karafHome
+     * @param context
+     * @param version
+     * @return
+     */
+    public static String getBaselineLocationForProduct(File karafHome, BundleContext context, String version) {
+        String productGA = context.getProperty("fuse.patch.product");
+        if (productGA != null && !"".equals(productGA.trim())) {
+            String[] ga = productGA.split(":");
+            if (ga.length == 2) {
+                String location = String.format("%s/%s/%s/%s-%s-baseline.zip",
+                        ga[0], ga[1], version, ga[1], version);
+                if (new File(getSystemRepository(karafHome, context), location).isFile()) {
+                    return location;
+                }
+            }
+        }
+        return null;
     }
 
     /**

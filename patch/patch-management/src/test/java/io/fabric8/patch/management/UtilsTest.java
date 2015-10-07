@@ -16,15 +16,22 @@
 package io.fabric8.patch.management;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.util.Date;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.Test;
+import org.osgi.framework.BundleContext;
 
 import static io.fabric8.patch.management.Utils.*;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class UtilsTest {
 
@@ -87,6 +94,26 @@ public class UtilsTest {
 
         assertEquals("1.1.1.redhat-1", Utils.getFeatureVersion("1.1.1.1.1.redhat-1").toString());
         assertEquals("1.1.1.redhat-1", Utils.getFeatureVersion("1.1.1.1.redhat-1").toString());
+    }
+
+    @Test
+    public void productBaselineLocations() throws IOException {
+        BundleContext bc = mock(BundleContext.class);
+        when(bc.getProperty("karaf.default.repository")).thenReturn("sys");
+        File karafHome = new File("target/karaf-" + new Date().getTime());
+        FileUtils.deleteDirectory(karafHome);
+
+        FileUtils.write(new File(karafHome, "sys/a/b/1.2/b-1.2-baseline.zip"), "");
+        when(bc.getProperty("fuse.patch.product")).thenReturn("a:b");
+        assertThat(Utils.getBaselineLocationForProduct(karafHome, bc, "1.2"), equalTo("a/b/1.2/b-1.2-baseline.zip"));
+        FileUtils.deleteQuietly(new File(karafHome, "sys/a/b/1.2/b-1.2-baseline.zip"));
+        assertNull(Utils.getBaselineLocationForProduct(karafHome, bc, "1.2"));
+
+        when(bc.getProperty("fuse.patch.product")).thenReturn(null);
+        assertNull(Utils.getBaselineLocationForProduct(karafHome, bc, "1.2"));
+
+        when(bc.getProperty("fuse.patch.product")).thenReturn("a");
+        assertNull(Utils.getBaselineLocationForProduct(karafHome, bc, "1.2"));
     }
 
 }
