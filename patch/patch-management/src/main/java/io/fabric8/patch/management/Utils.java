@@ -21,6 +21,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Enumeration;
@@ -97,7 +98,9 @@ public class Utils {
         FileOutputStream targetOutputStream = new FileOutputStream(target);
         IOUtils.copyLarge(zip.getInputStream(entry), targetOutputStream);
         IOUtils.closeQuietly(targetOutputStream);
-        Files.setPosixFilePermissions(target.toPath(), getPermissionsFromUnixMode(target, entry.getUnixMode()));
+        if (Files.getFileAttributeView(target.toPath(), PosixFileAttributeView.class) != null) {
+            Files.setPosixFilePermissions(target.toPath(), getPermissionsFromUnixMode(target, entry.getUnixMode()));
+        }
     }
 
     /**
@@ -205,7 +208,9 @@ public class Utils {
                     FileOutputStream output = new FileOutputStream(file);
                     IOUtils.copyLarge(zf.getInputStream(entry), output);
                     IOUtils.closeQuietly(output);
-                    Files.setPosixFilePermissions(file.toPath(), getPermissionsFromUnixMode(file, entry.getUnixMode()));
+                    if (Files.getFileAttributeView(file.toPath(), PosixFileAttributeView.class) != null) {
+                        Files.setPosixFilePermissions(file.toPath(), getPermissionsFromUnixMode(file, entry.getUnixMode()));
+                    }
                 }
             }
         } finally {

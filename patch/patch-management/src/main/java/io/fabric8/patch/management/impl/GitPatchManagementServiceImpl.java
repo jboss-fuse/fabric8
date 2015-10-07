@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.attribute.PosixFileAttributeView;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
@@ -1186,7 +1187,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 // repair file permissions
                 for (File script : destDir.listFiles()) {
                     if (!script.getName().endsWith(".bat")) {
-                        Files.setPosixFilePermissions(script.toPath(), getPermissionsFromUnixMode(script, 0775));
+                        if (Files.getFileAttributeView(script.toPath(), PosixFileAttributeView.class) != null) {
+                            Files.setPosixFilePermissions(script.toPath(), getPermissionsFromUnixMode(script, 0775));
+                        }
                     }
                 }
             }
