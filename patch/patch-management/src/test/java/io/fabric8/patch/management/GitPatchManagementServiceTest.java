@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -188,6 +189,130 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         repository.closeRepository(fork, true);
     }
 
+    @Test
+    public void installThreeNonRollupPatches() throws IOException, GitAPIException {
+        initializationPerformedBaselineDistributionFoundInSystem();
+
+        // prepare some ZIP patches
+        preparePatchZip("src/test/resources/content/patch1", "target/karaf/patches/source/patch-1.zip", false);
+        preparePatchZip("src/test/resources/content/patch5", "target/karaf/patches/source/patch-5.zip", false);
+        preparePatchZip("src/test/resources/content/patch6", "target/karaf/patches/source/patch-6.zip", false);
+
+        PatchManagement service = (PatchManagement) pm;
+        PatchData patchData1 = service.fetchPatches(new File("target/karaf/patches/source/patch-1.zip").toURI().toURL()).get(0);
+        Patch patch1 = service.trackPatch(patchData1);
+        PatchData patchData5 = service.fetchPatches(new File("target/karaf/patches/source/patch-5.zip").toURI().toURL()).get(0);
+        Patch patch5 = service.trackPatch(patchData5);
+        PatchData patchData6 = service.fetchPatches(new File("target/karaf/patches/source/patch-6.zip").toURI().toURL()).get(0);
+        Patch patch6 = service.trackPatch(patchData6);
+
+        GitPatchRepository repository = ((GitPatchManagementServiceImpl) pm).getGitPatchRepository();
+        Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
+
+        String tx = service.beginInstallation(PatchKind.NON_ROLLUP);
+
+        List<BundleUpdate> patch1Updates = new LinkedList<>();
+        patch1Updates.add(BundleUpdate.from("mvn:io.fabric8/fabric-tranquility/1.2.0")
+                .to("mvn:io.fabric8/fabric-tranquility/1.2.3"));
+        service.install(tx, patch1, patch1Updates);
+
+        List<BundleUpdate> patch5Updates = new LinkedList<>();
+        patch5Updates.add(BundleUpdate.from("mvn:io.fabric8/fabric-zen/1.1.44/war")
+                .to("mvn:io.fabric8/fabric-zen/1.2.0/war"));
+        service.install(tx, patch5, patch5Updates);
+
+        List<BundleUpdate> patch6Updates = new LinkedList<>();
+        patch5Updates.add(BundleUpdate.from("mvn:io.fabric8/fabric-zen/1.2.4/war")
+                .to("mvn:io.fabric8/fabric-zen/1.3.0/war"));
+        service.install(tx, patch6, patch6Updates);
+
+        service.commitInstallation(tx);
+
+        String binAdmin = FileUtils.readFileToString(new File(karafHome, "bin/admin"));
+        assertTrue(binAdmin.contains("system/io/fabric8/fabric-tranquility/1.2.3/fabric-tranquility-1.2.3.jar"));
+
+        String etcStartupProperties = FileUtils.readFileToString(new File(karafHome, "etc/startup.properties"));
+        // version from patch-5 should be chosen, because there's 1.1.44->1.2.0
+        assertTrue(etcStartupProperties.contains("io/fabric8/fabric-zen/1.2.0/fabric-zen-1.2.0.war=42"));
+        assertTrue(etcStartupProperties.contains("io/fabric8/fabric-tranquility/1.2.3/fabric-tranquility-1.2.3.jar=42"));
+
+        String etcOverridesProperties = FileUtils.readFileToString(new File(karafHome, "etc/overrides.properties"));
+        assertTrue(etcOverridesProperties.contains("mvn:io.fabric8/fabric-tranquility/1.2.3\n"));
+        assertTrue(etcOverridesProperties.contains("mvn:io.fabric8/fabric-zen/1.2.0/war;range=[1.1,1.2)\n"));
+        assertTrue(etcOverridesProperties.contains("mvn:io.fabric8/fabric-zen/1.3.3/war\n"));
+
+        /* rollback time! */
+
+        Patch p5 = service.loadPatch(new PatchDetailsRequest("my-patch-5"));
+        service.rollback(p5.getPatchData());
+
+        binAdmin = FileUtils.readFileToString(new File(karafHome, "bin/admin"));
+        assertTrue(binAdmin.contains("system/io/fabric8/fabric-tranquility/1.2.3/fabric-tranquility-1.2.3.jar"));
+
+        etcStartupProperties = FileUtils.readFileToString(new File(karafHome, "etc/startup.properties"));
+        // rollback wasn't successful
+        assertTrue(etcStartupProperties.contains("io/fabric8/fabric-zen/1.2.0/fabric-zen-1.2.0.war=42"));
+        assertFalse(etcStartupProperties.contains("io/fabric8/fabric-zen/1.1.44/fabric-zen-1.1.44.war=42"));
+        assertTrue(etcStartupProperties.contains("io/fabric8/fabric-tranquility/1.2.3/fabric-tranquility-1.2.3.jar=42"));
+
+        etcOverridesProperties = FileUtils.readFileToString(new File(karafHome, "etc/overrides.properties"));
+        assertTrue(etcOverridesProperties.contains("mvn:io.fabric8/fabric-tranquility/1.2.3\n"));
+        assertTrue(etcOverridesProperties.contains("mvn:io.fabric8/fabric-zen/1.2.0/war;range=[1.1,1.2)\n"));
+        assertTrue(etcOverridesProperties.contains("mvn:io.fabric8/fabric-zen/1.3.3/war\n"));
+
+        Patch p6 = service.loadPatch(new PatchDetailsRequest("my-patch-6"));
+        service.rollback(p6.getPatchData());
+
+        binAdmin = FileUtils.readFileToString(new File(karafHome, "bin/admin"));
+        assertTrue(binAdmin.contains("system/io/fabric8/fabric-tranquility/1.2.3/fabric-tranquility-1.2.3.jar"));
+
+        etcStartupProperties = FileUtils.readFileToString(new File(karafHome, "etc/startup.properties"));
+        assertTrue(etcStartupProperties.contains("io/fabric8/fabric-zen/1.2.0/fabric-zen-1.2.0.war=42"));
+        assertTrue(etcStartupProperties.contains("io/fabric8/fabric-tranquility/1.2.3/fabric-tranquility-1.2.3.jar=42"));
+
+        etcOverridesProperties = FileUtils.readFileToString(new File(karafHome, "etc/overrides.properties"));
+        assertFalse(etcOverridesProperties.contains("mvn:io.fabric8/fabric-zen/1.3.3/war\n"));
+
+        repository.closeRepository(fork, true);
+    }
+
+    @Test
+    public void installPPatchAndThenRPatch() throws IOException, GitAPIException {
+        initializationPerformedBaselineDistributionFoundInSystem();
+
+        // prepare some ZIP patches
+        preparePatchZip("src/test/resources/content/patch1", "target/karaf/patches/source/patch-1.zip", false);
+        preparePatchZip("src/test/resources/content/patch4", "target/karaf/patches/source/patch-4.zip", false);
+
+        PatchManagement service = (PatchManagement) pm;
+        PatchData patchData1 = service.fetchPatches(new File("target/karaf/patches/source/patch-1.zip").toURI().toURL()).get(0);
+        Patch patch1 = service.trackPatch(patchData1);
+        PatchData patchData4 = service.fetchPatches(new File("target/karaf/patches/source/patch-4.zip").toURI().toURL()).get(0);
+        Patch patch4 = service.trackPatch(patchData4);
+
+        String tx = service.beginInstallation(PatchKind.NON_ROLLUP);
+        service.install(tx, patch1, null);
+        service.commitInstallation(tx);
+
+        GitPatchRepository repository = ((GitPatchManagementServiceImpl) pm).getGitPatchRepository();
+        Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
+
+        assertTrue(repository.containsTag(fork, "patch-my-patch-1"));
+        assertFalse(repository.containsTag(fork, "baseline-6.2.0.redhat-002"));
+
+        repository.closeRepository(fork, true);
+
+        tx = service.beginInstallation(PatchKind.ROLLUP);
+        service.install(tx, patch4, null);
+        service.commitInstallation(tx);
+
+        fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
+        assertFalse(repository.containsTag(fork, "patch-my-patch-1"));
+        assertTrue(repository.containsTag(fork, "baseline-6.2.0.redhat-002"));
+
+        repository.closeRepository(fork, true);
+    }
+
     /**
      * Patch 4 is rollup patch (doesn't contain descriptor, contains default.profile/io.fabric8.version.properties)
      * Adding it is not different that adding non-rollup patch. Installation is different
@@ -299,7 +424,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         assertThat(p.getPatchData().getId(), equalTo("my-patch-1"));
         assertThat(p.getPatchData().getFiles().size(), equalTo(2));
         assertThat(p.getPatchData().getBundles().size(), equalTo(1));
-        assertThat(p.getPatchData().getBundles().iterator().next(), equalTo("io/fabric8/fabric-tranquility/1.2.3/fabric-tranquility-1.2.3.jar"));
+        assertThat(p.getPatchData().getBundles().iterator().next(), equalTo("mvn:io.fabric8/fabric-tranquility/1.2.3"));
     }
 
     @Test
@@ -412,9 +537,9 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
         repository.prepareCommit(fork, "artificial change, not treated as user change (could be a patch)").call();
         repository.prepareCommit(fork, "artificial change, not treated as user change").call();
-        ((GitPatchManagementServiceImpl)pm).applyUserChanges(fork); // no changes
+        ((GitPatchManagementServiceImpl)pm).applyUserChanges(fork); // no changes, but commit
         FileUtils.write(new File(karafHome, "bin/start"), "echo \"another user change\"\n", true);
-        ((GitPatchManagementServiceImpl)pm).applyUserChanges(fork); // conflicting change
+        ((GitPatchManagementServiceImpl)pm).applyUserChanges(fork); // conflicting change, but commit
         FileUtils.write(new File(karafHome, "bin/test"), "echo \"another user change\"\n");
         ((GitPatchManagementServiceImpl)pm).applyUserChanges(fork); // non-conflicting
         repository.closeRepository(fork, true);
@@ -446,12 +571,14 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
          */
         List<String> commitList = Arrays.asList(
                 "[PATCH] Apply user changes",
+                "[PATCH] Apply user changes",
+                "[PATCH] Apply user changes",
                 "[PATCH] Rollup patch patch-4 - resetting etc/overrides.properties",
                 "[PATCH] Installing rollup patch patch-4");
 
         int n = 0;
         for (RevCommit c : commits) {
-            String msg = c.getFullMessage();
+            String msg = c.getShortMessage();
             assertThat(msg, equalTo(commitList.get(n++)));
         }
 
@@ -519,7 +646,9 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
                 binStart.contains("echo \"we had to add this line, because without it, everything crashed\""));
 
         // we had conflict, so expect the backup
-        String oldBinStart = FileUtils.readFileToString(new File(karafHome, "patches/patch-4.backup/bin/start"));
+        String backupRef = new RevWalk(fork.getRepository()).parseCommit(master2).getFullMessage().split("\n\n")[1];
+        String oldBinStart = FileUtils.readFileToString(new File(karafHome, "patches/patch-4.backup/"
+                + backupRef + "/bin/start"));
         assertTrue("bin/start should be backed up",
                 oldBinStart.contains("echo \"This is user's change\""));
 
@@ -533,19 +662,30 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         GitPatchRepository repository = patchManagement();
         PatchManagement management = (PatchManagement) pm;
 
+        preparePatchZip("src/test/resources/content/patch1", "target/karaf/patches/source/patch-1.zip", false);
         preparePatchZip("src/test/resources/content/patch4", "target/karaf/patches/source/patch-4.zip", false);
-        List<PatchData> patches = management.fetchPatches(new File("target/karaf/patches/source/patch-4.zip").toURI().toURL());
-        Patch patch = management.trackPatch(patches.get(0));
+
+        List<PatchData> patches = management.fetchPatches(new File("target/karaf/patches/source/patch-1.zip").toURI().toURL());
+        Patch patch1 = management.trackPatch(patches.get(0));
+        patches = management.fetchPatches(new File("target/karaf/patches/source/patch-4.zip").toURI().toURL());
+        Patch patch4 = management.trackPatch(patches.get(0));
 
         Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
         ObjectId master1 = fork.getRepository().resolve("master");
 
         String tx = management.beginInstallation(PatchKind.ROLLUP);
-        management.install(tx, patch, null);
+        management.install(tx, patch4, null);
         management.commitInstallation(tx);
 
-        PatchResult result = new PatchResult(patch.getPatchData());
-        management.rollback(result);
+        // install P patch to check if rolling back rollup patch will remove P patch's tag
+        tx = management.beginInstallation(PatchKind.NON_ROLLUP);
+        management.install(tx, patch1, null);
+        management.commitInstallation(tx);
+
+        fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
+        assertTrue(repository.containsTag(fork, "patch-my-patch-1"));
+
+        management.rollback(patch4.getPatchData());
 
         repository.closeRepository(fork, true);
         fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
@@ -554,6 +694,8 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         assertThat(master1, not(equalTo(master2)));
         assertThat(fork.tagList().call().size(), equalTo(1));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0"));
+        assertFalse("When rolling back rollup patch, newer P patches' tags should be removed",
+                repository.containsTag(fork, "patch-my-patch-1"));
         assertThat(repository.findCurrentBaseline(fork).getTagName(), equalTo("baseline-6.2.0"));
 
         String binStart = FileUtils.readFileToString(new File(karafHome, "bin/start"));
@@ -568,7 +710,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         PatchManagement management = (PatchManagement) pm;
 
         Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
-        ((GitPatchManagementServiceImpl)pm).applyUserChanges(fork); // no changes
+        ((GitPatchManagementServiceImpl)pm).applyUserChanges(fork); // no changes, but commit
         repository.prepareCommit(fork, "artificial change, not treated as user change (could be a patch)").call();
         repository.push(fork);
         FileUtils.write(new File(karafHome, "bin/shutdown"), "#!/bin/bash\nexit 42");
@@ -594,13 +736,11 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
                 "[PATCH] Installing patch my-patch-1",
                 "[PATCH] Apply user changes",
                 "artificial change, not treated as user change (could be a patch)",
-                "[PATCH/management] patch-management-1.2.0.jar installed in etc/startup.properties",
-                "[PATCH] Apply user changes",
-                "[PATCH/baseline] baseline-6.2.0 - resetting etc/overrides.properties");
+                "[PATCH] Apply user changes");
 
         int n = 0;
         for (RevCommit c : commits) {
-            String msg = c.getFullMessage();
+            String msg = c.getShortMessage();
             assertThat(msg, equalTo(commitList.get(n++)));
         }
 
@@ -689,8 +829,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         management.install(tx, patch, null);
         management.commitInstallation(tx);
 
-        PatchResult result = new PatchResult(patch.getPatchData());
-        management.rollback(result);
+        management.rollback(patch.getPatchData());
 
         repository.closeRepository(fork, true);
         fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
@@ -747,6 +886,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
      */
     private void freshKarafDistro() throws IOException {
         FileUtils.copyFile(new File("src/test/resources/karaf/etc/startup.properties"), new File(karafHome, "etc/startup.properties"));
+        FileUtils.copyFile(new File("src/test/resources/karaf/bin/admin"), new File(karafHome, "bin/admin"));
         FileUtils.copyFile(new File("src/test/resources/karaf/bin/start"), new File(karafHome, "bin/start"));
         FileUtils.copyFile(new File("src/test/resources/karaf/bin/stop"), new File(karafHome, "bin/stop"));
         FileUtils.copyFile(new File("src/test/resources/karaf/lib/karaf.jar"), new File(karafHome, "lib/karaf.jar"));

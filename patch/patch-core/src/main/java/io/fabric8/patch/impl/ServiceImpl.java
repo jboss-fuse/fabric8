@@ -1023,7 +1023,7 @@ public class ServiceImpl implements Service {
                     PatchManagement pm = patchManagement;
                     applyChanges(toUpdate);
 
-                    pm.rollback(result);
+                    pm.rollback(result.getPatchData());
                 } catch (Exception e) {
                     throw new PatchException("Unable to rollback patch " + patch.getPatchData().getId() + ": " + e.getMessage(), e);
                 }

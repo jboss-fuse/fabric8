@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.Map;
 
 import io.fabric8.patch.management.ManagedPatch;
 import org.eclipse.jgit.api.CommitCommand;
@@ -36,6 +37,7 @@ import org.eclipse.jgit.revwalk.RevTag;
 public interface GitPatchRepository {
 
     public static final DateFormat TS = new SimpleDateFormat("yyyyMMdd-HHmmssSSS");
+    public static final DateFormat FULL_DATE = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     /**
      * Call if needed - when patch manager finds that it should use the repository.
@@ -157,4 +159,17 @@ public interface GitPatchRepository {
      * @return
      */
     ManagedPatch getManagedPatch(String id) throws IOException;
+
+    /**
+     * Iterates the range <code>c1..c2</code> and returns a mapping of tagName -> {@link RevTag} found.
+     *
+     * @param repo
+     * @param c1
+     * @param c2
+     * @return
+     * @throws GitAPIException
+     * @throws IOException
+     */
+    Map<String, RevTag> findTagsBetween(Git repo, RevCommit c1, RevCommit c2) throws GitAPIException, IOException;
+
 }

@@ -52,7 +52,7 @@ public class PatchManagementTest extends PatchTestSupport {
         PatchData data = patches.get(0);
         assertThat(data.getId(), equalTo("my-patch-1"));
         assertThat(data.getBundles().size(), equalTo(1));
-        assertThat(data.getBundles().iterator().next(), equalTo("io/fabric8/fabric-tranquility/1.2.3/fabric-tranquility-1.2.3.jar"));
+        assertThat(data.getBundles().iterator().next(), equalTo("mvn:io.fabric8/fabric-tranquility/1.2.3"));
         assertThat(data.getFiles().size(), equalTo(2));
 
         assertTrue(FileUtils.readFileToString(new File(karafHome, "patches/my-patch-1/bin/start")).contains("echo \"started\"\n"));

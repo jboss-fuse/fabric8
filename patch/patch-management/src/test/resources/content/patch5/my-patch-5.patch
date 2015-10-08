@@ -14,9 +14,7 @@
 #  permissions and limitations under the License.
 #
 
-id = my-patch-1
-file.0 = bin/start
-file.1 = etc/my.properties
-file.count = 2
-bundle.0 = mvn:io.fabric8/fabric-tranquility/1.2.3
+id = my-patch-5
+bundle.0 = mvn:io.fabric8/fabric-zen/1.2.0/war
+bundle.0.range = [1.1,1.2)
 bundle.count = 1

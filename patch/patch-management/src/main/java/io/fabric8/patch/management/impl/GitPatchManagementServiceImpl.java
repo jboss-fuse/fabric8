@@ -44,6 +44,7 @@ import java.util.jar.Manifest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.fabric8.patch.management.Artifact;
 import io.fabric8.patch.management.BundleUpdate;
 import io.fabric8.patch.management.ManagedPatch;
 import io.fabric8.patch.management.Patch;
@@ -64,6 +65,7 @@ import org.eclipse.jgit.api.CherryPickResult;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.MergeCommand;
 import org.eclipse.jgit.api.ResetCommand;
+import org.eclipse.jgit.api.RevertCommand;
 import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffEntry;
@@ -75,14 +77,17 @@ import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevObject;
 import org.eclipse.jgit.revwalk.RevTag;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.transport.RefSpec;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.Version;
+import org.osgi.framework.VersionRange;
 import org.osgi.framework.startlevel.BundleStartLevel;
 
+import static io.fabric8.patch.management.Artifact.isSameButVersion;
 import static io.fabric8.patch.management.Utils.*;
 
 /**
@@ -561,7 +566,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 case ROLLUP: {
                     System.out.printf("Installing rollup patch \"%s\"%n", patch.getPatchData().getId());
                     System.out.flush();
-                    // we can install only one rollup patch withing single transaction
+                    // we can install only one rollup patch within single transaction
                     // and it is equal to cherry-picking all user changes on top of transaction branch
                     // after cherry-picking the commit from the rollup patch branch
                     // rollup patches do their own update to startup.properties
@@ -583,43 +588,69 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             .setNoCommit(true)
                             .call();
 
-                    RevCommit c = gitPatchRepository.prepareCommit(fork,
+                    gitPatchRepository.prepareCommit(fork,
                             String.format(MARKER_R_PATCH_INSTALLATION_PATTERN, patch.getPatchData().getId())).call();
-
-                    // tag the new baseline
-                    String newFuseVersion = determineVersion(fork.getRepository().getWorkTree(), "fuse");
-                    fork.tag()
-                            .setName(String.format("baseline-%s", newFuseVersion))
-                            .setObjectId(c)
-                            .call();
 
                     // next commit - reset overrides.properties - this is 2nd step of installing rollup patch
                     // we are doing it even if the commit is going to be empty - this is the same step as after
                     // creating initial baseline
                     resetOverrides(fork.getRepository().getWorkTree());
                     fork.add().addFilepattern("etc/overrides.properties").call();
-                    gitPatchRepository.prepareCommit(fork,
+                    RevCommit c = gitPatchRepository.prepareCommit(fork,
                             String.format(MARKER_R_PATCH_RESET_OVERRIDES_PATTERN, patch.getPatchData().getId())).call();
 
+                    // tag the new rollup patch as new baseline
+                    String newFuseVersion = determineVersion(fork.getRepository().getWorkTree(), "fuse");
+                    fork.tag()
+                            .setName(String.format("baseline-%s", newFuseVersion))
+                            .setObjectId(c)
+                            .call();
+
                     // reapply those user changes that are not conflicting
+                    // for each conflicting cherry-pick we do a backup of user files, to be able to restore them
+                    // when rollup patch is rolled back
                     ListIterator<RevCommit> it = userChanges.listIterator(userChanges.size());
+                    int prefixSize = Integer.toString(userChanges.size()).length();
+                    int count = 1;
+
                     while (it.hasPrevious()) {
                         RevCommit userChange = it.previous();
+                        String prefix = String.format("%0" + prefixSize + "d-%s", count++, userChange.getName());
                         CherryPickResult result = fork.cherryPick()
                                 .include(userChange)
                                 .setNoCommit(true)
                                 .call();
                         handleCherryPickConflict(patch.getPatchData().getPatchDirectory(), fork, result, userChange,
-                                false, PatchKind.ROLLUP);
+                                false, PatchKind.ROLLUP, prefix, true);
 
-                        if (!fork.status().call().isClean()) {
-                            // only commit if there's a change - user change on top of rollup patch may be resolved
-                            // by dropping entire change
-                            gitPatchRepository.prepareCommit(fork,
-                                    userChange.getFullMessage()).call();
+                        // always commit even empty changes - to be able to restore user changes when rolling back
+                        // rollup patch.
+                        // commit has the original commit id appended to the message.
+                        // when we rebase on OLDER baseline (rollback) we restore backed up files based on this
+                        // commit id (from patches/patch-id.backup/nr-commit directory)
+                        String newMessage = userChange.getFullMessage() + "\n\n";
+                        newMessage += prefix;
+                        gitPatchRepository.prepareCommit(fork, newMessage).call();
 
-                            // we may have unadded changes - when file mode is changed
-                            fork.reset().setMode(ResetCommand.ResetType.HARD).call();
+                        // we may have unadded changes - when file mode is changed
+                        fork.reset().setMode(ResetCommand.ResetType.HARD).call();
+                    }
+
+                    // finally - let's get rid of all the tags related to non-rollup patches installed between
+                    // previous baseline and previous HEAD, because installing rollup patch makes all previous P
+                    // patches obsolete
+                    RevWalk walk = new RevWalk(fork.getRepository());
+                    RevCommit c1 = walk.parseCommit(since);
+                    RevCommit c2 = walk.parseCommit(to);
+                    Map<String, RevTag> tags = gitPatchRepository.findTagsBetween(fork, c1, c2);
+                    for (Map.Entry<String, RevTag> entry : tags.entrySet()) {
+                        if (entry.getKey().startsWith("patch-")) {
+                            fork.tagDelete().setTags(entry.getKey()).call();
+                            fork.push()
+                                    .setRefSpecs(new RefSpec()
+                                            .setSource(null)
+                                            .setDestination("refs/tags/" + entry.getKey()))
+                                    .call();
                         }
                     }
                     break;
@@ -631,17 +662,20 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     // non-rollup patches require manual change to artifact references in all files
 
                     // pick the non-rollup patch
-                    ObjectId commit = fork.getRepository().resolve(patch.getManagedPatch().getCommitId());
+                    RevCommit commit = new RevWalk(fork.getRepository())
+                            .parseCommit(fork.getRepository().resolve(patch.getManagedPatch().getCommitId()));
                     CherryPickResult result = fork.cherryPick()
                             .include(commit)
                             .setNoCommit(true)
                             .call();
                     handleCherryPickConflict(patch.getPatchData().getPatchDirectory(), fork, result, commit,
-                            true, PatchKind.NON_ROLLUP);
+                            true, PatchKind.NON_ROLLUP, null, true);
 
                     // there are several files in ${karaf.home} that need to be changed together with patch
                     // commit, to make them reference updated bundles (paths, locations, ...)
                     updateFileReferences(fork, patch.getPatchData(), bundleUpdatesInThisPatch);
+                    updateOverrides(fork.getRepository().getWorkTree(), patch.getPatchData());
+                    fork.add().addFilepattern(".").call();
 
                     // always commit non-rollup patch
                     RevCommit c = gitPatchRepository.prepareCommit(fork,
@@ -662,6 +696,65 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         } catch (IOException | GitAPIException e) {
             throw new PatchException(e.getMessage(), e);
         }
+    }
+
+    /**
+     * <p>Updates existing <code>etc/overrides.properties</code> after installing single {@link PatchKind#NON_ROLLUP}
+     * patch.</p>
+     * @param workTree
+     * @param patchData
+     */
+    private void updateOverrides(File workTree, PatchData patchData) throws IOException {
+        List<String> currentOverrides = FileUtils.readLines(new File(workTree, "etc/overrides.properties"));
+
+        for (String bundle : patchData.getBundles()) {
+            Artifact artifact = mvnurlToArtifact(bundle, true);
+            if (artifact == null) {
+                continue;
+            }
+
+            // Compute patch bundle version and range
+            VersionRange range;
+            Version oVer = new Version(artifact.getVersion());
+            String vr = patchData.getVersionRange(bundle);
+            String override;
+            if (vr != null && !vr.isEmpty()) {
+                override = bundle + ";range=" + vr;
+                range = new VersionRange(vr);
+            } else {
+                override = bundle;
+                Version v1 = new Version(oVer.getMajor(), oVer.getMinor(), 0);
+                Version v2 = new Version(oVer.getMajor(), oVer.getMinor() + 1, 0);
+                range = new VersionRange(VersionRange.LEFT_CLOSED, v1, v2, VersionRange.RIGHT_OPEN);
+            }
+
+            // Process overrides.properties
+            boolean matching = false;
+            boolean added = false;
+            for (int i = 0; i < currentOverrides.size(); i++) {
+                String line = currentOverrides.get(i).trim();
+                if (!line.isEmpty() && !line.startsWith("#")) {
+                    Artifact overrideArtifact = mvnurlToArtifact(line, true);
+                    if (overrideArtifact != null) {
+                        Version ver = new Version(overrideArtifact.getVersion());
+                        if (isSameButVersion(artifact, overrideArtifact) && range.includes(ver)) {
+                            matching = true;
+                            if (ver.compareTo(oVer) < 0) {
+                                // Replace old override with the new one
+                                currentOverrides.set(i, override);
+                                added = true;
+                            }
+                        }
+                    }
+                }
+            }
+            // If there was not matching bundles, add it
+            if (!matching) {
+                currentOverrides.add(override);
+            }
+        }
+
+        FileUtils.writeLines(new File(workTree, "etc/overrides.properties"), currentOverrides, IOUtils.LINE_SEPARATOR_UNIX);
     }
 
     /**
@@ -690,7 +783,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
         try {
             switch (pendingTransactionsTypes.get(transaction)) {
-                case ROLLUP:
+                case ROLLUP: {
                     // hard reset of master branch to point to transaction branch + apply changes to ${karaf.home}
                     fork.checkout()
                             .setName("master")
@@ -714,20 +807,28 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     // apply changes from single range of commits
                     applyChanges(fork, c1, c2);
                     break;
-                case NON_ROLLUP:
+                }
+                case NON_ROLLUP: {
                     // fast forward merge of master branch with transaction branch
                     fork.checkout()
                             .setName("master")
                             .call();
+                    // current version of ${karaf.home}
+                    RevCommit c1 = new RevWalk(fork.getRepository()).parseCommit(fork.getRepository().resolve("HEAD"));
+
+                    // fast forward over patch-installation branch - possibly over more than 1 commit
                     fork.merge()
                             .setFastForward(MergeCommand.FastForwardMode.FF_ONLY)
                             .include(fork.getRepository().resolve(transaction))
                             .call();
+
                     gitPatchRepository.push(fork);
-                    // apply a change from single commit
-                    RevCommit c = new RevWalk(fork.getRepository()).parseCommit(fork.getRepository().resolve("HEAD"));
-                    applyChanges(fork, c.getParent(0), c);
+
+                    // apply a change from commits of all installed patches
+                    RevCommit c2 = new RevWalk(fork.getRepository()).parseCommit(fork.getRepository().resolve("HEAD"));
+                    applyChanges(fork, c1, c2);
                     break;
+                }
             }
             gitPatchRepository.push(fork);
         } catch (GitAPIException | IOException e) {
@@ -762,32 +863,34 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     @Override
-    public void rollback(PatchResult result) {
+    public void rollback(PatchData patchData) {
         Git fork = null;
         try {
             fork = gitPatchRepository.cloneRepository(gitPatchRepository.findOrCreateMainGitRepository(), true);
             Ref installationBranch = null;
 
-            PatchData patchData = result.getPatchData();
             PatchKind kind = patchData.isRollupPatch() ? PatchKind.ROLLUP : PatchKind.NON_ROLLUP;
 
             switch (kind) {
-                case ROLLUP:
+                case ROLLUP: {
+                    System.out.printf("Rolling back rollup patch \"%s\"%n", patchData.getId());
+                    System.out.flush();
+
                     // rolling back a rollup patch should rebase all user commits on top of current baseline
                     // to previous basline
                     RevTag currentBaseline = gitPatchRepository.findCurrentBaseline(fork);
                     RevCommit c1 = new RevWalk(fork.getRepository())
                             .parseCommit(fork.getRepository().resolve(currentBaseline.getTagName() + "^{commit}"));
+                    // remember the commit to discover P patch tags installed on top of rolledback baseline
+                    RevCommit since = c1;
                     RevCommit c2 = new RevWalk(fork.getRepository())
                             .parseCommit(fork.getRepository().resolve("HEAD"));
+                    RevCommit to = c2;
                     Iterable<RevCommit> masterChangesSinceRollupPatch = fork.log().addRange(c1, c2).call();
                     List<RevCommit> userChanges = new LinkedList<>();
                     for (RevCommit rc : masterChangesSinceRollupPatch) {
                         if (isUserChangeCommit(rc)) {
                             userChanges.add(rc);
-                        } else {
-                            // TODO if it is a commit related to patch tag (non rollup), we have to remove the tag
-                            // to be able to install this patch again on older baseline (prevent tag conflict)
                         }
                     }
 
@@ -809,33 +912,34 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
                     // reapply those user changes that are not conflicting
                     ListIterator<RevCommit> it = userChanges.listIterator(userChanges.size());
+
                     while (it.hasPrevious()) {
                         RevCommit userChange = it.previous();
                         CherryPickResult cpr = fork.cherryPick()
                                 .include(userChange)
                                 .setNoCommit(true)
                                 .call();
-                        // this time prefer usr change on top of previous baselin
+
+                        // this time prefer user change on top of previous baseline - this change shouldn't be
+                        // conflicting, because when rolling back, patch change was preferred over user change
                         handleCherryPickConflict(patchData.getPatchDirectory(), fork, cpr, userChange,
-                                true, PatchKind.ROLLUP);
+                                true, PatchKind.ROLLUP, null, false);
 
-                        if (!fork.status().call().isClean()) {
-                            // only commit if there's a change - user change on top of rollup patch may be resolved
-                            // by dropping entire change
-                            gitPatchRepository.prepareCommit(fork,
-                                    userChange.getFullMessage()).call();
+                        // restore backed up content from the reapplied user change
+                        String[] commitMessage = userChange.getFullMessage().split("\n\n");
+                        if (commitMessage.length > 1) {
+                            // we have original commit that had conflicts stored in this commit's message
+                            String ref = commitMessage[commitMessage.length - 1];
+                            File backupDir = new File(patchesDir, patchData.getId() + ".backup");
+                            backupDir = new File(backupDir, ref);
+                            if (backupDir.exists() && backupDir.isDirectory()) {
+                                System.out.printf("Restoring content of %s", backupDir.getCanonicalPath());
+                                System.out.flush();
+                                copyManagedDirectories(backupDir, karafHome, false);
+                            }
                         }
-                    }
 
-                    if (userChanges.size() == 0) {
-                        // if there are no user changes found above previous rollup patch, maybe when we were
-                        // installing the rollup patch, no user change was cherry-picked because of coflicts?
-                        File backupDir = new File(patchesDir, patchData.getId() + ".backup");
-                        if (backupDir.exists() && backupDir.isDirectory()) {
-                            System.out.printf("Restoring content of %s", backupDir.getCanonicalPath());
-                            System.out.flush();
-                            copyManagedDirectories(backupDir, karafHome, false);
-                        }
+                        gitPatchRepository.prepareCommit(fork, userChange.getFullMessage()).call();
                     }
 
                     gitPatchRepository.push(fork);
@@ -846,13 +950,33 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                                     .setDestination("refs/tags/" + currentBaseline.getTagName()))
                             .call();
 
+                    // remove tags related to non-rollup patches installed between
+                    // rolled back baseline and previous HEAD, because rolling back to previous rollup patch
+                    // (previous baseline) equal effectively to starting from fresh baseline
+                    RevWalk walk = new RevWalk(fork.getRepository());
+                    Map<String, RevTag> tags = gitPatchRepository.findTagsBetween(fork, since, to);
+                    for (Map.Entry<String, RevTag> entry : tags.entrySet()) {
+                        if (entry.getKey().startsWith("patch-")) {
+                            fork.tagDelete().setTags(entry.getKey()).call();
+                            fork.push()
+                                    .setRefSpecs(new RefSpec()
+                                            .setSource(null)
+                                            .setDestination("refs/tags/" + entry.getKey()))
+                                    .call();
+                        }
+                    }
+
                     // HEAD of master branch after reset and cherry-picks
                     c2 = new RevWalk(fork.getRepository())
                             .parseCommit(fork.getRepository().resolve("HEAD"));
                     applyChanges(fork, c1, c2);
 
                     break;
-                case NON_ROLLUP:
+                }
+                case NON_ROLLUP: {
+                    System.out.printf("Rolling back non-rollup patch \"%s\"%n", patchData.getId());
+                    System.out.flush();
+
                     // rolling back a non-rollup patch is a revert of the patch commit and removal of patch tag
 
                     ObjectId oid = fork.getRepository().resolve(String.format("refs/tags/patch-%s^{commit}",
@@ -863,7 +987,42 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     }
                     RevCommit commit = new RevWalk(fork.getRepository()).parseCommit(oid);
 
-                    fork.revert().include(commit).call();
+                    RevertCommand revertCommand = fork.revert().include(commit);
+                    RevCommit reverted = revertCommand.call();
+                    if (reverted == null) {
+                        List<String> unmerged = revertCommand.getUnmergedPaths();
+                        System.out.println("Problem rolling back patch \"" + patchData.getId() + "\". The following files where updated later:");
+                        for (String path : unmerged) {
+                            System.out.println(" - " + path);
+                        }
+                        RevWalk walk = new RevWalk(fork.getRepository());
+                        RevCommit head = walk.parseCommit(fork.getRepository().resolve("HEAD"));
+
+                        Map<String, RevTag> tags = gitPatchRepository.findTagsBetween(fork, commit, head);
+                        List<RevTag> laterPatches = new LinkedList<>();
+                        if (tags.size() > 0) {
+                            for (Map.Entry<String, RevTag> tag : tags.entrySet()) {
+                                if (tag.getKey().startsWith("patch-")) {
+                                    laterPatches.add(tag.getValue());
+                                }
+                            }
+                            System.out.println("The following patches were installed after \"" + patchData.getId() + "\":");
+                            for (RevTag t : laterPatches) {
+                                System.out.print(" - " + t.getTagName().substring("patch-".length()));
+                                RevObject object = walk.peel(t);
+                                if (object != null) {
+                                    RevCommit c = walk.parseCommit(object.getId());
+                                    String date = GitPatchRepository.FULL_DATE.format(new Date(c.getCommitTime() * 1000L));
+                                    System.out.print(" (" + date + ")");
+                                }
+                                System.out.println();
+                            }
+                        }
+                        System.out.flush();
+                        return;
+                    }
+
+                    // TODO: should we restore the backup possibly created when instalilng P patch?
 
                     // remove the tag
                     fork.tagDelete()
@@ -879,11 +1038,12 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             .call();
 
                     // HEAD of master branch after reset and cherry-picks
-                    c2 = new RevWalk(fork.getRepository())
+                    RevCommit c = new RevWalk(fork.getRepository())
                             .parseCommit(fork.getRepository().resolve("HEAD"));
-                    applyChanges(fork, c2.getParent(0), c2);
+                    applyChanges(fork, c.getParent(0), c);
 
                     break;
+                }
             }
         } catch (IOException | GitAPIException e) {
             throw new PatchException(e.getMessage(), e);
@@ -903,9 +1063,12 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * @param commit conflicting commit
      * @param preferNew whether to use "theirs" change - the one from cherry-picked commit. for rollup patch, "theirs"
      * is user change, for non-rollup change, "theirs" is custom change
+     * @param kind
+     * @param cpPrefix prefix for a cherry-pick to have nice backup directory names.
+     * @param performBackup if <code>true</code>, we backup rejected version (should be false during rollback of patches)
      */
-    protected void handleCherryPickConflict(File patchDirectory, Git fork, CherryPickResult result, ObjectId commit,
-                                            boolean preferNew, PatchKind kind)
+    protected void handleCherryPickConflict(File patchDirectory, Git fork, CherryPickResult result, RevCommit commit,
+                                            boolean preferNew, PatchKind kind, String cpPrefix, boolean performBackup)
             throws GitAPIException, IOException {
         if (result.getStatus() == CherryPickResult.CherryPickStatus.CONFLICTING) {
             System.out.println("Problem with applying the change " + commit.getName() + ":");
@@ -938,13 +1101,15 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     ObjectLoader loader = fork.getRepository().newObjectReader().open(entry.getObjectId());
                     loader.copyTo(new FileOutputStream(new File(fork.getRepository().getWorkTree(), entry.getPathString())));
                     fork.add().addFilepattern(entry.getPathString()).call();
-                } else {
+                } else if (performBackup) {
                     // the other entry should be backed up
                     ObjectLoader loader = fork.getRepository().newObjectReader().open(entry.getObjectId());
                     File target = new File(patchDirectory.getParent(), patchDirectory.getName() + ".backup");
+                    if (cpPrefix != null) {
+                        target = new File(target, cpPrefix);
+                    }
                     File file = new File(target, entry.getPathString());
-                    System.out.printf("Backing up %s to \"%s\"%n",
-                            backup, file.getCanonicalPath());
+                    System.out.printf("Backing up %s to \"%s\"%n", backup, file.getCanonicalPath());
                     file.getParentFile().mkdirs();
                     loader.copyTo(new FileOutputStream(file));
                 }
@@ -1047,7 +1212,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         BufferedReader reader = null;
         StringWriter sw = new StringWriter();
         try {
-            System.out.println("[PATCH] Updating \"" + updatedFile.getCanonicalPath());
+            System.out.println("[PATCH] Updating \"" + file + "\"");
             reader = new BufferedReader(new FileReader(updatedFile));
             String line = null;
             while ((line = reader.readLine()) != null) {
@@ -1115,7 +1280,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * @return
      */
     protected boolean isUserChangeCommit(RevCommit rc) {
-        return MARKER_USER_CHANGES_COMMIT.equals(rc.getFullMessage());
+        return MARKER_USER_CHANGES_COMMIT.equals(rc.getShortMessage());
     }
 
     /**
@@ -1181,10 +1346,10 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     trackBaselineRepository(fork);
                     // fall down the next case, don't break!
                 case INSTALL_PATCH_MANAGEMENT_BUNDLE:
-                    // add possible user changes since the distro was first run
-                    applyUserChanges(fork);
                     // install patch management bundle in etc/startup.properties to overwrite possible user change to that file
                     installPatchManagementBundle(fork);
+                    // add possible user changes since the distro was first run
+                    applyUserChanges(fork);
                     break;
                 case ADD_USER_CHANGES:
                     // because patch management is already installed, we have to add consecutive (post patch-management installation) changes
@@ -1310,11 +1475,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             git.add()
                     .addFilepattern(".")
                     .call();
-            RevCommit commit = gitPatchRepository.prepareCommit(git, String.format(MARKER_BASELINE_COMMIT_PATTERN, currentFuseVersion)).call();
-            git.tag()
-                    .setName(String.format("baseline-%s", currentFuseVersion))
-                    .setObjectId(commit)
-                    .call();
+            gitPatchRepository.prepareCommit(git, String.format(MARKER_BASELINE_COMMIT_PATTERN, currentFuseVersion)).call();
 
             // each baseline ships new feature repositories and from this point (or the point where new rollup patch
             // is installed) we should start with 0-sized overrides.properties in order to have easier non-rollup
@@ -1323,10 +1484,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             // than it was installed)
             resetOverrides(git.getRepository().getWorkTree());
             git.add().addFilepattern("etc/overrides.properties").call();
-            gitPatchRepository.prepareCommit(git,
+            RevCommit commit = gitPatchRepository.prepareCommit(git,
                     String.format(MARKER_BASELINE_RESET_OVERRIDES_PATTERN, currentFuseVersion)).call();
-
-            gitPatchRepository.push(git);
         } else {
             String message = "Can't find baseline distribution for version \"" + currentFuseVersion + "\" in patches dir or inside system repository.";
             System.err.println("[PATCH-error] " + message);
@@ -1504,6 +1663,14 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             RevCommit commit = gitPatchRepository
                     .prepareCommit(git, String.format(MARKER_PATCH_MANAGEMENT_INSTALLATION_COMMIT_PATTERN, bundleVersion))
                     .call();
+
+            // and we'll tag the baseline *after* clearing etc/overrides.properties
+            String currentFuseVersion = determineVersion("fuse");
+            git.tag()
+                    .setName(String.format("baseline-%s", currentFuseVersion))
+                    .setObjectId(commit)
+                    .call();
+
             gitPatchRepository.push(git);
 
             // "checkout" the above change in main "working copy" (${karaf.home})

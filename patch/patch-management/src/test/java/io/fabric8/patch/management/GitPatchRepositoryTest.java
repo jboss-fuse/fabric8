@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 import io.fabric8.patch.management.impl.GitPatchRepository;
@@ -150,6 +151,34 @@ public class GitPatchRepositoryTest {
         RevTag t3 = rw.parseTag(repo.getRepository().getRef("t3").getObjectId());
         assertThat(t1.getObject().getId(), equalTo(c1.getId()));
         assertThat(t3.getObject().getId(), equalTo(c3.getId()));
+    }
+
+    @Test
+    public void findTags() throws Exception {
+        Git repo = repository.findOrCreateGitRepository(new File(patchesHome, "r2"), false);
+        RevCommit c1 = repository.prepareCommit(repo, "commit1").call();
+        RevCommit c2 = repository.prepareCommit(repo, "commit2").call();
+        RevCommit c3 = repository.prepareCommit(repo, "commit3").call();
+        RevCommit c4 = repository.prepareCommit(repo, "commit4").call();
+        RevCommit c5 = repository.prepareCommit(repo, "commit5").call();
+        RevCommit c6 = repository.prepareCommit(repo, "commit6").call();
+        RevCommit c7 = repository.prepareCommit(repo, "commit7").call();
+        RevCommit c8 = repository.prepareCommit(repo, "commit8").call();
+        RevCommit c9 = repository.prepareCommit(repo, "commit9").call();
+
+        repo.tag().setName("t1").setObjectId(c1).call();
+        repo.tag().setName("t3a").setObjectId(c3).call();
+        repo.tag().setName("t3b").setObjectId(c3).call();
+
+        Map<String, RevTag> tags = repository.findTagsBetween(repo, c1.getParent(0), c9);
+        assertThat(tags.get("t1").getTagName(), equalTo("t1"));
+        assertThat(tags.get("t3a").getTagName(), equalTo("t3a"));
+        assertThat(tags.get("t3b").getTagName(), equalTo("t3b"));
+        assertThat(tags.size(), equalTo(3));
+
+        assertThat(repo.getRepository().resolve(tags.get("t1").getName() + "^{commit}"), equalTo(c1.getId()));
+        assertThat(repo.getRepository().resolve(tags.get("t3a").getName() + "^{commit}"), equalTo(c3.getId()));
+        assertThat(repo.getRepository().resolve(tags.get("t3b").getName() + "^{commit}"), equalTo(c3.getId()));
     }
 
     @Test

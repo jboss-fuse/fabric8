@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -332,6 +333,31 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
         mp.setCommitId(commitId.getName());
 
         return mp;
+    }
+
+    @Override
+    public Map<String, RevTag> findTagsBetween(Git git, RevCommit c1, RevCommit c2) throws GitAPIException, IOException {
+        Map<ObjectId, List<RevTag>> reverseReferences = new HashMap<>();
+        RevWalk walk = new RevWalk(git.getRepository());
+        for (Ref t : git.tagList().call()) {
+            Ref peeled = git.getRepository().peel(t);
+            if (peeled != null && peeled.getPeeledObjectId() != null) {
+                if (!reverseReferences.containsKey(peeled.getPeeledObjectId())) {
+                    reverseReferences.put(peeled.getPeeledObjectId(), new LinkedList<RevTag>());
+                }
+                reverseReferences.get(peeled.getPeeledObjectId()).add(walk.parseTag(t.getObjectId()));
+            }
+        }
+        Map<String, RevTag> result = new HashMap<>();
+        Iterable<RevCommit> commits = git.log().addRange(c1, c2).call();
+        for (RevCommit commit : commits) {
+            if (reverseReferences.containsKey(commit.getId())) {
+                for (RevTag tag : reverseReferences.get(commit.getId())) {
+                    result.put(tag.getTagName(), tag);
+                }
+            }
+        }
+        return result;
     }
 
 }

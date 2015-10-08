@@ -92,8 +92,8 @@ public interface PatchManagement {
     /**
      * <p>Rolling back a patch (which is different that rolling back transaction for patches installation) is
      * a matter of restoring to previous point in history</p>
-     * @param result
+     * @param patchData
      */
-    void rollback(PatchResult result);
+    void rollback(PatchData patchData);
 
 }
