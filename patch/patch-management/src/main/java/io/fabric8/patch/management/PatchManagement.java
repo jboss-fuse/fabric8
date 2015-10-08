@@ -71,8 +71,9 @@ public interface PatchManagement {
      * <p>This won't affect ${karaf.home} until we {@link #commitInstallation(String) commit the installation}.</p>
      * @param transaction
      * @param patch
+     * @param bundleUpdatesInThisPatch
      */
-    void install(String transaction, Patch patch);
+    void install(String transaction, Patch patch, List<BundleUpdate> bundleUpdatesInThisPatch);
 
     /**
      * <p>After successful patch(es) installation, we commit the transaction = do a fast forward merge

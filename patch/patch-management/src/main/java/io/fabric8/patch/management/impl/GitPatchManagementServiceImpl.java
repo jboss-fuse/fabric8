@@ -15,12 +15,16 @@
  */
 package io.fabric8.patch.management.impl;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringWriter;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.attribute.PosixFileAttributeView;
@@ -35,9 +39,12 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.jar.JarInputStream;
+import java.util.jar.Manifest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.fabric8.patch.management.BundleUpdate;
 import io.fabric8.patch.management.ManagedPatch;
 import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.management.PatchData;
@@ -72,6 +79,7 @@ import org.eclipse.jgit.revwalk.RevTag;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.transport.RefSpec;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.Constants;
 import org.osgi.framework.Version;
 import org.osgi.framework.startlevel.BundleStartLevel;
 
@@ -92,13 +100,21 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     private static final Pattern VERSION_PATTERN =
             Pattern.compile("patch-management-(\\d+\\.\\d+\\.\\d+(?:\\.[^\\.]+)?)\\.jar");
 
-    /** A pattern of commit message when adding baseling distro */
-    private static final String MARKER_BASELINE_COMMIT_PATTERN = "[PATCH/baseline] jboss-fuse-full-%s-baseline";
+    /* A pattern of commit message when adding baseling distro */
+    private static final String MARKER_BASELINE_COMMIT_PATTERN = "[PATCH/baseline] Installing baseline-%s";
+    private static final String MARKER_BASELINE_RESET_OVERRIDES_PATTERN = "[PATCH/baseline] baseline-%s - resetting etc/overrides.properties";
+
+    /* Patterns for rolling patch installation */
     private static final String MARKER_R_PATCH_INSTALLATION_PATTERN = "[PATCH] Installing rollup patch %s";
+    private static final String MARKER_R_PATCH_RESET_OVERRIDES_PATTERN = "[PATCH] Rollup patch %s - resetting etc/overrides.properties";
+
+    /* Patterns for non-rolling patch installation */
     private static final String MARKER_P_PATCH_INSTALLATION_PATTERN = "[PATCH] Installing patch %s";
+
     /** A pattern of commit message when installing patch-management (this) bundle in etc/startup.properties */
     private static final String MARKER_PATCH_MANAGEMENT_INSTALLATION_COMMIT_PATTERN =
             "[PATCH/management] patch-management-%s.jar installed in etc/startup.properties";
+
     /** Commit message when applying user changes to managed directories */
     private static final String MARKER_USER_CHANGES_COMMIT = "[PATCH] Apply user changes";
 
@@ -502,16 +518,18 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
             switch (kind) {
                 case ROLLUP:
-                    // create temporary branch from the current baseline
+                    // create temporary branch from the current baseline - rollup patch installation is a rebase
+                    // of existing user changes on top of new baseline
                     RevTag currentBaseline = gitPatchRepository.findCurrentBaseline(fork);
                     installationBranch = fork.checkout()
                             .setName(String.format("patch-install-%s", GitPatchRepository.TS.format(new Date())))
                             .setCreateBranch(true)
-                            .setStartPoint(currentBaseline.getName() + "^{commit}")
+                            .setStartPoint(currentBaseline.getTagName() + "^{commit}")
                             .call();
                     break;
                 case NON_ROLLUP:
-                    // create temporary branch from master/HEAD
+                    // create temporary branch from master/HEAD - non-rollup patch installation is cherry-pick
+                    // of non-rollup patch commit over existing user changes - we can fast forward when finished
                     installationBranch = fork.checkout()
                             .setName(String.format("patch-install-%s", GitPatchRepository.TS.format(new Date())))
                             .setCreateBranch(true)
@@ -534,7 +552,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     @Override
-    public void install(String transaction, Patch patch) {
+    public void install(String transaction, Patch patch, List<BundleUpdate> bundleUpdatesInThisPatch) {
         transactionIsValid(transaction, patch);
 
         Git fork = pendingTransactions.get(transaction);
@@ -564,6 +582,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             .include(fork.getRepository().resolve(patch.getManagedPatch().getCommitId()))
                             .setNoCommit(true)
                             .call();
+
                     RevCommit c = gitPatchRepository.prepareCommit(fork,
                             String.format(MARKER_R_PATCH_INSTALLATION_PATTERN, patch.getPatchData().getId())).call();
 
@@ -573,6 +592,14 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             .setName(String.format("baseline-%s", newFuseVersion))
                             .setObjectId(c)
                             .call();
+
+                    // next commit - reset overrides.properties - this is 2nd step of installing rollup patch
+                    // we are doing it even if the commit is going to be empty - this is the same step as after
+                    // creating initial baseline
+                    resetOverrides(fork.getRepository().getWorkTree());
+                    fork.add().addFilepattern("etc/overrides.properties").call();
+                    gitPatchRepository.prepareCommit(fork,
+                            String.format(MARKER_R_PATCH_RESET_OVERRIDES_PATTERN, patch.getPatchData().getId())).call();
 
                     // reapply those user changes that are not conflicting
                     ListIterator<RevCommit> it = userChanges.listIterator(userChanges.size());
@@ -612,7 +639,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     handleCherryPickConflict(patch.getPatchData().getPatchDirectory(), fork, result, commit,
                             true, PatchKind.NON_ROLLUP);
 
-                    // always commit non-rollup patch - even if there are no changes to files (only bundles)
+                    // there are several files in ${karaf.home} that need to be changed together with patch
+                    // commit, to make them reference updated bundles (paths, locations, ...)
+                    updateFileReferences(fork, patch.getPatchData(), bundleUpdatesInThisPatch);
+
+                    // always commit non-rollup patch
                     RevCommit c = gitPatchRepository.prepareCommit(fork,
                         String.format(MARKER_P_PATCH_INSTALLATION_PATTERN, patch.getPatchData().getId())).call();
 
@@ -633,6 +664,24 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         }
     }
 
+    /**
+     * <p>Creates/truncates <code>etc/overrides.properties</code></p>
+     * <p>Each baseline ships new feature repositories and from this point (or the point where new rollup patch
+     * is installed) we should start with 0-sized overrides.properties in order to have easier non-rollup
+     * patch installation - P-patch should not ADD overrides.properties - they have to only MODIFY it because
+     * it's easier to revert such modification (in case P-patch is rolled back - probably in different order
+     * than it was installed)</p>
+     * @param karafHome
+     * @throws IOException
+     */
+    private void resetOverrides(File karafHome) throws IOException {
+        File overrides = new File(karafHome, "etc/overrides.properties");
+        if (overrides.isFile()) {
+            overrides.delete();
+        }
+        overrides.createNewFile();
+    }
+
     @Override
     public void commitInstallation(String transaction) {
         transactionIsValid(transaction, null);
@@ -648,7 +697,6 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             .call();
 
                     // before we reset master to originate from new baseline, let's find previous baseline
-                    // apply changes from single range of commits
                     RevTag baseline = gitPatchRepository.findCurrentBaseline(fork);
                     RevCommit c1 = new RevWalk(fork.getRepository())
                             .parseCommit(fork.getRepository().resolve(baseline.getTagName() + "^{commit}"));
@@ -662,6 +710,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
                     RevCommit c2 = new RevWalk(fork.getRepository())
                             .parseCommit(fork.getRepository().resolve("HEAD"));
+
+                    // apply changes from single range of commits
                     applyChanges(fork, c1, c2);
                     break;
                 case NON_ROLLUP:
@@ -904,6 +954,162 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     /**
+     * Very important method - {@link PatchKind#NON_ROLLUP non rollup patches} do not ship such files as
+     * <code>etc/startup.properties</code>, but we <strong>have to</strong> update references to artifacts from those
+     * files to point them to updated bundles.
+     * Also we have to update/add <code>etc/overrides.properties</code> to have features working.
+     * @param fork
+     * @param patchData
+     * @param bundleUpdatesInThisPatch
+     */
+    private void updateFileReferences(Git fork, PatchData patchData, List<BundleUpdate> bundleUpdatesInThisPatch) {
+        if (patchData.isRollupPatch()) {
+            return;
+        }
+
+        /*
+         * we generally have a white list of files to update. We'll update them line by line if needed
+         * these are the files & patterns to change:
+         * bin/admin, bin/admin.bat, bin/client, bin/client.bat:
+         *  - system/MAVEN_LOCATION (or \ in *.bat files)
+         * etc/config.properties:
+         *  - ${karaf.default.repository}/MAVEN_LOCATION
+         *  - org.apache.karaf.jaas.boot;version="2.4.0.redhat-620133", \
+         *  - org.apache.karaf.jaas.boot.principal;version="2.4.0.redhat-620133", \
+         *  - org.apache.karaf.management.boot;version="2.4.0.redhat-620133", \
+         *  - org.apache.karaf.version;version="2.4.0.redhat-620133", \
+         *  - org.apache.karaf.diagnostic.core;version="2.4.0.redhat-620133", \
+         *  these are the versions exported from lib/karaf.jar and this may be changed by non-rollup patch too...
+         * etc/startup.properties:
+         *  - MAVEN_LOCATION
+         * etc/org.apache.karaf.features.cfg:
+         *  - don't touch that file. NON-ROLLUP patches handle features using etc/overrides.properties and ROLLUP
+         *  patches overwrite this file
+         */
+
+        Map<String, String> locationUpdates = Utils.collectLocationUpdates(bundleUpdatesInThisPatch);
+
+        // update some files in generic way
+        updateReferences(fork, "bin/admin", "system/", locationUpdates);
+        updateReferences(fork, "bin/client", "system/", locationUpdates);
+        updateReferences(fork, "etc/startup.properties", "", locationUpdates);
+        updateReferences(fork, "bin/admin.bat", "system/", locationUpdates, true);
+        updateReferences(fork, "bin/client.bat", "system/", locationUpdates, true);
+        updateReferences(fork, "etc/config.properties", "${karaf.default.repository}/", locationUpdates);
+
+        // update system karaf package versions in etc/config.properties
+        File configProperties = new File(fork.getRepository().getWorkTree(), "etc/config.properties");
+        for (String file : patchData.getFiles()) {
+            if ("lib/karaf.jar".equals(file)) {
+                // update:
+                //  - org.apache.karaf.version;version="2.4.0.redhat-620133", \
+                String newVersion = getBundleVersion(new File(fork.getRepository().getWorkTree(), file));
+                updateKarafPackageVersion(configProperties, newVersion, "org.apache.karaf.version");
+            } else if ("lib/karaf-jaas-boot.jar".equals(file)) {
+                // update:
+                //  - org.apache.karaf.jaas.boot;version="2.4.0.redhat-620133", \
+                //  - org.apache.karaf.jaas.boot.principal;version="2.4.0.redhat-620133", \
+                String newVersion = getBundleVersion(new File(fork.getRepository().getWorkTree(), file));
+                updateKarafPackageVersion(configProperties, newVersion,
+                        "org.apache.karaf.jaas.boot",
+                        "org.apache.karaf.jaas.boot.principal");
+            } else if ("lib/karaf-jmx-boot.jar".equals(file)) {
+                // update:
+                //  - org.apache.karaf.management.boot;version="2.4.0.redhat-620133", \
+                String newVersion = getBundleVersion(new File(fork.getRepository().getWorkTree(), file));
+                updateKarafPackageVersion(configProperties, newVersion, "org.apache.karaf.management.boot");
+            } else if (file.startsWith("lib/org.apache.karaf.diagnostic.core-") && file.endsWith(".jar")) {
+                // update:
+                //  - org.apache.karaf.diagnostic.core;version="2.4.0.redhat-620133", \
+                String newVersion = getBundleVersion(new File(fork.getRepository().getWorkTree(), file));
+                updateKarafPackageVersion(configProperties, newVersion, "org.apache.karaf.diagnostic.core");
+            }
+        }
+
+        // update etc/overrides.properties
+    }
+
+    /**
+     * Changes prefixed references (to artifacts in <code>${karaf.default.repository}</code>) according to
+     * a list of bundle updates.
+     * @param fork
+     * @param file
+     * @param prefix
+     * @param locationUpdates
+     * @param useBackSlash
+     */
+    protected void updateReferences(Git fork, String file, String prefix, Map<String, String> locationUpdates, boolean useBackSlash) {
+        File updatedFile = new File(fork.getRepository().getWorkTree(), file);
+        if (!updatedFile.isFile()) {
+            return;
+        }
+
+        BufferedReader reader = null;
+        StringWriter sw = new StringWriter();
+        try {
+            System.out.println("[PATCH] Updating \"" + updatedFile.getCanonicalPath());
+            reader = new BufferedReader(new FileReader(updatedFile));
+            String line = null;
+            while ((line = reader.readLine()) != null) {
+                for (Map.Entry<String, String> entry : locationUpdates.entrySet()) {
+                    String pattern = prefix + entry.getKey();
+                    String replacement = prefix + entry.getValue();
+                    if (useBackSlash) {
+                        pattern = pattern.replaceAll("/", "\\\\");
+                        replacement = replacement.replaceAll("/", "\\\\");
+                    }
+                    if (line.contains(pattern)) {
+                        line = line.replace(pattern, replacement);
+                    }
+                }
+                sw.append(line);
+                if (useBackSlash) {
+                    // Assume it's .bat file
+                    sw.append("\r");
+                }
+                sw.append("\n");
+            }
+            IOUtils.closeQuietly(reader);
+            FileUtils.write(updatedFile, sw.toString());
+        } catch (Exception e) {
+            System.err.println("[PATCH-error] " + e.getMessage());
+        } finally {
+            IOUtils.closeQuietly(reader);
+        }
+    }
+
+    /**
+     * Changes prefixed references (to artifacts in <code>${karaf.default.repository}</code>) according to
+     * a list of bundle updates.
+     * @param fork
+     * @param file
+     * @param prefix
+     * @param locationUpdates
+     */
+    private void updateReferences(Git fork, String file, String prefix, Map<String, String> locationUpdates) {
+        updateReferences(fork, file, prefix, locationUpdates, false);
+    }
+
+    /**
+     * Retrieves <code>Bundle-Version</code> header from JAR file
+     * @param file
+     * @return
+     * @throws FileNotFoundException
+     */
+    private String getBundleVersion(File file) {
+        JarInputStream jis = null;
+        try {
+            jis = new JarInputStream(new FileInputStream(file));
+            Manifest mf = jis.getManifest();
+            return mf.getMainAttributes().getValue(Constants.BUNDLE_VERSION);
+        } catch (Exception e) {
+            return null;
+        } finally {
+            IOUtils.closeQuietly(jis);
+        }
+    }
+
+    /**
      * Checks if the commit is user (non P-patch installation) change
      * @param rc
      * @return
@@ -1100,6 +1306,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         }
         if (baselineDistribution != null) {
             unpack(baselineDistribution, git.getRepository().getWorkTree(), 1);
+
             git.add()
                     .addFilepattern(".")
                     .call();
@@ -1108,6 +1315,17 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     .setName(String.format("baseline-%s", currentFuseVersion))
                     .setObjectId(commit)
                     .call();
+
+            // each baseline ships new feature repositories and from this point (or the point where new rollup patch
+            // is installed) we should start with 0-sized overrides.properties in order to have easier non-rollup
+            // patch installation - no P-patch should ADD overrides.properties - they have to only MODIFY it because
+            // it's easier to revert such modification (in case P-patch is rolled back - probably in different order
+            // than it was installed)
+            resetOverrides(git.getRepository().getWorkTree());
+            git.add().addFilepattern("etc/overrides.properties").call();
+            gitPatchRepository.prepareCommit(git,
+                    String.format(MARKER_BASELINE_RESET_OVERRIDES_PATTERN, currentFuseVersion)).call();
+
             gitPatchRepository.push(git);
         } else {
             String message = "Can't find baseline distribution for version \"" + currentFuseVersion + "\" in patches dir or inside system repository.";
@@ -1118,8 +1336,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     /**
-     * Applies existing user changes in ${karaf.home}/{bin,etc,fabric,lib,licenses,metatype} directories to patch
-     * management Git repository, doesn't modify ${karaf.home}
+     * <p>Applies existing user changes in ${karaf.home}/{bin,etc,fabric,lib,licenses,metatype} directories to patch
+     * management Git repository, doesn't modify ${karaf.home}</p>
+     * <p>TODO: Maybe we should ask user whether the change was intended or not? blacklist some changes?</p>
      * @param git non-bare repository to perform the operation
      */
     public void applyUserChanges(Git git) throws GitAPIException, IOException {
@@ -1130,8 +1349,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             // let's simply copy all user files on top of git working copy
             // then we can check the differences simply by committing the changes
             // there should be no conflicts, because we're not merging anything
-            // "true" means that target dir is first deleted to detect removal of files
-            copyManagedDirectories(karafBase, wcDir, true);
+            // "true" would mean that target dir is first deleted to detect removal of files
+            copyManagedDirectories(karafBase, wcDir, false);
 
             // commit the changes to main repository
             Status status = git.status().call();
@@ -1140,12 +1359,13 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 git.add()
                         .addFilepattern(".")
                         .call();
-                // TODO: maybe we should not track deletes?
-                for (String name : status.getMissing()) {
-                    git.rm()
-                            .addFilepattern(name)
-                            .call();
-                }
+
+                // let's not do removals when tracking user changes. if we do, cherry-picking user changes over
+                // a rollup patch that introduced new file would simply
+//                for (String name : status.getMissing()) {
+//                    git.rm().addFilepattern(name).call();
+//                }
+
                 gitPatchRepository.prepareCommit(git, MARKER_USER_CHANGES_COMMIT).call();
                 gitPatchRepository.push(git);
 
@@ -1264,7 +1484,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 }
             }
         }
-        if (modified && !installed) {
+        if (modified || !installed) {
             newVersion.add("");
             newVersion.add("# installed by patch-management");
             newVersion.add(String.format("io/fabric8/patch/patch-management/%s/patch-management-%s.jar=%d",
@@ -1281,7 +1501,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     .addFilepattern("etc/startup.properties")
                     .call();
 
-            RevCommit commit = gitPatchRepository.prepareCommit(git, String.format(MARKER_PATCH_MANAGEMENT_INSTALLATION_COMMIT_PATTERN, bundleVersion)).call();
+            RevCommit commit = gitPatchRepository
+                    .prepareCommit(git, String.format(MARKER_PATCH_MANAGEMENT_INSTALLATION_COMMIT_PATTERN, bundleVersion))
+                    .call();
             gitPatchRepository.push(git);
 
             // "checkout" the above change in main "working copy" (${karaf.home})
@@ -1293,13 +1515,14 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     /**
-     * <p>This method takes a range of commits (<code>c1..c2</code>(and performs manual update to ${karaf.home}.
+     * <p>This method takes a range of commits (<code>c1..c2</code>) and performs manual update to ${karaf.home}.
      * If ${karaf.home} was also a checked out working copy, it'd be a matter of <code>git pull</code>. We may consider
      * this implementation, but now I don't want to keep <code>.git</code> directory in ${karaf.home}. Also, jgit
      * doesn't support <code>.git</code> <em>platform agnostic symbolic link</em>
      * (see: <code>git init --separate-git-dir</code>)</p>
      * <p>We don't have to fetch data from repository blobs, because <code>git</code> still points to checked-out
      * working copy</p>
+     * <p>TODO: maybe we just have to copy <strong>all</strong> files from working copy to ${karaf.home}?</p>
      * @param git
      * @param commit1
      * @param commit2
@@ -1341,7 +1564,15 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         targetPath = "lib.next/" + newPath.substring(4);
                         libDirectoryChanged = true;
                     }
-                    FileUtils.copyFile(new File(wcDir, newPath), new File(karafHome, targetPath));
+                    File srcFile = new File(wcDir, newPath);
+                    File destFile = new File(karafHome, targetPath);
+                    // we do exception for etc/overrides.properties
+                    if ("etc/overrides.properties".equals(newPath)
+                            && srcFile.exists() && srcFile.length() == 0) {
+                        FileUtils.deleteQuietly(destFile);
+                    } else {
+                        FileUtils.copyFile(srcFile, destFile);
+                    }
                     break;
                 case DELETE:
                     System.out.println("[PATCH-change] Deleting " + oldPath);

@@ -350,7 +350,7 @@ public class ServiceImpl implements Service {
 
                 // each patch may change files, we're not updating the main files yet - it'll be done when
                 // install transaction is committed
-                patchManagement.install(transaction, patch);
+                patchManagement.install(transaction, patch, bundleUpdatesInThisPatch);
 
                 // each patch may ship a migrator
                 installMigratorBundle(patch);
@@ -640,8 +640,8 @@ public class ServiceImpl implements Service {
                         if ("org.ops4j.pax.url.mvn".equals(stripSymbolicName(sn))) {
                             Artifact artifact = Utils.mvnurlToArtifact(newLocation, true);
                             URL location = new File(repository,
-                                    String.format("org/ops4j/pax/url/pax-url-aether/%s/pax-url-aether-%s.jar",
-                                            artifact.getVersion(), artifact.getVersion())).toURI().toURL();
+                                    String.format("org/ops4j/pax/url/pax-url-aether/%1$s/pax-url-aether-%1$s.jar",
+                                            artifact.getVersion())).toURI().toURL();
                             newLocation = location.toString();
                         }
                         BundleUpdate update = new BundleUpdate(sn, newVersion.toString(), newLocation,

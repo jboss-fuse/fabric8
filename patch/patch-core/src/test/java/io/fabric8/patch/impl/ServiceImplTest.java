@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -571,7 +572,7 @@ public class ServiceImplTest {
                 return "tx";
             }
             @Override
-            public void install(String transaction, Patch patch) {
+            public void install(String transaction, Patch patch, List<BundleUpdate> bundleUpdatesInThisPatch) {
             }
             @Override
             public void rollbackInstallation(String transaction) {

@@ -424,7 +424,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         Patch patch = management.trackPatch(patches.get(0));
 
         String tx = management.beginInstallation(PatchKind.ROLLUP);
-        management.install(tx, patch);
+        management.install(tx, patch, null);
 
         @SuppressWarnings("unchecked")
         Map<String, Git> transactions = (Map<String, Git>) getField(management, "pendingTransactions");
@@ -444,7 +444,10 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
          *  - bin/start: BOTH_MODIFIED
          * Choosing "ours" change
          */
-        List<String> commitList = Arrays.asList("[PATCH] Apply user changes", "[PATCH] Installing rollup patch patch-4");
+        List<String> commitList = Arrays.asList(
+                "[PATCH] Apply user changes",
+                "[PATCH] Rollup patch patch-4 - resetting etc/overrides.properties",
+                "[PATCH] Installing rollup patch patch-4");
 
         int n = 0;
         for (RevCommit c : commits) {
@@ -473,7 +476,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         ObjectId master1 = fork.getRepository().resolve("master");
 
         String tx = management.beginInstallation(PatchKind.ROLLUP);
-        management.install(tx, patch);
+        management.install(tx, patch, null);
         management.rollbackInstallation(tx);
 
         fork.pull().call();
@@ -498,7 +501,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         ObjectId master1 = fork.getRepository().resolve("master");
 
         String tx = management.beginInstallation(PatchKind.ROLLUP);
-        management.install(tx, patch);
+        management.install(tx, patch, null);
         management.commitInstallation(tx);
 
         repository.closeRepository(fork, true);
@@ -519,6 +522,9 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         String oldBinStart = FileUtils.readFileToString(new File(karafHome, "patches/patch-4.backup/bin/start"));
         assertTrue("bin/start should be backed up",
                 oldBinStart.contains("echo \"This is user's change\""));
+
+        assertFalse("There should be no etc/overrides.properties after installing rollup patch",
+                new File(karafHome, "etc/overrides.properties").exists());
     }
 
     @Test
@@ -535,7 +541,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         ObjectId master1 = fork.getRepository().resolve("master");
 
         String tx = management.beginInstallation(PatchKind.ROLLUP);
-        management.install(tx, patch);
+        management.install(tx, patch, null);
         management.commitInstallation(tx);
 
         PatchResult result = new PatchResult(patch.getPatchData());
@@ -574,7 +580,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         Patch patch = management.trackPatch(patches.get(0));
 
         String tx = management.beginInstallation(PatchKind.NON_ROLLUP);
-        management.install(tx, patch);
+        management.install(tx, patch, null);
 
         @SuppressWarnings("unchecked")
         Map<String, Git> transactions = (Map<String, Git>) getField(management, "pendingTransactions");
@@ -588,7 +594,9 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
                 "[PATCH] Installing patch my-patch-1",
                 "[PATCH] Apply user changes",
                 "artificial change, not treated as user change (could be a patch)",
-                "[PATCH] Apply user changes");
+                "[PATCH/management] patch-management-1.2.0.jar installed in etc/startup.properties",
+                "[PATCH] Apply user changes",
+                "[PATCH/baseline] baseline-6.2.0 - resetting etc/overrides.properties");
 
         int n = 0;
         for (RevCommit c : commits) {
@@ -617,7 +625,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         ObjectId master1 = fork.getRepository().resolve("master");
 
         String tx = management.beginInstallation(PatchKind.NON_ROLLUP);
-        management.install(tx, patch);
+        management.install(tx, patch, null);
         management.rollbackInstallation(tx);
 
         fork.pull().call();
@@ -642,7 +650,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         ObjectId master1 = fork.getRepository().resolve("master");
 
         String tx = management.beginInstallation(PatchKind.NON_ROLLUP);
-        management.install(tx, patch);
+        management.install(tx, patch, null);
         management.commitInstallation(tx);
 
         repository.closeRepository(fork, true);
@@ -678,7 +686,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         ObjectId master1 = fork.getRepository().resolve("master");
 
         String tx = management.beginInstallation(PatchKind.NON_ROLLUP);
-        management.install(tx, patch);
+        management.install(tx, patch, null);
         management.commitInstallation(tx);
 
         PatchResult result = new PatchResult(patch.getPatchData());

@@ -29,7 +29,7 @@ public class BundleUpdate {
     private final String previousLocation;
 
     private final String newVersion;
-    private final String newLocation;
+    private String newLocation;
 
     public BundleUpdate(String symbolicName, String newVersion, String newLocation, String previousVersion, String previousLocation) {
         this.symbolicName = symbolicName;
@@ -37,6 +37,25 @@ public class BundleUpdate {
         this.newLocation = newLocation;
         this.previousVersion = previousVersion;
         this.previousLocation = previousLocation;
+    }
+
+    /**
+     * Creates a BundleUpdate with only {@link BundleUpdate#getPreviousLocation()} set.
+     * @param oldLocation
+     * @return
+     */
+    public static BundleUpdate from(String oldLocation) {
+        return new BundleUpdate(null, null, null, null, oldLocation);
+    }
+
+    /**
+     * Sets {@link BundleUpdate#getNewLocation()} in a fluent way
+     * @param newLocation
+     * @return
+     */
+    public BundleUpdate to(String newLocation) {
+        this.newLocation = newLocation;
+        return this;
     }
 
     public String getSymbolicName() {
@@ -58,5 +77,4 @@ public class BundleUpdate {
     public String getPreviousLocation() {
         return previousLocation;
     }
-
 }

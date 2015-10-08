@@ -15,17 +15,23 @@
  */
 package io.fabric8.patch.management;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -33,6 +39,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipFile;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.osgi.framework.BundleContext;
@@ -42,6 +49,7 @@ public class Utils {
 
     private static final Pattern FEATURES_FILE = Pattern.compile(".+-features(?:-core)?$");
     private static final Pattern SYMBOLIC_NAME_PATTERN = Pattern.compile("([^;: ]+)(.*)");
+    private static final Pattern KARAF_PACKAGE_VERSION = Pattern.compile(".+;version=\"([^\"]+)\"");
 
     private Utils() {
     }
@@ -291,7 +299,7 @@ public class Utils {
     }
 
     /**
-     * Converts file paths relative to <code>${karaf.default.repository}</code> to <code>mvn:</code> artifacts
+     * Converts file paths relative to <code>${karaf.default.repository}</code> to <code>mvn:</code> URIs
      * @param path
      * @return
      */
@@ -330,6 +338,32 @@ public class Utils {
             return sb.toString();
         }
         return null;
+    }
+
+    /**
+     * Converts <code>mvn:</code> URIs to file paths relative to <code>${karaf.default.repository}</code>
+     * @param url
+     */
+    public static String mvnurlToPath(String url) {
+        Artifact artifact = Utils.mvnurlToArtifact(url, true);
+        if (artifact == null) {
+            return null;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        String[] group = artifact.getGroupId().split("\\.");
+        for (String g : group) {
+            sb.append('/').append(g);
+        }
+        sb.append('/').append(artifact.getArtifactId());
+        sb.append('/').append(artifact.getVersion());
+        sb.append('/').append(artifact.getArtifactId()).append("-").append(artifact.getVersion());
+        if (artifact.getClassifier() != null) {
+            sb.append('-').append(artifact.getClassifier());
+        }
+        sb.append('.').append(artifact.getType());
+
+        return sb.toString().substring(1);
     }
 
     public static Artifact mvnurlToArtifact(String resourceLocation, boolean skipNonMavenProtocols) {
@@ -433,6 +467,67 @@ public class Utils {
         }
 
         return new Version(v123[0], v123[1], v123[2], v4);
+    }
+
+    /**
+     * Iterates over {@link BundleUpdate bundle updates} and returns a mapping of old filesystem location
+     * to new one. All locations are relative to <code>${karaf.default.repository}</code>
+     * @param bundleUpdatesInThisPatch
+     * @return
+     */
+    public static Map<String,String> collectLocationUpdates(List<BundleUpdate> bundleUpdatesInThisPatch) {
+        HashMap<String, String> locationUpdates = new HashMap<>();
+        if (bundleUpdatesInThisPatch != null) {
+            for (BundleUpdate update : bundleUpdatesInThisPatch) {
+                if (update.getPreviousLocation() != null && update.getNewLocation() != null) {
+                    String l1 = update.getPreviousLocation();
+                    String l2 = update.getNewLocation();
+                    if (l1.contains("org/ops4j/pax/url/pax-url-aether")) {
+                        l1 = l1.substring(l1.indexOf("org/ops4j/pax/url/pax-url-aether"));
+                        l2 = l2.substring(l2.indexOf("org/ops4j/pax/url/pax-url-aether"));
+                        locationUpdates.put(l1, l2);
+                    } else {
+                        locationUpdates.put(Utils.mvnurlToPath(l1), Utils.mvnurlToPath(l2));
+                    }
+                }
+            }
+        }
+
+        return locationUpdates;
+    }
+
+    /**
+     * Updates version of exported karaf packages inside <code>etc/config.properties</code>
+     * @param configProperties
+     * @param newVersion
+     * @param packages
+     */
+    public static void updateKarafPackageVersion(File configProperties, String newVersion, String ... packages) {
+        BufferedReader reader = null;
+        StringWriter sw = new StringWriter();
+        try {
+            reader = new BufferedReader(new FileReader(configProperties));
+            String line = null;
+            while ((line = reader.readLine()) != null) {
+                for (String pkg : packages) {
+                    Matcher matcher = KARAF_PACKAGE_VERSION.matcher(line);
+                    if (line.contains(pkg + ";version=") && matcher.find()) {
+                        StringBuffer sb = new StringBuffer();
+                        sb.append(line.substring(0, matcher.start(1)));
+                        sb.append(newVersion);
+                        sb.append(line.substring(matcher.end(1)));
+                        line = sb.toString();
+                    }
+                }
+                sw.append(line).append("\n");
+            }
+            IOUtils.closeQuietly(reader);
+            FileUtils.write(configProperties, sw.toString());
+        } catch (Exception e) {
+            System.err.println("[PATCH-error] " + e.getMessage());
+        } finally {
+            IOUtils.closeQuietly(reader);
+        }
     }
 
 }

@@ -17,8 +17,12 @@ package io.fabric8.patch.management;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.Test;
@@ -114,6 +118,60 @@ public class UtilsTest {
 
         when(bc.getProperty("fuse.patch.product")).thenReturn("a");
         assertNull(Utils.getBaselineLocationForProduct(karafHome, bc, "1.2"));
+    }
+
+    @Test
+    public void locationUpdates() throws IOException {
+        List<BundleUpdate> updates = new LinkedList<>();
+
+        updates.add(BundleUpdate.from("mvn:g/a/1.0").to("mvn:g/a/1.1"));
+        updates.add(BundleUpdate.from("mvn:g/a2/1.0/jar").to("mvn:g/a2/1.1/jar"));
+        updates.add(BundleUpdate.from("mvn:g/a3/1.0/jar/signed-secrets").to("mvn:g/a3/1.1/jar/signed-secrets"));
+        updates.add(BundleUpdate.from("mvn:g2/a2/1.0/war").to("mvn:g2/a2/1.1/war"));
+        updates.add(BundleUpdate.from("mvn:g2.g3/a2.a3/1.0/war").to("mvn:g2.g3/a2.a3/1.1/war"));
+        updates.add(BundleUpdate.from("mvn:g2.g3/a2.a3/1.0/xml/sources").to("mvn:g2.g3/a2.a3/1.1/xml/sources"));
+        updates.add(BundleUpdate.from("file:/fuse-6/system/org/ops4j/pax/url/pax-url-aether/2.4.0/pax-url-aether-2.4.0.jar")
+                .to("file:/fuse-7.3/system/org/ops4j/pax/url/pax-url-aether/2.4.2/pax-url-aether-2.4.2.jar"));
+
+        Map<String, String> map = Utils.collectLocationUpdates(updates);
+        assertThat(map.get("g/a/1.0/a-1.0.jar"), equalTo("g/a/1.1/a-1.1.jar"));
+        assertThat(map.get("g/a2/1.0/a2-1.0.jar"), equalTo("g/a2/1.1/a2-1.1.jar"));
+        assertThat(map.get("g/a3/1.0/a3-1.0-signed-secrets.jar"), equalTo("g/a3/1.1/a3-1.1-signed-secrets.jar"));
+        assertThat(map.get("g2/g3/a2.a3/1.0/a2.a3-1.0.war"), equalTo("g2/g3/a2.a3/1.1/a2.a3-1.1.war"));
+        assertThat(map.get("g2/g3/a2.a3/1.0/a2.a3-1.0-sources.xml"), equalTo("g2/g3/a2.a3/1.1/a2.a3-1.1-sources.xml"));
+        assertThat(map.get("org/ops4j/pax/url/pax-url-aether/2.4.0/pax-url-aether-2.4.0.jar"),
+                equalTo("org/ops4j/pax/url/pax-url-aether/2.4.2/pax-url-aether-2.4.2.jar"));
+    }
+
+    @Test
+    public void updateKarafPackages() throws IOException {
+        File configProperties = new File("target/test-config.properties");
+        StringWriter sw1 = new StringWriter();
+        StringWriter sw2 = new StringWriter();
+
+        sw1.write(" p.q;version=\"10.0\", \\\n");
+        sw1.write(" p.q.r;version=\"10.0\", \\\n");
+        sw1.write(" p.q.m;version=\"10.0\", \\\n");
+        sw1.write(" x;version=\"10.0\", \\\n");
+        sw1.write(" x;version=10.0, \\\n");
+        sw1.write(" p.q = 3\n");
+        sw1.write(" x = 3\n");
+
+        sw2.write(" p.q;version=\"11.0\", \\\n");
+        sw2.write(" p.q.r;version=\"11.0\", \\\n");
+        sw2.write(" p.q.m;version=\"10.0\", \\\n");
+        sw2.write(" x;version=\"12.0\", \\\n");
+        sw2.write(" x;version=10.0, \\\n");
+        sw2.write(" p.q = 3\n");
+        sw2.write(" x = 3\n");
+
+        FileUtils.write(configProperties, sw1.toString());
+
+        Utils.updateKarafPackageVersion(configProperties, "11.0", "p.q", "p.q.r");
+        Utils.updateKarafPackageVersion(configProperties, "12.0", "x");
+
+        String newFile = FileUtils.readFileToString(configProperties);
+        assertThat("etc/config.properties should be updated", newFile, equalTo(sw2.toString()));
     }
 
 }
