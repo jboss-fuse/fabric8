@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -531,6 +532,7 @@ public class ServiceImpl implements Service {
         int l1 = "[name]".length();
         int l2 = "[version]".length();
         int l3 = "[new version]".length();
+        Map<String, FeatureUpdate> map = new TreeMap<>();
         for (FeatureUpdate fu : featureUpdates.values()) {
             if (fu.getName().length() > l1) {
                 l1 = fu.getName().length();
@@ -543,10 +545,11 @@ public class ServiceImpl implements Service {
                     l3 = fu.getNewVersion().length();
                 }
             }
+            map.put(fu.getName(), fu);
         }
         System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
                 "[name]", "[version]", "[new version]");
-        for (FeatureUpdate fu : featureUpdates.values()) {
+        for (FeatureUpdate fu : map.values()) {
             System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
                     fu.getName(), fu.getPreviousVersion(), fu.getNewVersion() == null ? "<reinstall>" : fu.getNewVersion());
         }
@@ -559,6 +562,7 @@ public class ServiceImpl implements Service {
         int l1 = "[symbolic name]".length();
         int l2 = "[version]".length();
         int l3 = "[new location]".length();
+        Map<String, Bundle> map = new TreeMap<>();
         for (Map.Entry<Bundle, String> e : bundleUpdateLocations.entrySet()) {
             String sn = stripSymbolicName(e.getKey().getSymbolicName());
             if (sn.length() > l1) {
@@ -572,13 +576,14 @@ public class ServiceImpl implements Service {
             if (newLocation.length() > l3) {
                 l3 = newLocation.length();
             }
+            map.put(newLocation, e.getKey());
         }
         System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
                 "[symbolic name]", "[version]", "[new location]");
-        for (Map.Entry<Bundle, String> e : bundleUpdateLocations.entrySet()) {
+        for (Map.Entry<String, Bundle> e : map.entrySet()) {
             System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
-                    stripSymbolicName(e.getKey().getSymbolicName()),
-                    e.getKey().getVersion().toString(), e.getValue());
+                    stripSymbolicName(e.getValue().getSymbolicName()),
+                    e.getValue().getVersion().toString(), e.getKey());
         }
 
         System.out.flush();
