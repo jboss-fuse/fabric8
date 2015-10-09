@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.fabric8.patch.management.io.EOLFixingFileOutputStream;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipFile;
 import org.apache.commons.io.FileUtils;
@@ -213,7 +214,7 @@ public class Utils {
                 } else /*if (!entry.isUnixSymlink())*/ {
                     File file = new File(targetDirectory, name);
                     file.getParentFile().mkdirs();
-                    FileOutputStream output = new FileOutputStream(file);
+                    FileOutputStream output = new EOLFixingFileOutputStream(targetDirectory, file);
                     IOUtils.copyLarge(zf.getInputStream(entry), output);
                     IOUtils.closeQuietly(output);
                     if (Files.getFileAttributeView(file.toPath(), PosixFileAttributeView.class) != null) {

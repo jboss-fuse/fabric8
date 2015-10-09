@@ -55,6 +55,7 @@ import io.fabric8.patch.management.PatchKind;
 import io.fabric8.patch.management.PatchManagement;
 import io.fabric8.patch.management.PatchResult;
 import io.fabric8.patch.management.Utils;
+import io.fabric8.patch.management.io.EOLFixingFileUtils;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipFile;
 import org.apache.commons.io.FileUtils;
@@ -1561,7 +1562,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             if (removeTarget) {
                 FileUtils.deleteQuietly(destDir);
             }
-            FileUtils.copyDirectory(managedSrcDir, destDir);
+            EOLFixingFileUtils.copyDirectory(managedSrcDir, targetDir, destDir);
             if ("bin".equals(dir)) {
                 // repair file permissions
                 for (File script : destDir.listFiles()) {
