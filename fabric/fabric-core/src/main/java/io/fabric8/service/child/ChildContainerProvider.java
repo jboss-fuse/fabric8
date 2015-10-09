@@ -15,24 +15,7 @@
  */
 package io.fabric8.service.child;
 
-import io.fabric8.api.Constants;
-import io.fabric8.api.Container;
-import io.fabric8.api.ContainerAutoScaler;
-import io.fabric8.api.ContainerAutoScalerFactory;
-import io.fabric8.api.ContainerProvider;
-import io.fabric8.api.CreateChildContainerMetadata;
-import io.fabric8.api.CreateChildContainerOptions;
-import io.fabric8.api.CreateEnsembleOptions;
-import io.fabric8.api.CreationStateListener;
-import io.fabric8.api.DataStore;
-import io.fabric8.api.FabricRequirements;
-import io.fabric8.api.FabricService;
-import io.fabric8.api.PortService;
-import io.fabric8.api.Profile;
-import io.fabric8.api.ProfileRequirements;
-import io.fabric8.api.ProfileService;
-import io.fabric8.api.Profiles;
-import io.fabric8.api.ZkDefs;
+import io.fabric8.api.*;
 import io.fabric8.api.jcip.ThreadSafe;
 import io.fabric8.api.scr.AbstractComponent;
 import io.fabric8.api.scr.ValidatingReference;
@@ -308,22 +291,45 @@ public final class ChildContainerProvider extends AbstractComponent implements C
 
         int sshFrom = mapPortToRange(Ports.DEFAULT_KARAF_SSH_PORT, minimumPort, maximumPort);
         int sshTo = mapPortToRange(Ports.DEFAULT_KARAF_SSH_PORT + 100, minimumPort, maximumPort);
-        int sshPort = portService.registerPort(child, "org.apache.karaf.shell", "sshPort", sshFrom, sshTo, usedPorts);
-
+        int sshPort = -1;
+        try {
+            // we first try to find a port within a range around the original port
+            sshPort = portService.registerPort(child, "org.apache.karaf.shell", "sshPort", Math.min(sshFrom, sshTo), Math.max(sshFrom, sshTo), usedPorts);
+        } catch(FabricException e){
+            // if we failed to do so, we try to find a port in any position within the user specified range
+            sshPort = portService.registerPort(child, "org.apache.karaf.shell", "sshPort", minimumPort, maximumPort, usedPorts);
+        }
 
         int httpFrom = mapPortToRange(Ports.DEFAULT_HTTP_PORT, minimumPort, maximumPort);
         int httpTo = mapPortToRange(Ports.DEFAULT_HTTP_PORT + 100, minimumPort, maximumPort);
-        portService.registerPort(child, "org.ops4j.pax.web", "org.osgi.service.http.port", httpFrom, httpTo, usedPorts);
+
+        try {
+            // we first try to find a port within a range around the original port
+            portService.registerPort(child, "org.ops4j.pax.web", "org.osgi.service.http.port", Math.min(httpFrom, httpTo), Math.max(httpFrom, httpTo), usedPorts);
+        } catch(FabricException e){
+            // if we failed to do so, we try to find a port in any position within the user specified range
+            portService.registerPort(child, "org.ops4j.pax.web", "org.osgi.service.http.port", minimumPort, maximumPort, usedPorts);
+        }
 
         int rmiServerFrom = mapPortToRange(Ports.DEFAULT_RMI_SERVER_PORT, minimumPort, maximumPort);
         int rmiServerTo = mapPortToRange(Ports.DEFAULT_RMI_SERVER_PORT + 100, minimumPort, maximumPort);
-        int rmiServerPort = portService.registerPort(child, "org.apache.karaf.management", "rmiServerPort", rmiServerFrom, rmiServerTo, usedPorts);
+        int rmiServerPort = -1;
+        try {
+            rmiServerPort = portService.registerPort(child, "org.apache.karaf.management", "rmiServerPort", Math.min(rmiServerFrom, rmiServerTo), Math.max(rmiServerFrom, rmiServerTo), usedPorts);
+        } catch(FabricException e){
+            // if we failed to do so, we try to find a port in any position within the user specified range
+            rmiServerPort = portService.registerPort(child, "org.apache.karaf.management", "rmiServerPort", minimumPort, maximumPort, usedPorts);
+        }
 
         int rmiRegistryFrom = mapPortToRange(Ports.DEFAULT_RMI_REGISTRY_PORT, minimumPort, maximumPort);
         int rmiRegistryTo = mapPortToRange(Ports.DEFAULT_RMI_REGISTRY_PORT + 100, minimumPort, maximumPort);
-        int rmiRegistryPort = portService.registerPort(child, "org.apache.karaf.management", "rmiRegistryPort", rmiRegistryFrom, rmiRegistryTo, usedPorts);
-
-
+        int rmiRegistryPort = -1;
+        try {
+            rmiRegistryPort = portService.registerPort(child, "org.apache.karaf.management", "rmiRegistryPort", Math.min(rmiRegistryFrom, rmiRegistryTo), Math.max(rmiRegistryFrom, rmiRegistryTo), usedPorts);
+        } catch(FabricException e){
+            // if we failed to do so, we try to find a port in any position within the user specified range
+            rmiRegistryPort = portService.registerPort(child, "org.apache.karaf.management", "rmiRegistryPort", minimumPort, maximumPort, usedPorts);
+        }
         try {
             adminService.createInstance(containerName,
                     sshPort,
