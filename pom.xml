@@ -3039,6 +3039,8 @@
                                 <!-- exclude concatenated resources -->
                                 <exclude>src/main/resources/etc/startup.properties</exclude>
                                 <exclude>src/main/append-resources/common/etc/org.ops4j.pax.logging.cfg</exclude>
+                                <!-- exclude some special test resources -->
+                                <exclude>src/test/resources/conflicts/**</exclude>
                             </excludes>
                             <mapping>
                                 <cfg>SCRIPT_STYLE</cfg>

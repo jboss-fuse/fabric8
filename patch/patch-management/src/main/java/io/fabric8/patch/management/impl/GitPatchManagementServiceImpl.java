@@ -55,6 +55,8 @@ import io.fabric8.patch.management.PatchKind;
 import io.fabric8.patch.management.PatchManagement;
 import io.fabric8.patch.management.PatchResult;
 import io.fabric8.patch.management.Utils;
+import io.fabric8.patch.management.conflicts.ConflictResolver;
+import io.fabric8.patch.management.conflicts.Resolver;
 import io.fabric8.patch.management.io.EOLFixingFileUtils;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipFile;
@@ -76,6 +78,7 @@ import org.eclipse.jgit.dircache.DirCacheEntry;
 import org.eclipse.jgit.lib.IndexDiff;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
+import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevObject;
@@ -128,6 +131,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     private final BundleContext systemContext;
 
     private GitPatchRepository gitPatchRepository;
+    private ConflictResolver conflictResolver = new ConflictResolver();
 
     // ${karaf.home}
     private File karafHome;
@@ -1074,9 +1078,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         if (result.getStatus() == CherryPickResult.CherryPickStatus.CONFLICTING) {
             System.out.println("Problem with applying the change " + commit.getName() + ":");
             Map<String, IndexDiff.StageState> conflicts = fork.status().call().getConflictingStageState();
-            for (Map.Entry<String, IndexDiff.StageState> e : conflicts.entrySet()) {
-                System.out.println(" - " + e.getKey() + ": " + e.getValue().name());
-            }
+//            for (Map.Entry<String, IndexDiff.StageState> e : conflicts.entrySet()) {
+//                System.out.println(" - " + e.getKey() + ": " + e.getValue().name());
+//            }
 
             String choose = null, backup = null;
             switch (kind) {
@@ -1090,31 +1094,100 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     break;
             }
 
-            System.out.printf("Choosing %s%n", choose);
             DirCache cache = fork.getRepository().readDirCache();
+            // path -> [oursObjectId, baseObjectId, theirsObjectId]
+            Map<String, ObjectId[]> threeWayMerge = new HashMap<>();
+
+            // collect conflicts info
             for (int i = 0; i < cache.getEntryCount(); i++) {
                 DirCacheEntry entry = cache.getEntry(i);
-                if (entry.getStage() == DirCacheEntry.STAGE_0 || entry.getStage() == DirCacheEntry.STAGE_1) {
+                if (entry.getStage() == DirCacheEntry.STAGE_0) {
                     continue;
                 }
-                if ((preferNew && entry.getStage() == DirCacheEntry.STAGE_3)
-                        || (!preferNew && entry.getStage() == DirCacheEntry.STAGE_2)) {
-                    ObjectLoader loader = fork.getRepository().newObjectReader().open(entry.getObjectId());
-                    loader.copyTo(new FileOutputStream(new File(fork.getRepository().getWorkTree(), entry.getPathString())));
-                    fork.add().addFilepattern(entry.getPathString()).call();
-                } else if (performBackup) {
-                    // the other entry should be backed up
-                    ObjectLoader loader = fork.getRepository().newObjectReader().open(entry.getObjectId());
-                    File target = new File(patchDirectory.getParent(), patchDirectory.getName() + ".backup");
-                    if (cpPrefix != null) {
-                        target = new File(target, cpPrefix);
-                    }
-                    File file = new File(target, entry.getPathString());
-                    System.out.printf("Backing up %s to \"%s\"%n", backup, file.getCanonicalPath());
-                    file.getParentFile().mkdirs();
-                    loader.copyTo(new FileOutputStream(file));
+                if (!threeWayMerge.containsKey(entry.getPathString())) {
+                    threeWayMerge.put(entry.getPathString(), new ObjectId[] { null, null, null });
+                }
+                if (entry.getStage() == DirCacheEntry.STAGE_1) {
+                    // base
+                    threeWayMerge.get(entry.getPathString())[1] = entry.getObjectId();
+                }
+                if (entry.getStage() == DirCacheEntry.STAGE_2) {
+                    // ours
+                    threeWayMerge.get(entry.getPathString())[0] = entry.getObjectId();
+                }
+                if (entry.getStage() == DirCacheEntry.STAGE_3) {
+                    // theirs
+                    threeWayMerge.get(entry.getPathString())[2] = entry.getObjectId();
                 }
             }
+
+            // resolve conflicts
+            ObjectReader objectReader = fork.getRepository().newObjectReader();
+
+            for (Map.Entry<String, ObjectId[]> entry : threeWayMerge.entrySet()) {
+                Resolver resolver = conflictResolver.getResolver(entry.getKey());
+                // resolved version - either by custom resolved or using automatic algorithm
+                String resolved = null;
+                if (resolver != null) {
+                    // custom conflict resolution
+                    System.out.printf(" - %s (%s): %s%n", entry.getKey(), conflicts.get(entry.getKey()), "Using " + resolver.toString() + " to resolve the conflict");
+                    // when doing custom resolution, we prefer user change
+                    File base = null, first = null, second = null;
+                    try {
+                        base = new File(fork.getRepository().getWorkTree(), entry.getKey() + ".1");
+                        ObjectLoader loader = objectReader.open(entry.getValue()[1]);
+                        loader.copyTo(new FileOutputStream(base));
+
+                        // if preferNew (P patch) then first will be change from patch
+                        first = new File(fork.getRepository().getWorkTree(), entry.getKey() + ".2");
+                        loader = objectReader.open(entry.getValue()[preferNew ? 2 : 0]);
+                        loader.copyTo(new FileOutputStream(first));
+
+                        second = new File(fork.getRepository().getWorkTree(), entry.getKey() + ".3");
+                        loader = objectReader.open(entry.getValue()[preferNew ? 0 : 2]);
+                        loader.copyTo(new FileOutputStream(second));
+
+                        // resolvers treat patch change as less important - user lines overwrite patch lines
+                        resolved = resolver.resolve(first, base, second);
+
+                        if (resolved != null) {
+                            FileUtils.write(new File(fork.getRepository().getWorkTree(), entry.getKey()), resolved);
+                            fork.add().addFilepattern(entry.getKey()).call();
+                        }
+                    } finally {
+                        if (base != null) {
+                            base.delete();
+                        }
+                        if (first != null) {
+                            first.delete();
+                        }
+                        if (second != null) {
+                            second.delete();
+                        }
+                    }
+                }
+                if (resolved == null) {
+                    // automatic conflict resolution
+                    System.out.printf(" - %s (%s): Choosing %s%n", entry.getKey(), conflicts.get(entry.getKey()), choose);
+                    ObjectLoader loader = objectReader.open(entry.getValue()[preferNew ? 2 : 0]);
+                    loader.copyTo(new FileOutputStream(new File(fork.getRepository().getWorkTree(), entry.getKey())));
+                    fork.add().addFilepattern(entry.getKey()).call();
+
+                    if (performBackup) {
+                        // the other entry should be backed up
+                        loader = objectReader.open(entry.getValue()[preferNew ? 0 : 2]);
+                        File target = new File(patchDirectory.getParent(), patchDirectory.getName() + ".backup");
+                        if (cpPrefix != null) {
+                            target = new File(target, cpPrefix);
+                        }
+                        File file = new File(target, entry.getKey());
+                        System.out.printf("Backing up %s to \"%s\"%n", backup, file.getCanonicalPath());
+                        file.getParentFile().mkdirs();
+                        loader.copyTo(new FileOutputStream(file));
+                    }
+                }
+            }
+
             System.out.flush();
         }
     }

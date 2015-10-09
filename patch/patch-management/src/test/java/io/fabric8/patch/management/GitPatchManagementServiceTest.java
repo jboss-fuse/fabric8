@@ -358,13 +358,16 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         assertThat(baselineCommit.getId(), equalTo(baselineCommitFromTag.getId()));
 
         List<DiffEntry> patchDiff = repository.diff(fork, baselineCommit, patchCommit);
-        assertThat("patch-4 should lead to 7 changes", patchDiff.size(), equalTo(7));
+        assertThat("patch-4 should lead to 8 changes", patchDiff.size(), equalTo(8));
         for (Iterator<DiffEntry> iterator = patchDiff.iterator(); iterator.hasNext(); ) {
             DiffEntry de = iterator.next();
             if ("bin/start".equals(de.getNewPath()) && de.getChangeType() == DiffEntry.ChangeType.MODIFY) {
                 iterator.remove();
             }
             if ("bin/stop".equals(de.getNewPath()) && de.getChangeType() == DiffEntry.ChangeType.MODIFY) {
+                iterator.remove();
+            }
+            if ("bin/setenv".equals(de.getNewPath()) && de.getChangeType() == DiffEntry.ChangeType.MODIFY) {
                 iterator.remove();
             }
             if ("etc/startup.properties".equals(de.getNewPath()) && de.getChangeType() == DiffEntry.ChangeType.MODIFY) {
@@ -749,6 +752,9 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         assertThat(fork.tagList().call().size(), equalTo(2));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0"));
         assertTrue(repository.containsTag(fork, "patch-my-patch-1"));
+
+        assertThat("The conflict should be resolved in special way", FileUtils.readFileToString(new File(karafHome, "bin/setenv")),
+                equalTo("JAVA_MIN_MEM=2G # Minimum memory for the JVM\n"));
     }
 
     @Test
@@ -889,6 +895,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         FileUtils.copyFile(new File("src/test/resources/karaf/bin/admin"), new File(karafHome, "bin/admin"));
         FileUtils.copyFile(new File("src/test/resources/karaf/bin/start"), new File(karafHome, "bin/start"));
         FileUtils.copyFile(new File("src/test/resources/karaf/bin/stop"), new File(karafHome, "bin/stop"));
+        FileUtils.copyFile(new File("src/test/resources/karaf/bin/setenv"), new File(karafHome, "bin/setenv"));
         FileUtils.copyFile(new File("src/test/resources/karaf/lib/karaf.jar"), new File(karafHome, "lib/karaf.jar"));
         FileUtils.copyFile(new File("src/test/resources/karaf/fabric/import/fabric/profiles/default.profile/io.fabric8.version.properties"),
                 new File(karafHome, "fabric/import/fabric/profiles/default.profile/io.fabric8.version.properties"));
