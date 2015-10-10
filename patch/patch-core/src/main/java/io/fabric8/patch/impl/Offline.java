@@ -242,9 +242,6 @@ public class Offline {
             if (!matching || added) {
                 toExtract.add(artifact);
             }
-            // TODO: process framework ?
-            // TODO: process lib folder ?
-
         }
 
         // Extract / delete artifacts if needed

@@ -48,6 +48,7 @@ public class PatchResult {
     private static final String OLD_LOCATION = "old-location";
     private static final String STATE = "state";
     private static final String START_LEVEL = "start-level";
+    private static final String INDEPENDENT = "independent";
 
     private static final String FEATURE_UPDATES = "feature-update";
     private static final String FEATURE_NAME = "name";
@@ -111,27 +112,32 @@ public class PatchResult {
         List<BundleUpdate> bupdates = new ArrayList<>();
         int count = Integer.parseInt(props.getProperty(BUNDLE_UPDATES + "." + COUNT, "0"));
         for (int i = 0; i < count; i++) {
-            String sn = props.getProperty(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + SYMBOLIC_NAME);
-            String nv = props.getProperty(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + NEW_VERSION);
-            String nl = props.getProperty(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + NEW_LOCATION);
-            String ov = props.getProperty(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + OLD_VERSION);
-            String ol = props.getProperty(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + OLD_LOCATION);
+            String prefix = BUNDLE_UPDATES + "." + Integer.toString(i) + ".";
+            String sn = props.getProperty(prefix + SYMBOLIC_NAME);
+            String nv = props.getProperty(prefix + NEW_VERSION);
+            String nl = props.getProperty(prefix + NEW_LOCATION);
+            String ov = props.getProperty(prefix + OLD_VERSION);
+            String ol = props.getProperty(prefix + OLD_LOCATION);
             int state = -1, startLevel = -1;
-            String _state = props.getProperty(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + STATE);
+            String _state = props.getProperty(prefix + STATE);
             if (_state != null && !"".equals(_state)) {
                 try {
                     state = Integer.parseInt(_state);
                 } catch (ParseException ignored) {
                 }
             }
-            String _startLevel = props.getProperty(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + START_LEVEL);
+            String _startLevel = props.getProperty(prefix + START_LEVEL);
             if (_startLevel != null && !"".equals(_startLevel)) {
                 try {
                     startLevel = Integer.parseInt(_startLevel);
                 } catch (ParseException ignored) {
                 }
             }
-            bupdates.add(new BundleUpdate(sn, nv, nl, ov, ol, startLevel, state));
+            BundleUpdate bundleUpdate = new BundleUpdate(sn, nv, nl, ov, ol, startLevel, state);
+            if (props.getProperty(prefix + INDEPENDENT) != null) {
+                bundleUpdate.setPartOfFeatureUpdate(Boolean.parseBoolean(props.getProperty(prefix + INDEPENDENT)));
+            }
+            bupdates.add(bundleUpdate);
         }
 
         List<FeatureUpdate> fupdates = new ArrayList<>();
@@ -172,18 +178,20 @@ public class PatchResult {
         pw.write(BUNDLE_UPDATES + "." + COUNT + " = " + Integer.toString(getBundleUpdates().size()) + "\n");
         int i = 0;
         for (BundleUpdate update : getBundleUpdates()) {
-            pw.write(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + SYMBOLIC_NAME + " = " + update.getSymbolicName() + "\n");
+            String prefix = BUNDLE_UPDATES + "." + Integer.toString(i) + ".";
+            pw.write(prefix + SYMBOLIC_NAME + " = " + update.getSymbolicName() + "\n");
+            pw.write(prefix + OLD_VERSION + " = " + update.getPreviousVersion() + "\n");
+            pw.write(prefix + OLD_LOCATION + " = " + update.getPreviousLocation() + "\n");
+            pw.write(prefix + INDEPENDENT + " = " + !update.isPartOfFeatureUpdate() + "\n");
             if (update.getNewVersion() != null) {
-                pw.write(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + NEW_VERSION + " = " + update.getNewVersion() + "\n");
-                pw.write(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + NEW_LOCATION + " = " + update.getNewLocation() + "\n");
+                pw.write(prefix + NEW_VERSION + " = " + update.getNewVersion() + "\n");
+                pw.write(prefix + NEW_LOCATION + " = " + update.getNewLocation() + "\n");
             }
-            pw.write(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + OLD_VERSION + " = " + update.getPreviousVersion() + "\n");
-            pw.write(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + OLD_LOCATION + " = " + update.getPreviousLocation() + "\n");
             if (update.getStartLevel() > -1) {
-                pw.write(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + START_LEVEL + " = " + update.getStartLevel() + "\n");
+                pw.write(prefix + START_LEVEL + " = " + update.getStartLevel() + "\n");
             }
             if (update.getState() > -1) {
-                pw.write(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + STATE + " = " + update.getState() + "\n");
+                pw.write(prefix + STATE + " = " + update.getState() + "\n");
             }
             i++;
         }

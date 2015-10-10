@@ -170,6 +170,8 @@ public class ServiceImpl implements Service {
                     patch.getPatchData().isRollupPatch() ? "rollup " : "",
                     patch.getPatchData().getId());
 
+            // feature time
+
             Set<String> newRepositories = new HashSet<>();
             Set<String> features = new HashSet<>();
             for (FeatureUpdate featureUpdate : patch.getResult().getFeatureUpdates()) {
@@ -207,20 +209,47 @@ public class ServiceImpl implements Service {
                     System.err.flush();
                 }
             }
+
+            // bundle time
+
             for (BundleUpdate update : patch.getResult().getBundleUpdates()) {
+                if (update.isPartOfFeatureUpdate()) {
+                    continue;
+                }
+                String location = null;
                 if (update.getNewVersion() == null) {
                     System.out.printf("Restoring bundle %s from %s%n", update.getSymbolicName(), update.getPreviousLocation());
-                    // this bundle was available previously
-                    // TODO restore start level? restore state? restore data?
-                    try {
-                        bundleContext.installBundle(update.getPreviousLocation());
-                    } catch (BundleException e) {
-                        System.err.println(e.getMessage());
-                        e.printStackTrace(System.err);
-                        System.err.flush();
+                    location = update.getPreviousLocation();
+                } else {
+                    System.out.printf("Updating bundle %s from %s%n", update.getSymbolicName(), update.getNewLocation());
+                    location = update.getNewLocation();
+                }
+                // TODO restore data?
+                try {
+                    Bundle b = bundleContext.installBundle(location);
+                    if (update.getStartLevel() > -1) {
+                        b.adapt(BundleStartLevel.class).setStartLevel(update.getStartLevel());
                     }
+                    switch (update.getState()) {
+                        case Bundle.UNINSTALLED: // ?
+                        case Bundle.INSTALLED:
+                        case Bundle.STARTING:
+                        case Bundle.STOPPING:
+                            break;
+                        case Bundle.RESOLVED:
+                            // ?bundleContext.getBundle(0L).adapt(org.osgi.framework.wiring.FrameworkWiring.class).resolveBundles(...);
+                            break;
+                        case Bundle.ACTIVE:
+                            b.start();
+                            break;
+                    }
+                } catch (BundleException e) {
+                    System.err.println(e.getMessage());
+                    e.printStackTrace(System.err);
+                    System.err.flush();
                 }
             }
+
             pending.delete();
             System.out.printf("%spatch \"%s\" installed successfully%n",
                     patch.getPatchData().isRollupPatch() ? "Rollup " : "",
