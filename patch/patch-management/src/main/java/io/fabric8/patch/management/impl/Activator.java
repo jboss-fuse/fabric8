@@ -15,9 +15,16 @@
  */
 package io.fabric8.patch.management.impl;
 
+import java.io.File;
+import java.io.FileFilter;
+
+import io.fabric8.patch.management.BackupService;
 import io.fabric8.patch.management.PatchManagement;
+import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.BundleEvent;
+import org.osgi.framework.BundleListener;
 import org.osgi.framework.FrameworkEvent;
 import org.osgi.framework.FrameworkListener;
 import org.osgi.framework.ServiceRegistration;
@@ -41,7 +48,8 @@ public class Activator implements BundleActivator {
     private StartLevelNotificationFrameworkListener startLevelNotificationFrameworkListener;
 
     private BundleContext systemContext;
-    private ServiceRegistration<PatchManagement> registration;
+    private ServiceRegistration<PatchManagement> patchManagementRegistration;
+    private ServiceRegistration<BackupService> backupServiceRegistration;
 
     @Override
     public void start(final BundleContext context) throws Exception {
@@ -79,7 +87,14 @@ public class Activator implements BundleActivator {
 
         patchManagementService.start();
 
-        registration = systemContext.registerService(PatchManagement.class, PatchManagement.class.cast(patchManagementService), null);
+        patchManagementRegistration = systemContext.registerService(PatchManagement.class, PatchManagement.class.cast(patchManagementService), null);
+        backupServiceRegistration = systemContext.registerService(BackupService.class, new FileBackupService(systemContext), null);
+
+        if (startupVersion != null) {
+            // we should be at start level 2. let's check if there are any rollup paatches being installed or
+            // rolled back - we've got some work to do at this early stage of Karaf
+            patchManagementService.checkPendingPatches();
+        }
 
         // this bundle may be started:
         //  - from deploy/ dir using fileinstall thread
@@ -102,9 +117,13 @@ public class Activator implements BundleActivator {
             patchManagementService.stop();
             patchManagementService = null;
         }
-        if (registration != null) {
-            registration.unregister();
-            registration = null;
+        if (patchManagementRegistration != null) {
+            patchManagementRegistration.unregister();
+            patchManagementRegistration = null;
+        }
+        if (backupServiceRegistration != null) {
+            backupServiceRegistration.unregister();
+            backupServiceRegistration = null;
         }
     }
 

@@ -34,8 +34,9 @@ public class BundleUpdate {
     private int startLevel = -1;
     private int state = -1;
 
-    // if this flag is set, this BundleUpdate isn't considered as independent update, it's only informational
-    private boolean partOfFeatureUpdate = false;
+    // if this flag is set, this BundleUpdate is considered as independent update, which means the bundle is
+    // updated as part of feature or as part of etc/startup.properties
+    private boolean independent = true;
 
     private String toString;
 
@@ -116,12 +117,12 @@ public class BundleUpdate {
         return state;
     }
 
-    public boolean isPartOfFeatureUpdate() {
-        return partOfFeatureUpdate;
+    public boolean isIndependent() {
+        return independent;
     }
 
-    public void setPartOfFeatureUpdate(boolean partOfFeatureUpdate) {
-        this.partOfFeatureUpdate = partOfFeatureUpdate;
+    public void setIndependent(boolean independent) {
+        this.independent = independent;
     }
 
 }

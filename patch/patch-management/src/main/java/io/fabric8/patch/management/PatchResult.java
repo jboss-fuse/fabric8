@@ -26,6 +26,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.ParseException;
 
@@ -63,7 +64,7 @@ public class PatchResult {
     private long date;
 
     // whether this result is not ready yet - there are some tasks left to be done after restart
-    private boolean pending = false;
+    private Pending pending = null;
 
     private List<BundleUpdate> bundleUpdates = new LinkedList<>();
     private List<FeatureUpdate> featureUpdates = new LinkedList<>();
@@ -135,7 +136,7 @@ public class PatchResult {
             }
             BundleUpdate bundleUpdate = new BundleUpdate(sn, nv, nl, ov, ol, startLevel, state);
             if (props.getProperty(prefix + INDEPENDENT) != null) {
-                bundleUpdate.setPartOfFeatureUpdate(Boolean.parseBoolean(props.getProperty(prefix + INDEPENDENT)));
+                bundleUpdate.setIndependent(Boolean.parseBoolean(props.getProperty(prefix + INDEPENDENT)));
             }
             bupdates.add(bundleUpdate);
         }
@@ -159,8 +160,8 @@ public class PatchResult {
                 patchData.getId() + ".patch.result"));
         storeTo(fos);
         fos.close();
-        if (pending) {
-            new File(patchData.getPatchLocation(), patchData.getId() + ".patch.pending").createNewFile();
+        if (pending != null) {
+            FileUtils.write(new File(patchData.getPatchLocation(), patchData.getId() + ".patch.pending"), pending.toString());
         }
     }
 
@@ -182,7 +183,7 @@ public class PatchResult {
             pw.write(prefix + SYMBOLIC_NAME + " = " + update.getSymbolicName() + "\n");
             pw.write(prefix + OLD_VERSION + " = " + update.getPreviousVersion() + "\n");
             pw.write(prefix + OLD_LOCATION + " = " + update.getPreviousLocation() + "\n");
-            pw.write(prefix + INDEPENDENT + " = " + !update.isPartOfFeatureUpdate() + "\n");
+            pw.write(prefix + INDEPENDENT + " = " + update.isIndependent() + "\n");
             if (update.getNewVersion() != null) {
                 pw.write(prefix + NEW_VERSION + " = " + update.getNewVersion() + "\n");
                 pw.write(prefix + NEW_LOCATION + " = " + update.getNewLocation() + "\n");
@@ -236,11 +237,11 @@ public class PatchResult {
         return patchData;
     }
 
-    public boolean isPending() {
+    public Pending isPending() {
         return pending;
     }
 
-    public void setPending(boolean pending) {
+    public void setPending(Pending pending) {
         this.pending = pending;
     }
 

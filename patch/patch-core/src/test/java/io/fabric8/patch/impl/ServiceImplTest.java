@@ -67,8 +67,10 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.BundleListener;
 import org.osgi.framework.FrameworkListener;
 import org.osgi.framework.Version;
+import org.osgi.framework.startlevel.BundleStartLevel;
 import org.osgi.framework.wiring.FrameworkWiring;
 import org.osgi.service.component.ComponentContext;
 
@@ -438,14 +440,18 @@ public class ServiceImplTest {
         expect(bundle.getVersion()).andReturn(new Version("1.3.1")).anyTimes();
         expect(bundle.getLocation()).andReturn("location").anyTimes();
         expect(bundle.getBundleId()).andReturn(123L);
-        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
+        BundleStartLevel bsl = createMock(BundleStartLevel.class);
+        expect(bsl.getStartLevel()).andReturn(30);
+        expect(bundle.adapt(BundleStartLevel.class)).andReturn(bsl);
+        expect(bundle.getState()).andReturn(1);
+        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, bsl);
 
         PatchResult result = service.install(patch, true);
         assertNotNull( result );
         assertNull( patch.getResult() );
         assertTrue(result.isSimulation());
 
-        verify(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
+        verify(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, bsl);
 
         //
         // Recreate a new service and verify the downloaded patch is still available

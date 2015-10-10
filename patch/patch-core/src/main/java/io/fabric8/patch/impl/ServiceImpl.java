@@ -45,6 +45,7 @@ import java.util.jar.Manifest;
 
 import io.fabric8.patch.Service;
 import io.fabric8.patch.management.Artifact;
+import io.fabric8.patch.management.BackupService;
 import io.fabric8.patch.management.BundleUpdate;
 import io.fabric8.patch.management.FeatureUpdate;
 import io.fabric8.patch.management.Patch;
@@ -54,6 +55,7 @@ import io.fabric8.patch.management.PatchException;
 import io.fabric8.patch.management.PatchKind;
 import io.fabric8.patch.management.PatchManagement;
 import io.fabric8.patch.management.PatchResult;
+import io.fabric8.patch.management.Pending;
 import io.fabric8.patch.management.Utils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -115,6 +117,9 @@ public class ServiceImpl implements Service {
     @Reference(referenceInterface = FeaturesService.class, cardinality = ReferenceCardinality.MANDATORY_UNARY, policy = ReferencePolicy.STATIC)
     private FeaturesService featuresService;
 
+    @Reference(referenceInterface = BackupService.class, cardinality = ReferenceCardinality.MANDATORY_UNARY, policy = ReferencePolicy.STATIC)
+    private BackupService backupService;
+
     private File karafHome;
     // by default it's ${karaf.home}/system
     private File repository;
@@ -124,6 +129,7 @@ public class ServiceImpl implements Service {
         // Use system bundle' bundle context to avoid running into
         // "Invalid BundleContext" exceptions when updating bundles
         this.bundleContext = componentContext.getBundleContext().getBundle(0).getBundleContext();
+
         String dir = this.bundleContext.getProperty(NEW_PATCH_LOCATION);
         if (dir != null) {
             patchDir = new File(dir);
@@ -213,7 +219,7 @@ public class ServiceImpl implements Service {
             // bundle time
 
             for (BundleUpdate update : patch.getResult().getBundleUpdates()) {
-                if (update.isPartOfFeatureUpdate()) {
+                if (!update.isIndependent()) {
                     continue;
                 }
                 String location = null;
@@ -244,8 +250,8 @@ public class ServiceImpl implements Service {
                             break;
                     }
                 } catch (BundleException e) {
-                    System.err.println(e.getMessage());
-                    e.printStackTrace(System.err);
+                    System.err.println(" - " + e.getMessage());
+//                    e.printStackTrace(System.err);
                     System.err.flush();
                 }
             }
@@ -390,7 +396,9 @@ public class ServiceImpl implements Service {
                 patchManagement.install(transaction, patch, bundleUpdatesInThisPatch);
 
                 // each patch may ship a migrator
-                installMigratorBundle(patch);
+                if (!simulate) {
+                    installMigratorBundle(patch);
+                }
 
                 // prepare patch result before doing runtime changes
                 PatchResult result = new PatchResult(patch.getPatchData(), simulate, System.currentTimeMillis(),
@@ -399,7 +407,7 @@ public class ServiceImpl implements Service {
             }
 
             // We don't have to update bundles that are uninstalled anyway when uninstalling features we
-            // are updating. Updating a feature = uninstall + install
+            // are updating (updating a feature = uninstall + install)
             // When feature is uninstalled, its bundles may get uninstalled too, if they are not referenced
             // from any other feature, including special (we're implementation aware!) "startup" feature
             // that is created during initailization of FeaturesService. As expected, this feature contains
@@ -436,6 +444,7 @@ public class ServiceImpl implements Service {
             // now, if we're installing rollup patch, we just restart with clean cache
             // then required repositories, features and bundles will be reinstalled
             if (kind == PatchKind.ROLLUP) {
+                backupService.backupDataFiles(results.values().iterator().next());
                 if (!simulate) {
                     // update KARAF_HOME
                     patchManagement.commitInstallation(transaction);
@@ -444,8 +453,12 @@ public class ServiceImpl implements Service {
                         Patch patch = patches.iterator().next();
                         PatchResult result = results.get(patch.getPatchData().getId());
                         patch.setResult(result);
-                        result.setPending(true);
+                        result.setPending(Pending.ROLLUP_INSTALLATION);
                         result.store();
+
+                        // backup all datafiles of all bundles - we we'll backup configadmin configurations in
+                        // single shot
+                        backupService.backupDataFiles(result);
 
                         // Some updates need a full JVM restart.
                         if( isJvmRestartNeeded(results) ) {
@@ -620,16 +633,16 @@ public class ServiceImpl implements Service {
                 l3 = newLocation.length();
             }
             if (be.getNewLocation() != null) {
-                if (be.isPartOfFeatureUpdate()) {
-                    tuf++;
-                } else {
+                if (be.isIndependent()) {
                     tu++;
+                } else {
+                    tuf++;
                 }
             } else {
-                if (be.isPartOfFeatureUpdate()) {
-                    tkf++;
-                } else {
+                if (be.isIndependent()) {
                     tk++;
+                } else {
+                    tkf++;
                 }
             }
             map.put(be.getSymbolicName(), be);
@@ -640,7 +653,7 @@ public class ServiceImpl implements Service {
                     "[symbolic name]", "[version]", "[new location]");
             for (Map.Entry<String, BundleUpdate> e : map.entrySet()) {
                 BundleUpdate be = e.getValue();
-                if (!be.isPartOfFeatureUpdate() && be.getNewLocation() != null) {
+                if (be.isIndependent() && be.getNewLocation() != null) {
                     System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
                             stripSymbolicName(be.getSymbolicName()),
                             be.getPreviousVersion(),
@@ -649,12 +662,12 @@ public class ServiceImpl implements Service {
             }
         }
         if (tuf > 0) {
-            System.out.printf("========== Bundles to update as part of features (%d):%n", tuf);
+            System.out.printf("========== Bundles to update as part of features or core bundles (%d):%n", tuf);
             System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
                     "[symbolic name]", "[version]", "[new location]");
             for (Map.Entry<String, BundleUpdate> e : map.entrySet()) {
                 BundleUpdate be = e.getValue();
-                if (be.isPartOfFeatureUpdate() && be.getNewLocation() != null) {
+                if (!be.isIndependent() && be.getNewLocation() != null) {
                     System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
                             stripSymbolicName(be.getSymbolicName()),
                             be.getPreviousVersion(),
@@ -668,7 +681,7 @@ public class ServiceImpl implements Service {
                     "[symbolic name]", "[version]", "[location]");
             for (Map.Entry<String, BundleUpdate> e : map.entrySet()) {
                 BundleUpdate be = e.getValue();
-                if (!be.isPartOfFeatureUpdate() && be.getNewLocation() == null) {
+                if (be.isIndependent() && be.getNewLocation() == null) {
                     System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
                             stripSymbolicName(be.getSymbolicName()),
                             be.getPreviousVersion(),
@@ -677,12 +690,12 @@ public class ServiceImpl implements Service {
             }
         }
         if (tkf > 0) {
-            System.out.printf("========== Bundles to reinstall as part of features (%d):%n", tkf);
+            System.out.printf("========== Bundles to reinstall as part of features or core bundles (%d):%n", tkf);
             System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
                     "[symbolic name]", "[version]", "[location]");
             for (Map.Entry<String, BundleUpdate> e : map.entrySet()) {
                 BundleUpdate be = e.getValue();
-                if (be.isPartOfFeatureUpdate() && be.getNewLocation() == null) {
+                if (!be.isIndependent() && be.getNewLocation() == null) {
                     System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
                             stripSymbolicName(be.getSymbolicName()),
                             be.getPreviousVersion(),
@@ -737,7 +750,8 @@ public class ServiceImpl implements Service {
             if (!coreBundles.containsKey(stripSymbolicName(b.getSymbolicName()))) {
                 updateNotRequired.put(key, b);
             } else {
-                // let's key core bundles by symbolic name only
+                // let's key core (etc/startup.properties) bundles by symbolic name only - there should be only
+                // one version of symbolic name
                 updateNotRequired.put(stripSymbolicName(b.getSymbolicName()), b);
             }
 //            allBundleVersions.put(stripSymbolicName(b.getSymbolicName()), b.getVersion());
@@ -747,21 +761,23 @@ public class ServiceImpl implements Service {
         // let's prepare a set of bundle keys that are part of features that will be updated/reinstalled - those
         // bundle keys don't have to be reinstalled separately
         Set<String> bundleKeysFromFeatures = new HashSet<>();
-        for (FeatureUpdate featureUpdate : featureUpdatesInThisPatch) {
-            if (featureUpdate.getName() != null) {
-                // this is either installation or update of single feature
-                String fName = featureUpdate.getName();
-                String fVersion = featureUpdate.getPreviousVersion();
-                Feature f = featuresService.getFeature(fName, fVersion);
-                for (BundleInfo bundleInfo : f.getBundles()) {
-                    if (!bundleInfo.isDependency() && locationsOfBundleKeys.containsKey(bundleInfo.getLocation())) {
-                        bundleKeysFromFeatures.add(locationsOfBundleKeys.get(bundleInfo.getLocation()));
-                    }
-                }
-                for (Conditional cond : f.getConditional()) {
-                    for (BundleInfo bundleInfo : cond.getBundles()) {
+        if (featureUpdatesInThisPatch != null) {
+            for (FeatureUpdate featureUpdate : featureUpdatesInThisPatch) {
+                if (featureUpdate.getName() != null) {
+                    // this is either installation or update of single feature
+                    String fName = featureUpdate.getName();
+                    String fVersion = featureUpdate.getPreviousVersion();
+                    Feature f = featuresService.getFeature(fName, fVersion);
+                    for (BundleInfo bundleInfo : f.getBundles()) {
                         if (!bundleInfo.isDependency() && locationsOfBundleKeys.containsKey(bundleInfo.getLocation())) {
                             bundleKeysFromFeatures.add(locationsOfBundleKeys.get(bundleInfo.getLocation()));
+                        }
+                    }
+                    for (Conditional cond : f.getConditional()) {
+                        for (BundleInfo bundleInfo : cond.getBundles()) {
+                            if (!bundleInfo.isDependency() && locationsOfBundleKeys.containsKey(bundleInfo.getLocation())) {
+                                bundleKeysFromFeatures.add(locationsOfBundleKeys.get(bundleInfo.getLocation()));
+                            }
                         }
                     }
                 }
@@ -833,11 +849,14 @@ public class ServiceImpl implements Service {
 
                 BundleUpdate update = new BundleUpdate(sn, newVersion.toString(), newLocation,
                         oldVersion.toString(), oldLocation, startLevel, state);
-                if (bundleKeysFromFeatures.contains(key)) {
-                    update.setPartOfFeatureUpdate(true);
+                if (bundleKeysFromFeatures.contains(key) || coreBundles.containsKey(sn)) {
+                    update.setIndependent(false);
                 }
                 updatesInThisPatch.add(update);
                 updateNotRequired.remove(key);
+                if (coreBundles.containsKey(sn)) {
+                    updateNotRequired.remove(sn);
+                }
                 // Merge result
                 BundleUpdate oldUpdate = updatesForBundleKeys.get(key);
                 if (oldUpdate != null) {
@@ -871,9 +890,9 @@ public class ServiceImpl implements Service {
                 int startLevel = b.adapt(BundleStartLevel.class).getStartLevel();
                 int state = b.getState();
                 BundleUpdate update = new BundleUpdate(symbolicName, null, null, v.toString(), history.getLocation(b), startLevel, state);
-                if (bundleKeysFromFeatures.contains(key)) {
+                if (bundleKeysFromFeatures.contains(key) || coreBundles.containsKey(symbolicName)) {
                     // we don't have to install it separately
-                    update.setPartOfFeatureUpdate(true);
+                    update.setIndependent(false);
                 }
                 updatesInThisPatch.add(update);
                 updatesForBundleKeys.put(key, update);
@@ -1331,8 +1350,8 @@ public class ServiceImpl implements Service {
                     System.err.println("Failed to update: " + bundle.getSymbolicName()+", due to: "+e);
                 }
                 toStart.add(bundle);
+                toRefresh.add(bundle);
             }
-            toRefresh.add(bundle);
         }
         findBundlesWithOptionalPackagesToRefresh(toRefresh);
         findBundlesWithFragmentsToRefresh(toRefresh);

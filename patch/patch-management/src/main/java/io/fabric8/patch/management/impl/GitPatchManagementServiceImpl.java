@@ -17,6 +17,7 @@ package io.fabric8.patch.management.impl;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -54,6 +55,7 @@ import io.fabric8.patch.management.PatchException;
 import io.fabric8.patch.management.PatchKind;
 import io.fabric8.patch.management.PatchManagement;
 import io.fabric8.patch.management.PatchResult;
+import io.fabric8.patch.management.Pending;
 import io.fabric8.patch.management.Utils;
 import io.fabric8.patch.management.conflicts.ConflictResolver;
 import io.fabric8.patch.management.conflicts.Resolver;
@@ -85,8 +87,12 @@ import org.eclipse.jgit.revwalk.RevObject;
 import org.eclipse.jgit.revwalk.RevTag;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.transport.RefSpec;
+import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.BundleEvent;
+import org.osgi.framework.BundleListener;
 import org.osgi.framework.Constants;
+import org.osgi.framework.SynchronousBundleListener;
 import org.osgi.framework.Version;
 import org.osgi.framework.VersionRange;
 import org.osgi.framework.startlevel.BundleStartLevel;
@@ -145,6 +151,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
     protected Map<String, Git> pendingTransactions = new HashMap<>();
     protected Map<String, PatchKind> pendingTransactionsTypes = new HashMap<>();
+
+    protected Map<String, BundleListener> pendingPatchesListeners = new HashMap<>();
 
     public GitPatchManagementServiceImpl(BundleContext context) {
         this.bundleContext = context;
@@ -1434,6 +1442,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
             // 2) repository of patch data - already installed patches
             migrateOldPatchData();
+
+            // remove pending patches listeners
+            for (BundleListener bl : pendingPatchesListeners.values()) {
+                systemContext.removeBundleListener(bl);
+            }
         } catch (GitAPIException | IOException e) {
             System.err.println("[PATCH-error] " + e.getMessage());
             e.printStackTrace(System.err);
@@ -1857,6 +1870,95 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             }
         }
         System.out.flush();
+    }
+
+    @Override
+    public void checkPendingPatches() {
+        File[] pendingPatches = patchesDir.listFiles(new FileFilter() {
+            @Override
+            public boolean accept(File pathname) {
+                return pathname.exists() && pathname.getName().endsWith(".pending");
+            }
+        });
+        if (pendingPatches.length == 0) {
+            return;
+        }
+
+        final String dataCache = systemContext.getProperty("org.osgi.framework.storage");
+
+        for (File pending : pendingPatches) {
+            try {
+                Pending what = Pending.valueOf(FileUtils.readFileToString(pending));
+                File patchFile = new File(pending.getParentFile(), pending.getName().replaceFirst("\\.pending$", ""));
+                PatchData patchData = PatchData.load(new FileInputStream(patchFile));
+                Patch patch = loadPatch(new PatchDetailsRequest(patchData.getId()));
+                final File dataFilesBackupDir = new File(pending.getParentFile(), patchData.getId() + ".datafiles");
+                final Properties backupProperties = new Properties();
+                FileInputStream inStream = new FileInputStream(new File(dataFilesBackupDir, "backup.properties"));
+                backupProperties.load(inStream);
+                IOUtils.closeQuietly(inStream);
+
+                // 1. we should have very little currently installed bundles (only from etc/startup.properties)
+                //    and none of them is ACTIVE now, because we (patch-management) are at SL=2
+                //    maybe one of those bundles has data directory to restore?
+                for (Bundle b : systemContext.getBundles()) {
+                    String key = String.format("%s$$%s", stripSymbolicName(b.getSymbolicName()), b.getVersion().toString());
+                    if (backupProperties.containsKey(key)) {
+                        String backupDirName = backupProperties.getProperty(key);
+                        File backupDir = new File(dataFilesBackupDir, backupDirName + "/data");
+                        if (backupDir.isDirectory()) {
+                            System.out.printf("[PATCH] Restoring data directory for bundle %s%n", b.toString());
+                            File bundleDataDir = new File(dataCache, "bundle" + b.getBundleId() + "/data");
+                            FileUtils.copyDirectory(backupDir, bundleDataDir);
+                        }
+                        // we no longer want to restore this dir
+                        backupProperties.remove(key);
+                    }
+                }
+
+                // 2. We can however have more bundle data backups - we'll restore them after each bundle
+                //    is INSTALLED and we'll use listener for this
+                BundleListener bundleListener = new SynchronousBundleListener() {
+                    @Override
+                    public void bundleChanged(BundleEvent event) {
+                        Bundle b = event.getBundle();
+                        if (event.getType() == BundleEvent.INSTALLED) {
+                            String key = String.format("%s$$%s", stripSymbolicName(b.getSymbolicName()), b.getVersion().toString());
+                            if (backupProperties.containsKey(key)) {
+                                String backupDirName = backupProperties.getProperty(key);
+                                File backupDir = new File(dataFilesBackupDir, backupDirName + "/data");
+                                if (backupDir.isDirectory()) {
+                                    System.out.printf("[PATCH] Restoring data directory for bundle %s%n", b.toString());
+                                    File bundleDataDir = new File(dataCache, "bundle" + b.getBundleId() + "/data");
+                                    try {
+                                        FileUtils.copyDirectory(backupDir, bundleDataDir);
+                                    } catch (IOException e) {
+                                        System.err.println("[PATCH-error] " + e.getMessage());
+                                        System.err.flush();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                };
+                systemContext.addBundleListener(bundleListener);
+                pendingPatchesListeners.put(patchData.getId(), bundleListener);
+
+//                if (dataFilesBackupDir.isDirectory()) {
+//                    switch (what) {
+//                        case ROLLUP_INSTALLATION: {
+//                            break;
+//                        }
+//                        case ROLLUP_ROLLBACK: {
+//                            break;
+//                        }
+//                    }
+//                }
+            } catch (Exception e) {
+                System.err.println("[PATCH-error] " + e.getMessage());
+                System.err.flush();
+            }
+        }
     }
 
     /**

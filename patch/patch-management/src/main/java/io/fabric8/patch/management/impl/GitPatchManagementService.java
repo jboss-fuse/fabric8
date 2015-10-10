@@ -50,4 +50,9 @@ public interface GitPatchManagementService {
      */
     void cleanupDeployDir() throws IOException;
 
+    /**
+     * Invoked at early stage of the framework to check if there are any low-level tasks to be done for pending
+     * patches installation (or rollback too)
+     */
+    void checkPendingPatches();
 }
