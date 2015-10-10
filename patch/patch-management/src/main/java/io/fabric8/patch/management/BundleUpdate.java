@@ -31,12 +31,42 @@ public class BundleUpdate {
     private final String newVersion;
     private String newLocation;
 
+    private int startLevel = -1;
+    private int state = -1;
+
+    // if this flag is set, this BundleUpdate isn't considered as independent update, it's only informational
+    private boolean partOfFeatureUpdate = false;
+
+    private String toString;
+
     public BundleUpdate(String symbolicName, String newVersion, String newLocation, String previousVersion, String previousLocation) {
+        this(symbolicName, newVersion, newLocation, previousVersion, previousLocation, -1, -1);
+    }
+
+    public BundleUpdate(String symbolicName, String newVersion, String newLocation, String previousVersion, String previousLocation, int startLevel, int state) {
         this.symbolicName = symbolicName;
         this.newVersion = newVersion;
         this.newLocation = newLocation;
         this.previousVersion = previousVersion;
         this.previousLocation = previousLocation;
+        this.startLevel = startLevel;
+        this.state = state;
+
+        if (symbolicName == null) {
+            // for test purposes
+            toString = previousLocation;
+        } else if (newVersion == null) {
+            // reinstallation
+            toString = String.format("%s: reinstall from %s (sl=%d)", symbolicName, previousLocation, startLevel);
+        } else {
+            // update
+            toString = String.format("%s: %s->%s (from %s) (sl=%d)", symbolicName, previousVersion, newVersion, newLocation, startLevel);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return toString;
     }
 
     /**
@@ -77,4 +107,21 @@ public class BundleUpdate {
     public String getPreviousLocation() {
         return previousLocation;
     }
+
+    public int getStartLevel() {
+        return startLevel;
+    }
+
+    public int getState() {
+        return state;
+    }
+
+    public boolean isPartOfFeatureUpdate() {
+        return partOfFeatureUpdate;
+    }
+
+    public void setPartOfFeatureUpdate(boolean partOfFeatureUpdate) {
+        this.partOfFeatureUpdate = partOfFeatureUpdate;
+    }
+
 }

@@ -69,6 +69,7 @@ public class UtilsTest {
 
         assertThat(pathToMvnurl("a/b/c/b-c.jar"), equalTo("mvn:a/b/c"));
         assertThat(pathToMvnurl("a/b/b/c/b-c.jar"), equalTo("mvn:a.b/b/c"));
+        assertThat(pathToMvnurl("a/b/b/c/b-c-d.jar"), equalTo("mvn:a.b/b/c/jar/d"));
         assertThat(pathToMvnurl("a/b/c/b-c.war"), equalTo("mvn:a/b/c/war"));
 
         assertThat(pathToMvnurl("a/b/c/b-c-x.war"), equalTo("mvn:a/b/c/war/x"));

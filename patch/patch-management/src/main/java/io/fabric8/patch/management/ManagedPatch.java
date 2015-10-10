@@ -16,9 +16,7 @@
 package io.fabric8.patch.management;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Information about already downloaded patch stored and tracked by patch management system - dynamic patch
@@ -38,9 +36,6 @@ public class ManagedPatch {
     private List<String> filesRemoved = new ArrayList<>();
 
     private String unifiedDiff;
-
-    // TODO: ↓
-    private Map<String, String> modificationDiffs = new HashMap<>();
 
     public String getCommitId() {
         return commitId;

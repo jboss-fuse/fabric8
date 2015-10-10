@@ -329,7 +329,6 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         }
                         if (!name.contains("/") && name.endsWith(".patch")) {
                             // patch descriptor in ZIP's root directory
-                            // TODO why there must be only one?
                             if (patchData == null) {
                                 // load data from patch descriptor inside ZIP. This may or may not be a rollup
                                 // patch
@@ -933,7 +932,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         // restore backed up content from the reapplied user change
                         String[] commitMessage = userChange.getFullMessage().split("\n\n");
                         if (commitMessage.length > 1) {
-                            // we have original commit that had conflicts stored in this commit's message
+                            // we have original commit (that had conflicts) stored in this commit's full message
                             String ref = commitMessage[commitMessage.length - 1];
                             File backupDir = new File(patchesDir, patchData.getId() + ".backup");
                             backupDir = new File(backupDir, ref);

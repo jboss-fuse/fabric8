@@ -331,6 +331,8 @@ public class Utils {
                 sb.append('/');
                 if (!"jar".equals(type)) {
                     sb.append(type);
+                } else if (classifier != null) {
+                    sb.append(type);
                 }
                 if (classifier != null) {
                     sb.append('/').append(classifier);

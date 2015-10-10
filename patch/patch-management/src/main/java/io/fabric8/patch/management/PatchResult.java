@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Properties;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.http.ParseException;
 
 /**
  * Information about installed patch. This information is generated and stored to <code>*.patch.result</code> file
@@ -45,6 +46,8 @@ public class PatchResult {
     private static final String NEW_LOCATION = "new-location";
     private static final String OLD_VERSION = "old-version";
     private static final String OLD_LOCATION = "old-location";
+    private static final String STATE = "state";
+    private static final String START_LEVEL = "start-level";
 
     private static final String FEATURE_UPDATES = "feature-update";
     private static final String FEATURE_NAME = "name";
@@ -113,7 +116,22 @@ public class PatchResult {
             String nl = props.getProperty(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + NEW_LOCATION);
             String ov = props.getProperty(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + OLD_VERSION);
             String ol = props.getProperty(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + OLD_LOCATION);
-            bupdates.add(new BundleUpdate(sn, nv, nl, ov, ol));
+            int state = -1, startLevel = -1;
+            String _state = props.getProperty(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + STATE);
+            if (_state != null && !"".equals(_state)) {
+                try {
+                    state = Integer.parseInt(_state);
+                } catch (ParseException ignored) {
+                }
+            }
+            String _startLevel = props.getProperty(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + START_LEVEL);
+            if (_startLevel != null && !"".equals(_startLevel)) {
+                try {
+                    startLevel = Integer.parseInt(_startLevel);
+                } catch (ParseException ignored) {
+                }
+            }
+            bupdates.add(new BundleUpdate(sn, nv, nl, ov, ol, startLevel, state));
         }
 
         List<FeatureUpdate> fupdates = new ArrayList<>();
@@ -161,18 +179,28 @@ public class PatchResult {
             }
             pw.write(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + OLD_VERSION + " = " + update.getPreviousVersion() + "\n");
             pw.write(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + OLD_LOCATION + " = " + update.getPreviousLocation() + "\n");
+            if (update.getStartLevel() > -1) {
+                pw.write(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + START_LEVEL + " = " + update.getStartLevel() + "\n");
+            }
+            if (update.getState() > -1) {
+                pw.write(BUNDLE_UPDATES + "." + Integer.toString(i) + "." + STATE + " = " + update.getState() + "\n");
+            }
             i++;
         }
 
         pw.write(FEATURE_UPDATES + "." + COUNT + " = " + Integer.toString(getFeatureUpdates().size()) + "\n");
         i = 0;
         for (FeatureUpdate update : getFeatureUpdates()) {
-            pw.write(FEATURE_UPDATES + "." + Integer.toString(i) + "." + FEATURE_NAME + " = " + update.getName() + "\n");
+            if (update.getName() != null) {
+                pw.write(FEATURE_UPDATES + "." + Integer.toString(i) + "." + FEATURE_NAME + " = " + update.getName() + "\n");
+            }
             if (update.getNewVersion() != null) {
                 pw.write(FEATURE_UPDATES + "." + Integer.toString(i) + "." + NEW_VERSION + " = " + update.getNewVersion() + "\n");
                 pw.write(FEATURE_UPDATES + "." + Integer.toString(i) + "." + FEATURE_NEW_REPOSITORY + " = " + update.getNewRepository() + "\n");
             }
-            pw.write(FEATURE_UPDATES + "." + Integer.toString(i) + "." + OLD_VERSION + " = " + update.getPreviousVersion() + "\n");
+            if (update.getPreviousVersion() != null) {
+                pw.write(FEATURE_UPDATES + "." + Integer.toString(i) + "." + OLD_VERSION + " = " + update.getPreviousVersion() + "\n");
+            }
             pw.write(FEATURE_UPDATES + "." + Integer.toString(i) + "." + FEATURE_OLD_REPOSITORY + " = " + update.getPreviousRepository() + "\n");
             i++;
         }
