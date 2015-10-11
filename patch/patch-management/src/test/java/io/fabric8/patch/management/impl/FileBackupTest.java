@@ -23,6 +23,7 @@ import java.util.Properties;
 import io.fabric8.patch.management.BundleUpdate;
 import io.fabric8.patch.management.PatchData;
 import io.fabric8.patch.management.PatchResult;
+import io.fabric8.patch.management.Pending;
 import org.apache.commons.io.FileUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -106,19 +107,19 @@ public class FileBackupTest {
         result.getBundleUpdates().add(b6);
         result.getBundleUpdates().add(b7);
 
-        new FileBackupService(sys).backupDataFiles(result);
+        new FileBackupService(sys).backupDataFiles(result, Pending.ROLLUP_INSTALLATION);
 
         Properties props = new Properties();
-        props.load(new FileInputStream(new File(karafHome, "patches/my-patch.datafiles/backup.properties")));
+        props.load(new FileInputStream(new File(karafHome, "patches/my-patch.datafiles/backup-install.properties")));
 
         assertThat(props.getProperty("com.irrelevant.services$$1.1.0"), equalTo("com.irrelevant.services$$1.1.0"));
         assertThat(props.getProperty("com.irrelevant.services$$1.2"), equalTo("com.irrelevant.services$$1.1.0"));
         assertThat(props.getProperty("com.irrelevant.iot$$1.2.5"), equalTo("com.irrelevant.iot$$1.2.5"));
         assertThat(props.stringPropertyNames().size(), equalTo(3));
 
-        assertTrue(new File(karafHome, "patches/my-patch.datafiles/com.irrelevant.services$$1.1.0/data/x").isDirectory());
-        assertTrue(new File(karafHome, "patches/my-patch.datafiles/com.irrelevant.iot$$1.2.5/data/z").isDirectory());
-        assertFalse(new File(karafHome, "patches/my-patch.datafiles/com.irrelevant.the.final.frontier$$1.5").isDirectory());
+        assertTrue(new File(karafHome, "patches/my-patch.datafiles/install/com.irrelevant.services$$1.1.0/data/x").isDirectory());
+        assertTrue(new File(karafHome, "patches/my-patch.datafiles/install/com.irrelevant.iot$$1.2.5/data/z").isDirectory());
+        assertFalse(new File(karafHome, "patches/my-patch.datafiles/install/com.irrelevant.the.final.frontier$$1.5").isDirectory());
     }
 
 }

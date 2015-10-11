@@ -118,6 +118,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     /* A pattern of commit message when adding baseling distro */
     private static final String MARKER_BASELINE_COMMIT_PATTERN = "[PATCH/baseline] Installing baseline-%s";
     private static final String MARKER_BASELINE_RESET_OVERRIDES_PATTERN = "[PATCH/baseline] baseline-%s - resetting etc/overrides.properties";
+    private static final String MARKER_BASELINE_REPLACE_PATCH_FEATURE_PATTERN = "[PATCH/baseline] baseline-%s - switching to patch feature repository %s";
 
     /* Patterns for rolling patch installation */
     private static final String MARKER_R_PATCH_INSTALLATION_PATTERN = "[PATCH] Installing rollup patch %s";
@@ -494,11 +495,18 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
             // copy patch resources (but not maven artifacts from system/ or repository/) to working copy
             if (patchData.getPatchDirectory() != null) {
-                copyManagedDirectories(patchData.getPatchDirectory(), fork.getRepository().getWorkTree(), false);
+                copyManagedDirectories(patchData.getPatchDirectory(), fork.getRepository().getWorkTree(), true, false, false);
             }
 
             // add the changes
             fork.add().addFilepattern(".").call();
+
+            // remove the deletes (without touching specially-managed etc/overrides.properties)
+            for (String missing : fork.status().call().getMissing()) {
+                if (!"etc/overrides.properties".equals(missing)) {
+                    fork.rm().addFilepattern(missing).call();
+                }
+            }
 
             // commit the changes (patch vs. baseline) to patch branch
             gitPatchRepository.prepareCommit(fork, String.format("[PATCH] Tracking patch %s", patchData.getId())).call();
@@ -817,7 +825,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             .parseCommit(fork.getRepository().resolve("HEAD"));
 
                     // apply changes from single range of commits
-                    applyChanges(fork, c1, c2);
+//                    applyChanges(fork, c1, c2);
+                    applyChanges(fork);
                     break;
                 }
                 case NON_ROLLUP: {
@@ -838,7 +847,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
                     // apply a change from commits of all installed patches
                     RevCommit c2 = new RevWalk(fork.getRepository()).parseCommit(fork.getRepository().resolve("HEAD"));
-                    applyChanges(fork, c1, c2);
+//                    applyChanges(fork, c1, c2);
+                    applyChanges(fork);
                     break;
                 }
             }
@@ -889,7 +899,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     System.out.flush();
 
                     // rolling back a rollup patch should rebase all user commits on top of current baseline
-                    // to previous basline
+                    // to previous baseline
                     RevTag currentBaseline = gitPatchRepository.findCurrentBaseline(fork);
                     RevCommit c1 = new RevWalk(fork.getRepository())
                             .parseCommit(fork.getRepository().resolve(currentBaseline.getTagName() + "^{commit}"));
@@ -921,14 +931,24 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             .setMode(ResetCommand.ResetType.HARD)
                             .setRef(previousBaseline.getTagName() + "^{commit}")
                             .call();
+                    // unstage any garbage
+                    fork.reset()
+                            .setMode(ResetCommand.ResetType.MIXED)
+                            .call();
 
                     // reapply those user changes that are not conflicting
                     ListIterator<RevCommit> it = userChanges.listIterator(userChanges.size());
 
+                    Status status = fork.status().call();
+                    if (!status.isClean()) {
+                        for (String p : status.getModified()) {
+                            fork.checkout().addPath(p).call();
+                        }
+                    }
                     while (it.hasPrevious()) {
                         RevCommit userChange = it.previous();
                         CherryPickResult cpr = fork.cherryPick()
-                                .include(userChange)
+                                .include(userChange.getId())
                                 .setNoCommit(true)
                                 .call();
 
@@ -945,9 +965,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             File backupDir = new File(patchesDir, patchData.getId() + ".backup");
                             backupDir = new File(backupDir, ref);
                             if (backupDir.exists() && backupDir.isDirectory()) {
-                                System.out.printf("Restoring content of %s", backupDir.getCanonicalPath());
+                                System.out.printf("Restoring content of %s%n", backupDir.getCanonicalPath());
                                 System.out.flush();
-                                copyManagedDirectories(backupDir, karafHome, false);
+                                copyManagedDirectories(backupDir, karafHome, false, false, false);
                             }
                         }
 
@@ -981,7 +1001,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     // HEAD of master branch after reset and cherry-picks
                     c2 = new RevWalk(fork.getRepository())
                             .parseCommit(fork.getRepository().resolve("HEAD"));
-                    applyChanges(fork, c1, c2);
+//                    applyChanges(fork, c1, c2);
+                    applyChanges(fork);
 
                     break;
                 }
@@ -1052,7 +1073,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     // HEAD of master branch after reset and cherry-picks
                     RevCommit c = new RevWalk(fork.getRepository())
                             .parseCommit(fork.getRepository().resolve("HEAD"));
-                    applyChanges(fork, c.getParent(0), c);
+//                    applyChanges(fork, c.getParent(0), c);
+                    applyChanges(fork);
 
                     break;
                 }
@@ -1419,16 +1441,24 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
             // 1) git history that tracks patch operations (but not the content of the patches)
             InitializationType state = checkMainRepositoryState(fork);
+            // one of the steps may return a commit that has to be tagged as first baseline
+            RevCommit baselineCommit = null;
             switch (state) {
                 case ERROR_NO_VERSIONS:
                     throw new PatchException("Can't determine Fuse/Fabric8 version. Is KARAF_HOME/fabric directory available?");
                 case INSTALL_BASELINE:
                     // track initial configuration
-                    trackBaselineRepository(fork);
+                    RevCommit c1 = trackBaselineRepository(fork);
+                    if (c1 != null) {
+                        baselineCommit = c1;
+                    }
                     // fall down the next case, don't break!
                 case INSTALL_PATCH_MANAGEMENT_BUNDLE:
                     // install patch management bundle in etc/startup.properties to overwrite possible user change to that file
-                    installPatchManagementBundle(fork);
+                    RevCommit c2 = installPatchManagementBundle(fork);
+                    if (c2 != null) {
+                        baselineCommit = c2;
+                    }
                     // add possible user changes since the distro was first run
                     applyUserChanges(fork);
                     break;
@@ -1438,6 +1468,17 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     break;
                 case READY:
                     break;
+            }
+
+            if (baselineCommit != null) {
+                // and we'll tag the baseline *after* steps related to first baseline
+                String currentFuseVersion = determineVersion("fuse");
+                fork.tag()
+                        .setName(String.format("baseline-%s", currentFuseVersion))
+                        .setObjectId(baselineCommit)
+                        .call();
+
+                gitPatchRepository.push(fork);
             }
 
             // 2) repository of patch data - already installed patches
@@ -1526,7 +1567,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * Adds baseline distribution to the repository
      * @param git non-bare repository to perform the operation
      */
-    private void trackBaselineRepository(Git git) throws IOException, GitAPIException {
+    private RevCommit trackBaselineRepository(Git git) throws IOException, GitAPIException {
         // initialize repo with baseline version and push to reference repo
         String currentFuseVersion = determineVersion("fuse");
         String currentFabricVersion = determineVersion("fabric");
@@ -1563,6 +1604,33 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     .call();
             gitPatchRepository.prepareCommit(git, String.format(MARKER_BASELINE_COMMIT_PATTERN, currentFuseVersion)).call();
 
+            // let's replace the reference to "patch" feature repository, to be able to do rollback to this very first
+            // baseline
+            List<String> lines = FileUtils.readLines(new File(git.getRepository().getWorkTree(), "etc/org.apache.karaf.features.cfg"));
+            List<String> newVersion = new LinkedList<>();
+            for (String line : lines) {
+                if (!line.contains("mvn:io.fabric8.patch/patch-features/")) {
+                    newVersion.add(line);
+                } else {
+                    String newLine = line.replace(currentFabricVersion, bundleContext.getBundle().getVersion().toString());
+                    newVersion.add(newLine);
+                }
+            }
+            StringBuilder sb = new StringBuilder();
+            for (String newLine : newVersion) {
+                sb.append(newLine).append("\n");
+            }
+            FileUtils.write(new File(git.getRepository().getWorkTree(), "etc/org.apache.karaf.features.cfg"), sb.toString());
+            git.add()
+                    .addFilepattern("etc/org.apache.karaf.features.cfg")
+                    .call();
+            gitPatchRepository.prepareCommit(git, String.format(MARKER_BASELINE_REPLACE_PATCH_FEATURE_PATTERN,
+                    currentFuseVersion, bundleContext.getBundle().getVersion().toString())).call();
+
+            // let's assume that user didn't change this file and replace it with our version
+            FileUtils.copyFile(new File(git.getRepository().getWorkTree(), "etc/org.apache.karaf.features.cfg"),
+                    new File(karafHome, "etc/org.apache.karaf.features.cfg"));
+
             // each baseline ships new feature repositories and from this point (or the point where new rollup patch
             // is installed) we should start with 0-sized overrides.properties in order to have easier non-rollup
             // patch installation - no P-patch should ADD overrides.properties - they have to only MODIFY it because
@@ -1570,7 +1638,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             // than it was installed)
             resetOverrides(git.getRepository().getWorkTree());
             git.add().addFilepattern("etc/overrides.properties").call();
-            RevCommit commit = gitPatchRepository.prepareCommit(git,
+            return gitPatchRepository.prepareCommit(git,
                     String.format(MARKER_BASELINE_RESET_OVERRIDES_PATTERN, currentFuseVersion)).call();
         } else {
             String message = "Can't find baseline distribution for version \"" + currentFuseVersion + "\" in patches dir or inside system repository.";
@@ -1595,7 +1663,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             // then we can check the differences simply by committing the changes
             // there should be no conflicts, because we're not merging anything
             // "true" would mean that target dir is first deleted to detect removal of files
-            copyManagedDirectories(karafBase, wcDir, false);
+            copyManagedDirectories(karafBase, wcDir, false, true, false);
 
             // commit the changes to main repository
             Status status = git.status().call();
@@ -1635,19 +1703,30 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * @param sourceDir
      * @param targetDir
      * @param removeTarget whether to delete content of targetDir/<em>managedDirectory</em> first (helpful to detect removals from source)
+     * @param onlyModified whether to copy only modified files (to preserve modification time when target file is
+     * not changed)
+     * @param useLibNext whether to rename lib to lib.next during copy
      * @throws IOException
      */
-    private void copyManagedDirectories(File sourceDir, File targetDir, boolean removeTarget) throws IOException {
+    private void copyManagedDirectories(File sourceDir, File targetDir, boolean removeTarget, boolean onlyModified, boolean useLibNext) throws IOException {
         for (String dir : MANAGED_DIRECTORIES) {
             File managedSrcDir = new File(sourceDir, dir);
             if (!managedSrcDir.exists()) {
                 continue;
             }
             File destDir = new File(targetDir, dir);
-            if (removeTarget) {
-                FileUtils.deleteQuietly(destDir);
+            if (useLibNext && "lib".equals(dir)) {
+                destDir = new File(targetDir, "lib.next");
+                if (removeTarget) {
+                    FileUtils.deleteQuietly(destDir);
+                }
+                FileUtils.copyDirectory(managedSrcDir, destDir);
+            } else {
+                if (removeTarget) {
+                    FileUtils.deleteQuietly(destDir);
+                }
+                EOLFixingFileUtils.copyDirectory(managedSrcDir, targetDir, destDir, onlyModified);
             }
-            EOLFixingFileUtils.copyDirectory(managedSrcDir, targetDir, destDir);
             if ("bin".equals(dir)) {
                 // repair file permissions
                 for (File script : destDir.listFiles()) {
@@ -1666,7 +1745,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * actually <em>install</em> this bundle in ${karaf.home}/system
      * @param git non-bare repository to perform the operation
      */
-    private void installPatchManagementBundle(Git git) throws IOException, GitAPIException {
+    private RevCommit installPatchManagementBundle(Git git) throws IOException, GitAPIException {
         // if user simply osgi:install the patch-management bundle then adding the mvn: URI to etc/startup.properties is enough
         // but it patch-management was dropped into deploy/, we have to copy it to ${karaf.default.repository}
         File fileinstallDeployDir = getDeployDir(karafHome);
@@ -1686,7 +1765,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
         bundleContext.getBundle().adapt(BundleStartLevel.class).setStartLevel(Activator.PATCH_MANAGEMENT_START_LEVEL);
 
-        replacePatchManagementBundleInStartupPropertiesIfNecessary(git, bundleVersion);
+        return replacePatchManagementBundleInStartupPropertiesIfNecessary(git, bundleVersion);
     }
 
     /**
@@ -1697,14 +1776,13 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * @throws IOException
      * @throws GitAPIException
      */
-    private void replacePatchManagementBundleInStartupPropertiesIfNecessary(Git git, String bundleVersion) throws IOException, GitAPIException {
+    private RevCommit replacePatchManagementBundleInStartupPropertiesIfNecessary(Git git, String bundleVersion) throws IOException, GitAPIException {
         boolean modified = false;
         boolean installed = false;
 
         File etcStartupProperties = new File(git.getRepository().getDirectory().getParent(), "etc/startup.properties");
         List<String> lines = FileUtils.readLines(etcStartupProperties);
         List<String> newVersion = new LinkedList<>();
-        String lf = System.lineSeparator();
         for (String line : lines) {
             if (!line.startsWith("io/fabric8/patch/patch-management/")) {
                 // copy unchanged
@@ -1737,7 +1815,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
             StringBuilder sb = new StringBuilder();
             for (String newLine : newVersion) {
-                sb.append(newLine).append(lf);
+                sb.append(newLine).append("\n");
             }
             FileUtils.write(new File(git.getRepository().getDirectory().getParent(), "etc/startup.properties"), sb.toString());
 
@@ -1750,21 +1828,29 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     .prepareCommit(git, String.format(MARKER_PATCH_MANAGEMENT_INSTALLATION_COMMIT_PATTERN, bundleVersion))
                     .call();
 
-            // and we'll tag the baseline *after* clearing etc/overrides.properties
-            String currentFuseVersion = determineVersion("fuse");
-            git.tag()
-                    .setName(String.format("baseline-%s", currentFuseVersion))
-                    .setObjectId(commit)
-                    .call();
-
-            gitPatchRepository.push(git);
-
             // "checkout" the above change in main "working copy" (${karaf.home})
             applyChanges(git, commit.getParent(0), commit);
 
             System.out.println(String.format("[PATCH] patch-management-%s.jar installed in etc/startup.properties. Please restart.", bundleVersion));
             System.out.flush();
+
+            return commit;
         }
+
+        return null;
+    }
+
+    /**
+     * <p>This method updates ${karaf.home} simply by copying all files from currently checked out working copy
+     * (usually HEAD of <code>master</code> branch) to <code>${karaf.home}</code></p>
+     * @param git
+     * @throws IOException
+     * @throws GitAPIException
+     */
+    private void applyChanges(Git git) throws IOException, GitAPIException {
+        File wcDir = git.getRepository().getWorkTree();
+        copyManagedDirectories(wcDir, karafHome, true, true, true);
+        FileUtils.copyDirectory(new File(wcDir, "lib"), new File(karafHome, "lib.next"));
     }
 
     /**
@@ -1820,8 +1906,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     File srcFile = new File(wcDir, newPath);
                     File destFile = new File(karafHome, targetPath);
                     // we do exception for etc/overrides.properties
-                    if ("etc/overrides.properties".equals(newPath)
-                            && srcFile.exists() && srcFile.length() == 0) {
+                    if ("etc/overrides.properties".equals(newPath) && srcFile.exists() && srcFile.length() == 0) {
                         FileUtils.deleteQuietly(destFile);
                     } else {
                         FileUtils.copyFile(srcFile, destFile);
@@ -1842,10 +1927,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             }
         }
 
-        if( !libDirectoryChanged ) {
+        if (!libDirectoryChanged) {
             // lib.next directory might not be needed.
             FileUtils.deleteDirectory(new File(karafHome, "lib.next"));
         }
+
         System.out.flush();
     }
 
@@ -1889,28 +1975,27 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         for (File pending : pendingPatches) {
             try {
                 Pending what = Pending.valueOf(FileUtils.readFileToString(pending));
+                final String prefix = what == Pending.ROLLUP_INSTALLATION ? "install" : "rollback";
+
                 File patchFile = new File(pending.getParentFile(), pending.getName().replaceFirst("\\.pending$", ""));
                 PatchData patchData = PatchData.load(new FileInputStream(patchFile));
                 Patch patch = loadPatch(new PatchDetailsRequest(patchData.getId()));
+
                 final File dataFilesBackupDir = new File(pending.getParentFile(), patchData.getId() + ".datafiles");
                 final Properties backupProperties = new Properties();
-                FileInputStream inStream = new FileInputStream(new File(dataFilesBackupDir, "backup.properties"));
+                FileInputStream inStream = new FileInputStream(new File(dataFilesBackupDir, "backup-" + prefix + ".properties"));
                 backupProperties.load(inStream);
                 IOUtils.closeQuietly(inStream);
 
-                // 1. we should have very little currently installed bundles (only from etc/startup.properties)
+                // 1. we should have very few currently installed bundles (only from etc/startup.properties)
                 //    and none of them is ACTIVE now, because we (patch-management) are at SL=2
                 //    maybe one of those bundles has data directory to restore?
                 for (Bundle b : systemContext.getBundles()) {
                     String key = String.format("%s$$%s", stripSymbolicName(b.getSymbolicName()), b.getVersion().toString());
                     if (backupProperties.containsKey(key)) {
                         String backupDirName = backupProperties.getProperty(key);
-                        File backupDir = new File(dataFilesBackupDir, backupDirName + "/data");
-                        if (backupDir.isDirectory()) {
-                            System.out.printf("[PATCH] Restoring data directory for bundle %s%n", b.toString());
-                            File bundleDataDir = new File(dataCache, "bundle" + b.getBundleId() + "/data");
-                            FileUtils.copyDirectory(backupDir, bundleDataDir);
-                        }
+                        File backupDir = new File(dataFilesBackupDir, prefix + "/" + backupDirName + "/data");
+                        restoreDataDirectory(dataCache, b, backupDir);
                         // we no longer want to restore this dir
                         backupProperties.remove(key);
                     }
@@ -1926,35 +2011,34 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             String key = String.format("%s$$%s", stripSymbolicName(b.getSymbolicName()), b.getVersion().toString());
                             if (backupProperties.containsKey(key)) {
                                 String backupDirName = backupProperties.getProperty(key);
-                                File backupDir = new File(dataFilesBackupDir, backupDirName + "/data");
-                                if (backupDir.isDirectory()) {
-                                    System.out.printf("[PATCH] Restoring data directory for bundle %s%n", b.toString());
-                                    File bundleDataDir = new File(dataCache, "bundle" + b.getBundleId() + "/data");
-                                    try {
-                                        FileUtils.copyDirectory(backupDir, bundleDataDir);
-                                    } catch (IOException e) {
-                                        System.err.println("[PATCH-error] " + e.getMessage());
-                                        System.err.flush();
-                                    }
-                                }
+                                File backupDir = new File(dataFilesBackupDir, prefix + "/" + backupDirName + "/data");
+                                restoreDataDirectory(dataCache, b, backupDir);
                             }
                         }
                     }
                 };
                 systemContext.addBundleListener(bundleListener);
                 pendingPatchesListeners.put(patchData.getId(), bundleListener);
-
-//                if (dataFilesBackupDir.isDirectory()) {
-//                    switch (what) {
-//                        case ROLLUP_INSTALLATION: {
-//                            break;
-//                        }
-//                        case ROLLUP_ROLLBACK: {
-//                            break;
-//                        }
-//                    }
-//                }
             } catch (Exception e) {
+                System.err.println("[PATCH-error] " + e.getMessage());
+                System.err.flush();
+            }
+        }
+    }
+
+    /**
+     * If <code>backupDir</code> exists, restore bundle data from this location and place in Felix bundle cache
+     * @param dataCache data cache location (by default: <code>${karaf.home}/data/cache</code>)
+     * @param bundle
+     * @param backupDir
+     */
+    private void restoreDataDirectory(String dataCache, Bundle bundle, File backupDir) {
+        if (backupDir.isDirectory()) {
+            System.out.printf("[PATCH] Restoring data directory for bundle %s%n", bundle.toString());
+            File bundleDataDir = new File(dataCache, "bundle" + bundle.getBundleId() + "/data");
+            try {
+                FileUtils.copyDirectory(backupDir, bundleDataDir);
+            } catch (IOException e) {
                 System.err.println("[PATCH-error] " + e.getMessage());
                 System.err.flush();
             }

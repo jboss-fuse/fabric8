@@ -21,6 +21,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,6 +37,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.CRC32;
 
 import io.fabric8.patch.management.io.EOLFixingFileOutputStream;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
@@ -530,6 +532,32 @@ public class Utils {
             System.err.println("[PATCH-error] " + e.getMessage());
         } finally {
             IOUtils.closeQuietly(reader);
+        }
+    }
+
+    /**
+     * Compute a checksum for the given stream
+     *
+     * @param is the input stream
+     * @return a checksum identifying any change
+     */
+    public static long checksum(InputStream is) throws IOException {
+        try {
+            CRC32 crc = new CRC32();
+            byte[] buffer = new byte[8192];
+            int l;
+            while ((l = is.read(buffer)) > 0) {
+                crc.update(buffer, 0, l);
+            }
+            return crc.getValue();
+        } finally {
+            if (is != null) {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    // Ignore
+                }
+            }
         }
     }
 

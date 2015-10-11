@@ -25,6 +25,7 @@ import java.util.Properties;
 import io.fabric8.patch.management.BackupService;
 import io.fabric8.patch.management.BundleUpdate;
 import io.fabric8.patch.management.PatchResult;
+import io.fabric8.patch.management.Pending;
 import io.fabric8.patch.management.Utils;
 import org.apache.commons.io.FileUtils;
 import org.osgi.framework.Bundle;
@@ -46,10 +47,11 @@ public class FileBackupService implements BackupService {
      * Invoked just before Framework is restarted and data/cache directory is removed. We copy existing data
      * directories for current bundles and record for which bundle$$version it is used.
      * @param result used to create backup directories.
+     * @param pending
      * @throws IOException
      */
     @Override
-    public void backupDataFiles(PatchResult result) throws IOException {
+    public void backupDataFiles(PatchResult result, Pending pending) throws IOException {
         Map<String, Bundle> bundlesWithData = new HashMap<>();
         // bundle.getDataFile("xxx") creates data dir if it didn't exist - it's not what we want
         String storageLocation = systemContext.getProperty("org.osgi.framework.storage");
@@ -70,6 +72,7 @@ public class FileBackupService implements BackupService {
                 // we start with fresh features service state
                 continue;
             }
+            // a bit of knowledge of how Felix works below...
             File dataDir = new File(cacheDir, "bundle" + b.getBundleId() + "/data");
             if (dataDir.isDirectory()) {
                 String key = String.format("%s$$%s", sn, b.getVersion().toString());
@@ -83,22 +86,29 @@ public class FileBackupService implements BackupService {
 
         File dataBackupDir = new File(result.getPatchData().getPatchLocation(),
                 result.getPatchData().getId() + ".datafiles");
+        String prefix = pending == Pending.ROLLUP_INSTALLATION ? "install" : "rollback";
         for (BundleUpdate update : result.getBundleUpdates()) {
             // same update for both updated and reinstalled bundle
-            String key = String.format("%s$$%s", update.getSymbolicName(), update.getPreviousVersion());
+            String key = String.format("%s$$%s", update.getSymbolicName(),
+                    pending == Pending.ROLLUP_INSTALLATION ? update.getPreviousVersion() : (
+                            update.getNewVersion() == null ? update.getPreviousVersion() : update.getNewVersion()
+                            ));
+
             if (bundlesWithData.containsKey(key)) {
-                File dataFileBackupDir = new File(dataBackupDir, key + "/data");
+                File dataFileBackupDir = new File(dataBackupDir, prefix + "/" + key + "/data");
                 dataFileBackupDir.mkdirs();
                 Bundle b = bundlesWithData.get(key);
                 FileUtils.copyDirectory(b.getDataFile(""), dataFileBackupDir);
                 properties.setProperty(key, key);
+                properties.setProperty(String.format("%s$$%s", update.getSymbolicName(), update.getPreviousVersion()), key);
                 if (update.getNewVersion() != null) {
                     properties.setProperty(String.format("%s$$%s", update.getSymbolicName(), update.getNewVersion()), key);
                 }
             }
         }
-        FileOutputStream propsFile = new FileOutputStream(new File(dataBackupDir, "backup.properties"));
-        properties.store(propsFile, "Data files to restore after \"" + result.getPatchData().getId() + "\" installation");
+        FileOutputStream propsFile = new FileOutputStream(new File(dataBackupDir, "backup-" + prefix + ".properties"));
+        properties.store(propsFile, "Data files to restore after \"" + result.getPatchData().getId() + "\" "
+                + (pending == Pending.ROLLUP_INSTALLATION ? "installation" : "rollback"));
         propsFile.close();
     }
 

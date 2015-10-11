@@ -35,8 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.jar.Attributes;
@@ -169,10 +167,13 @@ public class ServiceImpl implements Service {
             }
         });
         for (File pending : pendingPatches) {
+            Pending what = Pending.valueOf(FileUtils.readFileToString(pending));
+
             File patchFile = new File(pending.getParentFile(), pending.getName().replaceFirst("\\.pending$", ""));
             PatchData patchData = PatchData.load(new FileInputStream(patchFile));
             Patch patch = patchManagement.loadPatch(new PatchDetailsRequest(patchData.getId()));
-            System.out.printf("Resume installation of %spatch \"%s\"%n",
+            System.out.printf("Resume %s of %spatch \"%s\"%n",
+                    what == Pending.ROLLUP_INSTALLATION ? "installation" : "rollback",
                     patch.getPatchData().isRollupPatch() ? "rollup " : "",
                     patch.getPatchData().getId());
 
@@ -190,8 +191,13 @@ public class ServiceImpl implements Service {
                     features.add(String.format("%s|%s", featureUpdate.getName(), featureUpdate.getPreviousVersion()));
                 } else {
                     // feature was shipped by patch
-                    newRepositories.add(featureUpdate.getNewRepository());
-                    features.add(String.format("%s|%s", featureUpdate.getName(), featureUpdate.getNewVersion()));
+                    if (what == Pending.ROLLUP_INSTALLATION) {
+                        newRepositories.add(featureUpdate.getNewRepository());
+                        features.add(String.format("%s|%s", featureUpdate.getName(), featureUpdate.getNewVersion()));
+                    } else {
+                        newRepositories.add(featureUpdate.getPreviousRepository());
+                        features.add(String.format("%s|%s", featureUpdate.getName(), featureUpdate.getPreviousVersion()));
+                    }
                 }
             }
             for (String repo : newRepositories) {
@@ -227,10 +233,15 @@ public class ServiceImpl implements Service {
                     System.out.printf("Restoring bundle %s from %s%n", update.getSymbolicName(), update.getPreviousLocation());
                     location = update.getPreviousLocation();
                 } else {
-                    System.out.printf("Updating bundle %s from %s%n", update.getSymbolicName(), update.getNewLocation());
-                    location = update.getNewLocation();
+                    if (what == Pending.ROLLUP_INSTALLATION) {
+                        System.out.printf("Updating bundle %s from %s%n", update.getSymbolicName(), update.getNewLocation());
+                        location = update.getNewLocation();
+                    } else {
+                        System.out.printf("Downgrading bundle %s from %s%n", update.getSymbolicName(), update.getPreviousLocation());
+                        location = update.getPreviousLocation();
+                    }
                 }
-                // TODO restore data?
+
                 try {
                     Bundle b = bundleContext.installBundle(location);
                     if (update.getStartLevel() > -1) {
@@ -257,9 +268,14 @@ public class ServiceImpl implements Service {
             }
 
             pending.delete();
-            System.out.printf("%spatch \"%s\" installed successfully%n",
+            System.out.printf("%spatch \"%s\" %s successfully%n",
                     patch.getPatchData().isRollupPatch() ? "Rollup " : "",
-                    patchData.getId());
+                    patchData.getId(),
+                    what == Pending.ROLLUP_INSTALLATION ? "installed" : "rolled back");
+            if (what == Pending.ROLLUP_ROLLBACK) {
+                File file = new File(patchDir, patchData.getId() + ".patch.result");
+                file.delete();
+            }
         }
     }
 
@@ -435,16 +451,15 @@ public class ServiceImpl implements Service {
                 }
             }
 
-            displayFeatureUpdates(updatesForFeatureKeys, simulate);
+            Presentation.displayFeatureUpdates(updatesForFeatureKeys.values(), true);
 
             // effectively, we will update all the bundles from this list - even if some bundles will be "updated"
             // as part of feature installation
-            displayBundleUpdates(updatesForBundleKeys, simulate);
+            Presentation.displayBundleUpdates(updatesForBundleKeys.values(), true);
 
             // now, if we're installing rollup patch, we just restart with clean cache
             // then required repositories, features and bundles will be reinstalled
             if (kind == PatchKind.ROLLUP) {
-                backupService.backupDataFiles(results.values().iterator().next());
                 if (!simulate) {
                     // update KARAF_HOME
                     patchManagement.commitInstallation(transaction);
@@ -458,7 +473,7 @@ public class ServiceImpl implements Service {
 
                         // backup all datafiles of all bundles - we we'll backup configadmin configurations in
                         // single shot
-                        backupService.backupDataFiles(result);
+                        backupService.backupDataFiles(result, Pending.ROLLUP_INSTALLATION);
 
                         // Some updates need a full JVM restart.
                         if( isJvmRestartNeeded(results) ) {
@@ -480,6 +495,7 @@ public class ServiceImpl implements Service {
                         bundleContext.getBundle(0l).stop();
                     }
                 } else {
+                    System.out.println("Simulation only - no files and runtime data will be modified.");
                     patchManagement.rollbackInstallation(transaction);
                 }
 
@@ -495,9 +511,8 @@ public class ServiceImpl implements Service {
                 patchManagement.rollbackInstallation(transaction);
             }
 
-            Runnable task = null;
             if (!simulate) {
-                task = new Runnable() {
+                Runnable task = new Runnable() {
                     @Override
                     public void run() {
                         try {
@@ -516,15 +531,13 @@ public class ServiceImpl implements Service {
                         }
                     }
                 };
-            }
-
-            // update bundles (special case: pax-url-aether) and install features
-            if (!simulate) {
                 if (synchronous) {
                     task.run();
                 } else {
                     new Thread(task).start();
                 }
+            } else {
+                System.out.println("Simulation only - no files and runtime data will be modified.");
             }
 
             return results;
@@ -536,175 +549,27 @@ public class ServiceImpl implements Service {
                 patchManagement.rollbackInstallation(transaction);
             }
             throw new PatchException(e.getMessage(), e);
+        } finally {
+            System.out.flush();
         }
     }
 
     private boolean isJvmRestartNeeded(Map<String, PatchResult> results) {
         for (PatchResult result : results.values()) {
-            for (String file : result.getPatchData().getFiles()) {
-                if( file.startsWith("lib/") ||
-                    file.equals("etc/jre.properties") ) {
-                    return true;
-                }
+            if (isJvmRestartNeeded(result)) {
+                return true;
             }
         }
         return false;
     }
 
-    private void displayFeatureUpdates(Map<String, FeatureUpdate> featureUpdates, boolean simulate) {
-        Set<String> toKeep = new TreeSet<>();
-        Set<String> toRemove = new TreeSet<>();
-        Set<String> toAdd = new TreeSet<>();
-        for (FeatureUpdate fu : featureUpdates.values()) {
-            toRemove.add(fu.getPreviousRepository());
-            if (fu.getNewRepository() != null) {
-                toAdd.add(fu.getNewRepository());
-            } else {
-                toKeep.add(fu.getPreviousRepository());
+    private boolean isJvmRestartNeeded(PatchResult result) {
+        for (String file : result.getPatchData().getFiles()) {
+            if (file.startsWith("lib/") || file.equals("etc/jre.properties")) {
+                return true;
             }
         }
-        toRemove.removeAll(toKeep);
-        System.out.println("========== Repositories to remove:");
-        for (String repo : toRemove) {
-            System.out.println(" - " + repo);
-        }
-        System.out.println("========== Repositories to add:");
-        for (String repo : toAdd) {
-            System.out.println(" - " + repo);
-        }
-        System.out.println("========== Repositories to keep:");
-        for (String repo : toKeep) {
-            System.out.println(" - " + repo);
-        }
-
-        System.out.println("========== Features to update:");
-        int l1 = "[name]".length();
-        int l2 = "[version]".length();
-        int l3 = "[new version]".length();
-        Map<String, FeatureUpdate> map = new TreeMap<>();
-        for (FeatureUpdate fu : featureUpdates.values()) {
-            if (fu.getName() == null) {
-                continue;
-            }
-            if (fu.getName().length() > l1) {
-                l1 = fu.getName().length();
-            }
-            if (fu.getPreviousVersion().length() > l2) {
-                l2 = fu.getPreviousVersion().length();
-            }
-            if (fu.getNewVersion() != null) {
-                if (fu.getNewVersion().length() > l3) {
-                    l3 = fu.getNewVersion().length();
-                }
-            }
-            map.put(fu.getName(), fu);
-        }
-        System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
-                "[name]", "[version]", "[new version]");
-        for (FeatureUpdate fu : map.values()) {
-            System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
-                    fu.getName(), fu.getPreviousVersion(), fu.getNewVersion() == null ? "<reinstall>" : fu.getNewVersion());
-        }
-
-        System.out.flush();
-    }
-
-    private void displayBundleUpdates(Map<String, BundleUpdate> updatesForBundleKeys, boolean simulate) {
-        int l1 = "[symbolic name]".length();
-        int l2 = "[version]".length();
-        int l3 = "[new location]".length();
-        int tu = 0; // updates
-        int tuf = 0; // updates as part of features
-        int tk = 0; // reinstalls
-        int tkf = 0; // reinstalls as part of features
-        Map<String, BundleUpdate> map = new TreeMap<>();
-        for (Map.Entry<String, BundleUpdate> e : updatesForBundleKeys.entrySet()) {
-            BundleUpdate be = e.getValue();
-            String sn = stripSymbolicName(be.getSymbolicName());
-            if (sn.length() > l1) {
-                l1 = sn.length();
-            }
-            String version = be.getPreviousVersion();
-            if (version.length() > l2) {
-                l2 = version.length();
-            }
-            String newLocation = be.getNewLocation() == null ? "<reinstall>" : be.getNewLocation();
-            if (newLocation.length() > l3) {
-                l3 = newLocation.length();
-            }
-            if (be.getNewLocation() != null) {
-                if (be.isIndependent()) {
-                    tu++;
-                } else {
-                    tuf++;
-                }
-            } else {
-                if (be.isIndependent()) {
-                    tk++;
-                } else {
-                    tkf++;
-                }
-            }
-            map.put(be.getSymbolicName(), be);
-        }
-        if (tu > 0) {
-            System.out.printf("========== Bundles to update (%d):%n", tu);
-            System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
-                    "[symbolic name]", "[version]", "[new location]");
-            for (Map.Entry<String, BundleUpdate> e : map.entrySet()) {
-                BundleUpdate be = e.getValue();
-                if (be.isIndependent() && be.getNewLocation() != null) {
-                    System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
-                            stripSymbolicName(be.getSymbolicName()),
-                            be.getPreviousVersion(),
-                            be.getNewLocation());
-                }
-            }
-        }
-        if (tuf > 0) {
-            System.out.printf("========== Bundles to update as part of features or core bundles (%d):%n", tuf);
-            System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
-                    "[symbolic name]", "[version]", "[new location]");
-            for (Map.Entry<String, BundleUpdate> e : map.entrySet()) {
-                BundleUpdate be = e.getValue();
-                if (!be.isIndependent() && be.getNewLocation() != null) {
-                    System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
-                            stripSymbolicName(be.getSymbolicName()),
-                            be.getPreviousVersion(),
-                            be.getNewLocation());
-                }
-            }
-        }
-        if (tk > 0) {
-            System.out.printf("========== Bundles to reinstall (%d):%n", tk);
-            System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
-                    "[symbolic name]", "[version]", "[location]");
-            for (Map.Entry<String, BundleUpdate> e : map.entrySet()) {
-                BundleUpdate be = e.getValue();
-                if (be.isIndependent() && be.getNewLocation() == null) {
-                    System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
-                            stripSymbolicName(be.getSymbolicName()),
-                            be.getPreviousVersion(),
-                            be.getPreviousLocation());
-                }
-            }
-        }
-        if (tkf > 0) {
-            System.out.printf("========== Bundles to reinstall as part of features or core bundles (%d):%n", tkf);
-            System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
-                    "[symbolic name]", "[version]", "[location]");
-            for (Map.Entry<String, BundleUpdate> e : map.entrySet()) {
-                BundleUpdate be = e.getValue();
-                if (!be.isIndependent() && be.getNewLocation() == null) {
-                    System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
-                            stripSymbolicName(be.getSymbolicName()),
-                            be.getPreviousVersion(),
-                            be.getPreviousLocation());
-                }
-            }
-        }
-
-        System.out.flush();
+        return false;
     }
 
     /**
@@ -1206,11 +1071,58 @@ public class ServiceImpl implements Service {
     }
 
     @Override
-    public void rollback(final Patch patch, boolean force) throws PatchException {
+    public void rollback(final Patch patch, boolean simulate, boolean force) throws PatchException {
         final PatchResult result = patch.getResult();
         if (result == null) {
             throw new PatchException("Patch " + patch.getPatchData().getId() + " is not installed");
         }
+
+        if (patch.getPatchData().isRollupPatch()) {
+            // we already have the "state" (feature repositories, features, bundles and their states, datafiles
+            // and start-level info) stored in *.result file
+
+            Presentation.displayFeatureUpdates(result.getFeatureUpdates(), false);
+            Presentation.displayBundleUpdates(result.getBundleUpdates(), false);
+
+            try {
+                if (!simulate) {
+                    patchManagement.rollback(patch.getPatchData());
+                    result.setPending(Pending.ROLLUP_ROLLBACK);
+                    result.store();
+
+                    backupService.backupDataFiles(result, Pending.ROLLUP_ROLLBACK);
+
+                    if (isJvmRestartNeeded(result)) {
+                        boolean handlesFullRestart = Boolean.getBoolean("karaf.restart.jvm.supported");
+                        if (handlesFullRestart) {
+                            System.out.println("Rollup patch " + patch.getPatchData().getId() + " rolled back. Restarting Karaf..");
+                            System.setProperty("karaf.restart.jvm", "true");
+                        } else {
+                            System.out.println("Rollup patch " + patch.getPatchData().getId() + " rolled back. Shutting down Karaf, please restart...");
+                        }
+                    } else {
+                        // We don't need a JVM restart, so lets just do a OSGi framework restart
+                        System.setProperty("karaf.restart", "true");
+                    }
+
+                    File karafData = new File(bundleContext.getProperty("karaf.data"));
+                    File cleanCache = new File(karafData, "clean_cache");
+                    cleanCache.createNewFile();
+                    bundleContext.getBundle(0l).stop();
+                    // stop/shutdown occurs on another thread
+                    return;
+                } else {
+                    System.out.println("Simulation only - no files and runtime data will be modified.");
+                    return;
+                }
+            } catch (Exception e) {
+                e.printStackTrace(System.err);
+                System.err.flush();
+                throw new PatchException(e.getMessage(), e);
+            }
+        }
+
+        // continue with NON_ROLLUP patch
 
         // current state of the framework
         Bundle[] allBundles = bundleContext.getBundles();
@@ -1219,7 +1131,7 @@ public class ServiceImpl implements Service {
         List<BundleUpdate> badUpdates = new ArrayList<BundleUpdate>();
         for (BundleUpdate update : result.getBundleUpdates()) {
             boolean found = false;
-            Version v = Version.parseVersion(update.getNewVersion());
+            Version v = Version.parseVersion(update.getNewVersion() == null ? update.getPreviousVersion() : update.getNewVersion());
             for (Bundle bundle : allBundles) {
                 if (stripSymbolicName(bundle.getSymbolicName()).equals(stripSymbolicName(update.getSymbolicName()))
                         && bundle.getVersion().equals(v)) {
@@ -1235,40 +1147,41 @@ public class ServiceImpl implements Service {
             StringBuilder sb = new StringBuilder();
             sb.append("Unable to rollback patch ").append(patch.getPatchData().getId()).append(" because of the following missing bundles:\n");
             for (BundleUpdate up : badUpdates) {
-                sb.append("\t").append(up.getSymbolicName()).append("/").append(up.getNewVersion()).append("\n");
+                String version = up.getNewVersion() == null ? up.getPreviousVersion() : up.getNewVersion();
+                sb.append(" - ").append(up.getSymbolicName()).append("/").append(version).append("\n");
             }
             throw new PatchException(sb.toString());
         }
 
-        // bundle -> old location of the bundle to downgrade from
-        final Map<Bundle, String> toUpdate = new HashMap<Bundle, String>();
-        for (BundleUpdate update : result.getBundleUpdates()) {
-            Version v = Version.parseVersion(update.getNewVersion());
-            for (Bundle bundle : allBundles) {
-                if (stripSymbolicName(bundle.getSymbolicName()).equals(stripSymbolicName(update.getSymbolicName()))
-                        && bundle.getVersion().equals(v)) {
-                    toUpdate.put(bundle, update.getPreviousLocation());
+        if (!simulate) {
+            // bundle -> old location of the bundle to downgrade from
+            final Map<Bundle, String> toUpdate = new HashMap<Bundle, String>();
+            for (BundleUpdate update : result.getBundleUpdates()) {
+                Version v = Version.parseVersion(update.getNewVersion() == null ? update.getPreviousVersion() : update.getNewVersion());
+                for (Bundle bundle : allBundles) {
+                    if (stripSymbolicName(bundle.getSymbolicName()).equals(stripSymbolicName(update.getSymbolicName()))
+                            && bundle.getVersion().equals(v)) {
+                        toUpdate.put(bundle, update.getPreviousLocation());
+                    }
                 }
             }
+
+            patchManagement.rollback(patch.getPatchData());
+
+            Executors.newSingleThreadExecutor().execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        applyChanges(toUpdate);
+                    } catch (Exception e) {
+                        throw new PatchException("Unable to rollback patch " + patch.getPatchData().getId() + ": " + e.getMessage(), e);
+                    }
+                    patch.setResult(null);
+                    File file = new File(patchDir, result.getPatchData().getId() + ".patch.result");
+                    file.delete();
+                }
+            });
         }
-
-        // restore startup.properties and overrides.properties
-        Executors.newSingleThreadExecutor().execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    PatchManagement pm = patchManagement;
-                    applyChanges(toUpdate);
-
-                    pm.rollback(result.getPatchData());
-                } catch (Exception e) {
-                    throw new PatchException("Unable to rollback patch " + patch.getPatchData().getId() + ": " + e.getMessage(), e);
-                }
-                ((Patch) patch).setResult(null);
-                File file = new File(patchDir, result.getPatchData().getId() + ".patch.result");
-                file.delete();
-            }
-        });
     }
 
     /**

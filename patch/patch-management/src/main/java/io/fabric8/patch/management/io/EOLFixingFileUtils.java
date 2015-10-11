@@ -24,6 +24,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.fabric8.patch.management.Utils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 
@@ -37,7 +38,16 @@ public class EOLFixingFileUtils {
     public static final long ONE_MB = ONE_KB * ONE_KB;
     private static final long FILE_COPY_BUFFER_SIZE = ONE_MB * 30;
 
-    public static void copyDirectory(File srcDir, File baseDestDir, File destDir) throws IOException {
+    /**
+     * Just like {@link FileUtils#copyDirectory(File, File)}, but this version is aware of target <em>base</em>, so
+     * it knows whether to use {@link EOLFixingFileOutputStream}.
+     * @param srcDir
+     * @param baseDestDir
+     * @param destDir
+     * @param onlyModified if source file is the same (CRC) as target file, to not change it (preserve time attrs)
+     * @throws IOException
+     */
+    public static void copyDirectory(File srcDir, File baseDestDir, File destDir, boolean onlyModified) throws IOException {
         if (srcDir == null) {
             throw new NullPointerException("Source must not be null");
         }
@@ -66,10 +76,10 @@ public class EOLFixingFileUtils {
                 }
             }
         }
-        doCopyDirectory(srcDir, baseDestDir, destDir, exclusionList);
+        doCopyDirectory(srcDir, baseDestDir, destDir, exclusionList, onlyModified);
     }
 
-    private static void doCopyDirectory(File srcDir, File baseDestDir, File destDir, List<String> exclusionList) throws IOException {
+    private static void doCopyDirectory(File srcDir, File baseDestDir, File destDir, List<String> exclusionList, boolean onlyModified) throws IOException {
         // recurse
         File[] srcFiles = srcDir.listFiles();
         if (srcFiles == null) {  // null if abstract pathname does not denote a directory, or if an I/O error occurs
@@ -91,9 +101,17 @@ public class EOLFixingFileUtils {
             File dstFile = new File(destDir, srcFile.getName());
             if (exclusionList == null || !exclusionList.contains(srcFile.getCanonicalPath())) {
                 if (srcFile.isDirectory()) {
-                    doCopyDirectory(srcFile, baseDestDir, dstFile, exclusionList);
+                    doCopyDirectory(srcFile, baseDestDir, dstFile, exclusionList, onlyModified);
                 } else {
-                    doCopyFile(srcFile, baseDestDir, dstFile);
+                    if (onlyModified && dstFile.exists()) {
+                        long crc1 = Utils.checksum(new FileInputStream(srcFile));
+                        long crc2 = Utils.checksum(new FileInputStream(dstFile));
+                        if (crc1 != crc2) {
+                            doCopyFile(srcFile, baseDestDir, dstFile);
+                        }
+                    } else {
+                        doCopyFile(srcFile, baseDestDir, dstFile);
+                    }
                 }
             }
         }

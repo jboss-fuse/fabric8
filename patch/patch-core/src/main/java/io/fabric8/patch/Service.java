@@ -60,6 +60,7 @@ public interface Service {
      * Install already added patch
      * @param patch
      * @param simulate
+     * @param synchronous
      * @return
      */
     PatchResult install(Patch patch, boolean simulate, boolean synchronous);
@@ -67,8 +68,9 @@ public interface Service {
     /**
      * Rolls back an installed patch
      * @param patch
+     * @param simulate
      * @param force
      */
-    void rollback(Patch patch, boolean force);
+    void rollback(Patch patch, boolean simulate, boolean force);
 
 }

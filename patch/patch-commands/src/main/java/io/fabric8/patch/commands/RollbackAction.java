@@ -20,12 +20,16 @@ import org.apache.felix.gogo.commands.Command;
 import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.management.PatchException;
 import io.fabric8.patch.Service;
+import org.apache.felix.gogo.commands.Option;
 
 @Command(scope = "patch", name = "rollback", description = "Rollback a patch installation")
 public class RollbackAction extends PatchActionSupport {
 
     @Argument(name = "PATCH", description = "name of the patch to rollback", required = true, multiValued = false)
     String patchId;
+
+    @Option(name = "--simulation", description = "Simulates rollback of the patch")
+    boolean simulation = false;
 
     RollbackAction(Service service) {
         super(service);
@@ -43,7 +47,7 @@ public class RollbackAction extends PatchActionSupport {
         if (patch.getPatchData().getMigratorBundle() != null) {
             throw new PatchException("Patch '" + patchId + "' does not support rollback");
         }
-        service.rollback(patch, false);
+        service.rollback(patch, simulation, false);
     }
 
 }

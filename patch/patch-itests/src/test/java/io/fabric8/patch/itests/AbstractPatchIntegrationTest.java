@@ -64,7 +64,7 @@ public abstract class AbstractPatchIntegrationTest {
     // Rollback a patch and wait for rollback to complete
     protected void rollback(String name) throws Exception {
         Patch patch = service.getPatch(name);
-        service.rollback(patch, false);
+        service.rollback(patch, false, false);
 
         long start = System.currentTimeMillis();
         while (patch.isInstalled() && System.currentTimeMillis() - start < TIMEOUT) {

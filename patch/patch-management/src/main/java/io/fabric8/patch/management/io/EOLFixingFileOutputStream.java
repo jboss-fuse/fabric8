@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import io.fabric8.patch.management.Utils;
+import org.apache.commons.io.FilenameUtils;
 
 /**
  * {@link FileOutputStream} replacement which ensures that for critical files (inside <code>bin</code> or
@@ -42,6 +43,10 @@ public class EOLFixingFileOutputStream extends FileOutputStream {
             "bin", "etc", "fabric", "licenses", "metatype"
     ));
 
+    private static final Set<String> IMPORTANT_EXTENSIONS = new HashSet<>(Arrays.asList(
+            "md", "properties", "xml", "json", "txt", "cfg", "config"
+    ));
+
     /**
      * Creates an enhanced {@link FileOutputStream} that writes to a file residing inside <code>targetDirectory</code>
      * @param targetDirectory is used to find relative path of the <code>file</code>
@@ -55,7 +60,13 @@ public class EOLFixingFileOutputStream extends FileOutputStream {
         if (tab.length >= 2) {
             String firstDirectory = tab[0];
             if (IMPORTANT_DIRECTORIES.contains(firstDirectory.toLowerCase())) {
-                needsChecking = true;
+                String ext = FilenameUtils.getExtension(file.getName());
+                if (ext.indexOf('#') > 0) {
+                    ext = ext.substring(ext.indexOf('#'));
+                }
+                if (!"fabric".equals(firstDirectory.toLowerCase()) || IMPORTANT_EXTENSIONS.contains(ext)) {
+                    needsChecking = true;
+                }
             }
             if (path.endsWith(".bat")) {
                 EOL = "\r\n";

@@ -98,7 +98,7 @@ public class EOLFixesTest {
         FileUtils.write(new File(target, "src/x/bin/admin2.bat"), "test\r\n");
 
         new File(target, "dest").mkdirs();
-        EOLFixingFileUtils.copyDirectory(new File(target, "src"), new File(target, "dest"), new File(target, "dest"));
+        EOLFixingFileUtils.copyDirectory(new File(target, "src"), new File(target, "dest"), new File(target, "dest"), false);
 
         assertThat(FileUtils.readFileToString(new File(target, "dest/bin/admin1")), equalTo("test\n"));
         assertThat(FileUtils.readFileToString(new File(target, "dest/bin/admin1.bat")), equalTo("test\r\n"));

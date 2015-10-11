@@ -26,7 +26,8 @@ public interface BackupService {
      * Used before restarting Framework during {@link PatchKind#ROLLUP rollup patch} installation.
      * Not usable for {@link PatchKind#NON_ROLLUP non-rollup patches}
      * @param result used to create backup directories.
+     * @param rollupInstallation
      */
-    void backupDataFiles(PatchResult result) throws IOException;
+    void backupDataFiles(PatchResult result, Pending rollupInstallation) throws IOException;
 
 }
