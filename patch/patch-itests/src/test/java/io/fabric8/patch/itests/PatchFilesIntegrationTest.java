@@ -45,9 +45,10 @@ import static org.junit.Assert.assertFalse;
 public class PatchFilesIntegrationTest extends AbstractPatchIntegrationTest {
 
     // Bundle-SymbolicName of the bundle we're patching
-    private static final String ORIGINAL_FILE_CONTENTS = "Original file contents";
-    private static final String PATCHED_FILE_CONTENTS = "Patched file contents";
+    private static final String ORIGINAL_FILE_CONTENTS = "Original file contents\n";
+    private static final String PATCHED_FILE_CONTENTS = "Patched file contents\n";
     private static final String PATCHED_FILE = "etc/patched.cfg";
+    private static final String PATCHED2_FILE = "etc/patched2.cfg";
 
     @Deployment
     public static JavaArchive createdeployment() {
@@ -82,6 +83,11 @@ public class PatchFilesIntegrationTest extends AbstractPatchIntegrationTest {
                 return new ByteArrayInputStream(PATCHED_FILE_CONTENTS.getBytes());
             }
         }, "etc/patched.cfg");
+        archive.add(new Asset() {
+            public InputStream openStream() {
+                return new ByteArrayInputStream(PATCHED_FILE_CONTENTS.getBytes());
+            }
+        }, "etc/patched2.cfg");
 
         return archive;
     }
@@ -107,10 +113,8 @@ public class PatchFilesIntegrationTest extends AbstractPatchIntegrationTest {
         load("file-02");
 
         File base = new File(System.getProperty("karaf.base"));
-        File patched = new File(base, PATCHED_FILE);
+        File patched = new File(base, PATCHED2_FILE);
 
-        // let's make sure the file does not exist
-        patched.delete();
         assertFalse(patched.exists());
 
         install("file-02");
@@ -119,4 +123,5 @@ public class PatchFilesIntegrationTest extends AbstractPatchIntegrationTest {
         rollback("file-02");
         assertFalse(patched.exists());
     }
+
 }

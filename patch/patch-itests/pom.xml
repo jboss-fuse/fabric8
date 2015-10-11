@@ -164,12 +164,13 @@
                                 <copy todir="${karaf.home}/fabric" overwrite="true">
                                         <fileset dir="${project.build.directory}/test-classes/fabric"/>
                                 </copy>
+                                <mkdir dir="${karaf.home}/patches/_baseline-root" />
+                                <copy todir="${karaf.home}/patches/_baseline-root">
+                                    <fileset dir="${karaf.home}"/>
+                                </copy>
                                 <zip destfile="${karaf.home}/patches/jboss-fuse-full-6.2.0-baseline.zip">
-                                    <fileset dir="${karaf.home}">
-                                        <include name="bin/**" />
-                                        <include name="etc/**" />
-                                        <include name="fabric/**" />
-                                        <include name="lib/**" />
+                                    <fileset dir="${karaf.home}/patches" >
+                                        <include name="_baseline-root/**" />
                                     </fileset>
                                 </zip>
                             </target>

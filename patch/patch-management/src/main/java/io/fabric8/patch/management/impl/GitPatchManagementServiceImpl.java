@@ -1606,7 +1606,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         .call();
 
                 // let's not do removals when tracking user changes. if we do, cherry-picking user changes over
-                // a rollup patch that introduced new file would simply
+                // a rollup patch that introduced new file would simply remove it
 //                for (String name : status.getMissing()) {
 //                    git.rm().addFilepattern(name).call();
 //                }
