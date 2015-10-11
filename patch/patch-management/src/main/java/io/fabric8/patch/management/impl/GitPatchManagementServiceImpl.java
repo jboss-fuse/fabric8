@@ -495,7 +495,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
             // copy patch resources (but not maven artifacts from system/ or repository/) to working copy
             if (patchData.getPatchDirectory() != null) {
-                copyManagedDirectories(patchData.getPatchDirectory(), fork.getRepository().getWorkTree(), true, false, false);
+                boolean removeTargetDir = patchData.isRollupPatch();
+                copyManagedDirectories(patchData.getPatchDirectory(), fork.getRepository().getWorkTree(), removeTargetDir, false, false);
             }
 
             // add the changes
@@ -847,8 +848,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
                     // apply a change from commits of all installed patches
                     RevCommit c2 = new RevWalk(fork.getRepository()).parseCommit(fork.getRepository().resolve("HEAD"));
-//                    applyChanges(fork, c1, c2);
-                    applyChanges(fork);
+                    applyChanges(fork, c1, c2);
+//                    applyChanges(fork);
                     break;
                 }
             }
@@ -931,16 +932,16 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             .setMode(ResetCommand.ResetType.HARD)
                             .setRef(previousBaseline.getTagName() + "^{commit}")
                             .call();
-                    // unstage any garbage
-                    fork.reset()
-                            .setMode(ResetCommand.ResetType.MIXED)
-                            .call();
 
                     // reapply those user changes that are not conflicting
                     ListIterator<RevCommit> it = userChanges.listIterator(userChanges.size());
 
                     Status status = fork.status().call();
                     if (!status.isClean()) {
+                        // unstage any garbage
+                        fork.reset()
+                                .setMode(ResetCommand.ResetType.MIXED)
+                                .call();
                         for (String p : status.getModified()) {
                             fork.checkout().addPath(p).call();
                         }
@@ -1073,8 +1074,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     // HEAD of master branch after reset and cherry-picks
                     RevCommit c = new RevWalk(fork.getRepository())
                             .parseCommit(fork.getRepository().resolve("HEAD"));
-//                    applyChanges(fork, c.getParent(0), c);
-                    applyChanges(fork);
+                    applyChanges(fork, c.getParent(0), c);
+//                    applyChanges(fork);
 
                     break;
                 }
@@ -1606,30 +1607,33 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
             // let's replace the reference to "patch" feature repository, to be able to do rollback to this very first
             // baseline
-            List<String> lines = FileUtils.readLines(new File(git.getRepository().getWorkTree(), "etc/org.apache.karaf.features.cfg"));
-            List<String> newVersion = new LinkedList<>();
-            for (String line : lines) {
-                if (!line.contains("mvn:io.fabric8.patch/patch-features/")) {
-                    newVersion.add(line);
-                } else {
-                    String newLine = line.replace(currentFabricVersion, bundleContext.getBundle().getVersion().toString());
-                    newVersion.add(newLine);
+            File featuresCfg = new File(git.getRepository().getWorkTree(), "etc/org.apache.karaf.features.cfg");
+            if (featuresCfg.isFile()) {
+                List<String> lines = FileUtils.readLines(featuresCfg);
+                List<String> newVersion = new LinkedList<>();
+                for (String line : lines) {
+                    if (!line.contains("mvn:io.fabric8.patch/patch-features/")) {
+                        newVersion.add(line);
+                    } else {
+                        String newLine = line.replace(currentFabricVersion, bundleContext.getBundle().getVersion().toString());
+                        newVersion.add(newLine);
+                    }
                 }
-            }
-            StringBuilder sb = new StringBuilder();
-            for (String newLine : newVersion) {
-                sb.append(newLine).append("\n");
-            }
-            FileUtils.write(new File(git.getRepository().getWorkTree(), "etc/org.apache.karaf.features.cfg"), sb.toString());
-            git.add()
-                    .addFilepattern("etc/org.apache.karaf.features.cfg")
-                    .call();
-            gitPatchRepository.prepareCommit(git, String.format(MARKER_BASELINE_REPLACE_PATCH_FEATURE_PATTERN,
-                    currentFuseVersion, bundleContext.getBundle().getVersion().toString())).call();
+                StringBuilder sb = new StringBuilder();
+                for (String newLine : newVersion) {
+                    sb.append(newLine).append("\n");
+                }
+                FileUtils.write(featuresCfg, sb.toString());
+                git.add()
+                        .addFilepattern("etc/org.apache.karaf.features.cfg")
+                        .call();
+                gitPatchRepository.prepareCommit(git, String.format(MARKER_BASELINE_REPLACE_PATCH_FEATURE_PATTERN,
+                        currentFuseVersion, bundleContext.getBundle().getVersion().toString())).call();
 
-            // let's assume that user didn't change this file and replace it with our version
-            FileUtils.copyFile(new File(git.getRepository().getWorkTree(), "etc/org.apache.karaf.features.cfg"),
-                    new File(karafHome, "etc/org.apache.karaf.features.cfg"));
+                // let's assume that user didn't change this file and replace it with our version
+                FileUtils.copyFile(featuresCfg,
+                        new File(karafHome, "etc/org.apache.karaf.features.cfg"));
+            }
 
             // each baseline ships new feature repositories and from this point (or the point where new rollup patch
             // is installed) we should start with 0-sized overrides.properties in order to have easier non-rollup
@@ -1851,6 +1855,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         File wcDir = git.getRepository().getWorkTree();
         copyManagedDirectories(wcDir, karafHome, true, true, true);
         FileUtils.copyDirectory(new File(wcDir, "lib"), new File(karafHome, "lib.next"));
+        // we do exception for etc/overrides.properties
+        File overrides = new File(karafHome, "etc/overrides.properties");
+        if (overrides.exists() && overrides.length() == 0) {
+            FileUtils.deleteQuietly(overrides);
+        }
     }
 
     /**
