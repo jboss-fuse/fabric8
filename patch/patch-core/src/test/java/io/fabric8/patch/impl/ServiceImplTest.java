@@ -439,10 +439,10 @@ public class ServiceImplTest {
         expect(bundle.getSymbolicName()).andReturn("my-bsn").anyTimes();
         expect(bundle.getVersion()).andReturn(new Version("1.3.1")).anyTimes();
         expect(bundle.getLocation()).andReturn("location").anyTimes();
-        expect(bundle.getBundleId()).andReturn(123L);
+        expect(bundle.getBundleId()).andReturn(123L).anyTimes();
         BundleStartLevel bsl = createMock(BundleStartLevel.class);
-        expect(bsl.getStartLevel()).andReturn(30);
-        expect(bundle.adapt(BundleStartLevel.class)).andReturn(bsl);
+        expect(bsl.getStartLevel()).andReturn(30).anyTimes();
+        expect(bundle.adapt(BundleStartLevel.class)).andReturn(bsl).anyTimes();
         expect(bundle.getState()).andReturn(1);
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, bsl);
 
@@ -457,7 +457,7 @@ public class ServiceImplTest {
         // Recreate a new service and verify the downloaded patch is still available
         //
 
-        reset(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository);
+        reset(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository, bsl);
         expect(componentContext.getBundleContext()).andReturn(bundleContext);
         expect(bundleContext.getBundle(0)).andReturn(sysBundle);
         expect(sysBundle.getBundleContext()).andReturn(sysBundleContext);
@@ -469,7 +469,7 @@ public class ServiceImplTest {
                 .andReturn(karaf.getCanonicalPath() + "/system").anyTimes();
         expect(repository.getManagedPatch(anyString())).andReturn(null).anyTimes();
         expect(repository.findOrCreateMainGitRepository()).andReturn(null).anyTimes();
-        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository);
+        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository, bsl);
 
         service = new ServiceImpl();
         setField(service, "patchManagement", pm);
@@ -487,24 +487,26 @@ public class ServiceImplTest {
         itb = patch.getPatchData().getBundles().iterator();
         assertEquals("mvn:foo/my-bsn/1.3.2", itb.next());
         assertNull(patch.getResult());
-        verify(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
+        verify(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, bsl);
 
         //
         // Install the patch
         //
 
-        reset(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
+        reset(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, bsl);
 
         expect(sysBundleContext.getBundles()).andReturn(new Bundle[] { bundle });
         expect(bundle.getSymbolicName()).andReturn("my-bsn").anyTimes();
         expect(bundle.getVersion()).andReturn(new Version("1.3.1")).anyTimes();
         expect(bundle.getLocation()).andReturn("location").anyTimes();
         expect(bundle.getHeaders()).andReturn(new Hashtable<String, String>()).anyTimes();
-        expect(bundle.getBundleId()).andReturn(123L);
+        expect(bundle.getBundleId()).andReturn(123L).anyTimes();
         bundle.update(EasyMock.<InputStream>anyObject());
         expect(sysBundleContext.getBundles()).andReturn(new Bundle[] { bundle });
         expect(bundle.getState()).andReturn(Bundle.INSTALLED).anyTimes();
         expect(bundle.getRegisteredServices()).andReturn(null);
+        expect(bundle.adapt(BundleStartLevel.class)).andReturn(bsl).anyTimes();
+        expect(bsl.getStartLevel()).andReturn(30).anyTimes();
         expect(sysBundleContext.getBundle(0)).andReturn(sysBundle);
         expect(sysBundle.adapt(FrameworkWiring.class)).andReturn(wiring);
         bundle.start();
@@ -516,7 +518,7 @@ public class ServiceImplTest {
                 return null;
             }
         });
-        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, bundle2, wiring);
+        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, bundle2, wiring, bsl);
 
         result = service.install(patch, false);
         assertNotNull( result );
@@ -646,7 +648,11 @@ public class ServiceImplTest {
         expect(bundle.getVersion()).andReturn(new Version("1.3.1")).anyTimes();
         expect(bundle.getLocation()).andReturn("location").anyTimes();
         expect(bundle.getBundleId()).andReturn(123L);
-        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
+        BundleStartLevel bsl = createMock(BundleStartLevel.class);
+        expect(bsl.getStartLevel()).andReturn(30).anyTimes();
+        expect(bundle.adapt(BundleStartLevel.class)).andReturn(bsl).anyTimes();
+        expect(bundle.getState()).andReturn(1);
+        replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, bsl);
 
         PatchResult result = service.install(patch, true);
         assertNotNull( result );

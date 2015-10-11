@@ -813,6 +813,10 @@ public class ServiceImpl implements Service {
                 } else {
                     range = new VersionRange(false, Version.emptyVersion, range.getCeiling(), true);
                 }
+            } else if (range != null) {
+                // if range is specified on non core bundle, the key should be different - updateable
+                // version should be taken from range
+                key = String.format("%s|%s", sn, range.getFloor().toString());
             }
 
             Bundle bundle = updateNotRequired.get(key);
