@@ -162,6 +162,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         String patchLocation = systemContext.getProperty("fuse.patch.location");
         if (patchLocation != null) {
             patchesDir = new File(patchLocation);
+            if (!patchesDir.isDirectory()) {
+                patchesDir.mkdirs();
+            }
         }
         GitPatchRepositoryImpl repository = new GitPatchRepositoryImpl(karafHome, patchesDir);
         setGitPatchRepository(repository);
