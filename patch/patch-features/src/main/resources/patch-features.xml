@@ -18,10 +18,14 @@
 -->
 <features name="patch-${project.version}">
 
-    <feature name="patch" version="${project.version}" resolver="(obr)">
-        <bundle>mvn:io.fabric8.patch/patch-core/${project.version}</bundle>
-        <bundle>mvn:io.fabric8.patch/patch-commands/${project.version}</bundle>
+    <feature name="patch-core" version="${project.version}" resolver="(obr)">
         <bundle>mvn:io.fabric8.patch/patch-management/${project.version}</bundle>
+        <bundle>mvn:io.fabric8.patch/patch-core/${project.version}</bundle>
+    </feature>
+
+    <feature name="patch" version="${project.version}" resolver="(obr)">
+        <feature>patch-core</feature>
+        <bundle>mvn:io.fabric8.patch/patch-commands/${project.version}</bundle>
     </feature>
 
 </features>

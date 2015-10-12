@@ -41,6 +41,10 @@
                 <configuration>
                     <instructions>
                         <Bundle-UpdateLocation>mvn:${project.groupId}/${project.artifactId}/${project.version}</Bundle-UpdateLocation>
+                        <Provide-Capability>
+                            osgi.service;effective:=active;objectClass="io.fabric8.patch.management.PatchManagement",
+                            osgi.service;effective:=active;objectClass="io.fabric8.patch.management.BackupService"
+                        </Provide-Capability>
                     </instructions>
                 </configuration>
             </plugin>
