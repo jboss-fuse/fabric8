@@ -366,6 +366,14 @@
                 <artifactId>bcprov-jdk15on</artifactId>
                 <version>${bouncycastle-version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>io.fabric8.patch</groupId>
+                <artifactId>patch-features</artifactId>
+                <version>${project.version}</version>
+                <type>xml</type>
+                <classifier>features</classifier>
+            </dependency>
        </dependencies>
 
        <build>
@@ -457,6 +465,7 @@
                                    <descriptor>mvn:org.apache.camel.karaf/apache-camel/${camel-version}/xml/features</descriptor>
                                    <descriptor>mvn:org.apache.activemq/activemq-karaf/${activemq-version}/xml/features</descriptor>
                                    <descriptor>mvn:io.hawt/hawtio-karaf/${hawtio-version}/xml/features</descriptor>
+                                   <descriptor>mvn:io.fabric8.patch/patch-features/${project.version}/xml/features</descriptor>
                                    <descriptor>file:${basedir}/target/classes/fabric-features.xml</descriptor>
                                </descriptors>
                                <features>
@@ -491,6 +500,7 @@
                                    <feature>fabric-ssh</feature>
                                    <feature>fabric-web</feature>
                                    <feature>fabric-zookeeper-commands</feature>
+                                   <feature>patch</feature>
                                    <feature>gateway-fabric</feature>
                                    <feature>hawtio-fabric8-branding</feature>
                                    <feature>hawtio-karaf-terminal</feature>
