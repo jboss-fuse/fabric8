@@ -126,6 +126,13 @@
             <artifactId>xbean-classloader</artifactId>
             <version>${xbean-version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>

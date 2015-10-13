@@ -520,7 +520,8 @@ public class ActiveMQServiceFactory  {
                                 discoveryAgent.setServices(new String[0]);
                             }
                             start();
-                        } else {
+                        } else if (stop_future == null || stop_future.isDone()) {
+                            // abnormal exit
                             info("Broker '%s' shut down, giving up being master", name);
                             try {
                                 updateCurator(curator);
@@ -629,7 +630,7 @@ public class ActiveMQServiceFactory  {
         }
 
         private void interruptAndWaitForStart() throws ExecutionException, InterruptedException {
-            if (start_future != null) {
+            if (start_future != null && !start_future.isDone()) {
                 start_future.cancel(false);
                 if (server != null && server.broker != null) {
                     // slave blocked on store lock
