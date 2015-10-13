@@ -49,11 +49,13 @@ public class FabricLocatorEndpoint extends DefaultEndpoint implements GroupListe
     private LoadBalancerFactory loadBalancerFactory;
     private LoadBalancer loadBalancer;
     private final Map<String, Processor> processors = new HashMap<String, Processor>();
+    private final String singletonId;
 
 
     public FabricLocatorEndpoint(String uri, FabricComponent component, String singletonId) {
         super(uri, component);
         this.component = component;
+        this.singletonId = singletonId;
 
         String path = getComponent().getFabricPath(singletonId);
         group = getComponent().createGroup(path);
@@ -104,7 +106,12 @@ public class FabricLocatorEndpoint extends DefaultEndpoint implements GroupListe
         final FabricLocatorEndpoint endpoint = this;
         return new DefaultProducer(endpoint) {
             public void process(Exchange exchange) throws Exception {
-                loadBalancer.process(exchange);
+                try {
+                    loadBalancer.process(exchange);
+                } catch (IllegalStateException e){
+                    LOG.error("Unable to find processor for endpoint: [" + exchange.getProperties().get("CamelToEndpoint") + "]");
+                    throw e;
+                }
             }
         };
     }
@@ -176,5 +183,10 @@ public class FabricLocatorEndpoint extends DefaultEndpoint implements GroupListe
 
     public LoadBalancer createLoadBalancer() {
         return getLoadBalancerFactory().createLoadBalancer();
+    }
+
+    public void reSubscribeToZK(){
+        CamelNodeState state = new CamelNodeState(singletonId);
+        group.update(state);
     }
 }
