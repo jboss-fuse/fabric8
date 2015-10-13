@@ -192,9 +192,9 @@ public class DetectingGateway implements DetectingGatewayMBean {
         private final ConnectionParameters params;
         private final URI url;
         private final SocketWrapper from;
-        private final NetSocket to;
+        private final NetClient to;
 
-        public ConnectedSocketInfo(ConnectionParameters params, URI url, SocketWrapper from, NetSocket to) {
+        public ConnectedSocketInfo(ConnectionParameters params, URI url, SocketWrapper from, NetClient to) {
             this.params = params;
             this.url = url;
             this.from = from;
@@ -389,7 +389,7 @@ public class DetectingGateway implements DetectingGatewayMBean {
      * Creates a new client for the given URL and handler
      */
     private NetClient createClient(final ConnectionParameters params, final SocketWrapper socketFromClient, final URI url, final Buffer received) {
-        NetClient netClient = vertx.createNetClient();
+        final NetClient netClient = vertx.createNetClient();
         return netClient.connect(url.getPort(), url.getHost(), new Handler<AsyncResult<NetSocket>>() {
             public void handle(final AsyncResult<NetSocket> asyncSocket) {
 
@@ -400,7 +400,7 @@ public class DetectingGateway implements DetectingGatewayMBean {
 
                     successfulConnectionAttempts.incrementAndGet();
                     socketsConnecting.remove(socketFromClient);
-                    final ConnectedSocketInfo connectedInfo = new ConnectedSocketInfo(params, url, socketFromClient, socketToServer);
+                    final ConnectedSocketInfo connectedInfo = new ConnectedSocketInfo(params, url, socketFromClient, netClient);
                     socketsConnected.add(connectedInfo);
 
                     Handler<Void> endHandler = new Handler<Void>() {
