@@ -20,6 +20,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.framework.state.ConnectionState;
+import org.apache.curator.framework.state.ConnectionStateListener;
 import org.apache.curator.retry.RetryOneTime;
 import io.fabric8.groups.Group;
 import io.fabric8.groups.internal.ManagedGroupFactory;
@@ -29,7 +31,7 @@ import java.util.concurrent.Callable;
 
 /**
  */
-public abstract class ZKComponentSupport extends DefaultComponent implements Callable<CuratorFramework> {
+public abstract class ZKComponentSupport extends DefaultComponent implements Callable<CuratorFramework>, ConnectionStateListener {
     private static final transient Log LOG = LogFactory.getLog(MasterComponent.class);
     private static final String ZOOKEEPER_URL = "zookeeper.url";
     private static final String ZOOKEEPER_PASSWORD = "zookeeper.password";
@@ -61,6 +63,7 @@ public abstract class ZKComponentSupport extends DefaultComponent implements Cal
 
     public void setCurator(CuratorFramework curator) {
         this.curator = curator;
+        registerAsListener();
     }
 
     public boolean isShouldCloseZkClient() {
@@ -101,11 +104,13 @@ public abstract class ZKComponentSupport extends DefaultComponent implements Cal
         super.doStart();
         if (curator == null) {
             try {
-                curator = (CuratorFramework) getCamelContext().getRegistry().lookupByName("curator");
+                CuratorFramework _curator = (CuratorFramework) getCamelContext().getRegistry().lookupByName("curator");
+                setCurator(_curator);
                 if (curator != null) {
                     LOG.debug("Zookeeper client found in camel registry. " + curator);
                 }
             } catch (Exception exception) {
+                LOG.warn(exception);
             }
         }
         managedGroupFactory = ManagedGroupFactoryBuilder.create(curator, getClass().getClassLoader(), this);
@@ -152,6 +157,17 @@ public abstract class ZKComponentSupport extends DefaultComponent implements Cal
         if (managedGroupFactory != null) {
             managedGroupFactory.close();
             managedGroupFactory = null;
+        }
+    }
+
+    @Override
+    public void stateChanged(CuratorFramework client, ConnectionState newState) {
+        LOG.info("Curator Connection new state: " + newState);
+    }
+
+    protected void registerAsListener(){
+        if(curator != null){
+            curator.getConnectionStateListenable().addListener(this);
         }
     }
 

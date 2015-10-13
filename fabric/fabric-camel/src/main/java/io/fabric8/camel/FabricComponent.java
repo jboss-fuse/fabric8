@@ -22,10 +22,12 @@ import org.apache.camel.util.ServiceHelper;
 import org.apache.camel.util.URISupport;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.curator.framework.state.ConnectionState;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * The FABRIC camel component for providing endpoint discovery, clustering and load balancing.
@@ -37,6 +39,9 @@ public class FabricComponent extends ZKComponentSupport {
     private LoadBalancerFactory loadBalancerFactory = new DefaultLoadBalancerFactory();
     private ProducerCache producerCache;
     private int cacheSize = 1000;
+
+    private final AtomicReference<ConnectionState> prevConnectionState = new AtomicReference<ConnectionState>(ConnectionState.LOST);
+
 
 
     public String getZkRoot() {
@@ -132,5 +137,4 @@ public class FabricComponent extends ZKComponentSupport {
 //        }
         return result;
     }
-
 }

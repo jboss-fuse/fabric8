@@ -15,7 +15,8 @@
  */
 package io.fabric8.camel;
 
-import io.fabric8.common.util.PublicPortMapper;
+import io.fabric8.groups.GroupListener;
+import io.fabric8.groups.GroupListener.GroupEvent;
 import io.fabric8.zookeeper.utils.ZooKeeperUtils;
 import org.apache.camel.Consumer;
 import org.apache.camel.Processor;
@@ -26,10 +27,12 @@ import org.apache.camel.util.URISupport;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import io.fabric8.groups.Group;
-
+import org.apache.curator.framework.state.ConnectionState;
+import io.fabric8.common.util.PublicPortMapper;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Creates an endpoint which uses FABRIC to map a logical name to physical endpoint names
@@ -41,8 +44,10 @@ public class FabricPublisherEndpoint extends DefaultEndpoint {
     private final String singletonId;
     private final String child;
     private final String consumer;
-    private final Group<CamelNodeState> group;
+    private Group<CamelNodeState> group;
     private String joined;
+
+    private final AtomicReference<GroupEvent> prevConnectionState = new AtomicReference<GroupEvent>(GroupEvent.DISCONNECTED);
 
     public FabricPublisherEndpoint(String uri, FabricComponent component, String singletonId, String child) throws Exception {
         super(uri, component);
@@ -80,11 +85,8 @@ public class FabricPublisherEndpoint extends DefaultEndpoint {
         this.child = child;
         this.consumer = consumer;
 
-        path = getComponent().getFabricPath(singletonId);
-        group = getComponent().createGroup(path);
-        CamelNodeState state = new CamelNodeState(singletonId);
-        state.consumer = consumer;
-        group.update(state);
+        publishOnZK();
+
     }
 
     public Producer createProducer() throws Exception {
@@ -178,5 +180,46 @@ public class FabricPublisherEndpoint extends DefaultEndpoint {
 
     public String getChild() {
         return child;
+    }
+
+    public synchronized void publishOnZK(){
+        String path = getComponent().getFabricPath(singletonId);
+        this.group = getComponent().createGroup(path);
+        CamelNodeState state = new CamelNodeState(singletonId);
+        state.consumer = consumer;
+        group.update(state);
+
+        group.add(new GroupListener<CamelNodeState>() {
+            @Override
+            public void groupEvent(Group<CamelNodeState> group, GroupEvent newState) {
+                LOG.info("Triggered event: " + newState);
+                switch (prevConnectionState.getAndSet(newState)){
+                    case DISCONNECTED:
+                        switch (newState){
+                            case CONNECTED:
+                                CamelNodeState state = new CamelNodeState(singletonId);
+                                state.consumer = consumer;
+                                group.update(state);
+                                break;
+                            case CHANGED:
+                            case DISCONNECTED:
+                                break;
+                            default:
+                                LOG.error("Unhandled Curator connection state: " + newState, new IllegalArgumentException("Unhandled Curator connection state."));
+                        }
+                        break;
+                    case CONNECTED:
+                    case CHANGED:
+                        break;
+                    default:
+                        LOG.error("Unhandled Curator connection state: " + newState, new IllegalArgumentException("Unhandled Curator connection state."));
+                }
+
+            }
+        });
+
+
+        group.start();
+
     }
 }
