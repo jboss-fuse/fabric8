@@ -53,7 +53,7 @@ public class GitPatchRepositoryTest {
         patchesHome = new File(karafHome, "patches");
         File patchRepositoryLocation = new File(patchesHome, GitPatchRepositoryImpl.MAIN_GIT_REPO_LOCATION);
 
-        repository = new GitPatchRepositoryImpl("patches", patchRepositoryLocation, karafHome, patchesHome);
+        repository = new GitPatchRepositoryImpl(EnvType.STANDALONE, patchRepositoryLocation, karafHome, patchesHome);
         repository.open();
     }
 
@@ -74,7 +74,7 @@ public class GitPatchRepositoryTest {
         }
 
         assertThat("Should contain single ref", new File(main.getRepository().getDirectory(), "refs/heads").listFiles().length, equalTo(1));
-        File theOnlyHead = new File(main.getRepository().getDirectory(), "refs/heads/patches");
+        File theOnlyHead = new File(main.getRepository().getDirectory(), "refs/heads/master");
         assertTrue(theOnlyHead.exists());
     }
 
@@ -98,11 +98,11 @@ public class GitPatchRepositoryTest {
         Git main = repository.findOrCreateMainGitRepository();
         Git clone1 = repository.cloneRepository(main, true);
         assertThat(clone1.branchList().call().size(), equalTo(1));
-        assertThat(clone1.branchList().call().get(0).getName(), equalTo("refs/heads/patches"));
+        assertThat(clone1.branchList().call().get(0).getName(), equalTo("refs/heads/master"));
         Git clone2 = repository.cloneRepository(main, false);
         assertThat(clone2.branchList().call().size(), equalTo(0));
 
-        assertTrue(repository.containsCommit(clone1, "patches", "[PATCH] initialization"));
+        assertTrue(repository.containsCommit(clone1, "master", "[PATCH] initialization"));
 
         repository.closeRepository(clone1, true);
         repository.closeRepository(clone2, true);
@@ -121,7 +121,7 @@ public class GitPatchRepositoryTest {
         repository.push(clone1);
 
         assertFalse(new File(repo.getRepository().getWorkTree(), "file.txt").exists());
-        repo.checkout().setName("patches").setStartPoint("refs/heads/patches").setCreateBranch(false).call();
+        repo.checkout().setName("master").setStartPoint("refs/heads/master").setCreateBranch(false).call();
         assertTrue(new File(repo.getRepository().getWorkTree(), "file.txt").exists());
 
         Git clone2 = repository.cloneRepository(repo, true);

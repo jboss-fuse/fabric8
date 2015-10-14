@@ -587,7 +587,8 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
         assertThat(n, equalTo(commitList.size()));
 
-        assertThat(fork.tagList().call().size(), equalTo(2));
+        assertThat(fork.tagList().call().size(), equalTo(3));
+        assertTrue(repository.containsTag(fork, "patch-management"));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0"));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0.redhat-002"));
     }
@@ -613,7 +614,8 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         ObjectId master2 = fork.getRepository().resolve("master");
 
         assertThat(master1, equalTo(master2));
-        assertThat(fork.tagList().call().size(), equalTo(1));
+        assertThat(fork.tagList().call().size(), equalTo(2));
+        assertTrue(repository.containsTag(fork, "patch-management"));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0"));
     }
 
@@ -639,7 +641,8 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         ObjectId master2 = fork.getRepository().resolve("master");
 
         assertThat(master1, not(equalTo(master2)));
-        assertThat(fork.tagList().call().size(), equalTo(2));
+        assertThat(fork.tagList().call().size(), equalTo(3));
+        assertTrue(repository.containsTag(fork, "patch-management"));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0"));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0.redhat-002"));
         assertThat("Baseline should change", repository.findCurrentBaseline(fork).getTagName(), equalTo("baseline-6.2.0.redhat-002"));
@@ -695,7 +698,8 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         ObjectId master2 = fork.getRepository().resolve("master");
 
         assertThat(master1, not(equalTo(master2)));
-        assertThat(fork.tagList().call().size(), equalTo(1));
+        assertThat(fork.tagList().call().size(), equalTo(2));
+        assertTrue(repository.containsTag(fork, "patch-management"));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0"));
         assertFalse("When rolling back rollup patch, newer P patches' tags should be removed",
                 repository.containsTag(fork, "patch-my-patch-1"));
@@ -751,7 +755,8 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
         assertThat(n, equalTo(commitList.size()));
 
-        assertThat(fork.tagList().call().size(), equalTo(2));
+        assertThat(fork.tagList().call().size(), equalTo(3));
+        assertTrue(repository.containsTag(fork, "patch-management"));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0"));
         assertTrue(repository.containsTag(fork, "patch-my-patch-1"));
 
@@ -780,7 +785,8 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         ObjectId master2 = fork.getRepository().resolve("master");
 
         assertThat(master1, equalTo(master2));
-        assertThat(fork.tagList().call().size(), equalTo(1));
+        assertThat(fork.tagList().call().size(), equalTo(2));
+        assertTrue(repository.containsTag(fork, "patch-management"));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0"));
     }
 
@@ -806,7 +812,8 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         ObjectId master2 = fork.getRepository().resolve("master");
 
         assertThat(master1, not(equalTo(master2)));
-        assertThat(fork.tagList().call().size(), equalTo(2));
+        assertThat(fork.tagList().call().size(), equalTo(3));
+        assertTrue(repository.containsTag(fork, "patch-management"));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0"));
         assertTrue(repository.containsTag(fork, "patch-my-patch-1"));
         assertThat("Baseline should not change", repository.findCurrentBaseline(fork).getTagName(), equalTo("baseline-6.2.0"));
@@ -844,7 +851,8 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         ObjectId master2 = fork.getRepository().resolve("master");
 
         assertThat(master1, not(equalTo(master2)));
-        assertThat(fork.tagList().call().size(), equalTo(1));
+        assertThat(fork.tagList().call().size(), equalTo(2));
+        assertTrue(repository.containsTag(fork, "patch-management"));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0"));
         assertFalse(repository.containsTag(fork, "patch-my-patch-1"));
 

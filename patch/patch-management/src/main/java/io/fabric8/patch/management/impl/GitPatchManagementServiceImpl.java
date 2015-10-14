@@ -16,6 +16,7 @@
 package io.fabric8.patch.management.impl;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
@@ -38,6 +39,8 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.jar.JarInputStream;
@@ -61,6 +64,7 @@ import io.fabric8.patch.management.Pending;
 import io.fabric8.patch.management.Utils;
 import io.fabric8.patch.management.conflicts.ConflictResolver;
 import io.fabric8.patch.management.conflicts.Resolver;
+import io.fabric8.patch.management.io.EOLFixingFileOutputStream;
 import io.fabric8.patch.management.io.EOLFixingFileUtils;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipFile;
@@ -69,6 +73,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.eclipse.jgit.api.CherryPickResult;
+import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.MergeCommand;
 import org.eclipse.jgit.api.ResetCommand;
@@ -119,6 +124,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
     /* A pattern of commit message when adding baseling distro */
     private static final String MARKER_BASELINE_COMMIT_PATTERN = "[PATCH/baseline] Installing baseline-%s";
+    private static final String MARKER_BASELINE_CHILD_COMMIT_PATTERN = "[PATCH/baseline] Installing baseline-child-%s";
     private static final String MARKER_BASELINE_RESET_OVERRIDES_PATTERN = "[PATCH/baseline] baseline-%s - resetting etc/overrides.properties";
     private static final String MARKER_BASELINE_REPLACE_PATCH_FEATURE_PATTERN = "[PATCH/baseline] baseline-%s - switching to patch feature repository %s";
 
@@ -138,6 +144,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
     private final BundleContext bundleContext;
     private final BundleContext systemContext;
+    private final EnvType env;
 
     private GitPatchRepository gitPatchRepository;
     private ConflictResolver conflictResolver = new ConflictResolver();
@@ -177,22 +184,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             }
         }
 
-        // we have to decide where patch history is stored
-        // we can start with git repo in patches/.management/history
-        // but after switching to fabric mode, we switch to data/git/local/fabric, which has
-        // "origin" set to main cluster's git server
         envService = new DefaultEnvService(systemContext, karafHome, patchesDir);
-        EnvType type = envService.determineEnvironmentType();
+        env = envService.determineEnvironmentType();
         File patchRepositoryLocation = new File(patchesDir, GitPatchRepositoryImpl.MAIN_GIT_REPO_LOCATION);
-        String mainPatchBranchName = "master";
-        if (type.isFabric()) {
-            // switch to fabric's main git repo (or it's clone connected to cluster's master repo)
-            // we never push from this repo here, because we can't know the credentials required to do it
-            patchRepositoryLocation = new File(systemContext.getProperty("karaf.data"), "git/local/fabric");
-            mainPatchBranchName = "master-patches";
-        }
 
-        GitPatchRepositoryImpl repository = new GitPatchRepositoryImpl(mainPatchBranchName, patchRepositoryLocation, karafHome, patchesDir);
+        GitPatchRepositoryImpl repository = new GitPatchRepositoryImpl(env, patchRepositoryLocation, karafHome, patchesDir);
         setGitPatchRepository(repository);
     }
 
@@ -1469,7 +1465,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             // prepare single fork for all the below operations
             fork = gitPatchRepository.cloneRepository(mainRepository, true);
 
-            // 1) git history that tracks patch operations (but not the content of the patches)
+            // git history that tracks patch operations (but not the content of the patches)
             InitializationType state = checkMainRepositoryState(fork);
             // one of the steps may return a commit that has to be tagged as first baseline
             RevCommit baselineCommit = null;
@@ -1511,7 +1507,13 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 gitPatchRepository.push(fork);
             }
 
-            // 2) repository of patch data - already installed patches
+            if (state == InitializationType.INSTALL_BASELINE && env.isFabric()) {
+                // we have to track some more baselines
+                trackBaselinesForChildContainers(fork);
+                trackBaselinesForSSHContainers(fork);
+            }
+
+            // repository of patch data - already installed patches
             migrateOldPatchData();
 
             // remove pending patches listeners
@@ -1679,6 +1681,276 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             System.err.println("[PATCH-error] " + message);
             System.err.flush();
             throw new PatchException(message);
+        }
+    }
+
+    /**
+     * Add baseline to track patches for child containers - baseline comes from resources stored in karaf.admin.core
+     * bundle
+     * @param fork
+     */
+    private void trackBaselinesForChildContainers(Git fork) throws IOException, GitAPIException {
+        if (fork.getRepository().getRef("refs/heads/" + gitPatchRepository.getChildBranchName()) != null) {
+            return;
+        }
+        // checkout patches-child branch - it'll track baselines for fabric:container-create-child containers
+        fork.checkout()
+                .setName(gitPatchRepository.getChildBranchName())
+                .setStartPoint("patch-management^{commit}")
+                .setCreateBranch(true)
+                .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
+                .call();
+
+        File systemRepo = getSystemRepository(karafHome, systemContext);
+        File[] versionDirs = new File(systemRepo, "org/apache/karaf/admin/org.apache.karaf.admin.core").listFiles();
+        Set<Version> versions = new TreeSet<>();
+
+        for (File version : versionDirs) {
+            if (version.isDirectory()) {
+                versions.add(new Version(version.getName()));
+            }
+        }
+        for (Version v : versions) {
+            String karafVersion = v.toString();
+            File baselineDistribution = null;
+            String location = String.format(systemRepo.getCanonicalPath() + "/org/apache/karaf/admin/org.apache.karaf.admin.core/%1$s/org.apache.karaf.admin.core-%1$s.jar", karafVersion);
+            if (new File(location).isFile()) {
+                baselineDistribution = new File(location);
+                System.out.println("[PATCH] Found child baseline distribution: " + baselineDistribution.getCanonicalPath());
+            }
+
+            if (baselineDistribution != null) {
+                try {
+                    unzipKarafAdminJar(baselineDistribution, fork.getRepository().getWorkTree());
+
+                    fork.add()
+                            .addFilepattern(".")
+                            .call();
+                    RevCommit commit = gitPatchRepository.prepareCommit(fork,
+                            String.format(MARKER_BASELINE_CHILD_COMMIT_PATTERN, karafVersion))
+                            .call();
+
+                    // and we'll tag the child baseline
+                    fork.tag()
+                            .setName(String.format("baseline-child-%s", karafVersion))
+                            .setObjectId(commit)
+                            .call();
+                } catch (Exception e) {
+                    System.err.println("[PATCH-error] " + e.getMessage());
+                    System.err.flush();
+                }
+            }
+        }
+
+        gitPatchRepository.push(fork, gitPatchRepository.getChildBranchName());
+    }
+
+    /**
+     * Unzips <code>bin</code> and <code>etc</code> from org.apache.karaf.admin.core.
+     * @param artifact
+     * @param targetDirectory
+     * @throws IOException
+     */
+    private void unzipKarafAdminJar(File artifact, File targetDirectory) throws IOException {
+        ZipFile zf = new ZipFile(artifact);
+        String prefix = "org/apache/karaf/admin/";
+        try {
+            for (Enumeration<ZipArchiveEntry> e = zf.getEntries(); e.hasMoreElements(); ) {
+                ZipArchiveEntry entry = e.nextElement();
+                String name = entry.getName();
+                if (!name.startsWith(prefix)) {
+                    continue;
+                }
+                name = name.substring(prefix.length());
+                if (!name.startsWith("bin") && !name.startsWith("etc")) {
+                    continue;
+                }
+                // flags from karaf.admin.core
+                // see: org.apache.karaf.admin.internal.AdminServiceImpl.createInstance()
+                boolean windows = System.getProperty("os.name").startsWith("Win");
+                boolean cygwin = windows && new File(System.getProperty("karaf.home"), "bin/admin").exists();
+                if (windows && !cygwin) {
+                }
+                if (!entry.isDirectory() && !entry.isUnixSymlink()) {
+                    if (windows && !cygwin) {
+                        if (name.startsWith("bin/") && !name.endsWith(".bat")) {
+                            continue;
+                        }
+                    } else {
+                        if (name.startsWith("bin/") && name.endsWith(".bat")) {
+                            continue;
+                        }
+                    }
+                    File file = new File(targetDirectory, name);
+                    file.getParentFile().mkdirs();
+                    FileOutputStream output = new EOLFixingFileOutputStream(targetDirectory, file);
+                    IOUtils.copyLarge(zf.getInputStream(entry), output);
+                    IOUtils.closeQuietly(output);
+                    if (Files.getFileAttributeView(file.toPath(), PosixFileAttributeView.class) != null) {
+                        if (name.startsWith("bin/") && !name.endsWith(".bat")) {
+                            Files.setPosixFilePermissions(file.toPath(), getPermissionsFromUnixMode(file, 0775));
+                        }
+                    }
+                }
+            }
+        } finally {
+            if (zf != null) {
+                zf.close();
+            }
+        }
+    }
+
+    /**
+     * SSH containers are created from io.fabric8:fabric8-karaf distros. These however may be official, foundation
+     * or random (ZIPped from what currently was in FUSE_HOME of the container that created SSH container.
+     * @param fork
+     */
+    public void trackBaselinesForSSHContainers(Git fork) throws IOException, GitAPIException {
+        if (fork.getRepository().getRef("refs/heads/" + gitPatchRepository.getFuseSSHContainerPatchBranchName()) != null
+                && fork.getRepository().getRef("refs/heads/" + gitPatchRepository.getFabric8SSHContainerPatchBranchName()) != null) {
+            return;
+        }
+        // two separate branches for two kinds of baselines for SSH containers
+        fork.checkout()
+                .setName(gitPatchRepository.getFuseSSHContainerPatchBranchName())
+                .setStartPoint("patch-management^{commit}")
+                .setCreateBranch(true)
+                .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
+                .call();
+        fork.checkout()
+                .setName(gitPatchRepository.getFabric8SSHContainerPatchBranchName())
+                .setStartPoint("patch-management^{commit}")
+                .setCreateBranch(true)
+                .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
+                .call();
+
+        File systemRepo = getSystemRepository(karafHome, systemContext);
+        File[] versionDirs = new File(systemRepo, "io/fabric8/fabric8-karaf").listFiles();
+        Set<Version> versions = new TreeSet<>();
+
+        for (File version : versionDirs) {
+            if (version.isDirectory()) {
+                versions.add(new Version(version.getName()));
+            }
+        }
+        for (Version v : versions) {
+            String fabric8Version = v.toString();
+            File baselineDistribution = null;
+            String location = String.format(systemRepo.getCanonicalPath() + "/io/fabric8/fabric8-karaf/%1$s/fabric8-karaf-%1$s.zip", fabric8Version);
+            // TODO: probably we should check other classifiers or even groupIds, when we decide to create SSH containers
+            // from something else
+            if (new File(location).isFile()) {
+                baselineDistribution = new File(location);
+                System.out.println("[PATCH] Found SSH baseline distribution: " + baselineDistribution.getCanonicalPath());
+            }
+
+            if (baselineDistribution != null) {
+                try {
+                    // we don't know yet which branch we have to checkout, this method will do 2 pass unzipping
+                    // and leave the fork checked out to correct branch - its name will be returned
+                    String rootDir = String.format("fabric8-karaf-%s", fabric8Version);
+                    String branchName = unzipFabric8Distro(rootDir, baselineDistribution, fork);
+
+                    fork.add()
+                            .addFilepattern(".")
+                            .call();
+                    RevCommit commit = gitPatchRepository.prepareCommit(fork,
+                            String.format(MARKER_BASELINE_CHILD_COMMIT_PATTERN, fabric8Version))
+                            .call();
+
+                    // and we'll tag the child baseline
+                    String tagName = branchName.replace("patches-", "baseline-");
+
+                    fork.tag()
+                            .setName(String.format("baseline-%s-%s", tagName, fabric8Version))
+                            .setObjectId(commit)
+                            .call();
+                } catch (Exception e) {
+                    System.err.println("[PATCH-error] " + e.getMessage());
+                    System.err.flush();
+                }
+            }
+        }
+
+        gitPatchRepository.push(fork, gitPatchRepository.getFuseSSHContainerPatchBranchName());
+        gitPatchRepository.push(fork, gitPatchRepository.getFabric8SSHContainerPatchBranchName());
+    }
+
+    /**
+     * Unzips <code>bin</code> and <code>etc</code> everything we need from org.apache.karaf.admin.core.
+     * @param rootDir
+     * @param artifact
+     * @param fork
+     * @throws IOException
+     */
+    private String unzipFabric8Distro(String rootDir, File artifact, Git fork) throws IOException, GitAPIException {
+        ZipFile zf = new ZipFile(artifact);
+        try {
+            // first pass - what's this distro?
+            boolean officialFabric8 = true;
+            for (Enumeration<ZipArchiveEntry> e = zf.getEntries(); e.hasMoreElements(); ) {
+                ZipArchiveEntry entry = e.nextElement();
+                String name = entry.getName();
+                if (name.startsWith(rootDir + "/")) {
+                    name = name.substring(rootDir.length() + 1);
+                }
+                if ("etc/startup.properties".equals(name)) {
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    IOUtils.copyLarge(zf.getInputStream(entry), baos);
+                    Properties props = new Properties();
+                    props.load(new ByteArrayInputStream(baos.toByteArray()));
+                    for (String p : props.stringPropertyNames()) {
+                        if (p.startsWith("org/jboss/fuse/shared-commands/")) {
+                            // we have Fuse!
+                            officialFabric8 = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            // checkout correct branch
+            if (officialFabric8) {
+                fork.checkout()
+                        .setName(gitPatchRepository.getFabric8SSHContainerPatchBranchName())
+                        .call();
+            } else {
+                fork.checkout()
+                        .setName(gitPatchRepository.getFuseSSHContainerPatchBranchName())
+                        .call();
+            }
+            // second pass - unzip what we need
+            for (Enumeration<ZipArchiveEntry> e = zf.getEntries(); e.hasMoreElements(); ) {
+                ZipArchiveEntry entry = e.nextElement();
+                String name = entry.getName();
+                if (name.startsWith(rootDir + "/")) {
+                    name = name.substring(rootDir.length() + 1);
+                }
+                if (!(name.startsWith("bin")
+                        || name.startsWith("etc")
+                        || name.startsWith("fabric")
+                        || name.startsWith("lib"))) {
+                    continue;
+                }
+                if (!entry.isDirectory() && !entry.isUnixSymlink()) {
+                    File file = new File(fork.getRepository().getWorkTree(), name);
+                    file.getParentFile().mkdirs();
+                    FileOutputStream output = new EOLFixingFileOutputStream(fork.getRepository().getWorkTree(), file);
+                    IOUtils.copyLarge(zf.getInputStream(entry), output);
+                    IOUtils.closeQuietly(output);
+                    if (Files.getFileAttributeView(file.toPath(), PosixFileAttributeView.class) != null) {
+                        if (name.startsWith("bin/") && !name.endsWith(".bat")) {
+                            Files.setPosixFilePermissions(file.toPath(), getPermissionsFromUnixMode(file, 0775));
+                        }
+                    }
+                }
+            }
+
+            return officialFabric8 ? gitPatchRepository.getFabric8SSHContainerPatchBranchName()
+                    : gitPatchRepository.getFuseSSHContainerPatchBranchName();
+        } finally {
+            if (zf != null) {
+                zf.close();
+            }
         }
     }
 

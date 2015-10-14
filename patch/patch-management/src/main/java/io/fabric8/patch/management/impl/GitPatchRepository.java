@@ -181,4 +181,22 @@ public interface GitPatchRepository {
      */
     String getMainBranchName();
 
+    /**
+     * Returns the name chosen as patch branch for child containers.
+     * @return
+     */
+    String getChildBranchName();
+
+    /**
+     * Returns the name chosen as patch branch for SSH containers created from ZIPped Fuse
+     * @return
+     */
+    String getFuseSSHContainerPatchBranchName();
+
+    /**
+     * Returns the name chosen as patch branch for SSH containers created from fabric8 distro.
+     * @return
+     */
+    String getFabric8SSHContainerPatchBranchName();
+
 }
