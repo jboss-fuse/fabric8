@@ -17,6 +17,8 @@ package io.fabric8.patch.management.impl;
 
 import java.io.IOException;
 
+import org.eclipse.jgit.api.errors.GitAPIException;
+
 /**
  * Operations used to manage git repository that keeps track of applied rollup patches
  * (non-rollup too?)
@@ -33,7 +35,7 @@ public interface GitPatchManagementService {
     /**
      * Starts the management if it is required.
      */
-    void start() throws IOException;
+    void start() throws IOException, GitAPIException;
 
     /**
      * Stops the management, cleans up resources.

@@ -187,7 +187,7 @@ public class ServiceImplTest {
     }
 
     @Test
-    public void testLoadWithoutRanges() throws IOException {
+    public void testLoadWithoutRanges() throws IOException, GitAPIException {
         BundleContext bundleContext = createMock(BundleContext.class);
         ComponentContext componentContext = createMock(ComponentContext.class);
         Bundle sysBundle = createMock(Bundle.class);
@@ -344,7 +344,7 @@ public class ServiceImplTest {
             expect(repository.findOrCreateMainGitRepository()).andReturn(null).anyTimes();
             expect(sysBundleContext.getProperty("karaf.home"))
                     .andReturn(karaf.getCanonicalPath()).anyTimes();
-        } catch (IOException e) {
+        } catch (GitAPIException | IOException e) {
             throw new RuntimeException(e.getMessage(), e);
         }
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository);

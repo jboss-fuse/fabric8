@@ -77,14 +77,14 @@ public interface PatchManagement {
 
     /**
      * <p>After successful patch(es) installation, we commit the transaction = do a fast forward merge
-     * of <code>master</code> branch to transaction branch</p>
+     * of main patch branch to transaction branch</p>
      * @param transaction
      */
     void commitInstallation(String transaction);
 
     /**
      * <p>When something goes wrong (or during simulation?) we delete transaction branch without affecting
-     * <code>master</code> branch.</p>
+     * main patch branch.</p>
      * @param transaction
      */
     void rollbackInstallation(String transaction);

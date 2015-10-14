@@ -47,6 +47,8 @@ import java.util.regex.Pattern;
 
 import io.fabric8.patch.management.Artifact;
 import io.fabric8.patch.management.BundleUpdate;
+import io.fabric8.patch.management.EnvService;
+import io.fabric8.patch.management.EnvType;
 import io.fabric8.patch.management.ManagedPatch;
 import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.management.PatchData;
@@ -139,6 +141,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
     private GitPatchRepository gitPatchRepository;
     private ConflictResolver conflictResolver = new ConflictResolver();
+    private EnvService envService;
 
     // ${karaf.home}
     private File karafHome;
@@ -155,6 +158,13 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
     protected Map<String, BundleListener> pendingPatchesListeners = new HashMap<>();
 
+    /**
+     * <p>Creates patch management service</p>
+     * <p>It checks the environment it's running at and use different strategies to initialize low level
+     * structures - like the place where patch management history is kept (different for fabric and standalone
+     * cases)</p>
+     * @param context
+     */
     public GitPatchManagementServiceImpl(BundleContext context) {
         this.bundleContext = context;
         this.systemContext = context.getBundle(0).getBundleContext();
@@ -166,7 +176,23 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 patchesDir.mkdirs();
             }
         }
-        GitPatchRepositoryImpl repository = new GitPatchRepositoryImpl(karafHome, patchesDir);
+
+        // we have to decide where patch history is stored
+        // we can start with git repo in patches/.management/history
+        // but after switching to fabric mode, we switch to data/git/local/fabric, which has
+        // "origin" set to main cluster's git server
+        envService = new DefaultEnvService(systemContext, karafHome, patchesDir);
+        EnvType type = envService.determineEnvironmentType();
+        File patchRepositoryLocation = new File(patchesDir, GitPatchRepositoryImpl.MAIN_GIT_REPO_LOCATION);
+        String mainPatchBranchName = "master";
+        if (type.isFabric()) {
+            // switch to fabric's main git repo (or it's clone connected to cluster's master repo)
+            // we never push from this repo here, because we can't know the credentials required to do it
+            patchRepositoryLocation = new File(systemContext.getProperty("karaf.data"), "git/local/fabric");
+            mainPatchBranchName = "master-patches";
+        }
+
+        GitPatchRepositoryImpl repository = new GitPatchRepositoryImpl(mainPatchBranchName, patchRepositoryLocation, karafHome, patchesDir);
         setGitPatchRepository(repository);
     }
 
@@ -444,20 +470,20 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * <p>Such patch has its own branch ready to be merged (when patch is installed). Before installation we can verify
      * the patch,
      * examine the content, check the differences, conflicts and perform simulation (merge to temporary branch created
-     * from <code>master</code>)</p>
+     * from main patch branch)</p>
      *
      * <p>The strategy is as follows:<ul>
-     *     <li><code>master</code> branch in git repository tracks all changes (from baselines, patch-management
+     *     <li><em>main patch branch</em> in git repository tracks all changes (from baselines, patch-management
      *     system, patches and user changes)</li>
      *     <li>Initially there are 3 commits: baseline, patch-management bundle installation in etc/startup.properties,
      *     initial user changes</li>
      *     <li>We always <strong>tag the baseline commit</strong></li>
      *     <li>User changes may be applied each time Framework is restarted</li>
      *     <li>When we add a patch, we create <em>named branch</em> from the <strong>latest baseline</strong></li>
-     *     <li>When we install a patch, we <strong>merge</strong> the patch branch with the master (that may contain
-     *     additional user changes)</li>
+     *     <li>When we install a patch, we <strong>merge</strong> the patch branch with the <em>main patch branch</em>
+     *     (that may contain additional user changes)</li>
      *     <li>When patch ZIP contains new baseline distribution, after merging patch branch, we tag the merge commit
-     *     in <code>master</code> branch as new baseline</li>
+     *     in <em>main patch branch</em> branch as new baseline</li>
      *     <li>Branches for new patches will then be created from new baseline commit</li>
      * </ul></p>
      * @param patchData
@@ -485,7 +511,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             // prepare managed patch instance - that contains information after adding patch to patch-branch
             ManagedPatch mp = new ManagedPatch();
 
-            // the commit from the patch should be available from "master" branch
+            // the commit from the patch should be available from main patch branch
             RevCommit commit = new RevWalk(fork.getRepository()).parseCommit(latestBaseline.getObject());
 
             // create dedicated branch for this patch. We'll immediately add patch content there so we can examine the
@@ -557,12 +583,12 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             .call();
                     break;
                 case NON_ROLLUP:
-                    // create temporary branch from master/HEAD - non-rollup patch installation is cherry-pick
+                    // create temporary branch from main-patch-branch/HEAD - non-rollup patch installation is cherry-pick
                     // of non-rollup patch commit over existing user changes - we can fast forward when finished
                     installationBranch = fork.checkout()
                             .setName(String.format("patch-install-%s", GitPatchRepository.TS.format(new Date())))
                             .setCreateBranch(true)
-                            .setStartPoint("master")
+                            .setStartPoint(gitPatchRepository.getMainBranchName())
                             .call();
                     break;
             }
@@ -596,11 +622,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     // rollup patches do their own update to startup.properties
                     // we're operating on patch branch, HEAD of the patch branch points to the baseline
                     ObjectId since = fork.getRepository().resolve("HEAD^{commit}");
-                    // we'll pick all user changes between baseline and master without P installations
-                    ObjectId to = fork.getRepository().resolve("master^{commit}");
-                    Iterable<RevCommit> masterChanges = fork.log().addRange(since, to).call();
+                    // we'll pick all user changes between baseline and main patch branch without P installations
+                    ObjectId to = fork.getRepository().resolve(gitPatchRepository.getMainBranchName() + "^{commit}");
+                    Iterable<RevCommit> mainChanges = fork.log().addRange(since, to).call();
                     List<RevCommit> userChanges = new LinkedList<>();
-                    for (RevCommit rc : masterChanges) {
+                    for (RevCommit rc : mainChanges) {
                         if (isUserChangeCommit(rc)) {
                             userChanges.add(rc);
                         }
@@ -808,17 +834,17 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         try {
             switch (pendingTransactionsTypes.get(transaction)) {
                 case ROLLUP: {
-                    // hard reset of master branch to point to transaction branch + apply changes to ${karaf.home}
+                    // hard reset of main patch branch to point to transaction branch + apply changes to ${karaf.home}
                     fork.checkout()
-                            .setName("master")
+                            .setName(gitPatchRepository.getMainBranchName())
                             .call();
 
-                    // before we reset master to originate from new baseline, let's find previous baseline
+                    // before we reset main patch branch to originate from new baseline, let's find previous baseline
                     RevTag baseline = gitPatchRepository.findCurrentBaseline(fork);
                     RevCommit c1 = new RevWalk(fork.getRepository())
                             .parseCommit(fork.getRepository().resolve(baseline.getTagName() + "^{commit}"));
 
-                    // hard reset of master branch - to point to other branch, originating from new baseline
+                    // hard reset of main patch branch - to point to other branch, originating from new baseline
                     fork.reset()
                             .setMode(ResetCommand.ResetType.HARD)
                             .setRef(transaction)
@@ -834,9 +860,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     break;
                 }
                 case NON_ROLLUP: {
-                    // fast forward merge of master branch with transaction branch
+                    // fast forward merge of main patch branch with transaction branch
                     fork.checkout()
-                            .setName("master")
+                            .setName(gitPatchRepository.getMainBranchName())
                             .call();
                     // current version of ${karaf.home}
                     RevCommit c1 = new RevWalk(fork.getRepository()).parseCommit(fork.getRepository().resolve("HEAD"));
@@ -912,9 +938,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     RevCommit c2 = new RevWalk(fork.getRepository())
                             .parseCommit(fork.getRepository().resolve("HEAD"));
                     RevCommit to = c2;
-                    Iterable<RevCommit> masterChangesSinceRollupPatch = fork.log().addRange(c1, c2).call();
+                    Iterable<RevCommit> mainChangesSinceRollupPatch = fork.log().addRange(c1, c2).call();
                     List<RevCommit> userChanges = new LinkedList<>();
-                    for (RevCommit rc : masterChangesSinceRollupPatch) {
+                    for (RevCommit rc : mainChangesSinceRollupPatch) {
                         if (isUserChangeCommit(rc)) {
                             userChanges.add(rc);
                         }
@@ -930,7 +956,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     c1 = new RevWalk(fork.getRepository())
                             .parseCommit(fork.getRepository().resolve(previousBaseline.getTagName() + "^{commit}"));
 
-                    // hard reset of master branch - to point to other branch, originating from previous baseline
+                    // hard reset of main patch branch - to point to other branch, originating from previous baseline
                     fork.reset()
                             .setMode(ResetCommand.ResetType.HARD)
                             .setRef(previousBaseline.getTagName() + "^{commit}")
@@ -1002,7 +1028,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         }
                     }
 
-                    // HEAD of master branch after reset and cherry-picks
+                    // HEAD of main patch branch after reset and cherry-picks
                     c2 = new RevWalk(fork.getRepository())
                             .parseCommit(fork.getRepository().resolve("HEAD"));
 //                    applyChanges(fork, c1, c2);
@@ -1074,7 +1100,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                                     .setDestination(String.format("refs/tags/patch-%s", patchData.getId())))
                             .call();
 
-                    // HEAD of master branch after reset and cherry-picks
+                    // HEAD of main patch branch after reset and cherry-picks
                     RevCommit c = new RevWalk(fork.getRepository())
                             .parseCommit(fork.getRepository().resolve("HEAD"));
                     applyChanges(fork, c.getParent(0), c);
@@ -1414,7 +1440,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     @Override
-    public void start() throws IOException {
+    public void start() throws IOException, GitAPIException {
         if (patchesDir != null) {
             gitPatchRepository.open();
         }
@@ -1521,7 +1547,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         if (!gitPatchRepository.containsTag(git, String.format("baseline-%s", currentFuseVersion))) {
             // we have empty repository
             return InitializationType.INSTALL_BASELINE;
-        } else if (!gitPatchRepository.containsCommit(git, "master", String.format(MARKER_PATCH_MANAGEMENT_INSTALLATION_COMMIT_PATTERN, currentFabricVersion))) {
+        } else if (!gitPatchRepository.containsCommit(git, gitPatchRepository.getMainBranchName(),
+                String.format(MARKER_PATCH_MANAGEMENT_INSTALLATION_COMMIT_PATTERN, currentFabricVersion))) {
             // we already tracked the basline repo, but it seems we're running from patch-management bundle that was simply dropped into deploy/
             return InitializationType.INSTALL_PATCH_MANAGEMENT_BUNDLE;
         } else {
@@ -1838,7 +1865,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             // "checkout" the above change in main "working copy" (${karaf.home})
             applyChanges(git, commit.getParent(0), commit);
 
-            System.out.println(String.format("[PATCH] patch-management-%s.jar installed in etc/startup.properties. Please restart.", bundleVersion));
+            System.out.println(String.format("[PATCH] patch-management-%s.jar installed in etc/startup.properties.", bundleVersion));
             System.out.flush();
 
             return commit;
@@ -1849,7 +1876,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
     /**
      * <p>This method updates ${karaf.home} simply by copying all files from currently checked out working copy
-     * (usually HEAD of <code>master</code> branch) to <code>${karaf.home}</code></p>
+     * (usually HEAD of main patch branch) to <code>${karaf.home}</code></p>
      * @param git
      * @throws IOException
      * @throws GitAPIException

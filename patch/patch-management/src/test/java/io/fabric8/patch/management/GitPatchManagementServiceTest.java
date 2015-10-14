@@ -51,7 +51,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     private BundleStartLevel bsl;
 
     @Before
-    public void init() throws IOException {
+    public void init() throws IOException, GitAPIException {
         super.init();
 
         bsl = mock(BundleStartLevel.class);
@@ -61,7 +61,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     }
 
     @Test
-    public void disabledPatchManagement() throws IOException {
+    public void disabledPatchManagement() throws IOException, GitAPIException {
         properties.remove("fuse.patch.location");
         pm = new GitPatchManagementServiceImpl(bundleContext);
         pm.start();
@@ -69,14 +69,14 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     }
 
     @Test
-    public void enabledPatchManagement() throws IOException {
+    public void enabledPatchManagement() throws IOException, GitAPIException {
         pm = new GitPatchManagementServiceImpl(bundleContext);
         pm.start();
         assertTrue(pm.isEnabled());
     }
 
     @Test
-    public void initializationPerformedNoFuseVersion() throws IOException {
+    public void initializationPerformedNoFuseVersion() throws IOException, GitAPIException {
         pm = new GitPatchManagementServiceImpl(bundleContext);
         pm.start();
         try {
@@ -88,7 +88,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     }
 
     @Test
-    public void initializationPerformedNoBaselineDistribution() throws IOException {
+    public void initializationPerformedNoBaselineDistribution() throws IOException, GitAPIException {
         freshKarafDistro();
         pm = new GitPatchManagementServiceImpl(bundleContext);
         pm.start();
@@ -402,7 +402,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     }
 
     @Test
-    public void listNoPatchesAvailable() throws IOException {
+    public void listNoPatchesAvailable() throws IOException, GitAPIException {
         freshKarafDistro();
         GitPatchRepository repository = patchManagement();
         PatchManagement management = (PatchManagement) pm;
@@ -464,7 +464,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     }
 
     @Test
-    public void listPatches() throws IOException {
+    public void listPatches() throws IOException, GitAPIException {
         freshKarafDistro();
         GitPatchRepository repository = patchManagement();
         PatchManagement management = (PatchManagement) pm;
@@ -490,7 +490,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     }
 
     @Test
-    public void beginRollupPatchInstallation() throws IOException {
+    public void beginRollupPatchInstallation() throws IOException, GitAPIException {
         freshKarafDistro();
         GitPatchRepository repository = patchManagement();
         PatchManagement management = (PatchManagement) pm;
@@ -511,7 +511,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     }
 
     @Test
-    public void beginNonRollupPatchInstallation() throws IOException {
+    public void beginNonRollupPatchInstallation() throws IOException, GitAPIException {
         freshKarafDistro();
         GitPatchRepository repository = patchManagement();
         PatchManagement management = (PatchManagement) pm;
@@ -910,7 +910,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
      * @return
      * @throws IOException
      */
-    private GitPatchRepository patchManagement() throws IOException {
+    private GitPatchRepository patchManagement() throws IOException, GitAPIException {
         preparePatchZip("src/test/resources/baselines/baseline1", "target/karaf/system/org/jboss/fuse/jboss-fuse-full/6.2.0/jboss-fuse-full-6.2.0-baseline.zip", true);
         pm = new GitPatchManagementServiceImpl(bundleContext);
         pm.start();

@@ -71,14 +71,18 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
     // "reference" repository
     private File tmpPatchManagement;
 
-    public GitPatchRepositoryImpl(File karafHome, File patchesDir) {
+    // main patch branch name that tracks the history of patch installations/rollbacks.
+    private String mainPatchBranchName;
+
+    public GitPatchRepositoryImpl(String mainPatchBranchName, File patchRepositoryLocation, File karafHome, File patchesDir) {
+        this.mainPatchBranchName = mainPatchBranchName;
+        this.gitPatchManagement = patchRepositoryLocation;
         this.karafHome = karafHome;
         this.patchesDir = patchesDir;
     }
 
     @Override
-    public void open() throws IOException {
-        gitPatchManagement = new File(patchesDir, MAIN_GIT_REPO_LOCATION);
+    public void open() throws IOException, GitAPIException {
         if (!gitPatchManagement.exists()) {
             gitPatchManagement.mkdirs();
         }
@@ -122,9 +126,26 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
     }
 
     @Override
-    public Git findOrCreateMainGitRepository() throws IOException {
+    public Git findOrCreateMainGitRepository() throws IOException, GitAPIException {
         if (mainRepository == null) {
             mainRepository = findOrCreateGitRepository(gitPatchManagement, true);
+            boolean hasMainPatchBranch = false;
+            List<Ref> refs = mainRepository.branchList().call();
+            for (Ref ref : refs) {
+                if (ref.getName().equals("refs/heads/" + getMainBranchName())) {
+                    hasMainPatchBranch = true;
+                    break;
+                }
+            }
+            if (!hasMainPatchBranch) {
+                // which means we're reusing fabric's git repository
+                mainRepository.checkout()
+                        .setName(getMainBranchName())
+                        .setStartPoint("root^{commit}")
+                        .setCreateBranch(true)
+                        .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
+                        .call();
+            }
         }
         return mainRepository;
     }
@@ -132,7 +153,8 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
     @Override
     public Git findOrCreateGitRepository(File directory, boolean bare) throws IOException {
         try {
-            return Git.open(directory);
+            Git git = Git.open(directory);
+            return git;
         } catch (RepositoryNotFoundException fallback) {
             try {
                 Git git = Git.init()
@@ -141,8 +163,21 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
                         .call();
                 Git fork = cloneRepository(git, false);
                 prepareCommit(fork, "[PATCH] initialization").call();
+                if (!"master".equals(getMainBranchName())) {
+                    fork.checkout()
+                            .setName(getMainBranchName())
+                            .setCreateBranch(true)
+                            .call();
+                }
                 push(fork);
                 closeRepository(fork, true);
+                if (!bare) {
+                    git.checkout()
+                            .setCreateBranch(false)
+                            .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
+                            .setName(getMainBranchName())
+                            .call();
+                }
                 return git;
             } catch (GitAPIException e) {
                 throw new RuntimeException(e.getMessage(), e);
@@ -166,9 +201,9 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
                     .call();
             fork.checkout()
                     .setCreateBranch(true)
-                    .setName("master")
+                    .setName(getMainBranchName())
                     .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
-                    .setStartPoint("origin/master")
+                    .setStartPoint("origin/" + getMainBranchName())
                     .call();
         }
 
@@ -214,7 +249,7 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
 
     @Override
     public void push(Git git) throws GitAPIException {
-        push(git, "master");
+        push(git, getMainBranchName());
     }
 
     @Override
@@ -258,7 +293,7 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
 
     /**
      * <p>We have two methods of finding latest tag for baseline - sort tag names by version (not lexicographic!) or iterate down
-     * the <code>master</code> branch and check the latest commit that has a <code>baseline-VERSION</code> tag.
+     * the main patch branch and check the latest commit that has a <code>baseline-VERSION</code> tag.
      * We could also look by commit message pattern, but this isn't cool.</p>
      * <p>Current implementation: sort tags by VERSION (from <code>baseline-VERSION</code> of tag name)</p>
      * @param git
@@ -309,7 +344,7 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
             }
         }
 
-        Iterable<RevCommit> log = git.log().add(git.getRepository().resolve("master")).call();
+        Iterable<RevCommit> log = git.log().add(git.getRepository().resolve(getMainBranchName())).call();
         for (RevCommit rc : log) {
             if (tagMap.containsKey(rc.getId())) {
                 return tagMap.get(rc.getId());
@@ -358,6 +393,11 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
             }
         }
         return result;
+    }
+
+    @Override
+    public String getMainBranchName() {
+        return mainPatchBranchName;
     }
 
 }

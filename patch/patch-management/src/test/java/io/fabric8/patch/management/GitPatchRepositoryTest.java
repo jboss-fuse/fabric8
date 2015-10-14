@@ -30,7 +30,6 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.errors.NoWorkTreeException;
 import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevTag;
 import org.eclipse.jgit.revwalk.RevWalk;
@@ -48,12 +47,13 @@ public class GitPatchRepositoryTest {
     private GitPatchRepository repository;
 
     @Before
-    public void init() throws IOException {
+    public void init() throws IOException, GitAPIException {
         karafHome = new File("target/karaf");
         FileUtils.deleteQuietly(karafHome);
         patchesHome = new File(karafHome, "patches");
+        File patchRepositoryLocation = new File(patchesHome, GitPatchRepositoryImpl.MAIN_GIT_REPO_LOCATION);
 
-        repository = new GitPatchRepositoryImpl(karafHome, patchesHome);
+        repository = new GitPatchRepositoryImpl("patches", patchRepositoryLocation, karafHome, patchesHome);
         repository.open();
     }
 
@@ -63,7 +63,7 @@ public class GitPatchRepositoryTest {
     }
 
     @Test
-    public void mainRepository() throws IOException {
+    public void mainRepository() throws IOException, GitAPIException {
         Git main = repository.findOrCreateMainGitRepository();
         assertNotNull(main);
         assertTrue(main.getRepository().isBare());
@@ -74,7 +74,7 @@ public class GitPatchRepositoryTest {
         }
 
         assertThat("Should contain single ref", new File(main.getRepository().getDirectory(), "refs/heads").listFiles().length, equalTo(1));
-        File theOnlyHead = new File(main.getRepository().getDirectory(), "refs/heads/master");
+        File theOnlyHead = new File(main.getRepository().getDirectory(), "refs/heads/patches");
         assertTrue(theOnlyHead.exists());
     }
 
@@ -98,11 +98,11 @@ public class GitPatchRepositoryTest {
         Git main = repository.findOrCreateMainGitRepository();
         Git clone1 = repository.cloneRepository(main, true);
         assertThat(clone1.branchList().call().size(), equalTo(1));
-        assertThat(clone1.branchList().call().get(0).getName(), equalTo("refs/heads/master"));
+        assertThat(clone1.branchList().call().get(0).getName(), equalTo("refs/heads/patches"));
         Git clone2 = repository.cloneRepository(main, false);
         assertThat(clone2.branchList().call().size(), equalTo(0));
 
-        assertTrue(repository.containsCommit(clone1, "master", "[PATCH] initialization"));
+        assertTrue(repository.containsCommit(clone1, "patches", "[PATCH] initialization"));
 
         repository.closeRepository(clone1, true);
         repository.closeRepository(clone2, true);
@@ -121,7 +121,7 @@ public class GitPatchRepositoryTest {
         repository.push(clone1);
 
         assertFalse(new File(repo.getRepository().getWorkTree(), "file.txt").exists());
-        repo.checkout().setName("master").setStartPoint("refs/heads/master").setCreateBranch(false).call();
+        repo.checkout().setName("patches").setStartPoint("refs/heads/patches").setCreateBranch(false).call();
         assertTrue(new File(repo.getRepository().getWorkTree(), "file.txt").exists());
 
         Git clone2 = repository.cloneRepository(repo, true);

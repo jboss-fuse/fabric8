@@ -54,7 +54,7 @@ public class PatchData {
 
     // patch may or may not be a rollup patch. Rollup patch creates new baseline when installed
     // non-rollup patch is a simple diff that may be committed (or cherry-picked) and reverted along the user changes
-    // commits in "master" branch. When rollup patch is installed, all user changes without non-rollup cherry-picks
+    // commits in "main" patch branch. When rollup patch is installed, all user changes without non-rollup cherry-picks
     // are rebased (git rebase) on top of new baseline tag
     private boolean rollupPatch = false;
 

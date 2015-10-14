@@ -28,6 +28,7 @@ import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.AbstractFileFilter;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
+import org.eclipse.jgit.api.errors.GitAPIException;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -50,7 +51,7 @@ public abstract class PatchTestSupport {
     protected BundleContext systemContext;
     protected Bundle system;
 
-    protected void init() throws IOException {
+    protected void init() throws IOException, GitAPIException {
         karafHome = new File("target/karaf");
         FileUtils.deleteQuietly(karafHome);
         patchesHome = new File(karafHome, "patches");
