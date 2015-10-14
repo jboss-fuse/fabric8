@@ -46,6 +46,8 @@ import java.util.zip.ZipOutputStream;
 
 import io.fabric8.patch.Service;
 import io.fabric8.patch.management.BundleUpdate;
+import io.fabric8.patch.management.EnvService;
+import io.fabric8.patch.management.EnvType;
 import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.management.PatchData;
 import io.fabric8.patch.management.PatchException;
@@ -211,6 +213,7 @@ public class ServiceImplTest {
                 .andReturn(karaf.getCanonicalPath() + "/system").anyTimes();
         expect(sysBundleContext.getProperty("karaf.home"))
                 .andReturn(karaf.getCanonicalPath()).anyTimes();
+        expect(sysBundleContext.getProperty("karaf.data")).andReturn(karaf.getCanonicalPath() + "/data").anyTimes();
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository);
 
         PatchManagement pm = new GitPatchManagementServiceImpl(bundleContext) {
@@ -339,6 +342,7 @@ public class ServiceImplTest {
                 .andReturn(patches.toString()).anyTimes();
         expect(sysBundleContext.getProperty("karaf.default.repository"))
                 .andReturn(patches.getParent() + "/system").anyTimes();
+        expect(sysBundleContext.getProperty("karaf.data")).andReturn(patches.getParent() + "/data").anyTimes();
         try {
             expect(repository.getManagedPatch(anyString())).andReturn(null).anyTimes();
             expect(repository.findOrCreateMainGitRepository()).andReturn(null).anyTimes();
@@ -399,6 +403,7 @@ public class ServiceImplTest {
                 .andReturn(karaf.getCanonicalPath() + "/system").anyTimes();
         expect(sysBundleContext.getProperty("karaf.home"))
                 .andReturn(karaf.getCanonicalPath()).anyTimes();
+        expect(sysBundleContext.getProperty("karaf.data")).andReturn(karaf.getCanonicalPath() + "/data").anyTimes();
 
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository);
 
@@ -616,6 +621,7 @@ public class ServiceImplTest {
                 .andReturn(karaf.getCanonicalPath() + "/system").anyTimes();
         expect(sysBundleContext.getProperty("karaf.home"))
                 .andReturn(karaf.getCanonicalPath()).anyTimes();
+        expect(sysBundleContext.getProperty("karaf.data")).andReturn(karaf.getCanonicalPath() + "/data").anyTimes();
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository);
 
         PatchManagement pm = mockManagementService(bundleContext);
