@@ -325,7 +325,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     @Override
-    public List<PatchData> fetchPatches(URL url, URI uploadAddress, UploadCallback callback) throws PatchException {
+    public List<PatchData> fetchPatches(URL url) throws PatchException {
         try {
             List<PatchData> patches = new ArrayList<>(1);
 
@@ -407,32 +407,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                                 otherResources.add(entry);
                             }
                             if (target != null) {
-                                if (uploadAddress == null) {
-                                    // we unzip to system repository
-                                    extractAndTrackZipEntry(fallbackPatchData, zf, entry, target, skipRootDir);
-                                } else {
-                                    // we upload
-                                    URL uploadUrl = uploadAddress.resolve(relativeName).toURL();
-                                    URLConnection con = uploadUrl.openConnection();
-                                    callback.doWithUrlConnection(con);
-                                    con.setDoInput(true);
-                                    con.setDoOutput(true);
-                                    con.connect();
-                                    OutputStream os = con.getOutputStream();
-                                    InputStream zis = zf.getInputStream(entry);
-                                    try {
-                                        IOUtils.copy(zis, os);
-                                        if (con instanceof HttpURLConnection) {
-                                            int code = ((HttpURLConnection) con).getResponseCode();
-                                            if (code < 200 || code >= 300) {
-                                                throw new IOException("Error uploading patched artifacts: " + ((HttpURLConnection) con).getResponseMessage());
-                                            }
-                                        }
-                                    } finally {
-                                        IOUtils.closeQuietly(zis);
-                                        IOUtils.closeQuietly(os);
-                                    }
-                                }
+                                // we unzip to system repository
+                                extractAndTrackZipEntry(fallbackPatchData, zf, entry, target, skipRootDir);
                             }
                         }
                     }
@@ -483,8 +459,66 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     @Override
-    public List<PatchData> fetchPatches(URL url) throws PatchException {
-        return fetchPatches(url, null, null);
+    public void uploadPatchArtifacts(PatchData patchData, URI uploadAddress, UploadCallback callback) throws PatchException {
+        try {
+            System.out.println("Uploading artifacts to " + uploadAddress);
+
+            List<File> artifacts = new LinkedList<>();
+            for (String bundle : patchData.getBundles()) {
+                String newUrl = Utils.mvnurlToPath(bundle);
+                File repoLocation = new File(Utils.getSystemRepository(karafHome, bundleContext), newUrl);
+                if (repoLocation.isFile()) {
+                    artifacts.add(repoLocation);
+                }
+            }
+            for (String featureRepository : patchData.getFeatureFiles()) {
+                String newUrl = Utils.mvnurlToPath(featureRepository);
+                File repoLocation = new File(Utils.getSystemRepository(karafHome, bundleContext), newUrl);
+                if (repoLocation.isFile()) {
+                    artifacts.add(repoLocation);
+                }
+            }
+            for (String artifact : patchData.getOtherArtifacts()) {
+                String newUrl = Utils.mvnurlToPath(artifact);
+                File repoLocation = new File(Utils.getSystemRepository(karafHome, bundleContext), newUrl);
+                if (repoLocation.isFile()) {
+                    artifacts.add(repoLocation);
+                }
+            }
+            int delta = artifacts.size() / 10;
+            int count = 1;
+            for (File f : artifacts) {
+                if (count++ % delta == 0) {
+                    System.out.printf("Uploaded %d/%d%n", count, artifacts.size());
+                    System.out.flush();
+                }
+                String relativeName = Utils.relative(Utils.getSystemRepository(karafHome, bundleContext), f.getCanonicalFile());
+                URL uploadUrl = uploadAddress.resolve(relativeName).toURL();
+                URLConnection con = uploadUrl.openConnection();
+                callback.doWithUrlConnection(con);
+                con.setDoInput(true);
+                con.setDoOutput(true);
+                con.connect();
+                OutputStream os = con.getOutputStream();
+                InputStream is = new FileInputStream(f);
+                try {
+                    IOUtils.copy(is, os);
+                    if (con instanceof HttpURLConnection) {
+                        int code = ((HttpURLConnection) con).getResponseCode();
+                        if (code < 200 || code >= 300) {
+                            throw new IOException("Error uploading patched artifacts: " + ((HttpURLConnection) con).getResponseMessage());
+                        }
+                    }
+                } finally {
+                    IOUtils.closeQuietly(is);
+                    IOUtils.closeQuietly(os);
+                }
+            }
+            System.out.printf("Uploaded %d/%d%n", count-1, artifacts.size());
+            System.out.flush();
+        } catch (Exception e) {
+            throw new PatchException(e.getMessage(), e);
+        }
     }
 
     /**

@@ -54,15 +54,13 @@ public interface PatchManagement {
     List<PatchData> fetchPatches(URL url) throws PatchException;
 
     /**
-     * Retriees an artifact from a given URL and returns list of patch data it contains (*.zip) or it is (*.patch).
-     * All resources found under <code>system/</code> or <code>repository/</code> are uploaded to <code>uploadAddress</code>.
-     * @param url
+     * Artifacts referenced from patch are uploaded to <code>URI</code>
+     * @param patchData
      * @param uploadAddress
      * @param callback
-     * @return
      * @throws PatchException
      */
-    List<PatchData> fetchPatches(URL url, URI uploadAddress, UploadCallback callback) throws PatchException;
+    void uploadPatchArtifacts(PatchData patchData, URI uploadAddress, UploadCallback callback) throws PatchException;
 
     /**
      * Takes already downloaded {@link PatchData static patch data} and prepares the patch to be installed,

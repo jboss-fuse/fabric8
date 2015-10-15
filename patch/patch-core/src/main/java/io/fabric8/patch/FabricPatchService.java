@@ -34,12 +34,12 @@ public interface FabricPatchService {
      * @param patch
      * @param simulation
      * @param versionId
+     * @param upload
      * @param username
      * @param password
-     * @param strategy
-     * @return
+     * @param strategy    @return
      */
-    PatchResult install(Patch patch, boolean simulation, String versionId, String username, String password, ProfileUpdateStrategy strategy)
+    PatchResult install(Patch patch, boolean simulation, String versionId, boolean upload, String username, String password, ProfileUpdateStrategy strategy)
             throws IOException;
 
 }

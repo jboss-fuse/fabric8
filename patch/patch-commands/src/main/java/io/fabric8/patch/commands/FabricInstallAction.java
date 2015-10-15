@@ -42,6 +42,9 @@ public class FabricInstallAction extends PatchActionSupport {
     @Option(name = "--merge-keep-old", description = "Merge strategy: take new properties, keep existing")
     boolean mergeKeepExisting = false;
 
+    @Option(name = "--upload", description = "Upload artifacts from patch to Maven repository")
+    boolean upload = false;
+
     @Option(name = "-u", aliases = { "--username" }, description = "Remote user name", required = false, multiValued = false)
     private String username;
 
@@ -72,7 +75,7 @@ public class FabricInstallAction extends PatchActionSupport {
         } else if (mergeSelectNew) {
             strategy = ProfileUpdateStrategy.PROPERTIES_PREFER_NEW;
         }
-        PatchResult result = fabricPatchService.install(patch, simulation, versionId, username, password, strategy);
+        PatchResult result = fabricPatchService.install(patch, simulation, versionId, upload, username, password, strategy);
     }
 
 }

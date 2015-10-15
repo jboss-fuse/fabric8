@@ -17,12 +17,15 @@ package io.fabric8.patch.impl;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.ProtocolException;
+import java.net.URLConnection;
 import java.util.LinkedList;
 import java.util.List;
 
 import io.fabric8.api.FabricService;
 import io.fabric8.api.GitContext;
-import io.fabric8.api.ProfileRegistry;
+import io.fabric8.common.util.Base64Encoder;
 import io.fabric8.git.GitDataStore;
 import io.fabric8.git.internal.GitHelpers;
 import io.fabric8.git.internal.GitOperation;
@@ -87,7 +90,7 @@ public class FabricPatchServiceImpl implements FabricPatchService {
 
     @Override
     public PatchResult install(final Patch patch, boolean simulation, final String versionId,
-                               String username, final String password,
+                               boolean upload, final String username, final String password,
                                final ProfileUpdateStrategy strategy)
             throws IOException {
 
@@ -140,7 +143,26 @@ public class FabricPatchServiceImpl implements FabricPatchService {
             };
             gitDataStore.gitOperation(new GitContext().requireCommit().setRequirePush(true), operation, null);
 
-            // set patch properties in default profile
+            // we don't have to configure anything more inside profiles!
+            // containers that get upgraded to this new version will (should) have "patch-core" feature installed
+            // and it (when started) will check if there's correct baseline + user changes available
+            // patch-core will simply compare relevant property from io.fabric8.version PID with what is there
+            // inside locally managed (trimmed down) patches/.management/history repository
+
+            if (upload) {
+                PatchManagement.UploadCallback callback = new PatchManagement.UploadCallback() {
+                    @Override
+                    public void doWithUrlConnection(URLConnection connection) throws ProtocolException {
+                        if (connection instanceof HttpURLConnection) {
+                            ((HttpURLConnection) connection).setRequestMethod("PUT");
+                        }
+                        if (username != null && password != null) {
+                            connection.setRequestProperty("Authorization", "Basic " + Base64Encoder.encode(username + ":" + password));
+                        }
+                    }
+                };
+                patchManagement.uploadPatchArtifacts(patch.getPatchData(), fabricService.getMavenRepoUploadURI(), callback);
+            }
         }
 
         return result;
