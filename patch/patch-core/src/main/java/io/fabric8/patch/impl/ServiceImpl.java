@@ -33,7 +33,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -56,7 +55,6 @@ import io.fabric8.patch.management.PatchResult;
 import io.fabric8.patch.management.Pending;
 import io.fabric8.patch.management.Utils;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
@@ -122,6 +120,8 @@ public class ServiceImpl implements Service {
     // by default it's ${karaf.home}/system
     private File repository;
 
+    private OSGiPatchHelper helper;
+
     @Activate
     void activate(ComponentContext componentContext) throws IOException {
         // Use system bundle' bundle context to avoid running into
@@ -149,6 +149,7 @@ public class ServiceImpl implements Service {
 
         this.karafHome = new File(bundleContext.getProperty("karaf.home"));
         this.repository = new File(bundleContext.getProperty("karaf.default.repository"));
+        helper = new OSGiPatchHelper(karafHome, bundleContext);
 
         load(true);
 
@@ -361,6 +362,7 @@ public class ServiceImpl implements Service {
     private Map<String, PatchResult> install(final Collection<Patch> patches, final boolean simulate, boolean synchronous) {
         PatchKind kind = checkConsistency(patches);
         checkPrerequisites(patches);
+        checkFabric();
         String transaction = null;
 
         try {
@@ -389,7 +391,7 @@ public class ServiceImpl implements Service {
             // bundles from etc/startup.properties + felix.framework = all bundles not managed by features
             // these bundles will be treated in special way
             // symbolic name -> Bundle
-            final Map<String, Bundle> coreBundles = getCoreBundles(allBundles);
+            final Map<String, Bundle> coreBundles = helper.getCoreBundles(allBundles);
 
             // collect runtime information from patches (features, bundles) and static information (files)
             // runtime info is prepared to apply runtime changes and static info is prepared to update KARAF_HOME files
@@ -554,6 +556,16 @@ public class ServiceImpl implements Service {
         }
     }
 
+    /**
+     * Sanity check - patches can't be <code>patch:install</code>ed or <code>patch:rollback</code>ed in fabric env.
+     */
+    private void checkFabric() {
+        ServiceReference<?> reference = bundleContext.getServiceReference("io.fabric8.api.FabricService");
+        if (reference != null && bundleContext.getService(reference) != null) {
+            throw new UnsupportedOperationException("In fabric mode patches can be managed only with 'patch:fabric-install' command");
+        }
+    }
+
     private boolean isJvmRestartNeeded(Map<String, PatchResult> results) {
         for (PatchResult result : results.values()) {
             if (isJvmRestartNeeded(result)) {
@@ -598,7 +610,7 @@ public class ServiceImpl implements Service {
 
         // for ROLLUP patch we can check which bundles AREN'T updated by this patch - we have to reinstall them
         // at the same version as existing one. "no update" means "require install after clearing cache"
-        // Initially no bundle needs update. If we find an update in patch, we remove a key from this map
+        // Initially all bundles need update. If we find an update in patch, we remove a key from this map
         Map<String, Bundle> updateNotRequired = new LinkedHashMap<>();
 //        // let's keep {symbolic name -> list of versions} mapping
 //        MultiMap<String, Version> allBundleVersions = new MultiMap<>();
@@ -651,7 +663,7 @@ public class ServiceImpl implements Service {
 
         for (String newLocation : patch.getPatchData().getBundles()) {
             // [symbolicName, version] of the new bundle
-            String[] symbolicNameVersion = getBundleIdentity(newLocation);
+            String[] symbolicNameVersion = helper.getBundleIdentity(newLocation);
             if (symbolicNameVersion == null) {
                 continue;
             }
@@ -1002,43 +1014,6 @@ public class ServiceImpl implements Service {
         }
     }
 
-    /**
-     * Returns a map of bundles (symbolic name -> Bundle) that were installed in <em>classic way</em> - i.e.,
-     * not using {@link FeaturesService}.
-     * User may have installed other bundles, drop some to <code>deploy/</code>, etc, but these probably
-     * are not handled by patch mechanism.
-     * @param allBundles
-     * @return
-     */
-    private Map<String, Bundle> getCoreBundles(Bundle[] allBundles) throws IOException {
-        Map<String, Bundle> coreBundles = new HashMap<>();
-
-        Properties props = new Properties();
-        FileInputStream stream = new FileInputStream(new File(karafHome, "etc/startup.properties"));
-        props.load(stream);
-        Set<String> locations = new HashSet<>();
-        for (String startupBundle : props.stringPropertyNames()) {
-            locations.add(Utils.pathToMvnurl(startupBundle));
-        }
-        for (Bundle b : allBundles) {
-            String symbolicName = Utils.stripSymbolicName(b.getSymbolicName());
-            if ("org.apache.felix.framework".equals(symbolicName)) {
-                coreBundles.put(symbolicName, b);
-            } else if ("org.ops4j.pax.url.mvn".equals(symbolicName)) {
-                // we could check if it's in etc/startup.properties, but we're 100% sure :)
-                coreBundles.put(symbolicName, b);
-            } else {
-                // only if it's in etc/startup.properties
-                if (locations.contains(b.getLocation())) {
-                    coreBundles.put(symbolicName, b);
-                }
-            }
-        }
-        IOUtils.closeQuietly(stream);
-
-        return coreBundles;
-    }
-
     static class MultiMap<K,V>  {
         HashMap<K,ArrayList<V>> delegate = new HashMap<>();
 
@@ -1182,25 +1157,6 @@ public class ServiceImpl implements Service {
                 }
             });
         }
-    }
-
-    /**
-     * Returns two element table: symbolic name and version
-     * @param url
-     * @return
-     * @throws IOException
-     */
-    private String[] getBundleIdentity(String url) throws IOException {
-        JarInputStream jis = new JarInputStream(new URL(url).openStream());
-        jis.close();
-        Manifest manifest = jis.getManifest();
-        Attributes att = manifest != null ? manifest.getMainAttributes() : null;
-        String sn = att != null ? att.getValue(Constants.BUNDLE_SYMBOLICNAME) : null;
-        String vr = att != null ? att.getValue(Constants.BUNDLE_VERSION) : null;
-        if (sn == null || vr == null) {
-            return null;
-        }
-        return new String[] { sn, vr };
     }
 
     /**

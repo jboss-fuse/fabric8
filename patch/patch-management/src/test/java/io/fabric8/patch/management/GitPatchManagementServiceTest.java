@@ -524,7 +524,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         Git fork = transactions.values().iterator().next();
         ObjectId currentBranch = fork.getRepository().resolve("HEAD^{commit}");
         ObjectId tempBranch = fork.getRepository().resolve(tx + "^{commit}");
-        ObjectId masterBranch = fork.getRepository().resolve("master^{commit}");
+        ObjectId masterBranch = fork.getRepository().resolve("patches-standalone^{commit}");
         ObjectId baseline = fork.getRepository().resolve("refs/tags/baseline-6.2.0^{commit}");
         assertThat(tempBranch, equalTo(currentBranch));
         assertThat(tempBranch, not(equalTo(baseline)));
@@ -630,7 +630,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         Patch patch = management.trackPatch(patches.get(0));
 
         Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
-        ObjectId master1 = fork.getRepository().resolve("master");
+        ObjectId master1 = fork.getRepository().resolve("patches-standalone");
 
         String tx = management.beginInstallation(PatchKind.ROLLUP);
         management.install(tx, patch, null);
@@ -638,7 +638,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
         repository.closeRepository(fork, true);
         fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
-        ObjectId master2 = fork.getRepository().resolve("master");
+        ObjectId master2 = fork.getRepository().resolve("patches-standalone");
 
         assertThat(master1, not(equalTo(master2)));
         assertThat(fork.tagList().call().size(), equalTo(3));
@@ -677,7 +677,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         Patch patch4 = management.trackPatch(patches.get(0));
 
         Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
-        ObjectId master1 = fork.getRepository().resolve("master");
+        ObjectId master1 = fork.getRepository().resolve("patches-standalone");
 
         String tx = management.beginInstallation(PatchKind.ROLLUP);
         management.install(tx, patch4, null);
@@ -695,7 +695,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
         repository.closeRepository(fork, true);
         fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
-        ObjectId master2 = fork.getRepository().resolve("master");
+        ObjectId master2 = fork.getRepository().resolve("patches-standalone");
 
         assertThat(master1, not(equalTo(master2)));
         assertThat(fork.tagList().call().size(), equalTo(2));
@@ -801,7 +801,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         Patch patch = management.trackPatch(patches.get(0));
 
         Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
-        ObjectId master1 = fork.getRepository().resolve("master");
+        ObjectId master1 = fork.getRepository().resolve("patches-standalone");
 
         String tx = management.beginInstallation(PatchKind.NON_ROLLUP);
         management.install(tx, patch, null);
@@ -809,7 +809,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
         repository.closeRepository(fork, true);
         fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
-        ObjectId master2 = fork.getRepository().resolve("master");
+        ObjectId master2 = fork.getRepository().resolve("patches-standalone");
 
         assertThat(master1, not(equalTo(master2)));
         assertThat(fork.tagList().call().size(), equalTo(3));
@@ -838,7 +838,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         Patch patch = management.trackPatch(patches.get(0));
 
         Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
-        ObjectId master1 = fork.getRepository().resolve("master");
+        ObjectId master1 = fork.getRepository().resolve("patches-standalone");
 
         String tx = management.beginInstallation(PatchKind.NON_ROLLUP);
         management.install(tx, patch, null);
@@ -848,7 +848,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
         repository.closeRepository(fork, true);
         fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
-        ObjectId master2 = fork.getRepository().resolve("master");
+        ObjectId master2 = fork.getRepository().resolve("patches-standalone");
 
         assertThat(master1, not(equalTo(master2)));
         assertThat(fork.tagList().call().size(), equalTo(2));

@@ -88,10 +88,12 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
         this.env = envType;
         switch (envType) {
             case STANDALONE:
-                this.mainPatchBranchName = "master";
+                // let's prepare for incoming fabric:create - to not have problems when pushing "master"
+                // to fabric's local repo
+                this.mainPatchBranchName = "patches-standalone";
                 break;
-            case FABRIC:
-                this.mainPatchBranchName = "patches-master";
+            case FABRIC_ROOT:
+                this.mainPatchBranchName = "patches-root";
                 this.childContainerPatchBranchName = "patches-child";
                 this.fuseSSHContainerPatchBranchName = "patches-ssh-fuse";
                 this.fabric8SSHContainerPatchBranchName = "patches-ssh-fabric8";
@@ -192,6 +194,7 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
                     config.save();
                     push(git, getMainBranchName());
                 }
+
                 return git;
             } catch (GitAPIException e) {
                 throw new RuntimeException(e.getMessage(), e);

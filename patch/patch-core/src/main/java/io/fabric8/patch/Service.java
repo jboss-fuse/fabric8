@@ -21,7 +21,7 @@ import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.management.PatchResult;
 
 /**
- * High-level patch management service to be used by commands
+ * High-level patch management service (standalone mode) to be used by commands
  */
 public interface Service {
 

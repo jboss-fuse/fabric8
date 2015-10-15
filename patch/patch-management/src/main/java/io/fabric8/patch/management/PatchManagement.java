@@ -15,8 +15,14 @@
  */
 package io.fabric8.patch.management;
 
+import java.io.File;
+import java.net.ProtocolException;
+import java.net.URI;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.List;
+
+import org.eclipse.jgit.api.Git;
 
 /**
  * <p>Interface to an OSGi service that can handle low-level patch management operations.</p>
@@ -46,6 +52,17 @@ public interface PatchManagement {
      * @return
      */
     List<PatchData> fetchPatches(URL url) throws PatchException;
+
+    /**
+     * Retriees an artifact from a given URL and returns list of patch data it contains (*.zip) or it is (*.patch).
+     * All resources found under <code>system/</code> or <code>repository/</code> are uploaded to <code>uploadAddress</code>.
+     * @param url
+     * @param uploadAddress
+     * @param callback
+     * @return
+     * @throws PatchException
+     */
+    List<PatchData> fetchPatches(URL url, URI uploadAddress, UploadCallback callback) throws PatchException;
 
     /**
      * Takes already downloaded {@link PatchData static patch data} and prepares the patch to be installed,
@@ -95,5 +112,23 @@ public interface PatchManagement {
      * @param patchData
      */
     void rollback(PatchData patchData);
+
+    /**
+     * Fabric-mode operation - takes external {@link Git} and updates a branch (version) with new profiles
+     * shipped with new {@link PatchKind#ROLLUP rollup patch}.
+     * @param gitRepository
+     * @param versionId
+     * @param patch
+     */
+    void installProfiles(File gitRepository, String versionId, Patch patch);
+
+    /**
+     * Callback to be passed to method that uploads content of retrieved patched to remote repository.
+     */
+    public interface UploadCallback {
+
+        void doWithUrlConnection(URLConnection connection) throws ProtocolException;
+
+    }
 
 }

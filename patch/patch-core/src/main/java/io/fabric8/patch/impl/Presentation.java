@@ -54,7 +54,7 @@ public abstract class Presentation {
                 l1 = sn.length();
             }
             if (install) {
-                String version = be.getPreviousVersion();
+                String version = be.getPreviousVersion() == null ? "<update>" : be.getPreviousVersion();
                 if (version.length() > l2) {
                     l2 = version.length();
                 }
@@ -100,7 +100,7 @@ public abstract class Presentation {
                 if (be.isIndependent() && be.getNewLocation() != null) {
                     System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
                             stripSymbolicName(be.getSymbolicName()),
-                            install ? be.getPreviousVersion() : be.getNewVersion(),
+                            install ? (be.getPreviousVersion() == null ? "<update>" : be.getPreviousVersion()) : be.getNewVersion(),
                             install ? be.getNewLocation() : be.getPreviousLocation());
                 }
             }

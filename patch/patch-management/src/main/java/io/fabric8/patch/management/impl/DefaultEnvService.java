@@ -37,12 +37,16 @@ public class DefaultEnvService implements EnvService {
     public EnvType determineEnvironmentType() {
         File localGitRepository = new File(systemContext.getProperty("karaf.data"), "git/local/fabric");
         if (localGitRepository.isDirectory() && new File(localGitRepository, ".git").isDirectory()) {
-            // we start in fabric mode, we have main fabric git repo (which doesn't mean we didn't start
-            // as standalone before and created standalone patches/.management/history repo already)
-            return EnvType.FABRIC;
-        } else {
-            return EnvType.STANDALONE;
+            // we have git repository of current container - is it initalized?
+            boolean hasMasterBranch = new File(localGitRepository, ".git/refs/heads/master").isFile();
+            boolean hasRootTag = new File(localGitRepository, ".git/refs/tags/root").isFile();
+            if (hasMasterBranch && hasRootTag) {
+                // this may as well be SSH or child container - we'll detect it later
+                return EnvType.FABRIC_ROOT;
+            }
         }
+        // no git repo or it is empty
+        return EnvType.STANDALONE;
     }
 
 }

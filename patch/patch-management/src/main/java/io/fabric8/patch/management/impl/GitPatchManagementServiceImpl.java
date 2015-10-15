@@ -26,8 +26,12 @@ import java.io.FileReader;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.StringWriter;
+import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.util.ArrayList;
@@ -144,7 +148,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
     private final BundleContext bundleContext;
     private final BundleContext systemContext;
-    private final EnvType env;
+    private EnvType env = EnvType.UNKNOWN;
 
     private GitPatchRepository gitPatchRepository;
     private ConflictResolver conflictResolver = new ConflictResolver();
@@ -182,10 +186,14 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             if (!patchesDir.isDirectory()) {
                 patchesDir.mkdirs();
             }
+        } else {
+            return;
         }
 
         envService = new DefaultEnvService(systemContext, karafHome, patchesDir);
         env = envService.determineEnvironmentType();
+        // always init/open local (${karaf.home}/patches/.management/history) repo
+        // but in fabric mode, we will connect it to ${karaf.data}/git/local/fabric/.git
         File patchRepositoryLocation = new File(patchesDir, GitPatchRepositoryImpl.MAIN_GIT_REPO_LOCATION);
 
         GitPatchRepositoryImpl repository = new GitPatchRepositoryImpl(env, patchRepositoryLocation, karafHome, patchesDir);
@@ -315,7 +323,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     @Override
-    public List<PatchData> fetchPatches(URL url) {
+    public List<PatchData> fetchPatches(URL url, URI uploadAddress, UploadCallback callback) throws PatchException {
         try {
             List<PatchData> patches = new ArrayList<>(1);
 
@@ -342,6 +350,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             fallbackPatchData.setGenerated(true);
             fallbackPatchData.setRollupPatch(true);
             fallbackPatchData.setPatchDirectory(new File(patchesDir, fallbackPatchData.getId()));
+            fallbackPatchData.setPatchLocation(patchesDir);
 
             if (zf != null) {
                 File systemRepo = getSystemRepository(karafHome, systemContext);
@@ -372,6 +381,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                                 patchData.setGenerated(false);
                                 File targetDirForPatchResources = new File(patchesDir, patchData.getId());
                                 patchData.setPatchDirectory(targetDirForPatchResources);
+                                patchData.setPatchLocation(patchesDir);
                                 target.renameTo(new File(patchesDir, patchData.getId() + ".patch"));
                                 patches.add(patchData);
                             } else {
@@ -381,18 +391,46 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             }
                         } else {
                             File target = null;
+                            String relativeName = null;
                             if (name.startsWith("system/")) {
                                 // copy to ${karaf.default.repository}
-                                target = new File(systemRepo, name.substring("system/".length()));
+                                relativeName = name.substring("system/".length());
+                                target = new File(systemRepo, relativeName);
                             } else if (name.startsWith("repository/")) {
                                 // copy to ${karaf.default.repository}
-                                target = new File(systemRepo, name.substring("repository/".length()));
+                                relativeName = name.substring("repository/".length());
+                                target = new File(systemRepo, relativeName);
                             } else {
                                 // other files that should be applied to ${karaf.home} when the patch is installed
                                 otherResources.add(entry);
                             }
                             if (target != null) {
-                                extractAndTrackZipEntry(fallbackPatchData, zf, entry, target, skipRootDir);
+                                if (uploadAddress == null) {
+                                    // we unzip to system repository
+                                    extractAndTrackZipEntry(fallbackPatchData, zf, entry, target, skipRootDir);
+                                } else {
+                                    // we upload
+                                    URL uploadUrl = uploadAddress.resolve(relativeName).toURL();
+                                    URLConnection con = uploadUrl.openConnection();
+                                    callback.doWithUrlConnection(con);
+                                    con.setDoInput(true);
+                                    con.setDoOutput(true);
+                                    con.connect();
+                                    OutputStream os = con.getOutputStream();
+                                    InputStream zis = zf.getInputStream(entry);
+                                    try {
+                                        IOUtils.copy(zis, os);
+                                        if (con instanceof HttpURLConnection) {
+                                            int code = ((HttpURLConnection) con).getResponseCode();
+                                            if (code < 200 || code >= 300) {
+                                                throw new IOException("Error uploading patched artifacts: " + ((HttpURLConnection) con).getResponseMessage());
+                                            }
+                                        }
+                                    } finally {
+                                        IOUtils.closeQuietly(zis);
+                                        IOUtils.closeQuietly(os);
+                                    }
+                                }
                             }
                         }
                     }
@@ -440,6 +478,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         } catch (IOException e) {
             throw new PatchException("Unable to download patch from url " + url, e);
         }
+    }
+
+    @Override
+    public List<PatchData> fetchPatches(URL url) throws PatchException {
+        return fetchPatches(url, null, null);
     }
 
     /**
@@ -503,9 +546,6 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             if (latestBaseline == null) {
                 throw new PatchException("Can't find baseline distribution tracked in patch management. Is patch management initialized?");
             }
-
-            // prepare managed patch instance - that contains information after adding patch to patch-branch
-            ManagedPatch mp = new ManagedPatch();
 
             // the commit from the patch should be available from main patch branch
             RevCommit commit = new RevWalk(fork.getRepository()).parseCommit(latestBaseline.getObject());
@@ -2333,6 +2373,23 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             } catch (Exception e) {
                 System.err.println("[PATCH-error] " + e.getMessage());
                 System.err.flush();
+            }
+        }
+    }
+
+    @Override
+    public void installProfiles(File gitRepository, String versionId, Patch patch) {
+        // remember - we operate on totally different git repository!
+        Git git = null;
+        try {
+            git = Git.open(gitRepository);
+            System.out.println("Operating on " + git.getRepository().getWorkTree());
+            System.out.println("Current branch " + git.getRepository().resolve("HEAD"));
+        } catch (Exception e) {
+            throw new PatchException(e.getMessage(), e);
+        } finally {
+            if (git != null) {
+                gitPatchRepository.closeRepository(git, false);
             }
         }
     }

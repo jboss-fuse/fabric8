@@ -57,4 +57,5 @@ public interface GitPatchManagementService {
      * patches installation (or rollback too)
      */
     void checkPendingPatches();
+
 }
