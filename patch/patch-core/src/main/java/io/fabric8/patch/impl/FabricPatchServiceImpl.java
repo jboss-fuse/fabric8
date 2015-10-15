@@ -33,6 +33,7 @@ import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.management.PatchKind;
 import io.fabric8.patch.management.PatchManagement;
 import io.fabric8.patch.management.PatchResult;
+import io.fabric8.patch.management.ProfileUpdateStrategy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -85,8 +86,11 @@ public class FabricPatchServiceImpl implements FabricPatchService {
     }
 
     @Override
-    public PatchResult install(final Patch patch, boolean simulation, final String versionId, String username, String password)
+    public PatchResult install(final Patch patch, boolean simulation, final String versionId,
+                               String username, final String password,
+                               final ProfileUpdateStrategy strategy)
             throws IOException {
+
         // we start from the same state as in standalone mode - after successful patch:add
         // we have other things to do in fabric env however:
         // 1. check prerequisites
@@ -122,7 +126,6 @@ public class FabricPatchServiceImpl implements FabricPatchService {
             // update profile definitions stored in Git. We don't update ${karaf.home}/fabric, becuase it is used
             // only once - when importing profiles during fabric:create.
             // when fabric is already available, we have to update (Git) repository information
-            ProfileRegistry registry = fabricService.adapt(ProfileRegistry.class);
             GitOperation operation = new GitOperation() {
                 @Override
                 public Object call(Git git, GitContext context) throws Exception {
@@ -130,11 +133,14 @@ public class FabricPatchServiceImpl implements FabricPatchService {
                     // because patch-management private-packages git library
                     // but we can leverage the write lock we have
                     GitHelpers.checkoutBranch(git, versionId);
-                    patchManagement.installProfiles(git.getRepository().getDirectory(), versionId, patch);
+                    patchManagement.installProfiles(git.getRepository().getDirectory(), versionId, patch, strategy);
+                    context.commitMessage("Installing rollup patch \"" + patch.getPatchData().getId() + "\"");
                     return null;
                 }
             };
-            gitDataStore.gitOperation(new GitContext().requireCommit().requirePush(), operation, null);
+            gitDataStore.gitOperation(new GitContext().requireCommit().setRequirePush(true), operation, null);
+
+            // set patch properties in default profile
         }
 
         return result;

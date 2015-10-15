@@ -65,11 +65,13 @@ import io.fabric8.patch.management.PatchKind;
 import io.fabric8.patch.management.PatchManagement;
 import io.fabric8.patch.management.PatchResult;
 import io.fabric8.patch.management.Pending;
+import io.fabric8.patch.management.ProfileUpdateStrategy;
 import io.fabric8.patch.management.Utils;
 import io.fabric8.patch.management.conflicts.ConflictResolver;
 import io.fabric8.patch.management.conflicts.Resolver;
 import io.fabric8.patch.management.io.EOLFixingFileOutputStream;
 import io.fabric8.patch.management.io.EOLFixingFileUtils;
+import io.fabric8.patch.management.io.ProfileFileUtils;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipFile;
 import org.apache.commons.io.FileUtils;
@@ -2378,13 +2380,22 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     @Override
-    public void installProfiles(File gitRepository, String versionId, Patch patch) {
+    public void installProfiles(File gitRepository, String versionId, Patch patch, ProfileUpdateStrategy strategy) {
         // remember - we operate on totally different git repository!
+        // we should have versionId branch already checked out.
+
+        // here we don't merge/cherry-pick anything - we're preparing new commit simply by copying
+        // one set of profiles (from R patch) over another (current profile definitions from Fabric)
+        // we won't have merge conflicts, but we can't simply copy profiles over, because existing profiles
+        // may have custom changes
         Git git = null;
         try {
             git = Git.open(gitRepository);
-            System.out.println("Operating on " + git.getRepository().getWorkTree());
-            System.out.println("Current branch " + git.getRepository().resolve("HEAD"));
+
+            File src = new File(patch.getPatchData().getPatchDirectory(), "fabric/import/fabric/profiles");
+            File dst = new File(git.getRepository().getWorkTree(), "fabric/profiles");
+            ProfileFileUtils.copyDirectory(src, dst, strategy);
+            git.add().addFilepattern(".").call();
         } catch (Exception e) {
             throw new PatchException(e.getMessage(), e);
         } finally {

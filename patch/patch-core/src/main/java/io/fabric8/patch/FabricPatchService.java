@@ -19,6 +19,7 @@ import java.io.IOException;
 
 import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.management.PatchResult;
+import io.fabric8.patch.management.ProfileUpdateStrategy;
 
 /**
  * Fabric patching service used by commands. It is used together with more general purpose {@link Service}.
@@ -35,8 +36,10 @@ public interface FabricPatchService {
      * @param versionId
      * @param username
      * @param password
+     * @param strategy
      * @return
      */
-    PatchResult install(Patch patch, boolean simulation, String versionId, String username, String password) throws IOException;
+    PatchResult install(Patch patch, boolean simulation, String versionId, String username, String password, ProfileUpdateStrategy strategy)
+            throws IOException;
 
 }

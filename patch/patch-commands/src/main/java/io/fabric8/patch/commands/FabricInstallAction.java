@@ -19,6 +19,7 @@ import io.fabric8.patch.FabricPatchService;
 import io.fabric8.patch.Service;
 import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.management.PatchResult;
+import io.fabric8.patch.management.ProfileUpdateStrategy;
 import org.apache.felix.gogo.commands.Argument;
 import org.apache.felix.gogo.commands.Command;
 import org.apache.felix.gogo.commands.Option;
@@ -31,6 +32,15 @@ public class FabricInstallAction extends PatchActionSupport {
 
     @Option(name = "-s", aliases = { "--simulation" }, description = "Simulates installation of the patch")
     boolean simulation = false;
+
+    @Option(name = "--merge-overwrite", description = "Merge strategy: replace entire profile file with a patched one")
+    boolean mergeOverwrite = false;
+
+    @Option(name = "--merge-prefer-new", description = "Merge strategy: take new properties, replace existing")
+    boolean mergeSelectNew = false;
+
+    @Option(name = "--merge-keep-old", description = "Merge strategy: take new properties, keep existing")
+    boolean mergeKeepExisting = false;
 
     @Option(name = "-u", aliases = { "--username" }, description = "Remote user name", required = false, multiValued = false)
     private String username;
@@ -51,7 +61,18 @@ public class FabricInstallAction extends PatchActionSupport {
     @Override
     protected void doExecute(Service service) throws Exception {
         Patch patch = super.getPatch(patchId);
-        PatchResult result = fabricPatchService.install(patch, simulation, versionId, username, password);
+        ProfileUpdateStrategy strategy = ProfileUpdateStrategy.GIT;
+        if ((mergeOverwrite && (mergeSelectNew || mergeKeepExisting))
+                || (mergeSelectNew && (mergeOverwrite || mergeKeepExisting))
+                || (mergeKeepExisting && (mergeOverwrite || mergeSelectNew))) {
+            throw new UnsupportedOperationException("Please select single merge strategy");
+        }
+        if (mergeKeepExisting) {
+            strategy = ProfileUpdateStrategy.PROPERTIES_PREFER_EXISTING;
+        } else if (mergeSelectNew) {
+            strategy = ProfileUpdateStrategy.PROPERTIES_PREFER_NEW;
+        }
+        PatchResult result = fabricPatchService.install(patch, simulation, versionId, username, password, strategy);
     }
 
 }

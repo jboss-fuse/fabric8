@@ -119,8 +119,9 @@ public interface PatchManagement {
      * @param gitRepository
      * @param versionId
      * @param patch
+     * @param strategy
      */
-    void installProfiles(File gitRepository, String versionId, Patch patch);
+    void installProfiles(File gitRepository, String versionId, Patch patch, ProfileUpdateStrategy strategy);
 
     /**
      * Callback to be passed to method that uploads content of retrieved patched to remote repository.
