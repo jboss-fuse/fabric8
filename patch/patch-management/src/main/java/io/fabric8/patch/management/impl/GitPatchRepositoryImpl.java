@@ -382,7 +382,7 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
     @Override
     public ManagedPatch getManagedPatch(String id) throws IOException {
         // basic ManagedPatch information is only commit id of the relevant branch name
-        ObjectId commitId = mainRepository.getRepository().resolve("refs/heads/" + id);
+        ObjectId commitId = mainRepository.getRepository().resolve("refs/heads/patch-" + id);
         if (commitId == null) {
             // this patch is not tracked (yet?)
             return null;

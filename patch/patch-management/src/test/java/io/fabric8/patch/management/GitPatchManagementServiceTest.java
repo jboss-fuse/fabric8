@@ -158,7 +158,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         List<Ref> branches = fork.branchList().setListMode(ListBranchCommand.ListMode.REMOTE).call();
         Ref patchBranch = null;
         for (Ref remoteBranch : branches) {
-            if (String.format("refs/remotes/origin/%s", patchData.getId()).equals(remoteBranch.getName())) {
+            if (String.format("refs/remotes/origin/patch-%s", patchData.getId()).equals(remoteBranch.getName())) {
                 patchBranch = remoteBranch;
                 break;
             }
@@ -180,7 +180,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         // let's see the patch applied to baseline-6.2.0
         fork.checkout()
                 .setName("my-patch-1")
-                .setStartPoint("origin/my-patch-1")
+                .setStartPoint("origin/patch-my-patch-1")
                 .setCreateBranch(true)
                 .call();
         String myProperties = FileUtils.readFileToString(new File(fork.getRepository().getWorkTree(), "etc/my.properties"));
@@ -338,7 +338,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         List<Ref> branches = fork.branchList().setListMode(ListBranchCommand.ListMode.REMOTE).call();
         Ref patchBranch = null;
         for (Ref remoteBranch : branches) {
-            if (String.format("refs/remotes/origin/%s", patchData.getId()).equals(remoteBranch.getName())) {
+            if (String.format("refs/remotes/origin/patch-%s", patchData.getId()).equals(remoteBranch.getName())) {
                 patchBranch = remoteBranch;
                 break;
             }
@@ -392,7 +392,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         // let's see the patch applied to baseline-6.2.0
         fork.checkout()
                 .setName("patch-4")
-                .setStartPoint("origin/patch-4")
+                .setStartPoint("origin/patch-patch-4")
                 .setCreateBranch(true)
                 .call();
         String startupProperties = FileUtils.readFileToString(new File(fork.getRepository().getWorkTree(), "etc/startup.properties"));
@@ -455,8 +455,8 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
         Ref ref = fork.checkout()
                 .setCreateBranch(true)
-                .setName("my-patch-1")
-                .setStartPoint("refs/remotes/origin/my-patch-1")
+                .setName("patch-my-patch-1")
+                .setStartPoint("refs/remotes/origin/patch-my-patch-1")
                 .call();
 
         // commit stored in ManagedPatch vs. commit of the patch branch

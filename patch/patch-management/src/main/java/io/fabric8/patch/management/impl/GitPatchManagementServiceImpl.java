@@ -556,7 +556,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             // changes from the latest baseline
             fork.checkout()
                     .setCreateBranch(true)
-                    .setName(patchData.getId())
+                    .setName("patch-" + patchData.getId())
                     .setStartPoint(commit)
                     .call();
 
@@ -580,7 +580,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             gitPatchRepository.prepareCommit(fork, String.format("[PATCH] Tracking patch %s", patchData.getId())).call();
 
             // push the patch branch
-            gitPatchRepository.push(fork, patchData.getId());
+            gitPatchRepository.push(fork, "patch-" + patchData.getId());
 
             return new Patch(patchData, gitPatchRepository.getManagedPatch(patchData.getId()));
         } catch (IOException | GitAPIException e) {
@@ -1901,7 +1901,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             .call();
 
                     // and we'll tag the child baseline
-                    String tagName = branchName.replace("patches-", "baseline-");
+                    String tagName = branchName.replace("patches-", "");
 
                     fork.tag()
                             .setName(String.format("baseline-%s-%s", tagName, fabric8Version))
