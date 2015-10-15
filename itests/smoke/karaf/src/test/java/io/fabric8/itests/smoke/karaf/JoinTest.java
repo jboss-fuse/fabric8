@@ -51,7 +51,7 @@ public class JoinTest {
     @Deployment
     @StartLevelAware(autostart = true)
     public static Archive<?> deployment() {
-        final JavaArchive archive = ShrinkWrap.create(JavaArchive.class, "join-test");
+        final JavaArchive archive = ShrinkWrap.create(JavaArchive.class, "join-test.jar");
         archive.addPackage(CommandSupport.class.getPackage());
         archive.setManifest(new Asset() {
             @Override

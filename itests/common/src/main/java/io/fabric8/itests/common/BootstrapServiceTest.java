@@ -45,7 +45,7 @@ public class BootstrapServiceTest  {
     @Deployment
     @StartLevelAware(autostart = true)
     public static Archive<?> deployment() {
-        final JavaArchive archive = ShrinkWrap.create(JavaArchive.class, "bootstrap-service-test");
+        final JavaArchive archive = ShrinkWrap.create(JavaArchive.class, "bootstrap-service-test.jar");
         archive.addPackage(CommandSupport.class.getPackage());
         archive.setManifest(new Asset() {
             @Override
