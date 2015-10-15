@@ -16,6 +16,7 @@
 package io.fabric8.mq.fabric;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
@@ -25,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import javax.jms.JMSException;
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQConnectionFactory;
+import org.apache.activemq.transport.TransportListener;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryNTimes;
@@ -73,6 +75,57 @@ public class ServiceFactoryTest {
     public void infraDown() throws Exception {
         curator.close();
         standaloneServerFactory.shutdown();
+    }
+
+    @Test
+    public void testDeletedStopsBroker() throws Exception {
+
+        underTest = new ActiveMQServiceFactory();
+        underTest.curator = curator;
+
+        Properties props = new Properties();
+        props.put("config", "amq.xml");
+        props.put("broker-name", "amq");
+        props.put("connectors", "openwire");
+
+        for (int i=0; i<10; i++) {
+
+            underTest.updated("b", props);
+
+            ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("failover:(tcp://localhost:61616)?useExponentialBackOff=false&timeout=10000");
+
+            final ActiveMQConnection connection = (ActiveMQConnection) cf.createConnection();
+            connection.start();
+
+            assertTrue("is connected", connection.getTransport().isConnected());
+
+            final CountDownLatch interrupted = new CountDownLatch(1);
+
+            connection.getTransport().setTransportListener(new TransportListener() {
+                @Override
+                public void onCommand(Object o) {
+                }
+
+                @Override
+                public void onException(IOException e) {
+                }
+
+                @Override
+                public void transportInterupted() {
+                    interrupted.countDown();
+                }
+
+                @Override
+                public void transportResumed() {
+                }
+            });
+
+            underTest.deleted("b");
+
+            assertTrue("Broker stopped - transport interrupted", interrupted.await(5, TimeUnit.SECONDS));
+
+            connection.close();
+        }
     }
 
     @Test

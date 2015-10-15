@@ -337,7 +337,6 @@ public class ActiveMQServiceFactory  {
         private FabricDiscoveryAgent discoveryAgent = null;
 
         private final AtomicBoolean started = new AtomicBoolean();
-//        private final AtomicInteger startAttempt = new AtomicInteger();
 
         private ExecutorService executor = Executors.newSingleThreadExecutor(new NamedThreadFactory("AMQ"));
 
@@ -569,14 +568,11 @@ public class ActiveMQServiceFactory  {
                 if (discoveryAgent != null) {
                     discoveryAgent.stop();
                 }
-                if (started.get()) {
-                    stop();
-                }
             }
-            if (started.compareAndSet(true, false)) {
-                waitForStop();
-            }
-            executor.shutdownNow();
+            disconnect();
+            // we need to let any possible stop task execute
+            executor.shutdown();
+            executor.awaitTermination(SHUTDOWN_TIMEOUT_IN_SECONDS, TimeUnit.SECONDS);
         }
 
         public void stop() throws ExecutionException, InterruptedException {
