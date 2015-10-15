@@ -57,7 +57,6 @@ import org.slf4j.LoggerFactory;
 import javax.xml.soap.Node;
 
 import static io.fabric8.internal.ContainerProviderUtils.buildInstallAndStartScript;
-import static io.fabric8.internal.ContainerProviderUtils.zipDirectory;
 
 public class CloudContainerInstallationTask {
 
@@ -160,20 +159,7 @@ public class CloudContainerInstallationTask {
 
             String script = buildInstallAndStartScript(containerName, options);
             listener.onStateChange(String.format("Installing fabric agent on container %s. It may take a while...", containerName));
-            ExecResponse response = null;
-            
-            if (options.doUploadDistribution()) {                
-                String zipFile = System.getProperty("karaf.home", "") + "/system/io/fabric8/fabric8-karaf/" + FabricConstants.FABRIC_VERSION + "/fabric8-karaf-" + FabricConstants.FABRIC_VERSION
-                        + ".zip";
-                File srcFile = new File(zipFile);
-                if (!srcFile.exists()) {
-                    try {
-                        zipDirectory(srcFile, System.getProperty("karaf.home", "."));
-                    } catch (Exception e) {
-                        LOGGER.debug("Could not zip up current distro to use as base for new SSH container. Will try downloading via Maven instead.", e);
-                    }
-                }
-            }
+            ExecResponse response = null;         
             
             String uploadPath = "/tmp/fabric8-karaf-"+FabricConstants.FABRIC_VERSION+".zip";
             URL distributionURL = options.getProxyUri()

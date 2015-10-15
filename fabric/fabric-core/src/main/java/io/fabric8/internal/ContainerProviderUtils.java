@@ -16,10 +16,6 @@
 package io.fabric8.internal;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
@@ -30,9 +26,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-import java.util.zip.ZipOutputStream;
 
 import io.fabric8.api.Constants;
 import io.fabric8.api.CreateContainerMetadata;
@@ -88,10 +81,6 @@ public final class ContainerProviderUtils {
     private static final String SYSTEM_DIST = "system/io/fabric8/fabric8-%s/%s";
 
     protected transient static Logger logger = LoggerFactory.getLogger(ContainerProviderUtils.class);
-
-    private static final int DEFAULT_ZIP_BUFFER_SIZE = 8 * 1024;
-
-    private static final ArrayList<String> zipFileExcludes = new ArrayList<String>(Arrays.asList(new String[] {"deploy", "extras", "lock", "quickstarts", "data", "instances", "patches", "fabric8-karaf-" + FabricConstants.FABRIC_VERSION + ".zip"}));
 
     private static final String[] FALLBACK_REPOS = {"https://repo.fusesource.com/nexus/content/groups/public/", "https://repo.fusesource.com/nexus/content/groups/ea/", "https://repo.fusesource.com/nexus/content/repositories/snapshots/"};
 
@@ -275,60 +264,6 @@ public final class ContainerProviderUtils {
         sb.append("wait_for_port $SSH_PORT").append("\n");
         sb.append("wait_for_port $RMI_REGISTRY_PORT").append("\n");
         return sb.toString();
-    }
-
-    public static void zipDirectory(File zipFile, String srcDir) throws Exception {
-        File srcFile = new File(srcDir);
-        try {
-            zipFile.getParentFile().mkdirs();
-            FileOutputStream fos = new FileOutputStream(zipFile);
-            ZipOutputStream zos = new ZipOutputStream(fos);
-    
-            logger.info("Zipping up " + srcFile + " to " + zipFile.getPath());
-    
-            addDirToZip(zos, srcFile, null);
-            zos.close();
-        } catch (Exception e) {
-            // clean up if an excpetion was thrown during zip file creation
-            srcFile.delete();
-            throw e;
-        } 
-    }
-
-    private static void addDirToZip(ZipOutputStream zos, File fileToZip, String parent) throws Exception {
-        if (fileToZip == null || !fileToZip.exists()) {
-            return;
-        }
-
-        String zipEntryName = fileToZip.getName();
-        if (parent != null && !parent.isEmpty()) {
-            zipEntryName = parent + File.separator + fileToZip.getName();
-        } else {
-            zipEntryName = String.format("fabric8-karaf-%s", FabricConstants.FABRIC_VERSION);
-        }
-
-        if (zipFileExcludes.contains(fileToZip.getName())) {
-            return;
-        }
-
-        if (fileToZip.isDirectory()) {
-            for (File file : fileToZip.listFiles()) {
-                addDirToZip(zos, file, zipEntryName);
-            }
-        } else {
-            byte[] buffer = new byte[DEFAULT_ZIP_BUFFER_SIZE];
-            FileInputStream fis = new FileInputStream(fileToZip);
-
-            logger.debug("Adding " + zipEntryName + " to zip.");
-
-            zos.putNextEntry(new ZipEntry(zipEntryName));
-            int length;
-            while ((length = fis.read(buffer)) > 0) {
-                zos.write(buffer, 0, length);
-            }
-            zos.closeEntry();
-            fis.close();
-        }
     }
     
     /**
