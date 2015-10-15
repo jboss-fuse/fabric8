@@ -61,7 +61,6 @@ import static io.fabric8.internal.ContainerProviderUtils.buildInstallAndStartScr
 import static io.fabric8.internal.ContainerProviderUtils.buildStartScript;
 import static io.fabric8.internal.ContainerProviderUtils.buildStopScript;
 import static io.fabric8.internal.ContainerProviderUtils.buildUninstallScript;
-import static io.fabric8.internal.ContainerProviderUtils.zipDirectory;
 
 /**
  * A concrete {@link io.fabric8.api.ContainerProvider} that builds Containers via ssh.
@@ -109,19 +108,9 @@ public class SshContainerProvider implements ContainerProvider<CreateSshContaine
             try {
                 session = createSession(options);
                 if (options.doUploadDistribution()) {
-                    String zipFile = System.getProperty("karaf.home", "") + "/system/io/fabric8/fabric8-karaf/" + FabricConstants.FABRIC_VERSION + "/fabric8-karaf-" + FabricConstants.FABRIC_VERSION
-                            + ".zip";
-                    File srcFile = new File(zipFile);
-                    if (!srcFile.exists()) {
-                        try {
-                            zipDirectory(srcFile, System.getProperty("karaf.home", "."));
-                        } catch (Exception e) {
-                            LOGGER.warn("Could not zip up current distro to use as base for new SSH container. Will try downloading via Maven instead.", e);
-                        }
-                    }
-                    uploadTo(session,
-                            options.getProxyUri().resolve("io/fabric8/fabric8-karaf/" + FabricConstants.FABRIC_VERSION + "/fabric8-karaf-" + FabricConstants.FABRIC_VERSION + ".zip").toURL(),
-                            "/tmp/fabric8-karaf-" + FabricConstants.FABRIC_VERSION + ".zip");
+                    uploadTo(session, options.getProxyUri()
+                            .resolve("io/fabric8/fabric8-karaf/" + FabricConstants.FABRIC_VERSION + "/fabric8-karaf-" + FabricConstants.FABRIC_VERSION + ".zip").toURL(), "/tmp/fabric8-karaf-" + FabricConstants.FABRIC_VERSION + ".zip");
+
                 }
                 runScriptOnHost(session, script);
             } catch (Throwable ex) {
