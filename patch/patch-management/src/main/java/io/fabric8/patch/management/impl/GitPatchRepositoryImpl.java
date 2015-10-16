@@ -178,7 +178,7 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
             // we connect patch repo with fabric repo
             StoredConfig config = mainRepository.getRepository().getConfig();
             if (config.getString("remote", "origin", "url") == null) {
-                File origin = new File(karafHome, "data/git/local/fabric");
+                File origin = new File(karafBase, "data/git/local/fabric");
                 config.setString("remote", "origin", "url", origin.getCanonicalPath());
                 config.setString("remote", "origin", "fetch", "+refs/heads/*:refs/remotes/origin/*");
                 config.save();
