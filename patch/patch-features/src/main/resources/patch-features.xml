@@ -19,7 +19,7 @@
 <features name="patch-${project.version}">
 
     <feature name="patch-core" version="${project.version}" resolver="(obr)">
-        <bundle>mvn:io.fabric8.patch/patch-management/${project.version}</bundle>
+        <bundle start-level="2">mvn:io.fabric8.patch/patch-management/${project.version}</bundle>
         <bundle>mvn:io.fabric8.patch/patch-core/${project.version}</bundle>
     </feature>
 
