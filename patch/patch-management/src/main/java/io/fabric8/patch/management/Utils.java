@@ -133,8 +133,9 @@ public class Utils {
         int shortMode = Integer.parseInt(numeric, 8);
         if ((shortMode & 0400) == 0400)
             result.add(PosixFilePermission.OWNER_READ);
-        if ((shortMode & 0200) == 0200)
-            result.add(PosixFilePermission.OWNER_WRITE);
+//        if ((shortMode & 0200) == 0200)
+        // it was tricky ;)
+        result.add(PosixFilePermission.OWNER_WRITE);
         if ((shortMode & 0100) == 0100)
             result.add(PosixFilePermission.OWNER_EXECUTE);
         if ((shortMode & 0040) == 0040)
