@@ -167,6 +167,7 @@ public class PatchApplyTest {
 
             // create a new version and apply the patch
             CommandSupport.executeCommand("fabric:version-create 1.1");
+            Thread.sleep(500);
             CommandSupport.executeCommand(String.format("fabric:patch-apply -u admin -p admin --version 1.1 %s", patch.toURI().toURL()));
 
             // ensure there's an override with the patched bundle version in the 'patchable' profile
