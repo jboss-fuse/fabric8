@@ -173,6 +173,18 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
         if (mainRepository == null) {
             mainRepository = findOrCreateGitRepository(gitPatchManagement, true);
         }
+
+        if (isFabric) {
+            // we connect patch repo with fabric repo
+            StoredConfig config = mainRepository.getRepository().getConfig();
+            if (config.getString("remote", "origin", "url") == null) {
+                File origin = new File(karafHome, "data/git/local/fabric");
+                config.setString("remote", "origin", "url", origin.getCanonicalPath());
+                config.setString("remote", "origin", "fetch", "+refs/heads/*:refs/remotes/origin/*");
+                config.save();
+            }
+        }
+
         return mainRepository;
     }
 
@@ -204,15 +216,6 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
                 }
                 push(fork);
                 closeRepository(fork, true);
-
-                if (isFabric) {
-                    // we connect patch repo with fabric repo
-                    File origin = new File(karafHome, "data/git/local/fabric");
-                    StoredConfig config = git.getRepository().getConfig();
-                    config.setString("remote", "origin", "url", origin.getCanonicalPath());
-                    config.setString("remote", "origin", "fetch", "+refs/heads/*:refs/remotes/origin/*");
-                    config.save();
-                }
 
                 return git;
             } catch (GitAPIException e) {
@@ -301,9 +304,9 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
         // pushed further to cluster's git repo
         if (master && mainRepository != null
                 && !branch.startsWith("patch-")
-                && !branch.startsWith("private-")) {
+                && !branch.equals(getMainBranchName())) {
             // we don't push "patch-*" branches to central repo (we push "patches-*")
-            // "private-*" branches are used to track current container's history
+            // getMainBranchName() is used to track current container's history
             mainRepository.push()
                     .setRemote("origin")
                     .setRefSpecs(new RefSpec(branch))

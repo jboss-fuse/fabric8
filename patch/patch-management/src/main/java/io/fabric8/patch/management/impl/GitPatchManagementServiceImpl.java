@@ -1604,7 +1604,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
                 // one of the steps may return a commit that has to be tagged as first baseline
                 RevCommit baselineCommit = null;
-                if (!gitPatchRepository.containsTag(fork, String.format(env.getHistoryTagFormat(), curentFuseVersion))) {
+                if (!gitPatchRepository.containsTag(fork, String.format(env.getBaselineTagFormat(), curentFuseVersion))) {
                     baselineCommit = trackBaselineRepository(fork);
                 }
                 RevCommit c2 = installPatchManagementBundle(fork);
@@ -1618,7 +1618,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     // and we'll tag the baseline *after* steps related to first baseline
                     String currentFuseVersion = determineVersion("fuse");
                     fork.tag()
-                            .setName(String.format(env.getHistoryTagFormat(), curentFuseVersion))
+                            .setName(String.format(env.getBaselineTagFormat(), curentFuseVersion))
                             .setObjectId(baselineCommit)
                             .call();
 
@@ -1634,8 +1634,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 String tagName = String.format(env.getHistoryTagFormat(), determineVersion(env.getProductId()));
 
                 if (!gitPatchRepository.containsTag(fork, tagName)) {
-
+                    trackFabricContainerBaselineRepository(fork);
                 }
+                applyUserChanges(fork);
             }
 
             // remove pending patches listeners
@@ -1693,7 +1694,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * Adds baseline distribution to the repository. It serves a different purpose in fabric and standalone scenarios.
      * In fabric mode, we put another baseline tag for root container when it is upgraded to specific version. The
      * versioning of root container is performed on another branch.
-     * In standalone mode mode, the same branch is used to track baselines and to versioning of the container itself.
+     * In standalone mode mode, the same branch is used to track baselines and for versioning of the container itself.
      * In standalone mode, patches are added to separate branch each.
      * In fabric mode, patches are added to baseline branches and each container has it's own versioning branch
      * (private, not pushed to main repository).
@@ -2058,9 +2059,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
         // we'll look for Fuse/AMQ baseline in /patches dir too - it doesn't have to be present
         versions.put(new Version(currentFuseVersion), patchesDir);
-        for (File version : versionDirs) {
-            if (version.isDirectory()) {
-                versions.put(new Version(version.getName()), version);
+        if (versionDirs != null) {
+            for (File version : versionDirs) {
+                if (version.isDirectory()) {
+                    versions.put(new Version(version.getName()), version);
+                }
             }
         }
         for (Map.Entry<Version, File> entry : versions.entrySet()) {
@@ -2093,9 +2096,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
         // we'll look for Fuse/AMQ baseline in /patches dir too - it doesn't have to be present
         versions.put(new Version(currentFuseVersion), patchesDir);
-        for (File version : versionDirs) {
-            if (version.isDirectory()) {
-                versions.put(new Version(version.getName()), version);
+        if (versionDirs != null) {
+            for (File version : versionDirs) {
+                if (version.isDirectory()) {
+                    versions.put(new Version(version.getName()), version);
+                }
             }
         }
         for (Map.Entry<Version, File> entry : versions.entrySet()) {
@@ -2134,6 +2139,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * @throws GitAPIException
      */
     private RevCommit trackBaselineRepository(Git git, File baselineDistribution, String version) throws IOException, GitAPIException {
+        for (String managedDirectory : MANAGED_DIRECTORIES) {
+            FileUtils.deleteDirectory(new File(git.getRepository().getWorkTree(), managedDirectory));
+        }
         unpack(baselineDistribution, git.getRepository().getWorkTree(), 1);
 
         String fabricVersion = determineVersion(git.getRepository().getWorkTree(), "fuse");
@@ -2141,6 +2149,10 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         git.add()
                 .addFilepattern(".")
                 .call();
+        // remove the deletes (without touching specially-managed etc/overrides.properties)
+        for (String missing : git.status().call().getMissing()) {
+            git.rm().addFilepattern(missing).call();
+        }
         gitPatchRepository.prepareCommit(git, String.format(MARKER_BASELINE_COMMIT_PATTERN, version)).call();
 
         if (!env.isFabric()) {
@@ -2189,6 +2201,73 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     /**
+     * Update private history tracking branch in fabric env. This method is called when it's needed. Method
+     * <strong>always</strong> changes private history branch and align current version
+     * @param fork
+     */
+    private void trackFabricContainerBaselineRepository(Git fork) throws IOException, GitAPIException {
+        if (fork.getRepository().getRef("refs/heads/" + gitPatchRepository.getMainBranchName()) == null) {
+            fork.checkout()
+                    .setName(gitPatchRepository.getMainBranchName())
+                    .setStartPoint("patch-management^{commit}")
+                    .setCreateBranch(true)
+                    .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
+                    .call();
+        } else {
+            fork.checkout()
+                    .setName(gitPatchRepository.getMainBranchName())
+                    .call();
+        }
+
+        // we may still be on the baseline from the time before fabric:create!
+
+        // user changes in history
+        ObjectId since = fork.getRepository().resolve("patch-management^{commit}");
+        // we'll pick all user changes between baseline and main patch branch without P installations
+        ObjectId to = fork.getRepository().resolve(gitPatchRepository.getMainBranchName() + "^{commit}");
+        Iterable<RevCommit> mainChanges = fork.log().addRange(since, to).call();
+        List<RevCommit> userChanges = new LinkedList<>();
+        for (RevCommit rc : mainChanges) {
+            if (isUserChangeCommit(rc)) {
+                userChanges.add(rc);
+            }
+        }
+
+        // let's rewrite history
+        fork.reset()
+                .setMode(ResetCommand.ResetType.HARD)
+                .setRef(String.format(env.getBaselineTagFormat(), determineVersion(env.getProductId())))
+                .call();
+
+        // and pick up user changes just like we'd install Rollup patch
+
+        // reapply those user changes that are not conflicting
+        // for each conflicting cherry-pick we do a backup of user files, to be able to restore them
+        // when rollup patch is rolled back
+        ListIterator<RevCommit> it = userChanges.listIterator(userChanges.size());
+        int prefixSize = Integer.toString(userChanges.size()).length();
+        int count = 1;
+
+        while (it.hasPrevious()) {
+            RevCommit userChange = it.previous();
+            String prefix = String.format("%0" + prefixSize + "d-%s", count++, userChange.getName());
+            CherryPickResult result = fork.cherryPick()
+                    .include(userChange)
+                    .setNoCommit(true)
+                    .call();
+            // no backup (!?)
+            handleCherryPickConflict(null, fork, result, userChange, true, PatchKind.ROLLUP, null, false);
+
+            gitPatchRepository.prepareCommit(fork, userChange.getFullMessage()).call();
+
+            // we may have unadded changes - when file mode is changed
+            fork.reset().setMode(ResetCommand.ResetType.HARD).call();
+        }
+
+        gitPatchRepository.push(fork, gitPatchRepository.getMainBranchName());
+    }
+
+    /**
      * <p>Applies existing user changes in ${karaf.home}/{bin,etc,fabric,lib,licenses,metatype} directories to patch
      * management Git repository, doesn't modify ${karaf.home}</p>
      * <p>TODO: Maybe we should ask user whether the change was intended or not? blacklist some changes?</p>
@@ -2196,7 +2275,6 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      */
     public void applyUserChanges(Git git) throws GitAPIException, IOException {
         File wcDir = git.getRepository().getDirectory().getParentFile();
-        File karafBase = karafHome;
 
         try {
             // let's simply copy all user files on top of git working copy

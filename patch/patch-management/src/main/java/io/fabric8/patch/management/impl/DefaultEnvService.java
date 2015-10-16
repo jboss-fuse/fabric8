@@ -63,7 +63,6 @@ public class DefaultEnvService implements EnvService {
                     }
                 }
             }
-            return EnvType.UNKNOWN;
         }
 
         return /*isChild ? EnvType.STANDALONE_CHILD : */EnvType.STANDALONE;
