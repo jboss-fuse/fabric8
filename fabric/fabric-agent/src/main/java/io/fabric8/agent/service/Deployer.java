@@ -110,6 +110,8 @@ public class Deployer {
         void replaceDigraph(Map<String, Map<String, Map<String, Set<String>>>> policies, Map<String, Set<Long>> bundles) throws BundleException, InvalidSyntaxException;
 
         void provisionList(Set<Resource> resources);
+
+        void restoreConfigAdminIfNeeded();
     }
 
     public static class PartialDeploymentException extends Exception {
@@ -814,8 +816,11 @@ public class Deployer {
         // Install configurations
         //
         if (!newFeatures.isEmpty()) {
+
+            // check if configadmin is started
             callback.phase("updating (installing configurations)");
             Set<Feature> set = apply(flatten(newFeatures), map(dstate.features));
+            callback.restoreConfigAdminIfNeeded();
             for (Feature feature : set) {
                 callback.installFeatureConfigs(feature);
             }

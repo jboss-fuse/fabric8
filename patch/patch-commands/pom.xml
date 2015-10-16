@@ -17,100 +17,103 @@
 
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <groupId>io.fabric8.patch</groupId>
-    <artifactId>patch-project</artifactId>
-    <version>1.2.0-SNAPSHOT</version>
-  </parent>
+    <parent>
+        <groupId>io.fabric8.patch</groupId>
+        <artifactId>patch-project</artifactId>
+        <version>1.2.0-SNAPSHOT</version>
+    </parent>
 
-  <artifactId>patch-commands</artifactId>
-  <packaging>bundle</packaging>
+    <artifactId>patch-commands</artifactId>
+    <packaging>bundle</packaging>
 
-  <name>Fabric8 :: Patch :: Commands</name>
+    <name>Fabric8 :: Patch :: Commands</name>
 
-  <properties>
-    <fuse.osgi.export>
-    </fuse.osgi.export>
-    <fuse.osgi.import>
-      org.apache.felix.gogo.commands,
-      org.apache.felix.gogo.commands.basic,
-      org.apache.felix.service.command;status=provisional,
-      org.apache.karaf.shell.console,
-      org.apache.karaf.shell.console.completer,
-      io.fabric8.patch,
-      io.fabric8.patch.management,
-      jline.console,
-      org.slf4j
-    </fuse.osgi.import>
-    <fuse.osgi.private.pkg>
-      io.fabric8.patch.commands*
-    </fuse.osgi.private.pkg>
-    <fuse.osgi.embed.dependency>
-      fabric-boot-commands,fabric-api,fabric-utils
-    </fuse.osgi.embed.dependency>
-    <fuse.osgi.embed.transitive>
-      true
-    </fuse.osgi.embed.transitive>
-  </properties>
+    <properties>
+        <fuse.osgi.export>
+        </fuse.osgi.export>
+        <fuse.osgi.import>
+            org.apache.felix.gogo.commands,
+            org.apache.felix.gogo.commands.basic,
+            org.apache.felix.service.command;status=provisional,
+            org.apache.karaf.shell.console,
+            org.apache.karaf.shell.console.completer,
+            io.fabric8.patch,
+            io.fabric8.patch.management,
+            jline.console,
+            org.slf4j
+        </fuse.osgi.import>
+        <fuse.osgi.private.pkg>
+            io.fabric8.patch.commands*
+        </fuse.osgi.private.pkg>
+        <fuse.osgi.embed.dependency>
+            fabric-boot-commands,fabric-api,fabric-utils
+        </fuse.osgi.embed.dependency>
+        <fuse.osgi.embed.transitive>
+            true
+        </fuse.osgi.embed.transitive>
+    </properties>
 
-  <dependencies>
+    <dependencies>
 
-    <dependency>
-      <groupId>io.fabric8.patch</groupId>
-      <artifactId>patch-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.fabric8.patch</groupId>
-      <artifactId>patch-management</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.fabric8</groupId>
-      <artifactId>fabric-boot-commands</artifactId>
-    </dependency>
+        <!-- External dependencies -->
 
-    <dependency>
-      <groupId>org.apache.karaf.shell</groupId>
-      <artifactId>org.apache.karaf.shell.console</artifactId>
-      <version>${karaf-version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.felix</groupId>
-      <artifactId>org.apache.felix.scr.annotations</artifactId>
-      <scope>provided</scope>
-    </dependency>
+        <dependency>
+            <groupId>io.fabric8.patch</groupId>
+            <artifactId>patch-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.fabric8.patch</groupId>
+            <artifactId>patch-management</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.fabric8</groupId>
+            <artifactId>fabric-boot-commands</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.karaf.shell</groupId>
+            <artifactId>org.apache.karaf.shell.console</artifactId>
+            <version>${karaf-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.felix</groupId>
+            <artifactId>org.apache.felix.scr.annotations</artifactId>
+            <scope>provided</scope>
+        </dependency>
 
-  </dependencies>
+    </dependencies>
 
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.felix</groupId>
-        <artifactId>maven-bundle-plugin</artifactId>
-        <configuration>
-          <instructions>
-            <Gravia-Enabled>true</Gravia-Enabled>
-          </instructions>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.felix</groupId>
-        <artifactId>maven-scr-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>scr</goal>
-            </goals>
-            <configuration>
-              <specVersion>1.2</specVersion>
-              <strictMode>false</strictMode>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <version>${maven-bundle-plugin-version}</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <instructions>
+                        <Gravia-Enabled>true</Gravia-Enabled>
+                    </instructions>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-scr-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>scr</goal>
+                        </goals>
+                        <configuration>
+                            <specVersion>1.2</specVersion>
+                            <strictMode>false</strictMode>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

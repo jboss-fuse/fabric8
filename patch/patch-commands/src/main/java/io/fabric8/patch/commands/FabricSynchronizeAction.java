@@ -15,23 +15,24 @@
  */
 package io.fabric8.patch.commands;
 
-import io.fabric8.patch.Service;
+import io.fabric8.patch.FabricPatchService;
 import org.apache.felix.gogo.commands.Command;
-import org.apache.felix.gogo.commands.Option;
+import org.apache.karaf.shell.console.AbstractAction;
 
-@Command(scope = "patch", name = "list", description = "Display known patches")
-public class ListAction extends PatchActionSupport {
+@Command(scope = "patch", name = "fabric-install", description = "Synchronize information about patches to cluster's git server")
+public class FabricSynchronizeAction extends AbstractAction {
 
-    @Option(name = "--bundles", description = "Display the list of bundles for each patch")
-    boolean bundles;
+    private final FabricPatchService fabricPatchService;
 
-    ListAction(Service service) {
-        super(service);
+    FabricSynchronizeAction(FabricPatchService fabricPatchService) {
+        this.fabricPatchService = fabricPatchService;
     }
 
     @Override
-    protected void doExecute(Service service) throws Exception {
-        display(service.getPatches(), bundles);
+    protected Object doExecute() throws Exception {
+        fabricPatchService.synchronize();
+
+        return null;
     }
 
 }

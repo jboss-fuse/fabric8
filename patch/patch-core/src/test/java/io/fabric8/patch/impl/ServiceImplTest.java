@@ -59,7 +59,6 @@ import org.apache.aries.util.io.IOUtils;
 import org.apache.commons.io.FileUtils;
 import org.easymock.EasyMock;
 import org.easymock.IAnswer;
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.junit.After;
 import org.junit.Before;
@@ -67,7 +66,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
-import org.osgi.framework.BundleListener;
 import org.osgi.framework.FrameworkListener;
 import org.osgi.framework.Version;
 import org.osgi.framework.startlevel.BundleStartLevel;
@@ -187,7 +185,7 @@ public class ServiceImplTest {
     }
 
     @Test
-    public void testLoadWithoutRanges() throws IOException {
+    public void testLoadWithoutRanges() throws IOException, GitAPIException {
         BundleContext bundleContext = createMock(BundleContext.class);
         ComponentContext componentContext = createMock(ComponentContext.class);
         Bundle sysBundle = createMock(Bundle.class);
@@ -211,14 +209,16 @@ public class ServiceImplTest {
                 .andReturn(karaf.getCanonicalPath() + "/system").anyTimes();
         expect(sysBundleContext.getProperty("karaf.home"))
                 .andReturn(karaf.getCanonicalPath()).anyTimes();
+        expect(sysBundleContext.getProperty("karaf.base"))
+                .andReturn(karaf.getCanonicalPath()).anyTimes();
+        expect(sysBundleContext.getProperty("karaf.name"))
+                .andReturn("root").anyTimes();
+        expect(sysBundleContext.getProperty("karaf.instances"))
+                .andReturn(karaf.getCanonicalPath() + "/instances").anyTimes();
+        expect(sysBundleContext.getProperty("karaf.data")).andReturn(karaf.getCanonicalPath() + "/data").anyTimes();
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository);
 
-        PatchManagement pm = new GitPatchManagementServiceImpl(bundleContext) {
-            @Override
-            protected GitPatchManagementServiceImpl.InitializationType checkMainRepositoryState(Git git) throws GitAPIException, IOException {
-                return InitializationType.READY;
-            }
-        };
+        PatchManagement pm = new GitPatchManagementServiceImpl(bundleContext);
         ((GitPatchManagementServiceImpl)pm).setGitPatchRepository(repository);
 
         ServiceImpl service = new ServiceImpl();
@@ -339,22 +339,24 @@ public class ServiceImplTest {
                 .andReturn(patches.toString()).anyTimes();
         expect(sysBundleContext.getProperty("karaf.default.repository"))
                 .andReturn(patches.getParent() + "/system").anyTimes();
+        expect(sysBundleContext.getProperty("karaf.data")).andReturn(patches.getParent() + "/data").anyTimes();
         try {
             expect(repository.getManagedPatch(anyString())).andReturn(null).anyTimes();
             expect(repository.findOrCreateMainGitRepository()).andReturn(null).anyTimes();
             expect(sysBundleContext.getProperty("karaf.home"))
                     .andReturn(karaf.getCanonicalPath()).anyTimes();
-        } catch (IOException e) {
+            expect(sysBundleContext.getProperty("karaf.base"))
+                    .andReturn(karaf.getCanonicalPath()).anyTimes();
+            expect(sysBundleContext.getProperty("karaf.name"))
+                    .andReturn("root").anyTimes();
+            expect(sysBundleContext.getProperty("karaf.instances"))
+                    .andReturn(karaf.getCanonicalPath() + "/instances").anyTimes();
+        } catch (GitAPIException | IOException e) {
             throw new RuntimeException(e.getMessage(), e);
         }
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository);
 
-        PatchManagement pm = new GitPatchManagementServiceImpl(bundleContext) {
-            @Override
-            protected GitPatchManagementServiceImpl.InitializationType checkMainRepositoryState(Git git) throws GitAPIException, IOException {
-                return InitializationType.READY;
-            }
-        };
+        PatchManagement pm = new GitPatchManagementServiceImpl(bundleContext);
         ((GitPatchManagementServiceImpl)pm).setGitPatchRepository(repository);
 
         ServiceImpl service = new ServiceImpl();
@@ -399,6 +401,13 @@ public class ServiceImplTest {
                 .andReturn(karaf.getCanonicalPath() + "/system").anyTimes();
         expect(sysBundleContext.getProperty("karaf.home"))
                 .andReturn(karaf.getCanonicalPath()).anyTimes();
+        expect(sysBundleContext.getProperty("karaf.base"))
+                .andReturn(karaf.getCanonicalPath()).anyTimes();
+        expect(sysBundleContext.getProperty("karaf.name"))
+                .andReturn("root").anyTimes();
+        expect(sysBundleContext.getProperty("karaf.instances"))
+                .andReturn(karaf.getCanonicalPath() + "/instances").anyTimes();
+        expect(sysBundleContext.getProperty("karaf.data")).andReturn(karaf.getCanonicalPath() + "/data").anyTimes();
 
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository);
 
@@ -436,6 +445,7 @@ public class ServiceImplTest {
         reset(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
 
         expect(sysBundleContext.getBundles()).andReturn(new Bundle[] { bundle });
+        expect(sysBundleContext.getServiceReference("io.fabric8.api.FabricService")).andReturn(null);
         expect(bundle.getSymbolicName()).andReturn("my-bsn").anyTimes();
         expect(bundle.getVersion()).andReturn(new Version("1.3.1")).anyTimes();
         expect(bundle.getLocation()).andReturn("location").anyTimes();
@@ -444,6 +454,8 @@ public class ServiceImplTest {
         expect(bsl.getStartLevel()).andReturn(30).anyTimes();
         expect(bundle.adapt(BundleStartLevel.class)).andReturn(bsl).anyTimes();
         expect(bundle.getState()).andReturn(1);
+        expect(sysBundleContext.getProperty("karaf.default.repository"))
+                .andReturn(karaf.getCanonicalPath() + "/system").anyTimes();
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, bsl);
 
         PatchResult result = service.install(patch, true);
@@ -465,6 +477,12 @@ public class ServiceImplTest {
                 .andReturn(storage.toString()).anyTimes();
         expect(sysBundleContext.getProperty("karaf.home"))
                 .andReturn(karaf.toString()).anyTimes();
+        expect(sysBundleContext.getProperty("karaf.base"))
+                .andReturn(karaf.getCanonicalPath()).anyTimes();
+        expect(sysBundleContext.getProperty("karaf.name"))
+                .andReturn("root").anyTimes();
+        expect(sysBundleContext.getProperty("karaf.instances"))
+                .andReturn(karaf.getCanonicalPath() + "/instances").anyTimes();
         expect(sysBundleContext.getProperty("karaf.default.repository"))
                 .andReturn(karaf.getCanonicalPath() + "/system").anyTimes();
         expect(repository.getManagedPatch(anyString())).andReturn(null).anyTimes();
@@ -496,6 +514,7 @@ public class ServiceImplTest {
         reset(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, bsl);
 
         expect(sysBundleContext.getBundles()).andReturn(new Bundle[] { bundle });
+        expect(sysBundleContext.getServiceReference("io.fabric8.api.FabricService")).andReturn(null);
         expect(bundle.getSymbolicName()).andReturn("my-bsn").anyTimes();
         expect(bundle.getVersion()).andReturn(new Version("1.3.1")).anyTimes();
         expect(bundle.getLocation()).andReturn("location").anyTimes();
@@ -509,6 +528,8 @@ public class ServiceImplTest {
         expect(bsl.getStartLevel()).andReturn(30).anyTimes();
         expect(sysBundleContext.getBundle(0)).andReturn(sysBundle);
         expect(sysBundle.adapt(FrameworkWiring.class)).andReturn(wiring);
+        expect(sysBundleContext.getProperty("karaf.default.repository"))
+                .andReturn(karaf.getCanonicalPath() + "/system").anyTimes();
         bundle.start();
         wiring.refreshBundles(eq(asSet(bundle)), anyObject(FrameworkListener[].class));
         expectLastCall().andAnswer(new IAnswer<Object>() {
@@ -540,6 +561,12 @@ public class ServiceImplTest {
                 .andReturn(storage.toString()).anyTimes();
         expect(sysBundleContext.getProperty("karaf.home"))
                 .andReturn(karaf.toString()).anyTimes();
+        expect(sysBundleContext.getProperty("karaf.base"))
+                .andReturn(karaf.getCanonicalPath()).anyTimes();
+        expect(sysBundleContext.getProperty("karaf.name"))
+                .andReturn("root").anyTimes();
+        expect(sysBundleContext.getProperty("karaf.instances"))
+                .andReturn(karaf.getCanonicalPath() + "/instances").anyTimes();
         expect(sysBundleContext.getProperty("karaf.default.repository"))
                 .andReturn(karaf.getCanonicalPath() + "/system").anyTimes();
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository);
@@ -563,12 +590,8 @@ public class ServiceImplTest {
         verify(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
     }
 
-    private GitPatchManagementServiceImpl mockManagementService(final BundleContext bundleContext) {
+    private GitPatchManagementServiceImpl mockManagementService(final BundleContext bundleContext) throws IOException {
         return new GitPatchManagementServiceImpl(bundleContext) {
-            @Override
-            protected InitializationType checkMainRepositoryState(Git git) throws GitAPIException, IOException {
-                return InitializationType.READY;
-            }
             @Override
             public Patch trackPatch(PatchData patchData) throws PatchException {
                 return new Patch(patchData, null);
@@ -588,6 +611,7 @@ public class ServiceImplTest {
             @Override
             public void commitInstallation(String transaction) {
             }
+
         };
     }
 
@@ -616,6 +640,13 @@ public class ServiceImplTest {
                 .andReturn(karaf.getCanonicalPath() + "/system").anyTimes();
         expect(sysBundleContext.getProperty("karaf.home"))
                 .andReturn(karaf.getCanonicalPath()).anyTimes();
+        expect(sysBundleContext.getProperty("karaf.base"))
+                .andReturn(karaf.getCanonicalPath()).anyTimes();
+        expect(sysBundleContext.getProperty("karaf.name"))
+                .andReturn("root").anyTimes();
+        expect(sysBundleContext.getProperty("karaf.instances"))
+                .andReturn(karaf.getCanonicalPath() + "/instances").anyTimes();
+        expect(sysBundleContext.getProperty("karaf.data")).andReturn(karaf.getCanonicalPath() + "/data").anyTimes();
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository);
 
         PatchManagement pm = mockManagementService(bundleContext);
@@ -644,6 +675,7 @@ public class ServiceImplTest {
         reset(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
 
         expect(sysBundleContext.getBundles()).andReturn(new Bundle[] { bundle });
+        expect(sysBundleContext.getServiceReference("io.fabric8.api.FabricService")).andReturn(null);
         expect(bundle.getSymbolicName()).andReturn("my-bsn").anyTimes();
         expect(bundle.getVersion()).andReturn(new Version("1.3.1")).anyTimes();
         expect(bundle.getLocation()).andReturn("location").anyTimes();
@@ -652,6 +684,8 @@ public class ServiceImplTest {
         expect(bsl.getStartLevel()).andReturn(30).anyTimes();
         expect(bundle.adapt(BundleStartLevel.class)).andReturn(bsl).anyTimes();
         expect(bundle.getState()).andReturn(1);
+        expect(sysBundleContext.getProperty("karaf.default.repository"))
+                .andReturn(karaf.getCanonicalPath() + "/system").anyTimes();
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, bsl);
 
         PatchResult result = service.install(patch, true);
@@ -709,6 +743,7 @@ public class ServiceImplTest {
         new File(karaf, "etc/startup.properties").createNewFile();
         System.setProperty("karaf.base", karaf.getAbsolutePath());
         System.setProperty("karaf.home", karaf.getAbsolutePath());
+        System.setProperty("karaf.name", "root");
 
         storage = new File(baseDir, "storage");
         delete(storage);

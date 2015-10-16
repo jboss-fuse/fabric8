@@ -442,7 +442,9 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                         String prefix = "refs/heads/";
                         if (name.startsWith(prefix)) {
                             name = name.substring(prefix.length());
-                            if (!name.equals(GitHelpers.MASTER_BRANCH)) {
+                            if (!name.equals(GitHelpers.MASTER_BRANCH)
+                                    && !name.startsWith("patch-")
+                                    && !name.startsWith("patches-")) {
                                 answer.add(name);
                             }
                         }

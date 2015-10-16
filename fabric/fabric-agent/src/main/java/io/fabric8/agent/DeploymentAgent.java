@@ -602,7 +602,7 @@ public class DeploymentAgent implements ManagedService {
         ServiceReference configAdminServiceReference = bundleContext.getServiceReference(ConfigurationAdmin.class.getName());
         if (configAdminServiceReference != null) {
             ConfigurationAdmin configAdmin = (ConfigurationAdmin) bundleContext.getService(configAdminServiceReference);
-            configInstaller = new FeatureConfigInstaller(configAdmin, manager);
+            configInstaller = new FeatureConfigInstaller(bundleContext, configAdmin, manager);
         }
 
         int bundleStartTimeout = Constants.BUNDLE_START_TIMEOUT;

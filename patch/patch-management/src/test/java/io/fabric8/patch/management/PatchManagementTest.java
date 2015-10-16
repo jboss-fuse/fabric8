@@ -21,6 +21,7 @@ import java.util.List;
 
 import io.fabric8.patch.management.impl.GitPatchManagementServiceImpl;
 import org.apache.commons.io.FileUtils;
+import org.eclipse.jgit.api.errors.GitAPIException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -34,7 +35,7 @@ public class PatchManagementTest extends PatchTestSupport {
     private PatchManagement pm;
 
     @Before
-    public void init() throws IOException {
+    public void init() throws IOException, GitAPIException {
         super.init();
 
         pm = new GitPatchManagementServiceImpl(bundleContext);

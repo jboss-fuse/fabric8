@@ -13,25 +13,22 @@
  *  implied.  See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package io.fabric8.patch.commands;
+package io.fabric8.patch.management;
 
-import io.fabric8.patch.Service;
-import org.apache.felix.gogo.commands.Command;
-import org.apache.felix.gogo.commands.Option;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 
-@Command(scope = "patch", name = "list", description = "Display known patches")
-public class ListAction extends PatchActionSupport {
+/**
+ * Interface used by {@link io.fabric8.patch.management.impl.GitPatchManagementService} to check the context and
+ * environment capabilities.
+ */
+public interface EnvService {
 
-    @Option(name = "--bundles", description = "Display the list of bundles for each patch")
-    boolean bundles;
-
-    ListAction(Service service) {
-        super(service);
-    }
-
-    @Override
-    protected void doExecute(Service service) throws Exception {
-        display(service.getPatches(), bundles);
-    }
+    /**
+     * Checks in what kind of environment we are running. Used to make a decision whether to start tracking
+     * patch history (standalone, fabric root container) or not (child, ssh container)
+     * @return
+     */
+    EnvType determineEnvironmentType() throws IOException;
 
 }

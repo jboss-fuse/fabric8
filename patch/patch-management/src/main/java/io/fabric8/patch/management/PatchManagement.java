@@ -15,8 +15,17 @@
  */
 package io.fabric8.patch.management;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.ProtocolException;
+import java.net.URI;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.List;
+import java.util.Map;
+
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.errors.GitAPIException;
 
 /**
  * <p>Interface to an OSGi service that can handle low-level patch management operations.</p>
@@ -48,6 +57,15 @@ public interface PatchManagement {
     List<PatchData> fetchPatches(URL url) throws PatchException;
 
     /**
+     * Artifacts referenced from patch are uploaded to <code>URI</code>
+     * @param patchData
+     * @param uploadAddress
+     * @param callback
+     * @throws PatchException
+     */
+    void uploadPatchArtifacts(PatchData patchData, URI uploadAddress, UploadCallback callback) throws PatchException;
+
+    /**
      * Takes already downloaded {@link PatchData static patch data} and prepares the patch to be installed,
      * examined and/or simulated
      * @param patchData
@@ -77,14 +95,14 @@ public interface PatchManagement {
 
     /**
      * <p>After successful patch(es) installation, we commit the transaction = do a fast forward merge
-     * of <code>master</code> branch to transaction branch</p>
+     * of main patch branch to transaction branch</p>
      * @param transaction
      */
     void commitInstallation(String transaction);
 
     /**
      * <p>When something goes wrong (or during simulation?) we delete transaction branch without affecting
-     * <code>master</code> branch.</p>
+     * main patch branch.</p>
      * @param transaction
      */
     void rollbackInstallation(String transaction);
@@ -95,5 +113,32 @@ public interface PatchManagement {
      * @param patchData
      */
     void rollback(PatchData patchData);
+
+    /**
+     * Fabric-mode operation - takes external {@link Git} and updates a branch (version) with new profiles
+     * shipped with new {@link PatchKind#ROLLUP rollup patch}.
+     * @param gitRepository
+     * @param versionId
+     * @param patch
+     * @param strategy
+     */
+    void installProfiles(File gitRepository, String versionId, Patch patch, ProfileUpdateStrategy strategy);
+
+    /**
+     * Patching services can be called from high level services. This method takes a map of versions
+     * (<code>io.fabric8.version</code> PID). It's job is to update static resources of the container.
+     * @param versions
+     * @return <code>true</code> if container needs restart
+     */
+    boolean alignTo(Map<String, String> versions) throws PatchException;
+
+    /**
+     * Callback to be passed to method that uploads content of retrieved patched to remote repository.
+     */
+    public interface UploadCallback {
+
+        void doWithUrlConnection(URLConnection connection) throws ProtocolException;
+
+    }
 
 }

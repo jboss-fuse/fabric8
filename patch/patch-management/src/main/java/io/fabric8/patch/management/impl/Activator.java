@@ -15,16 +15,10 @@
  */
 package io.fabric8.patch.management.impl;
 
-import java.io.File;
-import java.io.FileFilter;
-
 import io.fabric8.patch.management.BackupService;
 import io.fabric8.patch.management.PatchManagement;
-import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
-import org.osgi.framework.BundleEvent;
-import org.osgi.framework.BundleListener;
 import org.osgi.framework.FrameworkEvent;
 import org.osgi.framework.FrameworkListener;
 import org.osgi.framework.ServiceRegistration;

@@ -57,8 +57,13 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
 
     private static final Pattern BASELINE_TAG_PATTERN = Pattern.compile("^baseline-(.+)$");
 
+    // what kind of env we're operating?
+    private final boolean isFabric;
+
     // ${karaf.home}
     private File karafHome;
+    // ${karaf.base}
+    private File karafBase;
     // main patches directory at ${fuse.patch.location} (defaults to ${karaf.home}/patches)
     private File patchesDir;
 
@@ -71,14 +76,56 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
     // "reference" repository
     private File tmpPatchManagement;
 
-    public GitPatchRepositoryImpl(File karafHome, File patchesDir) {
+    // main patch branch name that tracks the history of patch installations/rollbacks for current product
+    private String mainPatchBranchName;
+
+    // in fabric mode, we will have separate patch branches for root, SSH and child containers
+    private String childContainerPatchBranchName;
+    // history of patches for SSH containers created from unreliable distro (ZIPped Fuse)
+    private String fuseSSHContainerPatchBranchName;
+    // history of patches for SSH containers created from reliable (official, not ZIPped on the fly) distro
+    private String fabric8SSHContainerPatchBranchName;
+    // history of baselines for Fuse root container
+    private String fuseRootContainerPatchBranchName;
+    // history of baselines for AMQ root container
+    private String amqRootContainerPatchBranchName;
+
+    // are we master repository? (doing further pushes to origin?)
+    private boolean master;
+
+    /**
+     * @param fabric
+     * @param patchRepositoryLocation
+     * @param karafHome
+     * @param patchesDir
+     */
+    public GitPatchRepositoryImpl(boolean fabric, File patchRepositoryLocation, File karafHome, File karafBase, File patchesDir) {
+        this.isFabric = fabric;
+
+        // private branch - don't pushed anywhere outside of patches/.management/history
+        // in either env, each container tracks its own history - this branch's HEAD shows how ${karaf.base} looks
+        // like. In fabric mode, each container's history branch starts with copy of particular baseline tag
+        // and have custom changes on top. When fabric-agent detects the upgrade/downgrade, it rebuilds the
+        // container history from another baseline
+        this.mainPatchBranchName = GitPatchRepository.HISTORY_BRANCH;
+
+        // in fabric mode we track history of baselines for each kind of container
+        if (isFabric) {
+            this.childContainerPatchBranchName = "patches-child";
+            this.fuseSSHContainerPatchBranchName = "patches-ssh-fuse";
+            this.fabric8SSHContainerPatchBranchName = "patches-ssh-fabric8";
+            this.fuseRootContainerPatchBranchName = "patches-root-fuse";
+            this.amqRootContainerPatchBranchName = "patches-root-amq";
+        }
+
+        this.gitPatchManagement = patchRepositoryLocation;
         this.karafHome = karafHome;
+        this.karafBase = karafBase;
         this.patchesDir = patchesDir;
     }
 
     @Override
-    public void open() throws IOException {
-        gitPatchManagement = new File(patchesDir, MAIN_GIT_REPO_LOCATION);
+    public void open() throws IOException, GitAPIException {
         if (!gitPatchManagement.exists()) {
             gitPatchManagement.mkdirs();
         }
@@ -122,10 +169,22 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
     }
 
     @Override
-    public Git findOrCreateMainGitRepository() throws IOException {
+    public Git findOrCreateMainGitRepository() throws IOException, GitAPIException {
         if (mainRepository == null) {
             mainRepository = findOrCreateGitRepository(gitPatchManagement, true);
         }
+
+        if (isFabric) {
+            // we connect patch repo with fabric repo
+            StoredConfig config = mainRepository.getRepository().getConfig();
+            if (config.getString("remote", "origin", "url") == null) {
+                File origin = new File(karafBase, "data/git/local/fabric");
+                config.setString("remote", "origin", "url", origin.getCanonicalPath());
+                config.setString("remote", "origin", "fetch", "+refs/heads/*:refs/remotes/origin/*");
+                config.save();
+            }
+        }
+
         return mainRepository;
     }
 
@@ -136,13 +195,28 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
         } catch (RepositoryNotFoundException fallback) {
             try {
                 Git git = Git.init()
-                        .setBare(bare)
+                        .setBare(bare && !isFabric)
                         .setDirectory(directory)
                         .call();
+
+                // first commit - it's in master branch
                 Git fork = cloneRepository(git, false);
-                prepareCommit(fork, "[PATCH] initialization").call();
+                RevCommit commit = prepareCommit(fork, "[PATCH] initialization").call();
+                fork.tag()
+                        .setName("patch-management")
+                        .setObjectId(commit)
+                        .call();
+
+                if (!"master".equals(getMainBranchName())) {
+                    fork.checkout()
+                            .setName(getMainBranchName())
+                            .setStartPoint("master")
+                            .setCreateBranch(true)
+                            .call();
+                }
                 push(fork);
                 closeRepository(fork, true);
+
                 return git;
             } catch (GitAPIException e) {
                 throw new RuntimeException(e.getMessage(), e);
@@ -166,9 +240,9 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
                     .call();
             fork.checkout()
                     .setCreateBranch(true)
-                    .setName("master")
+                    .setName(getMainBranchName())
                     .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
-                    .setStartPoint("origin/master")
+                    .setStartPoint("origin/" + getMainBranchName())
                     .call();
         }
 
@@ -214,7 +288,7 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
 
     @Override
     public void push(Git git) throws GitAPIException {
-        push(git, "master");
+        push(git, getMainBranchName());
     }
 
     @Override
@@ -225,6 +299,21 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
                 .setPushTags()
                 .setForce(true)
                 .call();
+
+        // in fabric env we synchronize changes with "local" git repo, which will be then (from fabric-agent)
+        // pushed further to cluster's git repo
+        if (master && mainRepository != null
+                && !branch.startsWith("patch-")
+                && !branch.equals(getMainBranchName())) {
+            // we don't push "patch-*" branches to central repo (we push "patches-*")
+            // getMainBranchName() is used to track current container's history
+            mainRepository.push()
+                    .setRemote("origin")
+                    .setRefSpecs(new RefSpec(branch))
+                    .setPushTags()
+                    .setForce(true)
+                    .call();
+        }
     }
 
     @Override
@@ -258,7 +347,7 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
 
     /**
      * <p>We have two methods of finding latest tag for baseline - sort tag names by version (not lexicographic!) or iterate down
-     * the <code>master</code> branch and check the latest commit that has a <code>baseline-VERSION</code> tag.
+     * the main patch branch and check the latest commit that has a <code>baseline-VERSION</code> tag.
      * We could also look by commit message pattern, but this isn't cool.</p>
      * <p>Current implementation: sort tags by VERSION (from <code>baseline-VERSION</code> of tag name)</p>
      * @param git
@@ -309,7 +398,7 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
             }
         }
 
-        Iterable<RevCommit> log = git.log().add(git.getRepository().resolve("master")).call();
+        Iterable<RevCommit> log = git.log().add(git.getRepository().resolve(getMainBranchName())).call();
         for (RevCommit rc : log) {
             if (tagMap.containsKey(rc.getId())) {
                 return tagMap.get(rc.getId());
@@ -322,7 +411,7 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
     @Override
     public ManagedPatch getManagedPatch(String id) throws IOException {
         // basic ManagedPatch information is only commit id of the relevant branch name
-        ObjectId commitId = mainRepository.getRepository().resolve("refs/heads/" + id);
+        ObjectId commitId = mainRepository.getRepository().resolve("refs/heads/patch-" + id);
         if (commitId == null) {
             // this patch is not tracked (yet?)
             return null;
@@ -358,6 +447,41 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
             }
         }
         return result;
+    }
+
+    @Override
+    public String getMainBranchName() {
+        return mainPatchBranchName;
+    }
+
+    @Override
+    public String getChildBranchName() {
+        return childContainerPatchBranchName;
+    }
+
+    @Override
+    public String getFuseSSHContainerPatchBranchName() {
+        return fuseSSHContainerPatchBranchName;
+    }
+
+    @Override
+    public String getFabric8SSHContainerPatchBranchName() {
+        return fabric8SSHContainerPatchBranchName;
+    }
+
+    @Override
+    public String getFuseRootContainerPatchBranchName() {
+        return fuseRootContainerPatchBranchName;
+    }
+
+    @Override
+    public String getAmqRootContainerPatchBranchName() {
+        return amqRootContainerPatchBranchName;
+    }
+
+    @Override
+    public void setMaster(boolean master) {
+        this.master = master;
     }
 
 }

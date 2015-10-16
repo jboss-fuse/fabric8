@@ -39,11 +39,13 @@ public interface GitPatchRepository {
     public static final DateFormat TS = new SimpleDateFormat("yyyyMMdd-HHmmssSSS");
     public static final DateFormat FULL_DATE = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
+    public static final String HISTORY_BRANCH = "container-history";
+
     /**
      * Call if needed - when patch manager finds that it should use the repository.
      * Prepares resources (like {@link org.eclipse.jgit.api.Git} instance.
      */
-    void open() throws IOException;
+    void open() throws IOException, GitAPIException;
 
     /**
      * Clean up resources
@@ -54,11 +56,11 @@ public interface GitPatchRepository {
      * Returns {@Git} for main bare git repository
      * @return
      */
-    Git findOrCreateMainGitRepository() throws IOException;
+    Git findOrCreateMainGitRepository() throws IOException, GitAPIException;
 
     /**
      * Returns at least initialized git repository at specific location. When the repository doesn't exist, it is
-     * created with single branch <code>master</code> and one, empty, initial commit.
+     * created with single branch (with configured name that means main patch branch) and one, empty, initial commit.
      * @param directory
      * @param bare
      * @return
@@ -69,7 +71,8 @@ public interface GitPatchRepository {
      * Retrieves {@link Git} handle to temporary fork of another repository. The returned repository is connected
      * to the forked repo using "origin" remote.
      * @param git
-     * @param fetchAndCheckout whether to checkout <code>master</code> branch tracking <code>refs/remotes/origin/master</code>
+     * @param fetchAndCheckout whether to checkout main patch branch tracking
+     * <code>refs/remotes/origin/&lt;main-patch-branch&gt;</code>
      * @return
      */
     Git cloneRepository(Git git, boolean fetchAndCheckout) throws GitAPIException, IOException;
@@ -106,7 +109,7 @@ public interface GitPatchRepository {
     CommitCommand prepareCommit(Git git, String message);
 
     /**
-     * Shorthand for <code>git push origin master</code>
+     * Shorthand for <code>git push origin <em>main patch branch</em></code>
      * @param git
      */
     void push(Git git) throws GitAPIException;
@@ -146,7 +149,8 @@ public interface GitPatchRepository {
     RevTag findLatestBaseline(Git git) throws GitAPIException, IOException;
 
     /**
-     * <p>Finds the current baseline, which is the newest baseline tag when traversing down the <code>master</code>
+     * <p>Finds the current baseline, which is the newest baseline tag when traversing down the
+     * <code><em>main patch branch</em></code>
      * branch</p>
      * @param repo
      * @return
@@ -172,4 +176,46 @@ public interface GitPatchRepository {
      */
     Map<String, RevTag> findTagsBetween(Git repo, RevCommit c1, RevCommit c2) throws GitAPIException, IOException;
 
+    /**
+     * Returns the name chosen as <em>main patch branch</em>. If we're running in fabric mode, we don't want to
+     * mess with original <code>master</code> branch.
+     * @return
+     */
+    String getMainBranchName();
+
+    /**
+     * Returns the name chosen as patch branch for child containers.
+     * @return
+     */
+    String getChildBranchName();
+
+    /**
+     * Returns the name chosen as patch branch for SSH containers created from ZIPped Fuse
+     * @return
+     */
+    String getFuseSSHContainerPatchBranchName();
+
+    /**
+     * Returns the name chosen as patch branch for SSH containers created from fabric8 distro.
+     * @return
+     */
+    String getFabric8SSHContainerPatchBranchName();
+
+    /**
+     * Returns the name chosen as patch branch for root containers created from Fuse distro.
+     * @return
+     */
+    String getFuseRootContainerPatchBranchName();
+
+    /**
+     * Returns the name chosen as patch branch for root containers created from AMQ distro.
+     * @return
+     */
+    String getAmqRootContainerPatchBranchName();
+
+    /**
+     * Let know the repository, that each push should be followed but push from main repository (fabric mode)
+     * @param b
+     */
+    void setMaster(boolean b);
 }

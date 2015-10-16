@@ -334,6 +334,13 @@ public class Agent {
                     public void provisionList(Set<Resource> resources) {
                         Agent.this.provisionList(resources);
                     }
+
+                    @Override
+                    public void restoreConfigAdminIfNeeded() {
+                        if (configInstaller != null) {
+                            configInstaller.restoreConfigAdminIfNeeded();
+                        }
+                    }
                 };
 
                 // FABRIC-790, FABRIC-981 - wait for ProfileUrlHandler before attempting to load bundles (in subsystem.resolve())

@@ -17,7 +17,6 @@ package io.fabric8.patch.commands;
 
 import io.fabric8.patch.Service;
 import io.fabric8.patch.management.Patch;
-import io.fabric8.patch.management.PatchException;
 import io.fabric8.patch.management.PatchResult;
 import io.fabric8.utils.shell.ShellUtils;
 import org.apache.felix.gogo.commands.Argument;
@@ -42,13 +41,8 @@ public class InstallAction extends PatchActionSupport {
 
     @Override
     protected void doExecute(Service service) throws Exception {
-        Patch patch = service.getPatch(patchId);
-        if (patch == null) {
-            throw new PatchException("Patch '" + patchId + "' not found");
-        }
-        if (patch.isInstalled()) {
-            throw new PatchException("Patch '" + patchId + "' is already installed");
-        }
+        Patch patch = super.getPatch(patchId);
+
         if (patch.getPatchData().getMigratorBundle() != null) {
             System.out.println("This patch cannot be rolled back.  Are you sure you want to install?");
             while (true) {
@@ -65,8 +59,8 @@ public class InstallAction extends PatchActionSupport {
                 }
             }
         }
+
         PatchResult result = service.install(patch, simulation, synchronous);
-//        display(result);
     }
 
 }

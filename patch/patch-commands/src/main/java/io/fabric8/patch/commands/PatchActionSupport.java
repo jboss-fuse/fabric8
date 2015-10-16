@@ -15,11 +15,14 @@
  */
 package io.fabric8.patch.commands;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 
 import io.fabric8.patch.Service;
 import io.fabric8.patch.management.BundleUpdate;
 import io.fabric8.patch.management.Patch;
+import io.fabric8.patch.management.PatchException;
 import io.fabric8.patch.management.PatchResult;
 import org.apache.karaf.shell.console.AbstractAction;
 
@@ -84,6 +87,22 @@ public abstract class PatchActionSupport extends AbstractAction {
                 }
             }
         }
+    }
+
+    /**
+     * Returns existing (added/tracked) patch
+     * @param patchId
+     * @return
+     */
+    protected Patch getPatch(String patchId) {
+        Patch patch = service.getPatch(patchId);
+        if (patch == null) {
+            throw new PatchException("Patch '" + patchId + "' not found");
+        }
+        if (patch.isInstalled()) {
+            throw new PatchException("Patch '" + patchId + "' is already installed");
+        }
+        return patch;
     }
 
 }

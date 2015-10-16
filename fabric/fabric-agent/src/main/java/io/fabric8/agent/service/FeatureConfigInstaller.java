@@ -28,8 +28,13 @@ import io.fabric8.agent.model.ConfigFile;
 import io.fabric8.agent.model.Feature;
 import io.fabric8.common.util.Files;
 import io.fabric8.common.util.Strings;
+import io.fabric8.utils.BundleUtils;
+import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.BundleException;
 import org.osgi.framework.Constants;
 import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.framework.ServiceReference;
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.slf4j.Logger;
@@ -40,10 +45,12 @@ public class FeatureConfigInstaller {
     private static final Logger LOGGER = LoggerFactory.getLogger(FeatureConfigInstaller.class);
     private static final String CONFIG_KEY = "org.apache.karaf.features.configKey";
 
-    private final ConfigurationAdmin configAdmin;
+    private ConfigurationAdmin configAdmin;
     private final DownloadManager manager;
+    private final BundleContext context;
 
-    public FeatureConfigInstaller(ConfigurationAdmin configAdmin, DownloadManager manager) {
+    public FeatureConfigInstaller(BundleContext context, ConfigurationAdmin configAdmin, DownloadManager manager) {
+        this.context = context;
         this.configAdmin = configAdmin;
         this.manager = manager;
     }
@@ -164,4 +171,23 @@ public class FeatureConfigInstaller {
         File downloaded = manager.getProviders().get(fileLocation).getFile();
         Files.copy(downloaded, file);
     }
+
+    public void restoreConfigAdminIfNeeded() {
+        // we'll be doing confiadmin checks, so configadmin bundle has to be started and has its services registered
+        Bundle b = null;
+        try {
+            b = new BundleUtils(context).findBundle("org.apache.felix.configadmin");
+            if (b.getState() != Bundle.ACTIVE) {
+                b.start();
+                ServiceReference<ConfigurationAdmin> ref = context.getServiceReference(ConfigurationAdmin.class);
+                if (ref != null) {
+                    configAdmin = context.getService(ref);
+                }
+            }
+        } catch (BundleException e) {
+            configAdmin = null;
+            LOGGER.warn(e.getMessage());
+        }
+    }
+
 }

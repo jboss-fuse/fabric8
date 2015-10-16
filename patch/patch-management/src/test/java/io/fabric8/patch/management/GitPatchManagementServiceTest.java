@@ -37,6 +37,7 @@ import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.osgi.framework.startlevel.BundleStartLevel;
 
@@ -51,7 +52,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     private BundleStartLevel bsl;
 
     @Before
-    public void init() throws IOException {
+    public void init() throws IOException, GitAPIException {
         super.init();
 
         bsl = mock(BundleStartLevel.class);
@@ -61,34 +62,35 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     }
 
     @Test
-    public void disabledPatchManagement() throws IOException {
-        properties.remove("fuse.patch.location");
+    public void disabledPatchManagement() throws IOException, GitAPIException {
+        System.setProperty("patching.disabled", "true");
         pm = new GitPatchManagementServiceImpl(bundleContext);
         pm.start();
         assertFalse(pm.isEnabled());
+        System.setProperty("patching.disabled", "");
     }
 
     @Test
-    public void enabledPatchManagement() throws IOException {
+    public void enabledPatchManagement() throws IOException, GitAPIException {
         pm = new GitPatchManagementServiceImpl(bundleContext);
         pm.start();
         assertTrue(pm.isEnabled());
     }
 
     @Test
-    public void initializationPerformedNoFuseVersion() throws IOException {
+    public void initializationPerformedNoFuseVersion() throws IOException, GitAPIException {
         pm = new GitPatchManagementServiceImpl(bundleContext);
         pm.start();
         try {
             pm.ensurePatchManagementInitialized();
             fail("Should fail, because versions can't be determined");
         } catch (PatchException e) {
-            assertTrue(e.getMessage().contains("Can't determine Fuse/Fabric8 version"));
+            assertTrue(e.getMessage().contains("Can't find"));
         }
     }
 
     @Test
-    public void initializationPerformedNoBaselineDistribution() throws IOException {
+    public void initializationPerformedNoBaselineDistribution() throws IOException, GitAPIException {
         freshKarafDistro();
         pm = new GitPatchManagementServiceImpl(bundleContext);
         pm.start();
@@ -158,7 +160,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         List<Ref> branches = fork.branchList().setListMode(ListBranchCommand.ListMode.REMOTE).call();
         Ref patchBranch = null;
         for (Ref remoteBranch : branches) {
-            if (String.format("refs/remotes/origin/%s", patchData.getId()).equals(remoteBranch.getName())) {
+            if (String.format("refs/remotes/origin/patch-%s", patchData.getId()).equals(remoteBranch.getName())) {
                 patchBranch = remoteBranch;
                 break;
             }
@@ -180,7 +182,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         // let's see the patch applied to baseline-6.2.0
         fork.checkout()
                 .setName("my-patch-1")
-                .setStartPoint("origin/my-patch-1")
+                .setStartPoint("origin/patch-my-patch-1")
                 .setCreateBranch(true)
                 .call();
         String myProperties = FileUtils.readFileToString(new File(fork.getRepository().getWorkTree(), "etc/my.properties"));
@@ -338,7 +340,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         List<Ref> branches = fork.branchList().setListMode(ListBranchCommand.ListMode.REMOTE).call();
         Ref patchBranch = null;
         for (Ref remoteBranch : branches) {
-            if (String.format("refs/remotes/origin/%s", patchData.getId()).equals(remoteBranch.getName())) {
+            if (String.format("refs/remotes/origin/patch-%s", patchData.getId()).equals(remoteBranch.getName())) {
                 patchBranch = remoteBranch;
                 break;
             }
@@ -392,7 +394,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         // let's see the patch applied to baseline-6.2.0
         fork.checkout()
                 .setName("patch-4")
-                .setStartPoint("origin/patch-4")
+                .setStartPoint("origin/patch-patch-4")
                 .setCreateBranch(true)
                 .call();
         String startupProperties = FileUtils.readFileToString(new File(fork.getRepository().getWorkTree(), "etc/startup.properties"));
@@ -402,7 +404,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     }
 
     @Test
-    public void listNoPatchesAvailable() throws IOException {
+    public void listNoPatchesAvailable() throws IOException, GitAPIException {
         freshKarafDistro();
         GitPatchRepository repository = patchManagement();
         PatchManagement management = (PatchManagement) pm;
@@ -455,8 +457,8 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
         Ref ref = fork.checkout()
                 .setCreateBranch(true)
-                .setName("my-patch-1")
-                .setStartPoint("refs/remotes/origin/my-patch-1")
+                .setName("patch-my-patch-1")
+                .setStartPoint("refs/remotes/origin/patch-my-patch-1")
                 .call();
 
         // commit stored in ManagedPatch vs. commit of the patch branch
@@ -464,7 +466,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     }
 
     @Test
-    public void listPatches() throws IOException {
+    public void listPatches() throws IOException, GitAPIException {
         freshKarafDistro();
         GitPatchRepository repository = patchManagement();
         PatchManagement management = (PatchManagement) pm;
@@ -490,7 +492,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     }
 
     @Test
-    public void beginRollupPatchInstallation() throws IOException {
+    public void beginRollupPatchInstallation() throws IOException, GitAPIException {
         freshKarafDistro();
         GitPatchRepository repository = patchManagement();
         PatchManagement management = (PatchManagement) pm;
@@ -511,7 +513,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     }
 
     @Test
-    public void beginNonRollupPatchInstallation() throws IOException {
+    public void beginNonRollupPatchInstallation() throws IOException, GitAPIException {
         freshKarafDistro();
         GitPatchRepository repository = patchManagement();
         PatchManagement management = (PatchManagement) pm;
@@ -524,7 +526,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         Git fork = transactions.values().iterator().next();
         ObjectId currentBranch = fork.getRepository().resolve("HEAD^{commit}");
         ObjectId tempBranch = fork.getRepository().resolve(tx + "^{commit}");
-        ObjectId masterBranch = fork.getRepository().resolve("master^{commit}");
+        ObjectId masterBranch = fork.getRepository().resolve(GitPatchRepository.HISTORY_BRANCH + "^{commit}");
         ObjectId baseline = fork.getRepository().resolve("refs/tags/baseline-6.2.0^{commit}");
         assertThat(tempBranch, equalTo(currentBranch));
         assertThat(tempBranch, not(equalTo(baseline)));
@@ -587,7 +589,8 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
         assertThat(n, equalTo(commitList.size()));
 
-        assertThat(fork.tagList().call().size(), equalTo(2));
+        assertThat(fork.tagList().call().size(), equalTo(3));
+        assertTrue(repository.containsTag(fork, "patch-management"));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0"));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0.redhat-002"));
     }
@@ -613,7 +616,8 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         ObjectId master2 = fork.getRepository().resolve("master");
 
         assertThat(master1, equalTo(master2));
-        assertThat(fork.tagList().call().size(), equalTo(1));
+        assertThat(fork.tagList().call().size(), equalTo(2));
+        assertTrue(repository.containsTag(fork, "patch-management"));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0"));
     }
 
@@ -628,7 +632,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         Patch patch = management.trackPatch(patches.get(0));
 
         Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
-        ObjectId master1 = fork.getRepository().resolve("master");
+        ObjectId master1 = fork.getRepository().resolve(GitPatchRepository.HISTORY_BRANCH);
 
         String tx = management.beginInstallation(PatchKind.ROLLUP);
         management.install(tx, patch, null);
@@ -636,10 +640,11 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
         repository.closeRepository(fork, true);
         fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
-        ObjectId master2 = fork.getRepository().resolve("master");
+        ObjectId master2 = fork.getRepository().resolve(GitPatchRepository.HISTORY_BRANCH);
 
         assertThat(master1, not(equalTo(master2)));
-        assertThat(fork.tagList().call().size(), equalTo(2));
+        assertThat(fork.tagList().call().size(), equalTo(3));
+        assertTrue(repository.containsTag(fork, "patch-management"));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0"));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0.redhat-002"));
         assertThat("Baseline should change", repository.findCurrentBaseline(fork).getTagName(), equalTo("baseline-6.2.0.redhat-002"));
@@ -674,7 +679,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         Patch patch4 = management.trackPatch(patches.get(0));
 
         Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
-        ObjectId master1 = fork.getRepository().resolve("master");
+        ObjectId master1 = fork.getRepository().resolve(GitPatchRepository.HISTORY_BRANCH);
 
         String tx = management.beginInstallation(PatchKind.ROLLUP);
         management.install(tx, patch4, null);
@@ -692,10 +697,11 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
         repository.closeRepository(fork, true);
         fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
-        ObjectId master2 = fork.getRepository().resolve("master");
+        ObjectId master2 = fork.getRepository().resolve(GitPatchRepository.HISTORY_BRANCH);
 
         assertThat(master1, not(equalTo(master2)));
-        assertThat(fork.tagList().call().size(), equalTo(1));
+        assertThat(fork.tagList().call().size(), equalTo(2));
+        assertTrue(repository.containsTag(fork, "patch-management"));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0"));
         assertFalse("When rolling back rollup patch, newer P patches' tags should be removed",
                 repository.containsTag(fork, "patch-my-patch-1"));
@@ -751,7 +757,8 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
         assertThat(n, equalTo(commitList.size()));
 
-        assertThat(fork.tagList().call().size(), equalTo(2));
+        assertThat(fork.tagList().call().size(), equalTo(3));
+        assertTrue(repository.containsTag(fork, "patch-management"));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0"));
         assertTrue(repository.containsTag(fork, "patch-my-patch-1"));
 
@@ -780,7 +787,8 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         ObjectId master2 = fork.getRepository().resolve("master");
 
         assertThat(master1, equalTo(master2));
-        assertThat(fork.tagList().call().size(), equalTo(1));
+        assertThat(fork.tagList().call().size(), equalTo(2));
+        assertTrue(repository.containsTag(fork, "patch-management"));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0"));
     }
 
@@ -795,7 +803,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         Patch patch = management.trackPatch(patches.get(0));
 
         Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
-        ObjectId master1 = fork.getRepository().resolve("master");
+        ObjectId master1 = fork.getRepository().resolve(GitPatchRepository.HISTORY_BRANCH);
 
         String tx = management.beginInstallation(PatchKind.NON_ROLLUP);
         management.install(tx, patch, null);
@@ -803,10 +811,11 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
         repository.closeRepository(fork, true);
         fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
-        ObjectId master2 = fork.getRepository().resolve("master");
+        ObjectId master2 = fork.getRepository().resolve(GitPatchRepository.HISTORY_BRANCH);
 
         assertThat(master1, not(equalTo(master2)));
-        assertThat(fork.tagList().call().size(), equalTo(2));
+        assertThat(fork.tagList().call().size(), equalTo(3));
+        assertTrue(repository.containsTag(fork, "patch-management"));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0"));
         assertTrue(repository.containsTag(fork, "patch-my-patch-1"));
         assertThat("Baseline should not change", repository.findCurrentBaseline(fork).getTagName(), equalTo("baseline-6.2.0"));
@@ -831,7 +840,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         Patch patch = management.trackPatch(patches.get(0));
 
         Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
-        ObjectId master1 = fork.getRepository().resolve("master");
+        ObjectId master1 = fork.getRepository().resolve(GitPatchRepository.HISTORY_BRANCH);
 
         String tx = management.beginInstallation(PatchKind.NON_ROLLUP);
         management.install(tx, patch, null);
@@ -841,10 +850,11 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
         repository.closeRepository(fork, true);
         fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
-        ObjectId master2 = fork.getRepository().resolve("master");
+        ObjectId master2 = fork.getRepository().resolve(GitPatchRepository.HISTORY_BRANCH);
 
         assertThat(master1, not(equalTo(master2)));
-        assertThat(fork.tagList().call().size(), equalTo(1));
+        assertThat(fork.tagList().call().size(), equalTo(2));
+        assertTrue(repository.containsTag(fork, "patch-management"));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0"));
         assertFalse(repository.containsTag(fork, "patch-my-patch-1"));
 
@@ -910,7 +920,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
      * @return
      * @throws IOException
      */
-    private GitPatchRepository patchManagement() throws IOException {
+    private GitPatchRepository patchManagement() throws IOException, GitAPIException {
         preparePatchZip("src/test/resources/baselines/baseline1", "target/karaf/system/org/jboss/fuse/jboss-fuse-full/6.2.0/jboss-fuse-full-6.2.0-baseline.zip", true);
         pm = new GitPatchManagementServiceImpl(bundleContext);
         pm.start();
