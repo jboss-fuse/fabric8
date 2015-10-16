@@ -22,9 +22,12 @@ import java.net.ProtocolException;
 import java.net.URLConnection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import io.fabric8.api.FabricService;
 import io.fabric8.api.GitContext;
+import io.fabric8.api.ProfileRegistry;
+import io.fabric8.api.RuntimeProperties;
 import io.fabric8.common.util.Base64Encoder;
 import io.fabric8.git.GitDataStore;
 import io.fabric8.git.internal.GitHelpers;
@@ -37,6 +40,7 @@ import io.fabric8.patch.management.PatchKind;
 import io.fabric8.patch.management.PatchManagement;
 import io.fabric8.patch.management.PatchResult;
 import io.fabric8.patch.management.ProfileUpdateStrategy;
+import io.fabric8.zookeeper.utils.ZooKeeperUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -46,6 +50,7 @@ import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.felix.utils.version.VersionTable;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Version;
 import org.osgi.service.component.ComponentContext;
@@ -70,6 +75,9 @@ public class FabricPatchServiceImpl implements FabricPatchService {
 
     @Reference(referenceInterface = BackupService.class, cardinality = ReferenceCardinality.MANDATORY_UNARY, policy = ReferencePolicy.STATIC)
     private BackupService backupService;
+
+    @Reference(referenceInterface = RuntimeProperties.class, cardinality = ReferenceCardinality.MANDATORY_UNARY, policy = ReferencePolicy.DYNAMIC)
+    private RuntimeProperties runtimeProperties;
 
     private BundleContext bundleContext;
     private File karafHome;
@@ -198,6 +206,36 @@ public class FabricPatchServiceImpl implements FabricPatchService {
         }
 
         return updatesInThisPatch;
+    }
+
+    @Override
+    public void synchronize() throws Exception {
+        gitDataStore.doPush(gitDataStore.getGit(), new GitContext().setRequirePush(true));
+        GitOperation operation = new GitOperation() {
+            @Override
+            public Object call(Git git, GitContext context) throws Exception {
+                ProfileRegistry registry = fabricService.adapt(ProfileRegistry.class);
+                Map<String, String> properties = registry.getDataStoreProperties();
+                String username;
+                String password;
+                if (properties != null && properties.containsKey("gitRemoteUser")
+                        && properties.containsKey("gitRemotePassword")) {
+                    username = properties.get("gitRemoteUser");
+                    password = properties.get("gitRemotePassword");
+                } else {
+                    username = ZooKeeperUtils.getContainerLogin(runtimeProperties);
+                    password = ZooKeeperUtils.generateContainerToken(runtimeProperties, curator);
+                }
+                git.push()
+                        .setCredentialsProvider(new UsernamePasswordCredentialsProvider(username, password))
+                        .setPushTags()
+                        .setPushAll()
+                        .call();
+
+                return null;
+            }
+        };
+        gitDataStore.gitOperation(new GitContext(), operation, null);
     }
 
 }

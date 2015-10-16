@@ -15,11 +15,11 @@
  */
 package io.fabric8.patch.commands;
 
-import org.apache.felix.gogo.commands.Argument;
-import org.apache.felix.gogo.commands.Command;
+import io.fabric8.patch.Service;
 import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.management.PatchException;
-import io.fabric8.patch.Service;
+import org.apache.felix.gogo.commands.Argument;
+import org.apache.felix.gogo.commands.Command;
 import org.apache.felix.gogo.commands.Option;
 
 @Command(scope = "patch", name = "rollback", description = "Rollback a patch installation")

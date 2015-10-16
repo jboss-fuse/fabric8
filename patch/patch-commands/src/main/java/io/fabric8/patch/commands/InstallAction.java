@@ -17,7 +17,6 @@ package io.fabric8.patch.commands;
 
 import io.fabric8.patch.Service;
 import io.fabric8.patch.management.Patch;
-import io.fabric8.patch.management.PatchException;
 import io.fabric8.patch.management.PatchResult;
 import io.fabric8.utils.shell.ShellUtils;
 import org.apache.felix.gogo.commands.Argument;

@@ -19,7 +19,6 @@ import io.fabric8.api.scr.ValidatingReference;
 import io.fabric8.boot.commands.support.AbstractCommandComponent;
 import io.fabric8.patch.Service;
 import io.fabric8.patch.commands.support.PatchCompleter;
-import io.fabric8.patch.commands.support.UninstallPatchCompleter;
 import io.fabric8.patch.management.PatchManagement;
 import org.apache.felix.gogo.commands.Action;
 import org.apache.felix.gogo.commands.basic.AbstractCommand;

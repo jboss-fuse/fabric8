@@ -17,11 +17,11 @@ package io.fabric8.patch.commands;
 
 import java.net.URL;
 
+import io.fabric8.patch.Service;
+import io.fabric8.patch.management.Patch;
 import org.apache.felix.gogo.commands.Argument;
 import org.apache.felix.gogo.commands.Command;
 import org.apache.felix.gogo.commands.Option;
-import io.fabric8.patch.management.Patch;
-import io.fabric8.patch.Service;
 
 @Command(scope = "patch", name = "add", description = "Download a patch")
 public class AddAction extends PatchActionSupport {

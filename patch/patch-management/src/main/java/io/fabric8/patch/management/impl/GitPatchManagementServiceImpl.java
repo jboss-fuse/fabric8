@@ -1639,6 +1639,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 applyUserChanges(fork);
             }
 
+            if (master) {
+                // let's push one repository further
+
+            }
+
             // remove pending patches listeners
             for (BundleListener bl : pendingPatchesListeners.values()) {
                 systemContext.removeBundleListener(bl);

@@ -15,7 +15,9 @@
  */
 package io.fabric8.patch.commands;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 
 import io.fabric8.patch.Service;
 import io.fabric8.patch.management.BundleUpdate;

@@ -42,4 +42,9 @@ public interface FabricPatchService {
     PatchResult install(Patch patch, boolean simulation, String versionId, boolean upload, String username, String password, ProfileUpdateStrategy strategy)
             throws IOException;
 
+    /**
+     * Pushes all patch-tracking branches to cluster git server
+     */
+    void synchronize() throws Exception;
+
 }
