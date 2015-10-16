@@ -35,6 +35,7 @@ import org.jboss.shrinkwrap.api.asset.Asset;
 import org.jboss.shrinkwrap.api.exporter.ZipExporter;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.osgi.framework.BundleContext;
@@ -55,6 +56,7 @@ import static org.junit.Assert.assertTrue;
  * Test case for the <code>patch:apply</code> command in Fabric
  */
 @RunWith(Arquillian.class)
+@Ignore("It tries to upload to https://repo.fusesource.com/nexus/content/groups/public/ ...")
 public class PatchApplyTest {
 
     private static final String ORIGINAL_VERSION = "1.0.0";
@@ -167,7 +169,7 @@ public class PatchApplyTest {
 
             // create a new version and apply the patch
             CommandSupport.executeCommand("fabric:version-create 1.1");
-            Thread.sleep(500);
+            Thread.sleep(2000);
             CommandSupport.executeCommand(String.format("fabric:patch-apply -u admin -p admin --version 1.1 %s", patch.toURI().toURL()));
 
             // ensure there's an override with the patched bundle version in the 'patchable' profile
