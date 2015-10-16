@@ -337,7 +337,9 @@ public class Agent {
 
                     @Override
                     public void restoreConfigAdminIfNeeded() {
-                        configInstaller.restoreConfigAdminIfNeeded();
+                        if (configInstaller != null) {
+                            configInstaller.restoreConfigAdminIfNeeded();
+                        }
                     }
                 };
 
