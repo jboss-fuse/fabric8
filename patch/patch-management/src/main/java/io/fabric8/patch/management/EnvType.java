@@ -20,44 +20,69 @@ public enum EnvType {
     /**
      * No fabric
      */
-    STANDALONE(false),
+    STANDALONE(false, "baseline-%s", "baseline-%s", "fuse"),
+//    /**
+//     * Karaf child container (<code>admin:create</code>)
+//     */
+//    STANDALONE_CHILD(false, null, null),
+
     /**
-     * Standalone container that has no fabric running.
+     * Fabric container (SSH or root) based on Fuse distro
      */
-    STANDALONE_ROOT(false),
+    FABRIC_FUSE(true, "foundation-root-fuse-%s", "baseline-root-fuse-%s", "fuse"),
     /**
-     * Karaf child container
+     * SSH container based on fabric8-karaf distro
      */
-    STANDALONE_CHILD(false),
+    FABRIC_FABRIC8(true, "foundation-ssh-fabric8-%s", "baseline-ssh-fabric8-%s", "fabric"),
     /**
-     * Fabric container (SSH/child/root)
+     * Fabric container (SSH or root) based on AMQ distro
      */
-    FABRIC(true),
-    /**
-     * Fabric root container - able to create SSH/child containers and where profiles are managed
-     */
-    FABRIC_ROOT(true),
-    /**
-     * SSH container created in fabric env
-     */
-    FABRIC_SSH(true),
+    FABRIC_AMQ(true, "foundation-root-amq-%s", "baseline-root-amq-%s", "fuse"),
     /**
      * Child container created in fabric env
      */
-    FABRIC_CHILD(true),
+    FABRIC_CHILD(true, "foundation-child-%s", "baseline-child-%s", "karaf"),
+
     /**
      * Openshift? JClouds?
      */
-    UNKNOWN(false);
+    UNKNOWN(false, null, null, null);
 
     private boolean fabric;
 
-    EnvType(boolean fabric) {
+    /**
+     * Fabric mode: Pattern for a tag that contains the state of container at particular version. Each container's
+     * private history branch starts from one of such baselines.
+     */
+    private String baselineTagFormat;
+    /**
+     * Fabric mode: Pattern for a tag that's placed on container's private history branch. If history branch doesn't
+     * contain such tag, it must be rebased (during fabric-agent provisioning)
+     */
+    private String historyTagFormat;
+    private String productId;
+
+    EnvType(boolean fabric, String historyTagFormat, String baselineTagFormat, String productId) {
         this.fabric = fabric;
+        this.historyTagFormat = historyTagFormat;
+        this.baselineTagFormat = baselineTagFormat;
+        this.productId = productId;
     }
 
     public boolean isFabric() {
         return fabric;
+    }
+
+    public String getBaselineTagFormat() {
+        return baselineTagFormat;
+    }
+
+    public String getHistoryTagFormat() {
+        return historyTagFormat;
+    }
+
+    public String getProductId() {
+        return productId;
     }
 
 }

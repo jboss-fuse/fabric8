@@ -42,6 +42,7 @@ import static org.junit.Assert.*;
 public class GitPatchRepositoryTest {
 
     private File karafHome;
+    private File karafBase;
     private File patchesHome;
 
     private GitPatchRepository repository;
@@ -49,11 +50,12 @@ public class GitPatchRepositoryTest {
     @Before
     public void init() throws IOException, GitAPIException {
         karafHome = new File("target/karaf");
+        karafBase = new File("target/karaf");
         FileUtils.deleteQuietly(karafHome);
         patchesHome = new File(karafHome, "patches");
         File patchRepositoryLocation = new File(patchesHome, GitPatchRepositoryImpl.MAIN_GIT_REPO_LOCATION);
 
-        repository = new GitPatchRepositoryImpl(EnvType.STANDALONE, patchRepositoryLocation, karafHome, patchesHome);
+        repository = new GitPatchRepositoryImpl(false, patchRepositoryLocation, karafHome, karafBase, patchesHome);
         repository.open();
     }
 
@@ -74,14 +76,14 @@ public class GitPatchRepositoryTest {
         }
 
         assertThat("Should contain single ref", new File(main.getRepository().getDirectory(), "refs/heads").listFiles().length, equalTo(1));
-        File theOnlyHead = new File(main.getRepository().getDirectory(), "refs/heads/patches-standalone");
+        File theOnlyHead = new File(main.getRepository().getDirectory(), "refs/heads/" + GitPatchRepository.HISTORY_BRANCH);
         assertTrue(theOnlyHead.exists());
     }
 
     @Test
     public void creatingRepositories() throws IOException, GitAPIException {
         Git repo1 = repository.findOrCreateGitRepository(new File(patchesHome, "repo1"), false);
-        repo1.checkout().setName("patches-standalone").call();
+        repo1.checkout().setName(GitPatchRepository.HISTORY_BRANCH).call();
 
         assertNotNull(repo1.getRepository().getWorkTree());
         File dir = repo1.getRepository().getWorkTree().listFiles()[0];
@@ -99,11 +101,11 @@ public class GitPatchRepositoryTest {
         Git main = repository.findOrCreateMainGitRepository();
         Git clone1 = repository.cloneRepository(main, true);
         assertThat(clone1.branchList().call().size(), equalTo(1));
-        assertThat(clone1.branchList().call().get(0).getName(), equalTo("refs/heads/patches-standalone"));
+        assertThat(clone1.branchList().call().get(0).getName(), equalTo("refs/heads/" + GitPatchRepository.HISTORY_BRANCH));
         Git clone2 = repository.cloneRepository(main, false);
         assertThat(clone2.branchList().call().size(), equalTo(0));
 
-        assertTrue(repository.containsCommit(clone1, "patches-standalone", "[PATCH] initialization"));
+        assertTrue(repository.containsCommit(clone1, GitPatchRepository.HISTORY_BRANCH, "[PATCH] initialization"));
 
         repository.closeRepository(clone1, true);
         repository.closeRepository(clone2, true);
@@ -122,7 +124,10 @@ public class GitPatchRepositoryTest {
         repository.push(clone1);
 
         assertFalse(new File(repo.getRepository().getWorkTree(), "file.txt").exists());
-        repo.checkout().setName("patches-standalone").setStartPoint("refs/heads/patches-standalone").setCreateBranch(false).call();
+        repo.checkout().setName(GitPatchRepository.HISTORY_BRANCH)
+                .setStartPoint("refs/heads/" + GitPatchRepository.HISTORY_BRANCH)
+                .setCreateBranch(false)
+                .call();
         assertTrue(new File(repo.getRepository().getWorkTree(), "file.txt").exists());
 
         Git clone2 = repository.cloneRepository(repo, true);
@@ -157,7 +162,7 @@ public class GitPatchRepositoryTest {
     @Test
     public void findTags() throws Exception {
         Git repo = repository.findOrCreateGitRepository(new File(patchesHome, "r2"), false);
-        repo.checkout().setName("patches-standalone").call();
+        repo.checkout().setName(GitPatchRepository.HISTORY_BRANCH).call();
         RevCommit c1 = repository.prepareCommit(repo, "commit1").call();
         RevCommit c2 = repository.prepareCommit(repo, "commit2").call();
         RevCommit c3 = repository.prepareCommit(repo, "commit3").call();
@@ -202,7 +207,7 @@ public class GitPatchRepositoryTest {
     @Test
     public void currentBaseline() throws GitAPIException, IOException {
         Git repo = repository.findOrCreateGitRepository(new File(patchesHome, "r4"), false);
-        repo.checkout().setName("patches-standalone").call();
+        repo.checkout().setName(GitPatchRepository.HISTORY_BRANCH).call();
         RevCommit c1 = repository.prepareCommit(repo, "commit1").call();
         repo.tag().setName("baseline-1.2.3").setObjectId(c1).call();
         RevCommit c2 = repository.prepareCommit(repo, "commit2").call();

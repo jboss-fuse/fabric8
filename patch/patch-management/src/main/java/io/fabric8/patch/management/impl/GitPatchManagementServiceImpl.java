@@ -44,6 +44,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -100,6 +101,7 @@ import org.eclipse.jgit.revwalk.RevObject;
 import org.eclipse.jgit.revwalk.RevTag;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.transport.RefSpec;
+import org.eclipse.jgit.transport.TagOpt;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleEvent;
@@ -128,29 +130,37 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     private static final Pattern VERSION_PATTERN =
             Pattern.compile("patch-management-(\\d+\\.\\d+\\.\\d+(?:\\.[^\\.]+)?)\\.jar");
 
-    /* A pattern of commit message when adding baseling distro */
     private static final String MARKER_BASELINE_COMMIT_PATTERN = "[PATCH/baseline] Installing baseline-%s";
+    private static final String MARKER_BASELINE_ROOT_COMMIT_PATTERN = "[PATCH/baseline] Installing baseline-%s";
     private static final String MARKER_BASELINE_CHILD_COMMIT_PATTERN = "[PATCH/baseline] Installing baseline-child-%s";
-    private static final String MARKER_BASELINE_RESET_OVERRIDES_PATTERN = "[PATCH/baseline] baseline-%s - resetting etc/overrides.properties";
-    private static final String MARKER_BASELINE_REPLACE_PATCH_FEATURE_PATTERN = "[PATCH/baseline] baseline-%s - switching to patch feature repository %s";
+    private static final String MARKER_BASELINE_SSH_COMMIT_PATTERN = "[PATCH/baseline] Installing baseline-%s-%s";
 
-    /* Patterns for rolling patch installation */
+    private static final String MARKER_BASELINE_RESET_OVERRIDES_PATTERN
+            = "[PATCH/baseline] baseline-%s - resetting etc/overrides.properties";
+    private static final String MARKER_BASELINE_REPLACE_PATCH_FEATURE_PATTERN
+            = "[PATCH/baseline] baseline-%s - switching to patch feature repository %s";
+
+    /* Patterns for rollup patch installation */
     private static final String MARKER_R_PATCH_INSTALLATION_PATTERN = "[PATCH] Installing rollup patch %s";
     private static final String MARKER_R_PATCH_RESET_OVERRIDES_PATTERN = "[PATCH] Rollup patch %s - resetting etc/overrides.properties";
 
-    /* Patterns for non-rolling patch installation */
+    /* Patterns for non-rollup patch installation */
     private static final String MARKER_P_PATCH_INSTALLATION_PATTERN = "[PATCH] Installing patch %s";
 
     /** A pattern of commit message when installing patch-management (this) bundle in etc/startup.properties */
-    private static final String MARKER_PATCH_MANAGEMENT_INSTALLATION_COMMIT_PATTERN =
-            "[PATCH/management] patch-management-%s.jar installed in etc/startup.properties";
+    private static final String MARKER_PATCH_MANAGEMENT_INSTALLATION_COMMIT_PATTERN
+            = "[PATCH/management] patch-management-%s.jar installed in etc/startup.properties";
 
     /** Commit message when applying user changes to managed directories */
     private static final String MARKER_USER_CHANGES_COMMIT = "[PATCH] Apply user changes";
 
     private final BundleContext bundleContext;
     private final BundleContext systemContext;
+
     private EnvType env = EnvType.UNKNOWN;
+    // if true, this container is the one that manages patches- branches for other containers in fabric mode
+    // in non fabric mode this is irrelevant
+    private boolean master = false;
 
     private GitPatchRepository gitPatchRepository;
     private ConflictResolver conflictResolver = new ConflictResolver();
@@ -158,6 +168,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
     // ${karaf.home}
     private File karafHome;
+    // ${karaf.base}
+    private File karafBase;
     // main patches directory at ${fuse.patch.location} (defaults to ${karaf.home}/patches)
     private File patchesDir;
 
@@ -178,27 +190,34 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * cases)</p>
      * @param context
      */
-    public GitPatchManagementServiceImpl(BundleContext context) {
+    public GitPatchManagementServiceImpl(BundleContext context) throws IOException {
         this.bundleContext = context;
         this.systemContext = context.getBundle(0).getBundleContext();
         karafHome = new File(systemContext.getProperty("karaf.home"));
-        String patchLocation = systemContext.getProperty("fuse.patch.location");
-        if (patchLocation != null) {
-            patchesDir = new File(patchLocation);
-            if (!patchesDir.isDirectory()) {
-                patchesDir.mkdirs();
-            }
-        } else {
+        karafBase = new File(systemContext.getProperty("karaf.base"));
+
+        envService = new DefaultEnvService(systemContext, karafHome, karafBase);
+        env = envService.determineEnvironmentType();
+
+        if (env == EnvType.UNKNOWN) {
             return;
         }
 
-        envService = new DefaultEnvService(systemContext, karafHome, patchesDir);
-        env = envService.determineEnvironmentType();
-        // always init/open local (${karaf.home}/patches/.management/history) repo
+        String patchLocation = systemContext.getProperty("fuse.patch.location");
+        if (patchLocation == null) {
+            patchLocation = new File(karafBase, "patches").getCanonicalPath();
+        }
+        patchesDir = new File(patchLocation);
+        if (!patchesDir.isDirectory()) {
+            patchesDir.mkdirs();
+        }
+
+        // always init/open local (${karaf.base}/patches/.management/history) repo
         // but in fabric mode, we will connect it to ${karaf.data}/git/local/fabric/.git
         File patchRepositoryLocation = new File(patchesDir, GitPatchRepositoryImpl.MAIN_GIT_REPO_LOCATION);
 
-        GitPatchRepositoryImpl repository = new GitPatchRepositoryImpl(env, patchRepositoryLocation, karafHome, patchesDir);
+        GitPatchRepositoryImpl repository = new GitPatchRepositoryImpl(env.isFabric(), patchRepositoryLocation,
+                karafHome, karafBase, patchesDir);
         setGitPatchRepository(repository);
     }
 
@@ -615,6 +634,12 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
             // push the patch branch
             gitPatchRepository.push(fork, "patch-" + patchData.getId());
+
+            // track other kinds of baselines found in the patch
+            if (env.isFabric()) {
+                trackBaselinesForChildContainers(fork);
+                trackBaselinesForSSHContainers(fork);
+            }
 
             return new Patch(patchData, gitPatchRepository.getManagedPatch(patchData.getId()));
         } catch (IOException | GitAPIException e) {
@@ -1538,59 +1563,80 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         Git fork = null;
         try {
             Git mainRepository = gitPatchRepository.findOrCreateMainGitRepository();
-            // prepare single fork for all the below operations
-            fork = gitPatchRepository.cloneRepository(mainRepository, true);
 
-            // git history that tracks patch operations (but not the content of the patches)
-            InitializationType state = checkMainRepositoryState(fork);
-            // one of the steps may return a commit that has to be tagged as first baseline
-            RevCommit baselineCommit = null;
-            switch (state) {
-                case ERROR_NO_VERSIONS:
-                    throw new PatchException("Can't determine Fuse/Fabric8 version. Is KARAF_HOME/fabric directory available?");
-                case INSTALL_BASELINE:
-                    // track initial configuration
-                    RevCommit c1 = trackBaselineRepository(fork);
-                    if (c1 != null) {
-                        baselineCommit = c1;
-                    }
-                    // fall down the next case, don't break!
-                case INSTALL_PATCH_MANAGEMENT_BUNDLE:
-                    // install patch management bundle in etc/startup.properties to overwrite possible user change to that file
-                    RevCommit c2 = installPatchManagementBundle(fork);
-                    if (c2 != null) {
-                        baselineCommit = c2;
-                    }
-                    // add possible user changes since the distro was first run
-                    applyUserChanges(fork);
-                    break;
-                case ADD_USER_CHANGES:
-                    // because patch management is already installed, we have to add consecutive (post patch-management installation) changes
-                    applyUserChanges(fork);
-                    break;
-                case READY:
-                    break;
-            }
-
-            if (baselineCommit != null) {
-                // and we'll tag the baseline *after* steps related to first baseline
-                String currentFuseVersion = determineVersion("fuse");
-                fork.tag()
-                        .setName(String.format("baseline-%s", currentFuseVersion))
-                        .setObjectId(baselineCommit)
+            if (env.isFabric()) {
+                // let's fetch from origin to check if someone else already does fabric patch management
+                mainRepository.fetch()
+                        .setRemote("origin")
+                        .setRefSpecs(new RefSpec("+refs/heads/*:refs/remotes/origin/*"))
+                        .setTagOpt(TagOpt.FETCH_TAGS)
                         .call();
 
-                gitPatchRepository.push(fork);
+                // I think it's enough to compare the main HEADs. if there are no remote branches
+                // for patch management or their HEADs are the same, we are the MAIN container that performs
+                // git patch management
+                ObjectId ours = mainRepository.getRepository()
+                        .resolve("refs/heads/" + gitPatchRepository.getFuseRootContainerPatchBranchName());
+                ObjectId theirs = mainRepository.getRepository()
+                        .resolve("refs/remotes/origin/" + gitPatchRepository.getFuseRootContainerPatchBranchName());
+                if (theirs == null || theirs.equals(ours)) {
+                    // if ours is null, then we've just started git patch management
+                    master = true;
+                    gitPatchRepository.setMaster(true);
+                }
             }
 
-            if (state == InitializationType.INSTALL_BASELINE && env.isFabric()) {
-                // we have to track some more baselines
+            // prepare single fork for all the below operations - switch to different branches later, as needed
+            fork = gitPatchRepository.cloneRepository(mainRepository, true);
+
+            if (env.isFabric() && master) {
+                // track baselines for future - when containers are upgraded and their static resources
+                // have to be rebased on new baselines
+                // new baselines will be added when patches are installed
+                trackBaselinesForRootContainer(fork);
                 trackBaselinesForChildContainers(fork);
                 trackBaselinesForSSHContainers(fork);
             }
 
-            // repository of patch data - already installed patches
-            migrateOldPatchData();
+            if (!env.isFabric()) {
+                // do standalone history initialization
+                String curentFuseVersion = determineVersion("fuse");
+
+                // one of the steps may return a commit that has to be tagged as first baseline
+                RevCommit baselineCommit = null;
+                if (!gitPatchRepository.containsTag(fork, String.format(env.getHistoryTagFormat(), curentFuseVersion))) {
+                    baselineCommit = trackBaselineRepository(fork);
+                }
+                RevCommit c2 = installPatchManagementBundle(fork);
+                if (c2 != null) {
+                    baselineCommit = c2;
+                }
+                // because patch management is already installed, we have to add consecutive (post patch-management installation) changes
+                applyUserChanges(fork);
+
+                if (baselineCommit != null) {
+                    // and we'll tag the baseline *after* steps related to first baseline
+                    String currentFuseVersion = determineVersion("fuse");
+                    fork.tag()
+                            .setName(String.format(env.getHistoryTagFormat(), curentFuseVersion))
+                            .setObjectId(baselineCommit)
+                            .call();
+
+                    gitPatchRepository.push(fork);
+                }
+
+                // repository of patch data - already installed patches
+                migrateOldPatchData();
+            } else {
+                // do fabric history branch initialization
+                // each container has to make sure their private history branch is created and that it contains
+                // tag related to the "version" of container (child: karaf, ssh: fabric8 or fuse, root: fuse or amq)
+                String tagName = String.format(env.getHistoryTagFormat(), determineVersion(env.getProductId()));
+
+                if (!gitPatchRepository.containsTag(fork, tagName)) {
+
+                }
+            }
 
             // remove pending patches listeners
             for (BundleListener bl : pendingPatchesListeners.values()) {
@@ -1606,35 +1652,6 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             if (fork != null) {
                 gitPatchRepository.closeRepository(fork, true);
             }
-        }
-    }
-
-    /**
-     * <p>Checks the state of git repository that track the patch history</p>
-     * @param git a clone + working copy connected to main repository
-     * @return the state the repository is at
-     */
-    protected InitializationType checkMainRepositoryState(Git git) throws GitAPIException, IOException {
-        // we need baseline distribution of Fuse/AMQ at current version
-        String currentFabricVersion = bundleContext.getBundle().getVersion().toString();
-        String currentFuseVersion = determineVersion("fuse");
-        if (currentFuseVersion == null) {
-            return InitializationType.ERROR_NO_VERSIONS;
-        }
-
-        if (!gitPatchRepository.containsTag(git, String.format("baseline-%s", currentFuseVersion))) {
-            // we have empty repository
-            return InitializationType.INSTALL_BASELINE;
-        } else if (!gitPatchRepository.containsCommit(git, gitPatchRepository.getMainBranchName(),
-                String.format(MARKER_PATCH_MANAGEMENT_INSTALLATION_COMMIT_PATTERN, currentFabricVersion))) {
-            // we already tracked the basline repo, but it seems we're running from patch-management bundle that was simply dropped into deploy/
-            return InitializationType.INSTALL_PATCH_MANAGEMENT_BUNDLE;
-        } else {
-            System.out.println("[PATCH] Baseline distribution already committed for version " + currentFuseVersion);
-            System.out.println("[PATCH] patch-management bundle is already installed in etc/startup.properties at version " + currentFabricVersion);
-            System.out.flush();
-            // we don't check if there are any user changes now, but we will be doing it anyway at each startup of this bundle
-            return InitializationType.ADD_USER_CHANGES;
         }
     }
 
@@ -1673,8 +1690,14 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     /**
-     * Adds baseline distribution to the repository
-     * @param git non-bare repository to perform the operation
+     * Adds baseline distribution to the repository. It serves a different purpose in fabric and standalone scenarios.
+     * In fabric mode, we put another baseline tag for root container when it is upgraded to specific version. The
+     * versioning of root container is performed on another branch.
+     * In standalone mode mode, the same branch is used to track baselines and to versioning of the container itself.
+     * In standalone mode, patches are added to separate branch each.
+     * In fabric mode, patches are added to baseline branches and each container has it's own versioning branch
+     * (private, not pushed to main repository).
+     * @param git non-bare repository to perform the operation with correct branch checked out already
      */
     private RevCommit trackBaselineRepository(Git git) throws IOException, GitAPIException {
         // initialize repo with baseline version and push to reference repo
@@ -1682,9 +1705,10 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         String currentFabricVersion = determineVersion("fabric");
 
         // check what product are we in
-        String baselineLocation = Utils.getBaselineLocationForProduct(karafHome, systemContext, currentFuseVersion);
         File systemRepo = getSystemRepository(karafHome, systemContext);
         File baselineDistribution = null;
+
+        String baselineLocation = Utils.getBaselineLocationForProduct(karafHome, systemContext, currentFuseVersion);
         if (baselineLocation != null) {
             baselineDistribution = new File(patchesDir, baselineLocation);
         } else {
@@ -1706,54 +1730,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             }
         }
         if (baselineDistribution != null) {
-            unpack(baselineDistribution, git.getRepository().getWorkTree(), 1);
-
-            git.add()
-                    .addFilepattern(".")
-                    .call();
-            gitPatchRepository.prepareCommit(git, String.format(MARKER_BASELINE_COMMIT_PATTERN, currentFuseVersion)).call();
-
-            // let's replace the reference to "patch" feature repository, to be able to do rollback to this very first
-            // baseline
-            File featuresCfg = new File(git.getRepository().getWorkTree(), "etc/org.apache.karaf.features.cfg");
-            if (featuresCfg.isFile()) {
-                List<String> lines = FileUtils.readLines(featuresCfg);
-                List<String> newVersion = new LinkedList<>();
-                for (String line : lines) {
-                    if (!line.contains("mvn:io.fabric8.patch/patch-features/")) {
-                        newVersion.add(line);
-                    } else {
-                        String newLine = line.replace(currentFabricVersion, bundleContext.getBundle().getVersion().toString());
-                        newVersion.add(newLine);
-                    }
-                }
-                StringBuilder sb = new StringBuilder();
-                for (String newLine : newVersion) {
-                    sb.append(newLine).append("\n");
-                }
-                FileUtils.write(featuresCfg, sb.toString());
-                git.add()
-                        .addFilepattern("etc/org.apache.karaf.features.cfg")
-                        .call();
-                gitPatchRepository.prepareCommit(git, String.format(MARKER_BASELINE_REPLACE_PATCH_FEATURE_PATTERN,
-                        currentFuseVersion, bundleContext.getBundle().getVersion().toString())).call();
-
-                // let's assume that user didn't change this file and replace it with our version
-                FileUtils.copyFile(featuresCfg,
-                        new File(karafHome, "etc/org.apache.karaf.features.cfg"));
-            }
-
-            // each baseline ships new feature repositories and from this point (or the point where new rollup patch
-            // is installed) we should start with 0-sized overrides.properties in order to have easier non-rollup
-            // patch installation - no P-patch should ADD overrides.properties - they have to only MODIFY it because
-            // it's easier to revert such modification (in case P-patch is rolled back - probably in different order
-            // than it was installed)
-            resetOverrides(git.getRepository().getWorkTree());
-            git.add().addFilepattern("etc/overrides.properties").call();
-            return gitPatchRepository.prepareCommit(git,
-                    String.format(MARKER_BASELINE_RESET_OVERRIDES_PATTERN, currentFuseVersion)).call();
+            return trackBaselineRepository(git, baselineDistribution, currentFuseVersion);
         } else {
-            String message = "Can't find baseline distribution for version \"" + currentFuseVersion + "\" in patches dir or inside system repository.";
+            String message = "Can't find baseline distribution in patches dir or inside system repository.";
             System.err.println("[PATCH-error] " + message);
             System.err.flush();
             throw new PatchException(message);
@@ -1761,21 +1740,24 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     /**
-     * Add baseline to track patches for child containers - baseline comes from resources stored in karaf.admin.core
-     * bundle
+     * Tracks all baselines for child containers that weren't tracked already. These are looked up inside
+     * <code>system/org/apache/karaf/admin/org.apache.karaf.admin.core/**</code>
      * @param fork
      */
     private void trackBaselinesForChildContainers(Git fork) throws IOException, GitAPIException {
-        if (fork.getRepository().getRef("refs/heads/" + gitPatchRepository.getChildBranchName()) != null) {
-            return;
+        if (fork.getRepository().getRef("refs/heads/" + gitPatchRepository.getChildBranchName()) == null) {
+            // checkout patches-child branch - it'll track baselines for fabric:container-create-child containers
+            fork.checkout()
+                    .setName(gitPatchRepository.getChildBranchName())
+                    .setStartPoint("patch-management^{commit}")
+                    .setCreateBranch(true)
+                    .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
+                    .call();
+        } else {
+            fork.checkout()
+                    .setName(gitPatchRepository.getChildBranchName())
+                    .call();
         }
-        // checkout patches-child branch - it'll track baselines for fabric:container-create-child containers
-        fork.checkout()
-                .setName(gitPatchRepository.getChildBranchName())
-                .setStartPoint("patch-management^{commit}")
-                .setCreateBranch(true)
-                .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
-                .call();
 
         File systemRepo = getSystemRepository(karafHome, systemContext);
         File[] versionDirs = new File(systemRepo, "org/apache/karaf/admin/org.apache.karaf.admin.core").listFiles();
@@ -1788,6 +1770,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         }
         for (Version v : versions) {
             String karafVersion = v.toString();
+            String tagName = String.format("baseline-child-%s", karafVersion);
+            if (gitPatchRepository.containsTag(fork, tagName)) {
+                continue;
+            }
+
             File baselineDistribution = null;
             String location = String.format(systemRepo.getCanonicalPath() + "/org/apache/karaf/admin/org.apache.karaf.admin.core/%1$s/org.apache.karaf.admin.core-%1$s.jar", karafVersion);
             if (new File(location).isFile()) {
@@ -1808,7 +1795,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
                     // and we'll tag the child baseline
                     fork.tag()
-                            .setName(String.format("baseline-child-%s", karafVersion))
+                            .setName(tagName)
                             .setObjectId(commit)
                             .call();
                 } catch (Exception e) {
@@ -1845,8 +1832,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 // see: org.apache.karaf.admin.internal.AdminServiceImpl.createInstance()
                 boolean windows = System.getProperty("os.name").startsWith("Win");
                 boolean cygwin = windows && new File(System.getProperty("karaf.home"), "bin/admin").exists();
-                if (windows && !cygwin) {
-                }
+
                 if (!entry.isDirectory() && !entry.isUnixSymlink()) {
                     if (windows && !cygwin) {
                         if (name.startsWith("bin/") && !name.endsWith(".bat")) {
@@ -1879,26 +1865,28 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     /**
      * SSH containers are created from io.fabric8:fabric8-karaf distros. These however may be official, foundation
      * or random (ZIPped from what currently was in FUSE_HOME of the container that created SSH container.
+     * Track all new baselines for SSH containers. These are looked up inside
+     * <code>io/fabric8/fabric8-karaf/**</code>
      * @param fork
      */
     public void trackBaselinesForSSHContainers(Git fork) throws IOException, GitAPIException {
-        if (fork.getRepository().getRef("refs/heads/" + gitPatchRepository.getFuseSSHContainerPatchBranchName()) != null
-                && fork.getRepository().getRef("refs/heads/" + gitPatchRepository.getFabric8SSHContainerPatchBranchName()) != null) {
-            return;
-        }
         // two separate branches for two kinds of baselines for SSH containers
-        fork.checkout()
-                .setName(gitPatchRepository.getFuseSSHContainerPatchBranchName())
-                .setStartPoint("patch-management^{commit}")
-                .setCreateBranch(true)
-                .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
-                .call();
-        fork.checkout()
-                .setName(gitPatchRepository.getFabric8SSHContainerPatchBranchName())
-                .setStartPoint("patch-management^{commit}")
-                .setCreateBranch(true)
-                .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
-                .call();
+        if (fork.getRepository().getRef("refs/heads/" + gitPatchRepository.getFuseSSHContainerPatchBranchName()) == null) {
+            fork.checkout()
+                    .setName(gitPatchRepository.getFuseSSHContainerPatchBranchName())
+                    .setStartPoint("patch-management^{commit}")
+                    .setCreateBranch(true)
+                    .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
+                    .call();
+        }
+        if (fork.getRepository().getRef("refs/heads/" + gitPatchRepository.getFabric8SSHContainerPatchBranchName()) == null) {
+            fork.checkout()
+                    .setName(gitPatchRepository.getFabric8SSHContainerPatchBranchName())
+                    .setStartPoint("patch-management^{commit}")
+                    .setCreateBranch(true)
+                    .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
+                    .call();
+        }
 
         File systemRepo = getSystemRepository(karafHome, systemContext);
         File[] versionDirs = new File(systemRepo, "io/fabric8/fabric8-karaf").listFiles();
@@ -1911,6 +1899,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         }
         for (Version v : versions) {
             String fabric8Version = v.toString();
+            if (gitPatchRepository.containsTag(fork, String.format("baseline-ssh-fabric8-%s", fabric8Version))
+                    || gitPatchRepository.containsTag(fork, String.format("baseline-ssh-fuse-%s", fabric8Version))) {
+                continue;
+            }
+
             File baselineDistribution = null;
             String location = String.format(systemRepo.getCanonicalPath() + "/io/fabric8/fabric8-karaf/%1$s/fabric8-karaf-%1$s.zip", fabric8Version);
             // TODO: probably we should check other classifiers or even groupIds, when we decide to create SSH containers
@@ -1927,15 +1920,15 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     String rootDir = String.format("fabric8-karaf-%s", fabric8Version);
                     String branchName = unzipFabric8Distro(rootDir, baselineDistribution, fork);
 
+                    // and we'll tag the child baseline
+                    String tagName = branchName.replace("patches-", "");
+
                     fork.add()
                             .addFilepattern(".")
                             .call();
                     RevCommit commit = gitPatchRepository.prepareCommit(fork,
-                            String.format(MARKER_BASELINE_CHILD_COMMIT_PATTERN, fabric8Version))
+                            String.format(MARKER_BASELINE_SSH_COMMIT_PATTERN, tagName, fabric8Version))
                             .call();
-
-                    // and we'll tag the child baseline
-                    String tagName = branchName.replace("patches-", "");
 
                     fork.tag()
                             .setName(String.format("baseline-%s-%s", tagName, fabric8Version))
@@ -2028,6 +2021,171 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 zf.close();
             }
         }
+    }
+
+    /**
+     * These baselines are created from org.jboss.fuse:jboss-fuse-full or org.jboss.amq:jboss-a-mq baseline distros.
+     * @param fork
+     */
+    private void trackBaselinesForRootContainer(Git fork) throws IOException, GitAPIException {
+        // two separate branches for two kinds of baselines for root containers
+        if (fork.getRepository().getRef("refs/heads/" + gitPatchRepository.getFuseRootContainerPatchBranchName()) == null) {
+            fork.checkout()
+                    .setName(gitPatchRepository.getFuseRootContainerPatchBranchName())
+                    .setStartPoint("patch-management^{commit}")
+                    .setCreateBranch(true)
+                    .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
+                    .call();
+        }
+        if (fork.getRepository().getRef("refs/heads/" + gitPatchRepository.getAmqRootContainerPatchBranchName()) == null) {
+            fork.checkout()
+                    .setName(gitPatchRepository.getAmqRootContainerPatchBranchName())
+                    .setStartPoint("patch-management^{commit}")
+                    .setCreateBranch(true)
+                    .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
+                    .call();
+        }
+
+        File systemRepo = getSystemRepository(karafHome, systemContext);
+        String currentFuseVersion = determineVersion("fuse");
+        String currentFabricVersion = determineVersion("fabric");
+
+        // Fuse distros first
+        File[] versionDirs = new File(systemRepo, "org/jboss/fuse/jboss-fuse-full").listFiles();
+        Map<Version, File> versions = new TreeMap<>();
+
+        fork.checkout().setName(gitPatchRepository.getFuseRootContainerPatchBranchName()).call();
+
+        // we'll look for Fuse/AMQ baseline in /patches dir too - it doesn't have to be present
+        versions.put(new Version(currentFuseVersion), patchesDir);
+        for (File version : versionDirs) {
+            if (version.isDirectory()) {
+                versions.put(new Version(version.getName()), version);
+            }
+        }
+        for (Map.Entry<Version, File> entry : versions.entrySet()) {
+            String version = entry.getKey().toString();
+            if (gitPatchRepository.containsTag(fork, String.format("baseline-root-fuse-%s", version))) {
+                continue;
+            }
+
+            File baselineDistribution = null;
+            File location = new File(entry.getValue(), String.format("jboss-fuse-full-%1$s-baseline.zip", version));
+            if (location.isFile()) {
+                baselineDistribution = location;
+                System.out.println("[PATCH] Found Fuse baseline distribution: " + baselineDistribution.getCanonicalPath());
+            }
+
+            if (baselineDistribution != null) {
+                RevCommit commit = trackBaselineRepository(fork, baselineDistribution, version);
+                fork.tag()
+                        .setName(String.format("baseline-root-fuse-%s", version))
+                        .setObjectId(commit)
+                        .call();
+            }
+        }
+
+        // Now AMQ distros
+        versionDirs = new File(systemRepo, "org/jboss/amq/jboss-a-mq").listFiles();
+        versions.clear();
+
+        fork.checkout().setName(gitPatchRepository.getAmqRootContainerPatchBranchName()).call();
+
+        // we'll look for Fuse/AMQ baseline in /patches dir too - it doesn't have to be present
+        versions.put(new Version(currentFuseVersion), patchesDir);
+        for (File version : versionDirs) {
+            if (version.isDirectory()) {
+                versions.put(new Version(version.getName()), version);
+            }
+        }
+        for (Map.Entry<Version, File> entry : versions.entrySet()) {
+            String version = entry.getKey().toString();
+            if (gitPatchRepository.containsTag(fork, String.format("baseline-root-amq-%s", version))) {
+                continue;
+            }
+
+            File baselineDistribution = null;
+            File location = new File(entry.getValue(), String.format("jboss-a-mq-%1$s-baseline.zip", version));
+            if (location.isFile()) {
+                baselineDistribution = location;
+                System.out.println("[PATCH] Found AMQ baseline distribution: " + baselineDistribution.getCanonicalPath());
+            }
+
+            if (baselineDistribution != null) {
+                RevCommit commit = trackBaselineRepository(fork, baselineDistribution, version);
+                fork.tag()
+                        .setName(String.format("baseline-root-amq-%s", version))
+                        .setObjectId(commit)
+                        .call();
+            }
+        }
+
+        gitPatchRepository.push(fork, gitPatchRepository.getFuseRootContainerPatchBranchName());
+        gitPatchRepository.push(fork, gitPatchRepository.getAmqRootContainerPatchBranchName());
+    }
+
+    /**
+     * Adds the content of baseline Fuse/AMQ distribution to git repository.
+     * These are the "biggest" baselines - we also do etc/overrides.properties reset.
+     * @param git
+     * @param baselineDistribution
+     * @param version
+     * @throws IOException
+     * @throws GitAPIException
+     */
+    private RevCommit trackBaselineRepository(Git git, File baselineDistribution, String version) throws IOException, GitAPIException {
+        unpack(baselineDistribution, git.getRepository().getWorkTree(), 1);
+
+        String fabricVersion = determineVersion(git.getRepository().getWorkTree(), "fuse");
+
+        git.add()
+                .addFilepattern(".")
+                .call();
+        gitPatchRepository.prepareCommit(git, String.format(MARKER_BASELINE_COMMIT_PATTERN, version)).call();
+
+        if (!env.isFabric()) {
+            // let's replace the reference to "patch" feature repository, to be able to do rollback to this very first
+            // baseline
+            File featuresCfg = new File(git.getRepository().getWorkTree(), "etc/org.apache.karaf.features.cfg");
+            if (featuresCfg.isFile()) {
+                List<String> lines = FileUtils.readLines(featuresCfg);
+                List<String> newVersion = new LinkedList<>();
+                for (String line : lines) {
+                    if (!line.contains("mvn:io.fabric8.patch/patch-features/")) {
+                        newVersion.add(line);
+                    } else {
+                        // use version of current bundle, so rolling back to that baseline won't bring us
+                        // to old patch management
+                        String newLine = line.replace(fabricVersion, bundleContext.getBundle().getVersion().toString());
+                        newVersion.add(newLine);
+                    }
+                }
+                StringBuilder sb = new StringBuilder();
+                for (String newLine : newVersion) {
+                    sb.append(newLine).append("\n");
+                }
+                FileUtils.write(featuresCfg, sb.toString());
+                git.add()
+                        .addFilepattern("etc/org.apache.karaf.features.cfg")
+                        .call();
+                gitPatchRepository.prepareCommit(git, String.format(MARKER_BASELINE_REPLACE_PATCH_FEATURE_PATTERN,
+                        version, bundleContext.getBundle().getVersion().toString())).call();
+
+                // let's assume that user didn't change this file and replace it with our version
+                FileUtils.copyFile(featuresCfg,
+                        new File(karafHome, "etc/org.apache.karaf.features.cfg"));
+            }
+        }
+
+        // each baseline ships new feature repositories and from this point (or the point where new rollup patch
+        // is installed) we should start with 0-sized overrides.properties in order to have easier non-rollup
+        // patch installation - no P-patch should ADD overrides.properties - they have to only MODIFY it because
+        // it's easier to revert such modification (in case P-patch is rolled back - probably in different order
+        // than it was installed)
+        resetOverrides(git.getRepository().getWorkTree());
+        git.add().addFilepattern("etc/overrides.properties").call();
+        return gitPatchRepository.prepareCommit(git,
+                String.format(MARKER_BASELINE_RESET_OVERRIDES_PATTERN, version)).call();
     }
 
     /**
@@ -2487,22 +2645,6 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     private void movePatchData(File systemBundleData) throws IOException {
         FileUtils.copyDirectory(systemBundleData, patchesDir);
         FileUtils.deleteDirectory(systemBundleData);
-    }
-
-    /**
-     * State of <code>${fuse.patch.location}/.management/history</code> repository indicating next action required
-     */
-    public enum InitializationType {
-        /** Everything is setup */
-        READY,
-        /** Baseline is committed into the repository and patch-management bundle is installed in etc/startup.properties */
-        ADD_USER_CHANGES,
-        /** Baseline is committed into the repository, patch-management bundle is still only in deploy/ directory and not in etc/startup.properties */
-        INSTALL_PATCH_MANAGEMENT_BUNDLE,
-        /** Baseline isn't installed yet (or isn't installed at desired version) */
-        INSTALL_BASELINE,
-        /** Can't determine version from the installation files */
-        ERROR_NO_VERSIONS
     }
 
 }

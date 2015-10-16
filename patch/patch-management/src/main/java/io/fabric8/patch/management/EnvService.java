@@ -15,6 +15,9 @@
  */
 package io.fabric8.patch.management;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+
 /**
  * Interface used by {@link io.fabric8.patch.management.impl.GitPatchManagementService} to check the context and
  * environment capabilities.
@@ -26,6 +29,6 @@ public interface EnvService {
      * patch history (standalone, fabric root container) or not (child, ssh container)
      * @return
      */
-    EnvType determineEnvironmentType();
+    EnvType determineEnvironmentType() throws IOException;
 
 }

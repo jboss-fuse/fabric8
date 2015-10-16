@@ -16,6 +16,7 @@
 package io.fabric8.patch.management.impl;
 
 import java.io.File;
+import java.io.IOException;
 
 import io.fabric8.patch.management.EnvService;
 import io.fabric8.patch.management.EnvType;
@@ -25,28 +26,65 @@ public class DefaultEnvService implements EnvService {
 
     private final BundleContext systemContext;
     private final File karafHome;
-    private final File patchesDir;
+    private final File karafBase;
 
-    public DefaultEnvService(BundleContext systemContext, File karafHome, File patchesDir) {
+    public DefaultEnvService(BundleContext systemContext, File karafHome, File karafBase) {
         this.systemContext = systemContext;
         this.karafHome = karafHome;
-        this.patchesDir = patchesDir;
+        this.karafBase = karafBase;
     }
 
     @Override
-    public EnvType determineEnvironmentType() {
+    public EnvType determineEnvironmentType() throws IOException {
+        if (Boolean.getBoolean("patching.disabled")) {
+            return EnvType.UNKNOWN;
+        }
+
         File localGitRepository = new File(systemContext.getProperty("karaf.data"), "git/local/fabric");
+        boolean isChild = isChild(systemContext);
         if (localGitRepository.isDirectory() && new File(localGitRepository, ".git").isDirectory()) {
             // we have git repository of current container - is it initalized?
             boolean hasMasterBranch = new File(localGitRepository, ".git/refs/heads/master").isFile();
             boolean hasRootTag = new File(localGitRepository, ".git/refs/tags/root").isFile();
             if (hasMasterBranch && hasRootTag) {
-                // this may as well be SSH or child container - we'll detect it later
-                return EnvType.FABRIC_ROOT;
+                if (isChild) {
+                    return EnvType.FABRIC_CHILD;
+                } else {
+                    // is it enough?
+                    if (new File(karafHome, "bin/fuse").isFile()
+                            || new File(karafHome, "bin/fuse.bat").isFile()) {
+                        return EnvType.FABRIC_FUSE;
+                    } else if (new File(karafHome, "bin/amq").isFile()
+                            || new File(karafHome, "bin/amq.bat").isFile()) {
+                        return EnvType.FABRIC_AMQ;
+                    } else if (new File(karafHome, "bin/fabric8").isFile()
+                            || new File(karafHome, "bin/fabric8.bat").isFile()) {
+                        return EnvType.FABRIC_FABRIC8;
+                    }
+                }
+            }
+            return EnvType.UNKNOWN;
+        }
+
+        return /*isChild ? EnvType.STANDALONE_CHILD : */EnvType.STANDALONE;
+    }
+
+    /**
+     * Using some String manipulation it returns whether we have Karaf child container
+     * @param systemContext
+     * @return
+     */
+    private boolean isChild(BundleContext systemContext) {
+        String karafName = systemContext.getProperty("karaf.name");
+        String karafInstances = systemContext.getProperty("karaf.instances");
+        String karafHome = systemContext.getProperty("karaf.home");
+        String karafBase = systemContext.getProperty("karaf.base");
+        if (!karafBase.equals(karafHome)) {
+            if ((karafInstances + "/" + karafName).equals(karafBase)) {
+                return true;
             }
         }
-        // no git repo or it is empty
-        return EnvType.STANDALONE;
+        return false;
     }
 
 }

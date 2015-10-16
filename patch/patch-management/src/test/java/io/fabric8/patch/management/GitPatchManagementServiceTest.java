@@ -37,6 +37,7 @@ import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.osgi.framework.startlevel.BundleStartLevel;
 
@@ -62,10 +63,11 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
     @Test
     public void disabledPatchManagement() throws IOException, GitAPIException {
-        properties.remove("fuse.patch.location");
+        System.setProperty("patching.disabled", "true");
         pm = new GitPatchManagementServiceImpl(bundleContext);
         pm.start();
         assertFalse(pm.isEnabled());
+        System.setProperty("patching.disabled", "");
     }
 
     @Test
@@ -83,7 +85,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
             pm.ensurePatchManagementInitialized();
             fail("Should fail, because versions can't be determined");
         } catch (PatchException e) {
-            assertTrue(e.getMessage().contains("Can't determine Fuse/Fabric8 version"));
+            assertTrue(e.getMessage().contains("Can't find"));
         }
     }
 
@@ -524,7 +526,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         Git fork = transactions.values().iterator().next();
         ObjectId currentBranch = fork.getRepository().resolve("HEAD^{commit}");
         ObjectId tempBranch = fork.getRepository().resolve(tx + "^{commit}");
-        ObjectId masterBranch = fork.getRepository().resolve("patches-standalone^{commit}");
+        ObjectId masterBranch = fork.getRepository().resolve(GitPatchRepository.HISTORY_BRANCH + "^{commit}");
         ObjectId baseline = fork.getRepository().resolve("refs/tags/baseline-6.2.0^{commit}");
         assertThat(tempBranch, equalTo(currentBranch));
         assertThat(tempBranch, not(equalTo(baseline)));
@@ -630,7 +632,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         Patch patch = management.trackPatch(patches.get(0));
 
         Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
-        ObjectId master1 = fork.getRepository().resolve("patches-standalone");
+        ObjectId master1 = fork.getRepository().resolve(GitPatchRepository.HISTORY_BRANCH);
 
         String tx = management.beginInstallation(PatchKind.ROLLUP);
         management.install(tx, patch, null);
@@ -638,7 +640,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
         repository.closeRepository(fork, true);
         fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
-        ObjectId master2 = fork.getRepository().resolve("patches-standalone");
+        ObjectId master2 = fork.getRepository().resolve(GitPatchRepository.HISTORY_BRANCH);
 
         assertThat(master1, not(equalTo(master2)));
         assertThat(fork.tagList().call().size(), equalTo(3));
@@ -677,7 +679,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         Patch patch4 = management.trackPatch(patches.get(0));
 
         Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
-        ObjectId master1 = fork.getRepository().resolve("patches-standalone");
+        ObjectId master1 = fork.getRepository().resolve(GitPatchRepository.HISTORY_BRANCH);
 
         String tx = management.beginInstallation(PatchKind.ROLLUP);
         management.install(tx, patch4, null);
@@ -695,7 +697,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
         repository.closeRepository(fork, true);
         fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
-        ObjectId master2 = fork.getRepository().resolve("patches-standalone");
+        ObjectId master2 = fork.getRepository().resolve(GitPatchRepository.HISTORY_BRANCH);
 
         assertThat(master1, not(equalTo(master2)));
         assertThat(fork.tagList().call().size(), equalTo(2));
@@ -801,7 +803,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         Patch patch = management.trackPatch(patches.get(0));
 
         Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
-        ObjectId master1 = fork.getRepository().resolve("patches-standalone");
+        ObjectId master1 = fork.getRepository().resolve(GitPatchRepository.HISTORY_BRANCH);
 
         String tx = management.beginInstallation(PatchKind.NON_ROLLUP);
         management.install(tx, patch, null);
@@ -809,7 +811,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
         repository.closeRepository(fork, true);
         fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
-        ObjectId master2 = fork.getRepository().resolve("patches-standalone");
+        ObjectId master2 = fork.getRepository().resolve(GitPatchRepository.HISTORY_BRANCH);
 
         assertThat(master1, not(equalTo(master2)));
         assertThat(fork.tagList().call().size(), equalTo(3));
@@ -838,7 +840,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         Patch patch = management.trackPatch(patches.get(0));
 
         Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
-        ObjectId master1 = fork.getRepository().resolve("patches-standalone");
+        ObjectId master1 = fork.getRepository().resolve(GitPatchRepository.HISTORY_BRANCH);
 
         String tx = management.beginInstallation(PatchKind.NON_ROLLUP);
         management.install(tx, patch, null);
@@ -848,7 +850,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
         repository.closeRepository(fork, true);
         fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
-        ObjectId master2 = fork.getRepository().resolve("patches-standalone");
+        ObjectId master2 = fork.getRepository().resolve(GitPatchRepository.HISTORY_BRANCH);
 
         assertThat(master1, not(equalTo(master2)));
         assertThat(fork.tagList().call().size(), equalTo(2));

@@ -39,6 +39,8 @@ public interface GitPatchRepository {
     public static final DateFormat TS = new SimpleDateFormat("yyyyMMdd-HHmmssSSS");
     public static final DateFormat FULL_DATE = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
+    public static final String HISTORY_BRANCH = "container-history";
+
     /**
      * Call if needed - when patch manager finds that it should use the repository.
      * Prepares resources (like {@link org.eclipse.jgit.api.Git} instance.
@@ -199,4 +201,21 @@ public interface GitPatchRepository {
      */
     String getFabric8SSHContainerPatchBranchName();
 
+    /**
+     * Returns the name chosen as patch branch for root containers created from Fuse distro.
+     * @return
+     */
+    String getFuseRootContainerPatchBranchName();
+
+    /**
+     * Returns the name chosen as patch branch for root containers created from AMQ distro.
+     * @return
+     */
+    String getAmqRootContainerPatchBranchName();
+
+    /**
+     * Let know the repository, that each push should be followed but push from main repository (fabric mode)
+     * @param b
+     */
+    void setMaster(boolean b);
 }

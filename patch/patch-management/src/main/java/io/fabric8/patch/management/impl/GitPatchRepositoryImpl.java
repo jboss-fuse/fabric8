@@ -27,7 +27,6 @@ import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.fabric8.patch.management.EnvType;
 import io.fabric8.patch.management.ManagedPatch;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.CommitCommand;
@@ -59,10 +58,12 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
     private static final Pattern BASELINE_TAG_PATTERN = Pattern.compile("^baseline-(.+)$");
 
     // what kind of env we're operating?
-    private final EnvType env;
+    private final boolean isFabric;
 
     // ${karaf.home}
     private File karafHome;
+    // ${karaf.base}
+    private File karafBase;
     // main patches directory at ${fuse.patch.location} (defaults to ${karaf.home}/patches)
     private File patchesDir;
 
@@ -77,30 +78,49 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
 
     // main patch branch name that tracks the history of patch installations/rollbacks for current product
     private String mainPatchBranchName;
-    // in fabric mode, we will have separate patch branches for SSH and child containers
+
+    // in fabric mode, we will have separate patch branches for root, SSH and child containers
     private String childContainerPatchBranchName;
     // history of patches for SSH containers created from unreliable distro (ZIPped Fuse)
     private String fuseSSHContainerPatchBranchName;
     // history of patches for SSH containers created from reliable (official, not ZIPped on the fly) distro
     private String fabric8SSHContainerPatchBranchName;
+    // history of baselines for Fuse root container
+    private String fuseRootContainerPatchBranchName;
+    // history of baselines for AMQ root container
+    private String amqRootContainerPatchBranchName;
 
-    public GitPatchRepositoryImpl(EnvType envType, File patchRepositoryLocation, File karafHome, File patchesDir) {
-        this.env = envType;
-        switch (envType) {
-            case STANDALONE:
-                // let's prepare for incoming fabric:create - to not have problems when pushing "master"
-                // to fabric's local repo
-                this.mainPatchBranchName = "patches-standalone";
-                break;
-            case FABRIC_ROOT:
-                this.mainPatchBranchName = "patches-root";
-                this.childContainerPatchBranchName = "patches-child";
-                this.fuseSSHContainerPatchBranchName = "patches-ssh-fuse";
-                this.fabric8SSHContainerPatchBranchName = "patches-ssh-fabric8";
-                break;
+    // are we master repository? (doing further pushes to origin?)
+    private boolean master;
+
+    /**
+     * @param fabric
+     * @param patchRepositoryLocation
+     * @param karafHome
+     * @param patchesDir
+     */
+    public GitPatchRepositoryImpl(boolean fabric, File patchRepositoryLocation, File karafHome, File karafBase, File patchesDir) {
+        this.isFabric = fabric;
+
+        // private branch - don't pushed anywhere outside of patches/.management/history
+        // in either env, each container tracks its own history - this branch's HEAD shows how ${karaf.base} looks
+        // like. In fabric mode, each container's history branch starts with copy of particular baseline tag
+        // and have custom changes on top. When fabric-agent detects the upgrade/downgrade, it rebuilds the
+        // container history from another baseline
+        this.mainPatchBranchName = GitPatchRepository.HISTORY_BRANCH;
+
+        // in fabric mode we track history of baselines for each kind of container
+        if (isFabric) {
+            this.childContainerPatchBranchName = "patches-child";
+            this.fuseSSHContainerPatchBranchName = "patches-ssh-fuse";
+            this.fabric8SSHContainerPatchBranchName = "patches-ssh-fabric8";
+            this.fuseRootContainerPatchBranchName = "patches-root-fuse";
+            this.amqRootContainerPatchBranchName = "patches-root-amq";
         }
+
         this.gitPatchManagement = patchRepositoryLocation;
         this.karafHome = karafHome;
+        this.karafBase = karafBase;
         this.patchesDir = patchesDir;
     }
 
@@ -163,7 +183,7 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
         } catch (RepositoryNotFoundException fallback) {
             try {
                 Git git = Git.init()
-                        .setBare(bare && !env.isFabric())
+                        .setBare(bare && !isFabric)
                         .setDirectory(directory)
                         .call();
 
@@ -185,14 +205,13 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
                 push(fork);
                 closeRepository(fork, true);
 
-                if (env.isFabric()) {
+                if (isFabric) {
                     // we connect patch repo with fabric repo
-                    File origin = new File(karafHome, "data/git/local/fabric/.git");
+                    File origin = new File(karafHome, "data/git/local/fabric");
                     StoredConfig config = git.getRepository().getConfig();
                     config.setString("remote", "origin", "url", origin.getCanonicalPath());
                     config.setString("remote", "origin", "fetch", "+refs/heads/*:refs/remotes/origin/*");
                     config.save();
-                    push(git, getMainBranchName());
                 }
 
                 return git;
@@ -277,7 +296,14 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
                 .setPushTags()
                 .setForce(true)
                 .call();
-        if (env.isFabric() && mainRepository != null) {
+
+        // in fabric env we synchronize changes with "local" git repo, which will be then (from fabric-agent)
+        // pushed further to cluster's git repo
+        if (master && mainRepository != null
+                && !branch.startsWith("patch-")
+                && !branch.startsWith("private-")) {
+            // we don't push "patch-*" branches to central repo (we push "patches-*")
+            // "private-*" branches are used to track current container's history
             mainRepository.push()
                     .setRemote("origin")
                     .setRefSpecs(new RefSpec(branch))
@@ -430,12 +456,29 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
         return childContainerPatchBranchName;
     }
 
+    @Override
     public String getFuseSSHContainerPatchBranchName() {
         return fuseSSHContainerPatchBranchName;
     }
 
+    @Override
     public String getFabric8SSHContainerPatchBranchName() {
         return fabric8SSHContainerPatchBranchName;
+    }
+
+    @Override
+    public String getFuseRootContainerPatchBranchName() {
+        return fuseRootContainerPatchBranchName;
+    }
+
+    @Override
+    public String getAmqRootContainerPatchBranchName() {
+        return amqRootContainerPatchBranchName;
+    }
+
+    @Override
+    public void setMaster(boolean master) {
+        this.master = master;
     }
 
 }

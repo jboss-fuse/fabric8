@@ -46,8 +46,6 @@ import java.util.zip.ZipOutputStream;
 
 import io.fabric8.patch.Service;
 import io.fabric8.patch.management.BundleUpdate;
-import io.fabric8.patch.management.EnvService;
-import io.fabric8.patch.management.EnvType;
 import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.management.PatchData;
 import io.fabric8.patch.management.PatchException;
@@ -61,7 +59,6 @@ import org.apache.aries.util.io.IOUtils;
 import org.apache.commons.io.FileUtils;
 import org.easymock.EasyMock;
 import org.easymock.IAnswer;
-import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.junit.After;
 import org.junit.Before;
@@ -69,7 +66,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
-import org.osgi.framework.BundleListener;
 import org.osgi.framework.FrameworkListener;
 import org.osgi.framework.Version;
 import org.osgi.framework.startlevel.BundleStartLevel;
@@ -216,12 +212,7 @@ public class ServiceImplTest {
         expect(sysBundleContext.getProperty("karaf.data")).andReturn(karaf.getCanonicalPath() + "/data").anyTimes();
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository);
 
-        PatchManagement pm = new GitPatchManagementServiceImpl(bundleContext) {
-            @Override
-            protected GitPatchManagementServiceImpl.InitializationType checkMainRepositoryState(Git git) throws GitAPIException, IOException {
-                return InitializationType.READY;
-            }
-        };
+        PatchManagement pm = new GitPatchManagementServiceImpl(bundleContext);
         ((GitPatchManagementServiceImpl)pm).setGitPatchRepository(repository);
 
         ServiceImpl service = new ServiceImpl();
@@ -353,12 +344,7 @@ public class ServiceImplTest {
         }
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository);
 
-        PatchManagement pm = new GitPatchManagementServiceImpl(bundleContext) {
-            @Override
-            protected GitPatchManagementServiceImpl.InitializationType checkMainRepositoryState(Git git) throws GitAPIException, IOException {
-                return InitializationType.READY;
-            }
-        };
+        PatchManagement pm = new GitPatchManagementServiceImpl(bundleContext);
         ((GitPatchManagementServiceImpl)pm).setGitPatchRepository(repository);
 
         ServiceImpl service = new ServiceImpl();
@@ -568,12 +554,8 @@ public class ServiceImplTest {
         verify(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
     }
 
-    private GitPatchManagementServiceImpl mockManagementService(final BundleContext bundleContext) {
+    private GitPatchManagementServiceImpl mockManagementService(final BundleContext bundleContext) throws IOException {
         return new GitPatchManagementServiceImpl(bundleContext) {
-            @Override
-            protected InitializationType checkMainRepositoryState(Git git) throws GitAPIException, IOException {
-                return InitializationType.READY;
-            }
             @Override
             public Patch trackPatch(PatchData patchData) throws PatchException {
                 return new Patch(patchData, null);
@@ -593,6 +575,7 @@ public class ServiceImplTest {
             @Override
             public void commitInstallation(String transaction) {
             }
+
         };
     }
 
