@@ -23,9 +23,12 @@ import java.net.URLConnection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import io.fabric8.api.FabricService;
 import io.fabric8.api.GitContext;
+import io.fabric8.api.Profile;
 import io.fabric8.api.ProfileRegistry;
 import io.fabric8.api.RuntimeProperties;
 import io.fabric8.common.util.Base64Encoder;
@@ -52,6 +55,7 @@ import org.apache.felix.utils.version.VersionTable;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.BundleException;
 import org.osgi.framework.Version;
 import org.osgi.service.component.ComponentContext;
 
@@ -81,19 +85,40 @@ public class FabricPatchServiceImpl implements FabricPatchService {
 
     private BundleContext bundleContext;
     private File karafHome;
-    // by default it's ${karaf.home}/system
-    private File repository;
 
     private OSGiPatchHelper helper;
 
     @Activate
-    void activate(ComponentContext componentContext) throws IOException {
+    void activate(ComponentContext componentContext) throws IOException, BundleException {
         // Use system bundle' bundle context to avoid running into
         // "Invalid BundleContext" exceptions when updating bundles
         this.bundleContext = componentContext.getBundleContext().getBundle(0).getBundleContext();
         this.karafHome = new File(bundleContext.getProperty("karaf.home"));
-        this.repository = new File(bundleContext.getProperty("karaf.default.repository"));
         helper = new OSGiPatchHelper(karafHome, bundleContext);
+
+        if (fabricService != null) {
+            Profile profile = fabricService.getCurrentContainer().getOverlayProfile();
+            Map<String, String> versions = profile.getConfiguration("io.fabric8.version");
+            if (patchManagement.alignTo(versions)) {
+                // we need restart
+//                boolean handlesFullRestart = Boolean.getBoolean("karaf.restart.jvm.supported");
+//                if (handlesFullRestart) {
+//                    System.setProperty("karaf.restart.jvm", "true");
+//                }
+//                System.out.println("[PATCH] Restarting after updating container resources in 10 seconds...");
+                System.out.println("[PATCH] Container has to be restarted. Please restart after agent finishes processing...");
+//                new ScheduledThreadPoolExecutor(1).schedule(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        try {
+//                            bundleContext.getBundle(0L).stop();
+//                        } catch (BundleException e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
+//                }, 10, TimeUnit.SECONDS);
+            }
+        }
     }
 
     @Override
@@ -210,7 +235,6 @@ public class FabricPatchServiceImpl implements FabricPatchService {
 
     @Override
     public void synchronize() throws Exception {
-        gitDataStore.doPush(gitDataStore.getGit(), new GitContext().setRequirePush(true));
         GitOperation operation = new GitOperation() {
             @Override
             public Object call(Git git, GitContext context) throws Exception {

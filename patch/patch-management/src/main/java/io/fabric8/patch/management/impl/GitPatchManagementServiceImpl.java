@@ -637,6 +637,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
             // track other kinds of baselines found in the patch
             if (env.isFabric()) {
+                trackBaselinesForRootContainer(fork);
                 trackBaselinesForChildContainers(fork);
                 trackBaselinesForSSHContainers(fork);
             }
@@ -1631,17 +1632,13 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 // do fabric history branch initialization
                 // each container has to make sure their private history branch is created and that it contains
                 // tag related to the "version" of container (child: karaf, ssh: fabric8 or fuse, root: fuse or amq)
-                String tagName = String.format(env.getHistoryTagFormat(), determineVersion(env.getProductId()));
+                String tagName = String.format(env.getBaselineTagFormat(), determineVersion(env.getProductId()));
 
-                if (!gitPatchRepository.containsTag(fork, tagName)) {
-                    trackFabricContainerBaselineRepository(fork);
+                RevTag tag = gitPatchRepository.findCurrentBaseline(fork);
+                if (tag == null/* || !tagName.equals(tag.getTagName())*/) {
+                    trackFabricContainerBaselineRepository(fork, null);
+                    applyUserChanges(fork);
                 }
-                applyUserChanges(fork);
-            }
-
-            if (master) {
-                // let's push one repository further
-
             }
 
             // remove pending patches listeners
@@ -2210,7 +2207,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * <strong>always</strong> changes private history branch and align current version
      * @param fork
      */
-    private void trackFabricContainerBaselineRepository(Git fork) throws IOException, GitAPIException {
+    private void trackFabricContainerBaselineRepository(Git fork, String version) throws IOException, GitAPIException {
         if (fork.getRepository().getRef("refs/heads/" + gitPatchRepository.getMainBranchName()) == null) {
             fork.checkout()
                     .setName(gitPatchRepository.getMainBranchName())
@@ -2225,6 +2222,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         }
 
         // we may still be on the baseline from the time before fabric:create!
+
+        if (version == null) {
+            // align to version determined from environment
+            version = determineVersion(env.getProductId());
+        }
 
         // user changes in history
         ObjectId since = fork.getRepository().resolve("patch-management^{commit}");
@@ -2241,7 +2243,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         // let's rewrite history
         fork.reset()
                 .setMode(ResetCommand.ResetType.HARD)
-                .setRef(String.format(env.getBaselineTagFormat(), determineVersion(env.getProductId())))
+                .setRef(String.format(env.getBaselineTagFormat(), version))
                 .call();
 
         // and pick up user changes just like we'd install Rollup patch
@@ -2261,7 +2263,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     .setNoCommit(true)
                     .call();
             // no backup (!?)
-            handleCherryPickConflict(null, fork, result, userChange, true, PatchKind.ROLLUP, null, false);
+            handleCherryPickConflict(null, fork, result, userChange, false, PatchKind.ROLLUP, null, false);
 
             gitPatchRepository.prepareCommit(fork, userChange.getFullMessage()).call();
 
@@ -2678,6 +2680,42 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 gitPatchRepository.closeRepository(git, false);
             }
         }
+    }
+
+    @Override
+    public boolean alignTo(Map<String, String> versions) throws PatchException {
+        if (env.isFabric()) {
+            Git fork = null;
+            try {
+                String version = versions.get(env.getProductId());
+                String tagName = String.format(env.getBaselineTagFormat(), version);
+                // we have to be at that tag
+                Git mainRepository = gitPatchRepository.findOrCreateMainGitRepository();
+                fork = gitPatchRepository.cloneRepository(mainRepository, true);
+                fork.checkout()
+                        .setName(gitPatchRepository.getMainBranchName())
+                        .call();
+
+                RevTag tag = gitPatchRepository.findCurrentBaseline(fork);
+                if (tag != null && tagName.equals(tag.getTagName())) {
+                    return false;
+                }
+
+                applyUserChanges(fork);
+                trackFabricContainerBaselineRepository(fork, version);
+                applyChanges(fork);
+
+                return true;
+            } catch (Exception e) {
+                throw new PatchException(e.getMessage(), e);
+            } finally {
+                if (fork != null) {
+                    gitPatchRepository.closeRepository(fork, true);
+                }
+            }
+        }
+
+        return false;
     }
 
     /**

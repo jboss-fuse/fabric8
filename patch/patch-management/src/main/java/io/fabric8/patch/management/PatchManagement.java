@@ -16,13 +16,16 @@
 package io.fabric8.patch.management;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.ProtocolException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.List;
+import java.util.Map;
 
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.errors.GitAPIException;
 
 /**
  * <p>Interface to an OSGi service that can handle low-level patch management operations.</p>
@@ -120,6 +123,14 @@ public interface PatchManagement {
      * @param strategy
      */
     void installProfiles(File gitRepository, String versionId, Patch patch, ProfileUpdateStrategy strategy);
+
+    /**
+     * Patching services can be called from high level services. This method takes a map of versions
+     * (<code>io.fabric8.version</code> PID). It's job is to update static resources of the container.
+     * @param versions
+     * @return <code>true</code> if container needs restart
+     */
+    boolean alignTo(Map<String, String> versions) throws PatchException;
 
     /**
      * Callback to be passed to method that uploads content of retrieved patched to remote repository.
