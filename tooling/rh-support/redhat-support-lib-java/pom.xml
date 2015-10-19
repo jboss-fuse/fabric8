@@ -3423,6 +3423,21 @@
         </executions>
         <inherited>false</inherited>
       </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <configuration>
+              <archive>
+                <manifestEntries>
+                  <Bundle-SymbolicName>${project.groupId}.${project.artifactId}.source</Bundle-SymbolicName>
+                  <Bundle-Version>${fuse.osgi.version.clean}</Bundle-Version>
+                  <Eclipse-SourceBundle>
+                    ${project.groupId}.${project.artifactId};version="${fuse.osgi.version.clean}"
+                  </Eclipse-SourceBundle>
+                </manifestEntries>
+              </archive>
+            </configuration>
+          </plugin>
 		</plugins>
 		<finalName>redhat-support-lib-java</finalName>
 	</build>
