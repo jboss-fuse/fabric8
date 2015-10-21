@@ -34,15 +34,16 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.karaf.admin.InstanceSettings;
 import org.apache.karaf.admin.management.AdminServiceMBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.TabularData;
-import java.net.URL;
-import java.util.*;
+import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 
 import static io.fabric8.utils.Ports.mapPortToRange;
 
@@ -330,49 +331,15 @@ public final class ChildContainerProvider extends AbstractComponent implements C
             rmiRegistryPort = portService.registerPort(child, "org.apache.karaf.management", "rmiRegistryPort", minimumPort, maximumPort, usedPorts);
         }
         try {
-            String javaOpts = (jvmOptsBuilder != null && !jvmOptsBuilder.equals("")) ? jvmOptsBuilder.toString() : null;
-
-            //shade startup.properties to support decoupled children versions
-            Map<String,URL> textResources = new HashMap();
-            textResources.put("etc/startup.properties", new URL("file://" + getParentBasePath(parent.getId(), adminService) +  "/etc/startup.properties"));
-
-            InstanceSettings settings = new InstanceSettings(sshPort, rmiRegistryPort, rmiServerPort, null, javaOpts,
-                    parseStringList(featuresUrls), parseStringList(collectionAsString(features)), textResources, new HashMap<String, URL>());
-            adminService.createInstance(containerName, settings);
+            adminService.createInstance(containerName,
+                    sshPort,
+                    rmiRegistryPort,
+                    rmiServerPort, null, jvmOptsBuilder.toString(), collectionAsString(features), featuresUrls);
             adminService.startInstance(containerName, null);
         } catch (Throwable t) {
             metadata.setFailure(t);
         }
         return metadata;
-    }
-
-    private String getParentBasePath(String parentName, AdminServiceMBean adminService) throws Exception {
-        String result = "";
-        TabularData instances = adminService.getInstances();
-        Collection<CompositeDataSupport> values = (Collection<CompositeDataSupport>) instances.values();
-        for(CompositeDataSupport o : values){
-            if(parentName.equals(o.get("Name"))){
-                if(o.containsKey("Location")){
-                    result = (String) o.get("Location");
-                }
-                break;
-            }
-        }
-        return result;
-    }
-
-    private List<String> parseStringList(String value) {
-        List<String> list = new ArrayList<String>();
-        if (value != null) {
-            for (String el : value.split(",")) {
-                String trimmed = el.trim();
-                if (trimmed.length() == 0) {
-                    continue;
-                }
-                list.add(trimmed);
-            }
-        }
-        return list;
     }
 
     private static StringBuilder buildJvmOpts(CreateChildContainerOptions options) {
