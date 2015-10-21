@@ -399,6 +399,12 @@ public class DeploymentAgent implements ManagedService {
         fabricServiceAvailable.await(30, TimeUnit.SECONDS);
         String httpUrl;
         List<URI> mavenRepoURIs;
+        
+        //force reading of updated informations from ZK
+        if(!fabricService.isEmpty()) {
+            updateMavenRepositoryConfiguration(fabricService.getService());
+        }
+
         try {
             fabricServiceOperations.lock();
             // no one will change the members now
