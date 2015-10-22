@@ -360,7 +360,7 @@ public class ServiceImpl implements Service {
     private Map<String, PatchResult> install(final Collection<Patch> patches, final boolean simulate, boolean synchronous) {
         PatchKind kind = checkConsistency(patches);
         checkPrerequisites(patches);
-        checkFabric();
+//        checkFabric();
         String transaction = null;
 
         try {
