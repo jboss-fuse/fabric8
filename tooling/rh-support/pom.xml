@@ -40,8 +40,6 @@
         <module>support-karaf</module>
         <module>support-fabric8</module>
         <module>support-features</module>
-        <!--temporary, until the jar will be published on some maven repo-->
-        <module>redhat-support-lib-java</module>
         <module>support-webapp</module>
         <module>support-profiles</module>
     </modules>
