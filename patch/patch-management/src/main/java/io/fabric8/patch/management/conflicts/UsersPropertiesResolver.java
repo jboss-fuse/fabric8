@@ -24,8 +24,10 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
+import io.fabric8.patch.management.impl.Activator;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.osgi.service.log.LogService;
 
 /**
  * Conflict resolver for <code>etc/users.properties</code> file - we take existing users properties (uncommented users)
@@ -88,7 +90,11 @@ public class UsersPropertiesResolver implements Resolver {
 
             return sb.toString();
         } catch (IOException e) {
-            System.out.printf("Problem resolving conflict between \"%s\" and \"%s\": %n" + e.getMessage());
+            String message = String.format("Problem resolving conflict between \"%s\" and \"%s\": %s",
+                    patchChange.toString(),
+                    customChange.toString(),
+                    e.getMessage());
+            Activator.log(LogService.LOG_ERROR, null, message, e, true);
         } finally {
             IOUtils.closeQuietly(fis);
         }

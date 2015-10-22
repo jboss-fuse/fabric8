@@ -56,7 +56,9 @@
         <fuse.osgi.import>
             javax.net.ssl,
             org.osgi.framework,
-            org.osgi.framework.startlevel
+            org.osgi.framework.startlevel,
+            org.osgi.service.log;resolution:=optional,
+            org.osgi.util.tracker
         </fuse.osgi.import>
         <fuse.osgi.export>
             io.fabric8.patch.management
@@ -74,6 +76,10 @@
         <dependency>
             <groupId>org.osgi</groupId>
             <artifactId>org.osgi.core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.enterprise</artifactId>
         </dependency>
 
         <!-- Private-Packaged dependencies -->

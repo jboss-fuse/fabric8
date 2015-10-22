@@ -15,8 +15,11 @@
  */
 package io.fabric8.patch.management.impl;
 
+import java.io.PrintStream;
+
 import io.fabric8.patch.management.BackupService;
 import io.fabric8.patch.management.PatchManagement;
+import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.FrameworkEvent;
@@ -24,6 +27,8 @@ import org.osgi.framework.FrameworkListener;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.framework.Version;
 import org.osgi.framework.startlevel.FrameworkStartLevel;
+import org.osgi.service.log.LogService;
+import org.osgi.util.tracker.ServiceTracker;
 
 public class Activator implements BundleActivator {
 
@@ -41,13 +46,21 @@ public class Activator implements BundleActivator {
     private Version deployVersion;
     private StartLevelNotificationFrameworkListener startLevelNotificationFrameworkListener;
 
+    private static Bundle bundle;
     private BundleContext systemContext;
     private ServiceRegistration<PatchManagement> patchManagementRegistration;
     private ServiceRegistration<BackupService> backupServiceRegistration;
 
+    private volatile static ServiceTracker logServiceTracker = null;
+
     @Override
+    @SuppressWarnings("unchecked")
     public void start(final BundleContext context) throws Exception {
+        bundle = context.getBundle();
         systemContext = context.getBundle(0).getBundleContext();
+
+        logServiceTracker = new ServiceTracker(context, "org.osgi.service.log.LogService", null);
+        logServiceTracker.open();
 
         patchManagementService = new GitPatchManagementServiceImpl(context);
 
@@ -57,8 +70,7 @@ public class Activator implements BundleActivator {
         activatedAt = sl.getStartLevel();
 
         if (!patchManagementService.isEnabled()) {
-            System.out.println("[PATCH] Not a Fuse/AMQ installation, ignore now");
-            System.out.flush();
+            log(LogService.LOG_WARNING, "Not a Fuse/AMQ installation, patch management is disabled");
             return;
         }
 
@@ -119,6 +131,91 @@ public class Activator implements BundleActivator {
             backupServiceRegistration.unregister();
             backupServiceRegistration = null;
         }
+        if (logServiceTracker != null) {
+            logServiceTracker.close();
+            logServiceTracker = null;
+        }
+    }
+
+    /**
+     * Tries to log using OSGi logging service, falls back to stdout/stderr
+     * @param level
+     * @param message
+     */
+    public static void log(int level, String message) {
+        log(level, null, message, null, false);
+    }
+
+    /**
+     * Tries to log using OSGi logging service, logs to stdout/stderr anyway
+     * @param level
+     * @param message
+     */
+    public static void log2(int level, String message) {
+        log(level, null, message, null, true);
+    }
+
+    /**
+     * Tries to log using OSGi logging service, falls back to stdout/stderr
+     * @param level
+     * @param bundle
+     * @param message
+     * @param throwable
+     * @param twoWay
+     */
+    public static void log(int level, Bundle bundle, String message, Throwable throwable, boolean twoWay) {
+        ServiceTracker tracker = logServiceTracker;
+        if (bundle == null) {
+            bundle = Activator.bundle;
+        }
+        if (tracker != null) {
+            Object service = tracker.getService();
+            if (service != null) {
+                ((LogService)service).log(level, message, throwable);
+                if (!twoWay) {
+                    return;
+                }
+            }
+        }
+
+        // code from org.apache.felix.scr.impl.Activator.log() {
+        // output depending on level
+        PrintStream out = (level == LogService.LOG_ERROR) ? System.err : System.out;
+
+        // level as a string
+        StringBuffer buf = new StringBuffer();
+        switch (level) {
+            case (LogService.LOG_DEBUG):
+                buf.append("DEBUG: ");
+                break;
+            case (LogService.LOG_INFO):
+                buf.append("INFO : ");
+                break;
+            case (LogService.LOG_WARNING):
+                buf.append("WARN : ");
+                break;
+            case (LogService.LOG_ERROR):
+                buf.append("ERROR: ");
+                break;
+        }
+
+        // bundle information
+        if (bundle != null) {
+            buf.append(bundle.getSymbolicName());
+            buf.append(" (");
+            buf.append(bundle.getBundleId());
+            buf.append("): ");
+        }
+
+        // the message
+        buf.append(message);
+
+        out.println(buf);
+        if (throwable != null) {
+            throwable.printStackTrace(out);
+        }
+        out.flush();
+        // }
     }
 
     /**

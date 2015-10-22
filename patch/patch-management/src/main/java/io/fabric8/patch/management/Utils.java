@@ -39,6 +39,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.CRC32;
 
+import io.fabric8.patch.management.impl.Activator;
 import io.fabric8.patch.management.io.EOLFixingFileOutputStream;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipFile;
@@ -47,6 +48,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Version;
+import org.osgi.service.log.LogService;
 
 public class Utils {
 
@@ -530,7 +532,7 @@ public class Utils {
             IOUtils.closeQuietly(reader);
             FileUtils.write(configProperties, sw.toString());
         } catch (Exception e) {
-            System.err.println("[PATCH-error] " + e.getMessage());
+            Activator.log(LogService.LOG_ERROR, null, e.getMessage(), e, true);
         } finally {
             IOUtils.closeQuietly(reader);
         }

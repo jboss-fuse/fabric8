@@ -111,6 +111,7 @@ import org.osgi.framework.SynchronousBundleListener;
 import org.osgi.framework.Version;
 import org.osgi.framework.VersionRange;
 import org.osgi.framework.startlevel.BundleStartLevel;
+import org.osgi.service.log.LogService;
 
 import static io.fabric8.patch.management.Artifact.isSameButVersion;
 import static io.fabric8.patch.management.Utils.*;
@@ -480,7 +481,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     @Override
     public void uploadPatchArtifacts(PatchData patchData, URI uploadAddress, UploadCallback callback) throws PatchException {
         try {
-            System.out.println("Uploading artifacts to " + uploadAddress);
+            Activator.log2(LogService.LOG_INFO, "Uploading artifacts to " + uploadAddress);
 
             List<File> artifacts = new LinkedList<>();
             for (String bundle : patchData.getBundles()) {
@@ -508,8 +509,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             int count = 1;
             for (File f : artifacts) {
                 if (count++ % delta == 0) {
-                    System.out.printf("Uploaded %d/%d%n", count, artifacts.size());
-                    System.out.flush();
+                    Activator.log2(LogService.LOG_DEBUG, String.format("Uploaded %d/%d", count, artifacts.size()));
                 }
                 String relativeName = Utils.relative(Utils.getSystemRepository(karafHome, bundleContext), f.getCanonicalFile());
                 URL uploadUrl = uploadAddress.resolve(relativeName).toURL();
@@ -533,8 +533,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     IOUtils.closeQuietly(os);
                 }
             }
-            System.out.printf("Uploaded %d/%d%n", count-1, artifacts.size());
-            System.out.flush();
+            Activator.log2(LogService.LOG_DEBUG, String.format("Uploaded %d/%d", count-1, artifacts.size()));
         } catch (Exception e) {
             throw new PatchException(e.getMessage(), e);
         }
@@ -712,8 +711,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         try {
             switch (pendingTransactionsTypes.get(transaction)) {
                 case ROLLUP: {
-                    System.out.printf("Installing rollup patch \"%s\"%n", patch.getPatchData().getId());
-                    System.out.flush();
+                    Activator.log2(LogService.LOG_INFO, String.format("Installing rollup patch \"%s\"", patch.getPatchData().getId()));
+
                     // we can install only one rollup patch within single transaction
                     // and it is equal to cherry-picking all user changes on top of transaction branch
                     // after cherry-picking the commit from the rollup patch branch
@@ -804,8 +803,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     break;
                 }
                 case NON_ROLLUP: {
-                    System.out.printf("Installing non-rollup patch \"%s\"%n", patch.getPatchData().getId());
-                    System.out.flush();
+                    Activator.log2(LogService.LOG_INFO, String.format("Installing non-rollup patch \"%s\"", patch.getPatchData().getId()));
+
                     // simply cherry-pick patch commit to transaction branch
                     // non-rollup patches require manual change to artifact references in all files
 
@@ -1023,8 +1022,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
             switch (kind) {
                 case ROLLUP: {
-                    System.out.printf("Rolling back rollup patch \"%s\"%n", patchData.getId());
-                    System.out.flush();
+                    Activator.log2(LogService.LOG_INFO, String.format("Rolling back rollup patch \"%s\"", patchData.getId()));
 
                     // rolling back a rollup patch should rebase all user commits on top of current baseline
                     // to previous baseline
@@ -1093,8 +1091,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             File backupDir = new File(patchesDir, patchData.getId() + ".backup");
                             backupDir = new File(backupDir, ref);
                             if (backupDir.exists() && backupDir.isDirectory()) {
-                                System.out.printf("Restoring content of %s%n", backupDir.getCanonicalPath());
-                                System.out.flush();
+                                Activator.log2(LogService.LOG_DEBUG, String.format("Restoring content of %s", backupDir.getCanonicalPath()));
                                 copyManagedDirectories(backupDir, karafHome, false, false, false);
                             }
                         }
@@ -1135,8 +1132,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     break;
                 }
                 case NON_ROLLUP: {
-                    System.out.printf("Rolling back non-rollup patch \"%s\"%n", patchData.getId());
-                    System.out.flush();
+                    Activator.log2(LogService.LOG_INFO, String.format("Rolling back non-rollup patch \"%s\"", patchData.getId()));
 
                     // rolling back a non-rollup patch is a revert of the patch commit and removal of patch tag
 
@@ -1152,9 +1148,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     RevCommit reverted = revertCommand.call();
                     if (reverted == null) {
                         List<String> unmerged = revertCommand.getUnmergedPaths();
-                        System.out.println("Problem rolling back patch \"" + patchData.getId() + "\". The following files where updated later:");
+                        Activator.log2(LogService.LOG_WARNING, "Problem rolling back patch \"" + patchData.getId() + "\". The following files where updated later:");
                         for (String path : unmerged) {
-                            System.out.println(" - " + path);
+                            Activator.log2(LogService.LOG_WARNING, " - " + path);
                         }
                         RevWalk walk = new RevWalk(fork.getRepository());
                         RevCommit head = walk.parseCommit(fork.getRepository().resolve("HEAD"));
@@ -1167,19 +1163,18 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                                     laterPatches.add(tag.getValue());
                                 }
                             }
-                            System.out.println("The following patches were installed after \"" + patchData.getId() + "\":");
+                            Activator.log2(LogService.LOG_INFO, "The following patches were installed after \"" + patchData.getId() + "\":");
                             for (RevTag t : laterPatches) {
-                                System.out.print(" - " + t.getTagName().substring("patch-".length()));
+                                String message = " - " + t.getTagName().substring("patch-".length());
                                 RevObject object = walk.peel(t);
                                 if (object != null) {
                                     RevCommit c = walk.parseCommit(object.getId());
                                     String date = GitPatchRepository.FULL_DATE.format(new Date(c.getCommitTime() * 1000L));
-                                    System.out.print(" (" + date + ")");
+                                    message += " (" + date + ")";
                                 }
-                                System.out.println();
+                                Activator.log2(LogService.LOG_INFO, message);
                             }
                         }
-                        System.out.flush();
                         return;
                     }
 
@@ -1233,11 +1228,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                                             boolean preferNew, PatchKind kind, String cpPrefix, boolean performBackup)
             throws GitAPIException, IOException {
         if (result.getStatus() == CherryPickResult.CherryPickStatus.CONFLICTING) {
-            System.out.println("Problem with applying the change " + commit.getName() + ":");
+            Activator.log2(LogService.LOG_WARNING, "Problem with applying the change " + commit.getName() + ":");
             Map<String, IndexDiff.StageState> conflicts = fork.status().call().getConflictingStageState();
-//            for (Map.Entry<String, IndexDiff.StageState> e : conflicts.entrySet()) {
-//                System.out.println(" - " + e.getKey() + ": " + e.getValue().name());
-//            }
 
             String choose = null, backup = null;
             switch (kind) {
@@ -1287,7 +1279,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 String resolved = null;
                 if (resolver != null) {
                     // custom conflict resolution
-                    System.out.printf(" - %s (%s): %s%n", entry.getKey(), conflicts.get(entry.getKey()), "Using " + resolver.toString() + " to resolve the conflict");
+                    String message = String.format(" - %s (%s): %s", entry.getKey(), conflicts.get(entry.getKey()), "Using " + resolver.toString() + " to resolve the conflict");
+                    Activator.log2(LogService.LOG_INFO, message);
+
                     // when doing custom resolution, we prefer user change
                     File base = null, first = null, second = null;
                     try {
@@ -1325,7 +1319,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 }
                 if (resolved == null) {
                     // automatic conflict resolution
-                    System.out.printf(" - %s (%s): Choosing %s%n", entry.getKey(), conflicts.get(entry.getKey()), choose);
+                    String message = String.format(" - %s (%s): Choosing %s", entry.getKey(), conflicts.get(entry.getKey()), choose);
+                    Activator.log2(LogService.LOG_DEBUG, message);
+
                     ObjectLoader loader = objectReader.open(entry.getValue()[preferNew ? 2 : 0]);
                     loader.copyTo(new FileOutputStream(new File(fork.getRepository().getWorkTree(), entry.getKey())));
                     fork.add().addFilepattern(entry.getKey()).call();
@@ -1338,14 +1334,13 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             target = new File(target, cpPrefix);
                         }
                         File file = new File(target, entry.getKey());
-                        System.out.printf("Backing up %s to \"%s\"%n", backup, file.getCanonicalPath());
+                        message = String.format("Backing up %s to \"%s\"", backup, file.getCanonicalPath());
+                        Activator.log2(LogService.LOG_DEBUG, message);
                         file.getParentFile().mkdirs();
                         loader.copyTo(new FileOutputStream(file));
                     }
                 }
             }
-
-            System.out.flush();
         }
     }
 
@@ -1443,7 +1438,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         BufferedReader reader = null;
         StringWriter sw = new StringWriter();
         try {
-            System.out.println("[PATCH] Updating \"" + file + "\"");
+            Activator.log2(LogService.LOG_INFO, "Updating \"" + file + "\"");
+
             reader = new BufferedReader(new FileReader(updatedFile));
             String line = null;
             while ((line = reader.readLine()) != null) {
@@ -1468,7 +1464,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             IOUtils.closeQuietly(reader);
             FileUtils.write(updatedFile, sw.toString());
         } catch (Exception e) {
-            System.err.println("[PATCH-error] " + e.getMessage());
+            Activator.log(LogService.LOG_ERROR, null, e.getMessage(), e, true);
         } finally {
             IOUtils.closeQuietly(reader);
         }
@@ -1559,8 +1555,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      */
     @Override
     public void ensurePatchManagementInitialized() {
-        System.out.println("[PATCH] INITIALIZING PATCH MANAGEMENT SYSTEM");
-        System.out.flush();
+            Activator.log(LogService.LOG_INFO, "INITIALIZING PATCH MANAGEMENT SYSTEM");
+
         Git fork = null;
         try {
             Git mainRepository = gitPatchRepository.findOrCreateMainGitRepository();
@@ -1646,10 +1642,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 systemContext.removeBundleListener(bl);
             }
         } catch (GitAPIException | IOException e) {
-            System.err.println("[PATCH-error] " + e.getMessage());
-            e.printStackTrace(System.err);
-            System.err.flush();
-            // PANIC
+            Activator.log(LogService.LOG_ERROR, null, e.getMessage(), e, true);
         } finally {
             initialized.countDown();
             if (fork != null) {
@@ -1681,13 +1674,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 props.load(new FileInputStream(versions));
                 return props.getProperty(product);
             } catch (IOException e) {
-                System.err.println("[PATCH-error] " + e.getMessage());
-                System.err.flush();
+                Activator.log(LogService.LOG_ERROR, null, e.getMessage(), e, true);
                 return null;
             }
         } else {
-            System.err.println("[PATCH-error] Can't find io.fabric8.version.properties file in default profile");
-            System.err.flush();
+            Activator.log2(LogService.LOG_ERROR, "Can't find io.fabric8.version.properties file in default profile");
         }
         return null;
     }
@@ -1727,7 +1718,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 location = String.format(location, currentFuseVersion);
                 if (new File(location).isFile()) {
                     baselineDistribution = new File(location);
-                    System.out.println("[PATCH] Found baseline distribution: " + baselineDistribution.getCanonicalPath());
+                    Activator.log(LogService.LOG_INFO, "Found baseline distribution: " + baselineDistribution.getCanonicalPath());
                     break;
                 }
             }
@@ -1736,8 +1727,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             return trackBaselineRepository(git, baselineDistribution, currentFuseVersion);
         } else {
             String message = "Can't find baseline distribution in patches dir or inside system repository.";
-            System.err.println("[PATCH-error] " + message);
-            System.err.flush();
+            Activator.log2(LogService.LOG_WARNING, message);
             throw new PatchException(message);
         }
     }
@@ -1782,7 +1772,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             String location = String.format(systemRepo.getCanonicalPath() + "/org/apache/karaf/admin/org.apache.karaf.admin.core/%1$s/org.apache.karaf.admin.core-%1$s.jar", karafVersion);
             if (new File(location).isFile()) {
                 baselineDistribution = new File(location);
-                System.out.println("[PATCH] Found child baseline distribution: " + baselineDistribution.getCanonicalPath());
+                Activator.log(LogService.LOG_INFO, "Found child baseline distribution: " + baselineDistribution.getCanonicalPath());
             }
 
             if (baselineDistribution != null) {
@@ -1802,8 +1792,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             .setObjectId(commit)
                             .call();
                 } catch (Exception e) {
-                    System.err.println("[PATCH-error] " + e.getMessage());
-                    System.err.flush();
+                    Activator.log(LogService.LOG_ERROR, null, e.getMessage(), e, true);
                 }
             }
         }
@@ -1913,7 +1902,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             // from something else
             if (new File(location).isFile()) {
                 baselineDistribution = new File(location);
-                System.out.println("[PATCH] Found SSH baseline distribution: " + baselineDistribution.getCanonicalPath());
+                Activator.log(LogService.LOG_INFO, "Found SSH baseline distribution: " + baselineDistribution.getCanonicalPath());
             }
 
             if (baselineDistribution != null) {
@@ -1938,8 +1927,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             .setObjectId(commit)
                             .call();
                 } catch (Exception e) {
-                    System.err.println("[PATCH-error] " + e.getMessage());
-                    System.err.flush();
+                    Activator.log(LogService.LOG_ERROR, null, e.getMessage(), e, true);
                 }
             }
         }
@@ -2078,7 +2066,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             File location = new File(entry.getValue(), String.format("jboss-fuse-full-%1$s-baseline.zip", version));
             if (location.isFile()) {
                 baselineDistribution = location;
-                System.out.println("[PATCH] Found Fuse baseline distribution: " + baselineDistribution.getCanonicalPath());
+                Activator.log(LogService.LOG_INFO, "Found Fuse baseline distribution: " + baselineDistribution.getCanonicalPath());
             }
 
             if (baselineDistribution != null) {
@@ -2115,7 +2103,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             File location = new File(entry.getValue(), String.format("jboss-a-mq-%1$s-baseline.zip", version));
             if (location.isFile()) {
                 baselineDistribution = location;
-                System.out.println("[PATCH] Found AMQ baseline distribution: " + baselineDistribution.getCanonicalPath());
+                Activator.log(LogService.LOG_INFO, "Found AMQ baseline distribution: " + baselineDistribution.getCanonicalPath());
             }
 
             if (baselineDistribution != null) {
@@ -2293,7 +2281,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             // commit the changes to main repository
             Status status = git.status().call();
             if (!status.isClean()) {
-                System.out.println("[PATCH] Storing user changes");
+                Activator.log(LogService.LOG_DEBUG, "Storing user changes");
                 git.add()
                         .addFilepattern(".")
                         .call();
@@ -2314,12 +2302,10 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 //    and if everything goes fine, simply override ${karaf.hoome} content with the working copy content
                 // method 2. doesn't require real working copy and ${karaf.home}/.git directory
             } else {
-                System.out.println("[PATCH] No user changes");
+                Activator.log(LogService.LOG_DEBUG, "No user changes detected");
             }
-            System.out.flush();
         } catch (GitAPIException | IOException e) {
-            System.err.println("[PATCH-error] " + e.getMessage());
-            System.err.flush();
+            Activator.log(LogService.LOG_ERROR, null, e.getMessage(), e, true);
         }
     }
 
@@ -2456,8 +2442,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             // "checkout" the above change in main "working copy" (${karaf.home})
             applyChanges(git, commit.getParent(0), commit);
 
-            System.out.println(String.format("[PATCH] patch-management-%s.jar installed in etc/startup.properties.", bundleVersion));
-            System.out.flush();
+            Activator.log(LogService.LOG_INFO, String.format("patch-management-%s.jar installed in etc/startup.properties.", bundleVersion));
 
             return commit;
         }
@@ -2527,7 +2512,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             switch (ct) {
                 case ADD:
                 case MODIFY:
-                    System.out.println("[PATCH-change] Modifying " + newPath);
+                    Activator.log(LogService.LOG_DEBUG, "[PATCH-change] Modifying " + newPath);
                     String targetPath = newPath;
                     if (newPath.startsWith("lib/")) {
                         targetPath = "lib.next/" + newPath.substring(4);
@@ -2543,7 +2528,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     }
                     break;
                 case DELETE:
-                    System.out.println("[PATCH-change] Deleting " + oldPath);
+                    Activator.log(LogService.LOG_DEBUG, "[PATCH-change] Deleting " + newPath);
                     if (oldPath.startsWith("lib/")) {
                         oldPath = "lib.next/" + oldPath.substring(4);
                         libDirectoryChanged = true;
@@ -2561,8 +2546,6 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             // lib.next directory might not be needed.
             FileUtils.deleteDirectory(new File(karafHome, "lib.next"));
         }
-
-        System.out.flush();
     }
 
     @Override
@@ -2581,11 +2564,10 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             String version = matcher.group(1);
             Version deployedVersion = new Version(version);
             if (ourVersion.compareTo(deployedVersion) >= 0) {
-                System.out.println("[PATCH] Deleting " + anotherPatchManagementBundle);
+                Activator.log(LogService.LOG_INFO, "Deleting " + anotherPatchManagementBundle);
                 FileUtils.deleteQuietly(anotherPatchManagementBundle);
             }
         }
-        System.out.flush();
     }
 
     @Override
@@ -2650,8 +2632,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 systemContext.addBundleListener(bundleListener);
                 pendingPatchesListeners.put(patchData.getId(), bundleListener);
             } catch (Exception e) {
-                System.err.println("[PATCH-error] " + e.getMessage());
-                System.err.flush();
+                Activator.log(LogService.LOG_ERROR, null, e.getMessage(), e, true);
             }
         }
     }
@@ -2726,13 +2707,12 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      */
     private void restoreDataDirectory(String dataCache, Bundle bundle, File backupDir) {
         if (backupDir.isDirectory()) {
-            System.out.printf("[PATCH] Restoring data directory for bundle %s%n", bundle.toString());
+            Activator.log2(LogService.LOG_DEBUG, String.format("Restoring data directory for bundle %s", bundle.toString()));
             File bundleDataDir = new File(dataCache, "bundle" + bundle.getBundleId() + "/data");
             try {
                 FileUtils.copyDirectory(backupDir, bundleDataDir);
             } catch (IOException e) {
-                System.err.println("[PATCH-error] " + e.getMessage());
-                System.err.flush();
+                Activator.log(LogService.LOG_ERROR, null, e.getMessage(), e, true);
             }
         }
     }

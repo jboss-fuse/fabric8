@@ -23,7 +23,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.fabric8.patch.management.impl.Activator;
 import org.apache.commons.io.FileUtils;
+import org.osgi.service.log.LogService;
 
 /**
  * Conflict resolver for <code>bin/setenv</code> file - we prefer bigger memory settings
@@ -69,7 +71,7 @@ public class SetEnvResolver implements Resolver {
             }
             return sb.toString();
         } catch (IOException e) {
-            System.out.printf("Problem resolving conflict: %s%n", e.getMessage());
+            Activator.log(LogService.LOG_ERROR, null, "Problem resolving conflict: " + e.getMessage(), e, true);
         }
         return null;
     }

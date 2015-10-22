@@ -30,6 +30,7 @@ import io.fabric8.patch.management.Utils;
 import org.apache.commons.io.FileUtils;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
+import org.osgi.service.log.LogService;
 
 public class FileBackupService implements BackupService {
 
@@ -56,8 +57,7 @@ public class FileBackupService implements BackupService {
         // bundle.getDataFile("xxx") creates data dir if it didn't exist - it's not what we want
         String storageLocation = systemContext.getProperty("org.osgi.framework.storage");
         if (storageLocation == null) {
-            System.out.println("Can't determine \"org.osgi.framework.storage\" property value");
-            System.out.flush();
+            Activator.log(LogService.LOG_INFO, "Can't determine \"org.osgi.framework.storage\" property value");
             return;
         }
         File cacheDir = new File(storageLocation);
