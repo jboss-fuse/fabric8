@@ -76,6 +76,7 @@ import org.osgi.framework.FrameworkListener;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.Version;
 import org.osgi.framework.startlevel.BundleStartLevel;
+import org.osgi.framework.wiring.BundleWiring;
 import org.osgi.framework.wiring.FrameworkWiring;
 import org.osgi.service.component.ComponentContext;
 
@@ -491,6 +492,7 @@ public class ServiceImpl implements Service {
                         File karafData = new File(bundleContext.getProperty("karaf.data"));
                         File cleanCache = new File(karafData, "clean_cache");
                         cleanCache.createNewFile();
+                        Thread.currentThread().setContextClassLoader(bundleContext.getBundle(0l).adapt(BundleWiring.class).getClassLoader());
                         bundleContext.getBundle(0l).stop();
                     }
                 } else {
