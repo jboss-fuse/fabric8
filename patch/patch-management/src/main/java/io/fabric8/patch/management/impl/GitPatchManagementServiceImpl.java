@@ -1555,7 +1555,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      */
     @Override
     public void ensurePatchManagementInitialized() {
-            Activator.log(LogService.LOG_INFO, "INITIALIZING PATCH MANAGEMENT SYSTEM");
+        Activator.log(LogService.LOG_INFO, "INITIALIZING PATCH MANAGEMENT SYSTEM");
 
         Git fork = null;
         try {
@@ -1603,10 +1603,10 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 RevCommit baselineCommit = null;
                 if (!gitPatchRepository.containsTag(fork, String.format(env.getBaselineTagFormat(), curentFuseVersion))) {
                     baselineCommit = trackBaselineRepository(fork);
-                }
-                RevCommit c2 = installPatchManagementBundle(fork);
-                if (c2 != null) {
-                    baselineCommit = c2;
+                    RevCommit c2 = installPatchManagementBundle(fork);
+                    if (c2 != null) {
+                        baselineCommit = c2;
+                    }
                 }
                 // because patch management is already installed, we have to add consecutive (post patch-management installation) changes
                 applyUserChanges(fork);
@@ -2134,7 +2134,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         }
         unpack(baselineDistribution, git.getRepository().getWorkTree(), 1);
 
-        String fabricVersion = determineVersion(git.getRepository().getWorkTree(), "fuse");
+        String fabricVersion = determineVersion(git.getRepository().getWorkTree(), "fabric");
 
         git.add()
                 .addFilepattern(".")
