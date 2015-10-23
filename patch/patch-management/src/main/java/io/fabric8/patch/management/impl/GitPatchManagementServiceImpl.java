@@ -767,6 +767,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                                 .include(userChange)
                                 .setNoCommit(true)
                                 .call();
+                        // if there's conflict here, prefer patch version (which is "ours" (first) in this case)
                         handleCherryPickConflict(patch.getPatchData().getPatchDirectory(), fork, result, userChange,
                                 false, PatchKind.ROLLUP, prefix, true);
 
@@ -774,7 +775,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         // rollup patch.
                         // commit has the original commit id appended to the message.
                         // when we rebase on OLDER baseline (rollback) we restore backed up files based on this
-                        // commit id (from patches/patch-id.backup/nr-commit directory)
+                        // commit id (from patches/patch-id.backup/number-commit directory)
                         String newMessage = userChange.getFullMessage() + "\n\n";
                         newMessage += prefix;
                         gitPatchRepository.prepareCommit(fork, newMessage).call();
@@ -1278,7 +1279,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 // resolved version - either by custom resolved or using automatic algorithm
                 String resolved = null;
                 if (resolver != null) {
-                    // custom conflict resolution
+                    // custom conflict resolution (don't expect DELETED_BY_X kind of conflict, only BOTH_MODIFIED)
                     String message = String.format(" - %s (%s): %s", entry.getKey(), conflicts.get(entry.getKey()), "Using " + resolver.toString() + " to resolve the conflict");
                     Activator.log2(LogService.LOG_INFO, message);
 
@@ -1287,16 +1288,22 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     try {
                         base = new File(fork.getRepository().getWorkTree(), entry.getKey() + ".1");
                         ObjectLoader loader = objectReader.open(entry.getValue()[1]);
-                        loader.copyTo(new FileOutputStream(base));
+                        try (FileOutputStream fos = new FileOutputStream(base)) {
+                            loader.copyTo(fos);
+                        }
 
                         // if preferNew (P patch) then first will be change from patch
                         first = new File(fork.getRepository().getWorkTree(), entry.getKey() + ".2");
                         loader = objectReader.open(entry.getValue()[preferNew ? 2 : 0]);
-                        loader.copyTo(new FileOutputStream(first));
+                        try (FileOutputStream fos = new FileOutputStream(first)) {
+                            loader.copyTo(fos);
+                        }
 
                         second = new File(fork.getRepository().getWorkTree(), entry.getKey() + ".3");
                         loader = objectReader.open(entry.getValue()[preferNew ? 0 : 2]);
-                        loader.copyTo(new FileOutputStream(second));
+                        try (FileOutputStream fos = new FileOutputStream(second)) {
+                            loader.copyTo(new FileOutputStream(second));
+                        }
 
                         // resolvers treat patch change as less important - user lines overwrite patch lines
                         resolved = resolver.resolve(first, base, second);
@@ -1322,22 +1329,59 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     String message = String.format(" - %s (%s): Choosing %s", entry.getKey(), conflicts.get(entry.getKey()), choose);
                     Activator.log2(LogService.LOG_DEBUG, message);
 
-                    ObjectLoader loader = objectReader.open(entry.getValue()[preferNew ? 2 : 0]);
-                    loader.copyTo(new FileOutputStream(new File(fork.getRepository().getWorkTree(), entry.getKey())));
-                    fork.add().addFilepattern(entry.getKey()).call();
+                    ObjectLoader loader = null;
+                    ObjectLoader loaderForBackup = null;
+                    // longer code, but more readable then series of elvis operators (?:)
+                    if (preferNew) {
+                        switch (conflicts.get(entry.getKey())) {
+                            case BOTH_MODIFIED:
+                                loader = objectReader.open(entry.getValue()[2]);
+                                loaderForBackup = objectReader.open(entry.getValue()[0]);
+                                break;
+                            case DELETED_BY_THEM:
+                                break;
+                            case DELETED_BY_US:
+                                loader = objectReader.open(entry.getValue()[2]);
+                                break;
+                        }
+                    } else {
+                        switch (conflicts.get(entry.getKey())) {
+                            case BOTH_MODIFIED:
+                                loader = objectReader.open(entry.getValue()[0]);
+                                loaderForBackup = objectReader.open(entry.getValue()[2]);
+                                break;
+                            case DELETED_BY_THEM:
+                                loader = objectReader.open(entry.getValue()[0]);
+                                break;
+                            case DELETED_BY_US:
+                                break;
+                        }
+                    }
+
+                    if (loader != null) {
+                        try (FileOutputStream fos = new FileOutputStream(new File(fork.getRepository().getWorkTree(), entry.getKey()))) {
+                            loader.copyTo(fos);
+                        }
+                        fork.add().addFilepattern(entry.getKey()).call();
+                    } else {
+                        fork.rm().addFilepattern(entry.getKey()).call();
+                    }
 
                     if (performBackup) {
                         // the other entry should be backed up
-                        loader = objectReader.open(entry.getValue()[preferNew ? 0 : 2]);
-                        File target = new File(patchDirectory.getParent(), patchDirectory.getName() + ".backup");
-                        if (cpPrefix != null) {
-                            target = new File(target, cpPrefix);
+                        if (loaderForBackup != null) {
+                            File target = new File(patchDirectory.getParent(), patchDirectory.getName() + ".backup");
+                            if (cpPrefix != null) {
+                                target = new File(target, cpPrefix);
+                            }
+                            File file = new File(target, entry.getKey());
+                            message = String.format("Backing up %s to \"%s\"", backup, file.getCanonicalPath());
+                            Activator.log2(LogService.LOG_DEBUG, message);
+                            file.getParentFile().mkdirs();
+                            try (FileOutputStream fos = new FileOutputStream(file)) {
+                                loaderForBackup.copyTo(fos);
+                            }
                         }
-                        File file = new File(target, entry.getKey());
-                        message = String.format("Backing up %s to \"%s\"", backup, file.getCanonicalPath());
-                        Activator.log2(LogService.LOG_DEBUG, message);
-                        file.getParentFile().mkdirs();
-                        loader.copyTo(new FileOutputStream(file));
                     }
                 }
             }
