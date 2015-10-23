@@ -469,16 +469,27 @@
                                    <descriptor>file:${basedir}/target/classes/fabric-features.xml</descriptor>
                                </descriptors>
                                <features>
+                                   <!-- Base fabric support -->
                                    <feature>karaf</feature>
-                                   <feature>war</feature>
-                                   <feature>fabric-agent</feature>
-                                   <feature>fabric-boot-commands</feature>
-                                   <feature>fabric-hawtio</feature>
-                                   <feature>fabric-jaas</feature>
                                    <feature>patch</feature>
-                                   <feature>hawtio-fabric8-branding</feature>
-                                   <feature>hawtio-karaf-terminal</feature>
+                                   <feature>fabric</feature>
+                                   
+                                   <!-- Enable the web ui working -->
+                                   <feature>fabric-web</feature>
                                    <feature>jolokia</feature>
+                                   <feature>fabric-hawtio</feature>
+                                   <feature>fabric-redirect</feature>
+                                   <feature>hawtio-fabric8-branding</feature>
+
+                                   <!-- These are part the fabric profile -->
+                                   <feature>fabric-commands</feature>
+                                   <feature>fabric-agent</feature>
+                                   <feature>fabric-agent-commands</feature>
+                                   <feature>fabric-ssh</feature>
+                                   <feature>fabric-maven-proxy</feature>
+                                   <feature>fabric-groovy</feature>
+                                   <feature>fabric-archetype-commands</feature>
+
                                </features>
                                <includeMvnBasedDescriptors>true</includeMvnBasedDescriptors>
                                <repository>target/features-repo</repository>
