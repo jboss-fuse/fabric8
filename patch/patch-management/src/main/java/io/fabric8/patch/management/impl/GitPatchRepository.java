@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import io.fabric8.patch.management.ManagedPatch;
+import org.eclipse.jgit.api.CheckoutCommand;
 import org.eclipse.jgit.api.CommitCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -83,6 +84,14 @@ public interface GitPatchRepository {
      * @param deleteWorkingCopy
      */
     void closeRepository(Git git, boolean deleteWorkingCopy);
+
+    /**
+     * Special <code>git checkout</code> that does several attempts to checkout a revision. This is mainly for
+     * Windows...
+     * @param git
+     * @return
+     */
+    CheckoutCommand checkout(Git git);
 
     /**
      * Checks whether a branch in repository contains named commit

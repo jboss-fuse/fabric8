@@ -554,13 +554,7 @@ public class Utils {
             }
             return crc.getValue();
         } finally {
-            if (is != null) {
-                try {
-                    is.close();
-                } catch (IOException e) {
-                    // Ignore
-                }
-            }
+            IOUtils.closeQuietly(is);
         }
     }
 

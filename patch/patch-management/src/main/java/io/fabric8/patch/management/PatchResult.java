@@ -88,6 +88,7 @@ public class PatchResult {
 
     /**
      * Static constructor of PatchResult object that takes initialization data from {@link java.io.InputStream}.
+     * {@link InputStream} is closed after reading.
      * @param patchData patch data this result relates to
      * @param inputStream
      * @return

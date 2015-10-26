@@ -90,7 +90,18 @@ public class EOLFixingFileUtils {
                 throw new IOException("Destination '" + destDir + "' exists but is not a directory");
             }
         } else {
-            if (!destDir.mkdirs() && !destDir.isDirectory()) {
+            for (int i=0; i<10; i++) {
+                if (!destDir.mkdirs()) {
+                    try {
+                        Thread.sleep(250);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                } else {
+                    break;
+                }
+            }
+            if (!destDir.isDirectory()) {
                 throw new IOException("Destination '" + destDir + "' directory cannot be created");
             }
         }

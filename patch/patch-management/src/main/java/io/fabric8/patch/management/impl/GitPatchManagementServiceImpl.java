@@ -606,7 +606,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
             // create dedicated branch for this patch. We'll immediately add patch content there so we can examine the
             // changes from the latest baseline
-            fork.checkout()
+            gitPatchRepository.checkout(fork)
                     .setCreateBranch(true)
                     .setName("patch-" + patchData.getId())
                     .setStartPoint(commit)
@@ -673,7 +673,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     // create temporary branch from the current baseline - rollup patch installation is a rebase
                     // of existing user changes on top of new baseline
                     RevTag currentBaseline = gitPatchRepository.findCurrentBaseline(fork);
-                    installationBranch = fork.checkout()
+                    installationBranch = gitPatchRepository.checkout(fork)
                             .setName(String.format("patch-install-%s", GitPatchRepository.TS.format(new Date())))
                             .setCreateBranch(true)
                             .setStartPoint(currentBaseline.getTagName() + "^{commit}")
@@ -682,7 +682,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 case NON_ROLLUP:
                     // create temporary branch from main-patch-branch/HEAD - non-rollup patch installation is cherry-pick
                     // of non-rollup patch commit over existing user changes - we can fast forward when finished
-                    installationBranch = fork.checkout()
+                    installationBranch = gitPatchRepository.checkout(fork)
                             .setName(String.format("patch-install-%s", GitPatchRepository.TS.format(new Date())))
                             .setCreateBranch(true)
                             .setStartPoint(gitPatchRepository.getMainBranchName())
@@ -933,7 +933,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             switch (pendingTransactionsTypes.get(transaction)) {
                 case ROLLUP: {
                     // hard reset of main patch branch to point to transaction branch + apply changes to ${karaf.home}
-                    fork.checkout()
+                    gitPatchRepository.checkout(fork)
                             .setName(gitPatchRepository.getMainBranchName())
                             .call();
 
@@ -959,7 +959,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 }
                 case NON_ROLLUP: {
                     // fast forward merge of main patch branch with transaction branch
-                    fork.checkout()
+                    gitPatchRepository.checkout(fork)
                             .setName(gitPatchRepository.getMainBranchName())
                             .call();
                     // current version of ${karaf.home}
@@ -1069,7 +1069,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                                 .setMode(ResetCommand.ResetType.MIXED)
                                 .call();
                         for (String p : status.getModified()) {
-                            fork.checkout().addPath(p).call();
+                            gitPatchRepository.checkout(fork).addPath(p).call();
                         }
                     }
                     while (it.hasPrevious()) {
@@ -1714,12 +1714,16 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         File versions = new File(home, "fabric/import/fabric/profiles/default.profile/io.fabric8.version.properties");
         if (versions.exists() && versions.isFile()) {
             Properties props = new Properties();
+            FileInputStream fis = null;
             try {
-                props.load(new FileInputStream(versions));
+                fis = new FileInputStream(versions);
+                props.load(fis);
                 return props.getProperty(product);
             } catch (IOException e) {
                 Activator.log(LogService.LOG_ERROR, null, e.getMessage(), e, true);
                 return null;
+            } finally {
+                IOUtils.closeQuietly(fis);
             }
         } else {
             Activator.log2(LogService.LOG_ERROR, "Can't find io.fabric8.version.properties file in default profile");
@@ -1784,14 +1788,14 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     private void trackBaselinesForChildContainers(Git fork) throws IOException, GitAPIException {
         if (fork.getRepository().getRef("refs/heads/" + gitPatchRepository.getChildBranchName()) == null) {
             // checkout patches-child branch - it'll track baselines for fabric:container-create-child containers
-            fork.checkout()
+            gitPatchRepository.checkout(fork)
                     .setName(gitPatchRepository.getChildBranchName())
                     .setStartPoint("patch-management^{commit}")
                     .setCreateBranch(true)
                     .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
                     .call();
         } else {
-            fork.checkout()
+            gitPatchRepository.checkout(fork)
                     .setName(gitPatchRepository.getChildBranchName())
                     .call();
         }
@@ -1908,7 +1912,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     public void trackBaselinesForSSHContainers(Git fork) throws IOException, GitAPIException {
         // two separate branches for two kinds of baselines for SSH containers
         if (fork.getRepository().getRef("refs/heads/" + gitPatchRepository.getFuseSSHContainerPatchBranchName()) == null) {
-            fork.checkout()
+            gitPatchRepository.checkout(fork)
                     .setName(gitPatchRepository.getFuseSSHContainerPatchBranchName())
                     .setStartPoint("patch-management^{commit}")
                     .setCreateBranch(true)
@@ -1916,7 +1920,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     .call();
         }
         if (fork.getRepository().getRef("refs/heads/" + gitPatchRepository.getFabric8SSHContainerPatchBranchName()) == null) {
-            fork.checkout()
+            gitPatchRepository.checkout(fork)
                     .setName(gitPatchRepository.getFabric8SSHContainerPatchBranchName())
                     .setStartPoint("patch-management^{commit}")
                     .setCreateBranch(true)
@@ -2014,11 +2018,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             }
             // checkout correct branch
             if (officialFabric8) {
-                fork.checkout()
+                gitPatchRepository.checkout(fork)
                         .setName(gitPatchRepository.getFabric8SSHContainerPatchBranchName())
                         .call();
             } else {
-                fork.checkout()
+                gitPatchRepository.checkout(fork)
                         .setName(gitPatchRepository.getFuseSSHContainerPatchBranchName())
                         .call();
             }
@@ -2065,7 +2069,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     private void trackBaselinesForRootContainer(Git fork) throws IOException, GitAPIException {
         // two separate branches for two kinds of baselines for root containers
         if (fork.getRepository().getRef("refs/heads/" + gitPatchRepository.getFuseRootContainerPatchBranchName()) == null) {
-            fork.checkout()
+            gitPatchRepository.checkout(fork)
                     .setName(gitPatchRepository.getFuseRootContainerPatchBranchName())
                     .setStartPoint("patch-management^{commit}")
                     .setCreateBranch(true)
@@ -2073,7 +2077,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     .call();
         }
         if (fork.getRepository().getRef("refs/heads/" + gitPatchRepository.getAmqRootContainerPatchBranchName()) == null) {
-            fork.checkout()
+            gitPatchRepository.checkout(fork)
                     .setName(gitPatchRepository.getAmqRootContainerPatchBranchName())
                     .setStartPoint("patch-management^{commit}")
                     .setCreateBranch(true)
@@ -2089,7 +2093,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         File[] versionDirs = new File(systemRepo, "org/jboss/fuse/jboss-fuse-full").listFiles();
         Map<Version, File> versions = new TreeMap<>();
 
-        fork.checkout().setName(gitPatchRepository.getFuseRootContainerPatchBranchName()).call();
+        gitPatchRepository.checkout(fork)
+                .setName(gitPatchRepository.getFuseRootContainerPatchBranchName())
+                .call();
 
         // we'll look for Fuse/AMQ baseline in /patches dir too - it doesn't have to be present
         versions.put(new Version(currentFuseVersion), patchesDir);
@@ -2126,7 +2132,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         versionDirs = new File(systemRepo, "org/jboss/amq/jboss-a-mq").listFiles();
         versions.clear();
 
-        fork.checkout().setName(gitPatchRepository.getAmqRootContainerPatchBranchName()).call();
+        gitPatchRepository.checkout(fork)
+                .setName(gitPatchRepository.getAmqRootContainerPatchBranchName())
+                .call();
 
         // we'll look for Fuse/AMQ baseline in /patches dir too - it doesn't have to be present
         versions.put(new Version(currentFuseVersion), patchesDir);
@@ -2241,14 +2249,14 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      */
     private void trackFabricContainerBaselineRepository(Git fork, String version) throws IOException, GitAPIException {
         if (fork.getRepository().getRef("refs/heads/" + gitPatchRepository.getMainBranchName()) == null) {
-            fork.checkout()
+            gitPatchRepository.checkout(fork)
                     .setName(gitPatchRepository.getMainBranchName())
                     .setStartPoint("patch-management^{commit}")
                     .setCreateBranch(true)
                     .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
                     .call();
         } else {
-            fork.checkout()
+            gitPatchRepository.checkout(fork)
                     .setName(gitPatchRepository.getMainBranchName())
                     .call();
         }
@@ -2717,7 +2725,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 // we have to be at that tag
                 Git mainRepository = gitPatchRepository.findOrCreateMainGitRepository();
                 fork = gitPatchRepository.cloneRepository(mainRepository, true);
-                fork.checkout()
+                gitPatchRepository.checkout(fork)
                         .setName(gitPatchRepository.getMainBranchName())
                         .call();
 

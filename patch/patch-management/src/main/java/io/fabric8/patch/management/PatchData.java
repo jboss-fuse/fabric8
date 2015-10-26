@@ -100,6 +100,7 @@ public class PatchData {
 
     /**
      * Static constructor of PatchData object that takes initialization data from {@link java.io.InputStream}.
+     * {@link InputStream} is closed after reading.
      * @param inputStream
      * @return
      * @throws IOException

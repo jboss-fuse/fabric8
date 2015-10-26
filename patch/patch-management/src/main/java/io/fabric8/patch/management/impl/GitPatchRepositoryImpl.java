@@ -29,6 +29,8 @@ import java.util.regex.Pattern;
 
 import io.fabric8.patch.management.ManagedPatch;
 import org.apache.commons.io.FileUtils;
+import org.eclipse.jgit.api.CheckoutCommand;
+import io.fabric8.patch.management.io.NtfsAwareCheckoutCommand;
 import org.eclipse.jgit.api.CommitCommand;
 import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
@@ -255,6 +257,11 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
         if (deleteWorkingCopy) {
             FileUtils.deleteQuietly(git.getRepository().getDirectory().getParentFile());
         }
+    }
+
+    @Override
+    public CheckoutCommand checkout(Git git) {
+        return new NtfsAwareCheckoutCommand(git.getRepository());
     }
 
     @Override
