@@ -24,6 +24,7 @@ import io.fabric8.api.ZooKeeperClusterService;
 import io.fabric8.boot.commands.support.EnsembleCommandSupport;
 import io.fabric8.common.util.Strings;
 import io.fabric8.utils.FabricValidations;
+import io.fabric8.zookeeper.bootstrap.BootstrapConfiguration;
 import org.apache.felix.gogo.commands.Argument;
 import org.apache.felix.gogo.commands.Command;
 import org.apache.felix.gogo.commands.Option;
@@ -62,10 +63,12 @@ public class EnsembleAddAction extends AbstractAction {
 
     private final BundleContext bundleContext;
     private final ZooKeeperClusterService clusterService;
+    private final BootstrapConfiguration bootstrapConfiguration;
 
-    EnsembleAddAction(BundleContext bundleContext, ZooKeeperClusterService clusterService) {
+    EnsembleAddAction(BundleContext bundleContext, ZooKeeperClusterService clusterService, BootstrapConfiguration bootstrapConfiguration) {
         this.bundleContext = bundleContext;
         this.clusterService = clusterService;
+        this.bootstrapConfiguration = bootstrapConfiguration;
     }
 
     @Override
@@ -87,6 +90,9 @@ public class EnsembleAddAction extends AbstractAction {
                         .zooKeeperServerSyncLimit(zooKeeperSyncLimit)
                         .zooKeeperServerDataDir(zooKeeperDataDir)
                         .migrationTimeout(migrationTimeout);
+
+                builder.minimumPort(bootstrapConfiguration.getBootstrapOptions().getMinimumPort());
+                builder.maximumPort(bootstrapConfiguration.getBootstrapOptions().getMaximumPort());
 
                 if (generateZookeeperPassword) {
                     //Don't add password
@@ -116,7 +122,7 @@ public class EnsembleAddAction extends AbstractAction {
         String currentDataDir = currentConfig.get("dataDir");       
         int lastIndexOfFwdSlash = currentDataDir.lastIndexOf("/"); // prefer fwd slash        
         currentDataDir = currentDataDir.substring(0, (lastIndexOfFwdSlash < 0) ? currentDataDir.lastIndexOf("\\") : lastIndexOfFwdSlash);
-        
+
         zooKeeperTickTime = zooKeeperTickTime != 0 ? zooKeeperTickTime : currentTickTime;
         zooKeeperInitLimit = zooKeeperInitLimit != 0 ? zooKeeperInitLimit : currentInitLimit;
         zooKeeperSyncLimit = zooKeeperSyncLimit != 0 ? zooKeeperSyncLimit : currentSyncLimit;
