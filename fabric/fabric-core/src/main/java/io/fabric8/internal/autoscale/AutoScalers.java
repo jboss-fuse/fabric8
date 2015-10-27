@@ -161,7 +161,7 @@ public class AutoScalers {
      * Returns true if the requirements are satisfied for the given profile requirements; updating the auto scale status
      * accordingly
      */
-    public static boolean requirementsSatisfied(FabricService service, FabricRequirements requirements, ProfileRequirements profileRequirement, AutoScaleStatus status) {
+    public static boolean requirementsSatisfied(FabricService service, String version, FabricRequirements requirements, ProfileRequirements profileRequirement, AutoScaleStatus status) {
         String profile = profileRequirement.getProfile();
         List<String> dependentProfiles = profileRequirement.getDependentProfiles();
         if (dependentProfiles != null) {
@@ -169,7 +169,7 @@ public class AutoScalers {
                 ProfileRequirements dependentProfileRequirements = requirements.getOrCreateProfileRequirement(dependentProfile);
                 Integer minimumInstances = dependentProfileRequirements.getMinimumInstances();
                 if (minimumInstances != null) {
-                    List<Container> containers = Containers.aliveAndSuccessfulContainersForProfile(dependentProfile, service);
+                    List<Container> containers = Containers.aliveAndSuccessfulContainersForProfile(version, dependentProfile, service);
                     int dependentSize = containers.size();
                     if (minimumInstances > dependentSize) {
                         status.profileStatus(profile).missingDependency(dependentProfile, dependentSize, minimumInstances);

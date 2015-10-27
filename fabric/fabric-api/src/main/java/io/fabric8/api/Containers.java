@@ -187,7 +187,7 @@ public final class Containers {
      * For a profile of "foo" then this method tries to create a name of the form "foo1" or "foo2"
      * based on how many containers there are and if the name already exists.
      */
-    public static String createContainerName(Container[] containers, String profile, String scheme, NameValidator nameValidator) {
+    public static String createAutoScaleContainerName(Container[] containers, String profile, String scheme, NameValidator nameValidator) {
         Map<String, Container> map = new HashMap<String, Container>();
         for (Container container : containers) {
             map.put(container.getId(), container);
@@ -197,8 +197,11 @@ public final class Containers {
         if (namePrefix.endsWith(postFix)) {
             namePrefix = namePrefix.substring(0, namePrefix.length() - postFix.length());
         }
+
         // lets filter out non-alpha
         namePrefix = filterOutNonAlphaNumerics(namePrefix);
+
+        namePrefix = "auto_"+namePrefix;
         List<Container> profileContainers = containersForProfile(containers, profile);
         int idx = profileContainers.size();
         while (true) {
@@ -267,17 +270,17 @@ public final class Containers {
     /**
      * Returns all the current alive or pending profiles for the given profile
      */
-    public static List<Container> aliveOrPendingContainersForProfile(String profile, FabricService fabricService) {
+    public static List<Container> aliveOrPendingContainersForProfile(String version, String profile, FabricService fabricService) {
         Container[] allContainers = fabricService.getContainers();
-        return aliveOrPendingContainersForProfile(profile, allContainers);
+        return aliveOrPendingContainersForProfile(version, profile, allContainers);
     }
 
     /**
      * Returns all the current alive or pending profiles for the given profile
      */
-    public static List<Container> aliveOrPendingContainersForProfile(String profile, Container[] allContainers) {
+    public static List<Container> aliveOrPendingContainersForProfile(String version, String profile, Container[] allContainers) {
         List<Container> answer = new ArrayList<Container>();
-        List<Container> containers = containersForProfile(allContainers, profile);
+        List<Container> containers = containersForProfile(allContainers, profile, version);
         for (Container container : containers) {
             boolean alive = container.isAlive();
             boolean provisioningPending = container.isProvisioningPending();
@@ -291,17 +294,17 @@ public final class Containers {
     /**
      * Returns all the current alive and successful containers for the given profile which have completed provisioning
      */
-    public static List<Container> aliveAndSuccessfulContainersForProfile(String profile, FabricService fabricService) {
+    public static List<Container> aliveAndSuccessfulContainersForProfile(String version, String profile, FabricService fabricService) {
         Container[] allContainers = fabricService.getContainers();
-        return aliveAndSuccessfulContainersForProfile(profile, allContainers);
+        return aliveAndSuccessfulContainersForProfile(version, profile, allContainers);
     }
 
     /**
      * Returns all the current alive and successful containers for the given profile which have completed provisioning
      */
-    public static List<Container> aliveAndSuccessfulContainersForProfile(String profile, Container[] allContainers) {
+    public static List<Container> aliveAndSuccessfulContainersForProfile(String version, String profile, Container[] allContainers) {
         List<Container> answer = new ArrayList<Container>();
-        List<Container> containers = containersForProfile(allContainers, profile);
+        List<Container> containers = containersForProfile(allContainers, profile, version);
         for (Container container : containers) {
             boolean aliveAndProvisionSuccess = isAliveAndProvisionSuccess(container);
             if (aliveAndProvisionSuccess) {

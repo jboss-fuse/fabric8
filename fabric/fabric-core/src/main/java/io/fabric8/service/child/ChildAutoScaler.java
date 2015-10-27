@@ -67,10 +67,11 @@ public class ChildAutoScaler implements ContainerAutoScaler {
 
                 Container[] containers = fabricService.getContainers();
                 NameValidator nameValidator = Containers.createNameValidator(containers);
-                String name = Containers.createContainerName(containers, profile, containerProvider.getScheme(), nameValidator);
+                String name = Containers.createAutoScaleContainerName(containers, profile, containerProvider.getScheme(), nameValidator);
                 ignoreContainerNames.add(name);
 
                 CreateChildContainerOptions options = configuredBuilder.name(name).build();
+
                 LOG.info("Creating container name " + name + " version " + version + " profile " + profile + " " + count + " container(s)");
                 fabricService.createContainers(options);
             }
