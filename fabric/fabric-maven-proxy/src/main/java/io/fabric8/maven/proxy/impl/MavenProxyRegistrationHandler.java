@@ -61,7 +61,7 @@ public final class MavenProxyRegistrationHandler extends AbstractComponent imple
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MavenProxyRegistrationHandler.class);
 
-    private static final String DEFAULT_ROLE = "admin";
+    private static final String DEFAULT_ROLE = "admin,manager,viewer,Monitor,Operator,Maintainer,Deployer,Auditor,Administrator,SuperUser";
     private static final String DEFAULT_REALM = "karaf";
 
     private static final String DEFAULT_LOCAL_REPOSITORY = System.getProperty("karaf.data") + File.separator + "maven" + File.separator + "proxy" + File.separator + "downloads";
@@ -90,7 +90,7 @@ public final class MavenProxyRegistrationHandler extends AbstractComponent imple
 
     @GuardedBy("volatile")
     @Property(name = "role", label = "Jaas Role", description = "The Jaas Role to use for uploads", value = DEFAULT_ROLE)
-    private volatile String role;
+    private volatile String[] role;
 
     @Property(name = "name", label = "Container Name", description = "The name of the container", value = "${runtime.id}")
     private String name;
