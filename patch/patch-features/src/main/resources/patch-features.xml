@@ -16,7 +16,7 @@
      permissions and limitations under the License.
 
 -->
-<features name="patch-${project.version}">
+<features name="patch-${project.version}" xmlns="http://karaf.apache.org/xmlns/features/v1.2.0">
 
     <feature name="patch-core" version="${project.version}" resolver="(obr)">
         <bundle start-level="2">mvn:io.fabric8.patch/patch-management/${project.version}</bundle>
