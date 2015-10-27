@@ -732,7 +732,6 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
     public void setRequirements(FabricRequirements requirements) throws IOException {
         assertValid();
         try {
-            requirements.removeEmptyRequirements();
             String json = RequirementsJson.toJSON(requirements);
             setData(curator.get(), REQUIREMENTS_JSON_PATH, json);
         } catch (Exception e) {

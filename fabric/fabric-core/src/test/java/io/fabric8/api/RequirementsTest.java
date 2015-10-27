@@ -20,6 +20,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static junit.framework.Assert.assertEquals;
@@ -48,7 +49,7 @@ public class RequirementsTest {
         assertEquals(true, dummy.checkIsEmpty());
 
         FabricRequirements requirements = new FabricRequirements(profiles);
-        requirements.removeEmptyRequirements();
+        requirements.removeEmptyRequirements(Collections.EMPTY_SET);
 
         String json = RequirementsJson.toJSON(requirements);
 

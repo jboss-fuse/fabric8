@@ -67,7 +67,7 @@ public class SshAutoScaler implements ContainerAutoScaler {
         for (int i = 0; i < count; i++) {
             CreateSshContainerOptions.Builder builder = null;
             NameValidator nameValidator = Containers.createNameValidator(containers);
-            String name = Containers.createContainerName(containers, profile, containerProvider.getScheme(), nameValidator);
+            String name = Containers.createAutoScaleContainerName(containers, profile, containerProvider.getScheme(), nameValidator);
 
             if (fabricService != null) {
                 builder = createAutoScaleOptions(request, fabricService, hostProfileCounter);
