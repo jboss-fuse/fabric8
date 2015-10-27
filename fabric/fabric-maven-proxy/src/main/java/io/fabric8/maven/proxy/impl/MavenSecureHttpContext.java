@@ -50,16 +50,16 @@ public class MavenSecureHttpContext implements HttpContext {
     private static final String AUTHENTICATION_SCHEME_BASIC = "Basic";
 
     private final String realm;
-    private final String role;
+    private final String[] roles;
     private final HttpContext base;
 
     /**
      * Constructor
      */
-    public MavenSecureHttpContext(HttpContext base, String realm, String role) {
+    public MavenSecureHttpContext(HttpContext base, String realm, String[] role) {
         this.base = base;
         this.realm = realm;
-        this.role = role;
+        this.roles = role;
 
     }
 
@@ -95,25 +95,27 @@ public class MavenSecureHttpContext implements HttpContext {
                 }
             });
             loginContext.login();
-            if (role != null && role.length() > 0) {
-                String clazz = "org.apache.karaf.jaas.boot.principal.RolePrincipal";
-                String name = role;
-                int idx = role.indexOf(':');
-                if (idx > 0) {
-                    clazz = role.substring(0, idx);
-                    name = role.substring(idx + 1);
-                }
-                boolean found = false;
-                for (Principal p : subject.getPrincipals()) {
-                    if (p.getClass().getName().equals(clazz)
-                            && p.getName().equals(name)) {
-                        found = true;
-                        break;
+            boolean found = false;
+            for (String role : roles) {
+                if (role != null && role.length() > 0) {
+                    String clazz = "org.apache.karaf.jaas.boot.principal.RolePrincipal";
+                    String name = role;
+                    int idx = role.indexOf(':');
+                    if (idx > 0) {
+                        clazz = role.substring(0, idx);
+                        name = role.substring(idx + 1);
+                    }
+                    for (Principal p : subject.getPrincipals()) {
+                        if (p.getClass().getName().equals(clazz) && p.getName().equals(name)) {
+                            found = true;
+                            break;
+                        }
                     }
                 }
-                if (!found) {
-                    throw new FailedLoginException("User does not have the required role " + role);
-                }
+
+            }
+            if (!found) {
+                throw new FailedLoginException("User does not have the required role " + roles);
             }
             return subject;
         } catch (AccountException e) {
@@ -210,8 +212,8 @@ public class MavenSecureHttpContext implements HttpContext {
         return realm;
     }
 
-    public String getRole() {
-        return role;
+    public String[] getRoles() {
+        return roles;
     }
 
     public String toString() {
