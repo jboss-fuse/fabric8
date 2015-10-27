@@ -27,6 +27,7 @@ import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.Asset;
 import org.jboss.shrinkwrap.api.exporter.ZipExporter;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.osgi.framework.Bundle;
@@ -42,6 +43,7 @@ import static org.junit.Assert.assertTrue;
  * Integration tests for patching bundles using the patch:* commands.
  */
 @RunWith(Arquillian.class)
+@Ignore
 public class PatchMigratorTest extends AbstractPatchIntegrationTest {
 
     @Deployment

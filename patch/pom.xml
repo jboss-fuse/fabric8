@@ -40,7 +40,7 @@
         <module>patch-core</module>
         <module>patch-commands</module>
         <module>patch-management</module>
-        <module>patch-migrator</module>
+        <!--<module>patch-migrator</module>-->
         <module>patch-features</module>
         <module>patch-maven-plugin</module>
         <module>patch-itests</module>
