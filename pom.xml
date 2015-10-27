@@ -272,6 +272,7 @@
         <jsch-version>0.1.51</jsch-version>
         <jsch-smx-version>0.1.51_1</jsch-smx-version>
         <json4s-version>3.2.4_1</json4s-version>
+        <jsr311-api-smx-version>2.5.0</jsr311-api-smx-version>
         <junit-version>4.11</junit-version>
         <karaf-version>2.4.0.redhat-621069</karaf-version>
         <libvirt-bundle-version>1.1</libvirt-bundle-version>
