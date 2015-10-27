@@ -99,14 +99,14 @@ public class FabricPatchServiceImpl implements FabricPatchService {
         if (fabricService != null) {
             Profile profile = fabricService.getCurrentContainer().getOverlayProfile();
             Map<String, String> versions = profile.getConfiguration("io.fabric8.version");
-            if (patchManagement.alignTo(versions)) {
+//            if (patchManagement.alignTo(versions)) {
                 // we need restart
 //                boolean handlesFullRestart = Boolean.getBoolean("karaf.restart.jvm.supported");
 //                if (handlesFullRestart) {
 //                    System.setProperty("karaf.restart.jvm", "true");
 //                }
 //                System.out.println("[PATCH] Restarting after updating container resources in 10 seconds...");
-                System.out.println("[PATCH] Container has to be restarted. Please restart after agent finishes processing...");
+//                System.out.println("[PATCH] Container has to be restarted. Please restart after agent finishes processing...");
 //                new ScheduledThreadPoolExecutor(1).schedule(new Runnable() {
 //                    @Override
 //                    public void run() {
@@ -117,7 +117,7 @@ public class FabricPatchServiceImpl implements FabricPatchService {
 //                        }
 //                    }
 //                }, 10, TimeUnit.SECONDS);
-            }
+//            }
         }
     }
 
