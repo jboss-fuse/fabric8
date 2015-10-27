@@ -16,6 +16,7 @@
 package io.fabric8.patch.itests;
 
 import io.fabric8.api.gravia.ServiceLocator;
+import io.fabric8.api.scr.Validatable;
 import io.fabric8.common.util.IOHelpers;
 import io.fabric8.patch.Service;
 import io.fabric8.patch.management.PatchManagement;
@@ -62,7 +63,7 @@ public class PatchFilesIntegrationTest extends AbstractPatchIntegrationTest {
                 OSGiManifestBuilder builder = OSGiManifestBuilder.newInstance();
                 builder.addBundleSymbolicName(archive.getName());
                 builder.addBundleManifestVersion(2);
-                builder.addImportPackages(Bundle.class, Service.class, PatchManagement.class);
+                builder.addImportPackages(Bundle.class, Service.class, PatchManagement.class, Validatable.class);
                 return builder.openStream();
             }
         });

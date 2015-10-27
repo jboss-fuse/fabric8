@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.fabric8.api.scr.Validatable;
 import org.apache.felix.gogo.commands.basic.AbstractCommand;
 import org.apache.felix.service.command.CommandProcessor;
 import org.apache.felix.service.command.CommandSession;
@@ -111,6 +112,10 @@ public final class CommandSupport {
             boolean keepRunning = true;
             while (!Thread.currentThread().isInterrupted() && keepRunning) {
                 try {
+                    if (command instanceof Validatable && !((Validatable) command).isValid()) {
+                        Thread.sleep(250);
+                        continue;
+                    }
                     commandSession.execute(cmdstr);
                     keepRunning = false;
                 } catch (Exception ex) {

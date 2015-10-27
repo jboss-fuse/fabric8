@@ -445,7 +445,7 @@ public class ServiceImplTest {
         reset(componentContext, sysBundleContext, sysBundle, bundleContext, bundle);
 
         expect(sysBundleContext.getBundles()).andReturn(new Bundle[] { bundle });
-        expect(sysBundleContext.getServiceReference("io.fabric8.api.FabricService")).andReturn(null);
+        expect(sysBundleContext.getServiceReference("io.fabric8.api.FabricService")).andReturn(null).anyTimes();
         expect(bundle.getSymbolicName()).andReturn("my-bsn").anyTimes();
         expect(bundle.getVersion()).andReturn(new Version("1.3.1")).anyTimes();
         expect(bundle.getLocation()).andReturn("location").anyTimes();
@@ -514,7 +514,7 @@ public class ServiceImplTest {
         reset(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, bsl);
 
         expect(sysBundleContext.getBundles()).andReturn(new Bundle[] { bundle });
-        expect(sysBundleContext.getServiceReference("io.fabric8.api.FabricService")).andReturn(null);
+        expect(sysBundleContext.getServiceReference("io.fabric8.api.FabricService")).andReturn(null).anyTimes();
         expect(bundle.getSymbolicName()).andReturn("my-bsn").anyTimes();
         expect(bundle.getVersion()).andReturn(new Version("1.3.1")).anyTimes();
         expect(bundle.getLocation()).andReturn("location").anyTimes();

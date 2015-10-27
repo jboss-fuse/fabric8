@@ -16,6 +16,7 @@
 package io.fabric8.patch.itests;
 
 import io.fabric8.api.gravia.ServiceLocator;
+import io.fabric8.api.scr.Validatable;
 import io.fabric8.common.util.IOHelpers;
 import io.fabric8.itests.support.CommandSupport;
 import org.apache.felix.gogo.commands.Action;
@@ -74,7 +75,7 @@ public class PatchThePatchServiceTest extends AbstractPatchCommandIntegrationTes
                 builder.addBundleSymbolicName(archive.getName());
                 builder.addBundleManifestVersion(2);
                 builder.addImportPackages(Bundle.class, Logger.class);
-                builder.addImportPackages(AbstractCommand.class, Action.class, Function.class);
+                builder.addImportPackages(AbstractCommand.class, Action.class, Function.class, Validatable.class);
                 builder.addImportPackage("org.apache.felix.service.command;status=provisional");
                 return builder.openStream();
             }
