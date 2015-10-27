@@ -1334,10 +1334,12 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     // longer code, but more readable then series of elvis operators (?:)
                     if (preferNew) {
                         switch (conflicts.get(entry.getKey())) {
+                            case BOTH_ADDED:
                             case BOTH_MODIFIED:
                                 loader = objectReader.open(entry.getValue()[2]);
                                 loaderForBackup = objectReader.open(entry.getValue()[0]);
                                 break;
+                            case BOTH_DELETED:
                             case DELETED_BY_THEM:
                                 break;
                             case DELETED_BY_US:
@@ -1346,6 +1348,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         }
                     } else {
                         switch (conflicts.get(entry.getKey())) {
+                            case BOTH_ADDED:
                             case BOTH_MODIFIED:
                                 loader = objectReader.open(entry.getValue()[0]);
                                 loaderForBackup = objectReader.open(entry.getValue()[2]);
@@ -1353,6 +1356,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             case DELETED_BY_THEM:
                                 loader = objectReader.open(entry.getValue()[0]);
                                 break;
+                            case BOTH_DELETED:
                             case DELETED_BY_US:
                                 break;
                         }
