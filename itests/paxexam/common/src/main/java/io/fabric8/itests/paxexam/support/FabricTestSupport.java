@@ -201,6 +201,7 @@ public class FabricTestSupport extends FabricKarafTestSupport {
                 envAsSystemProperty(ContainerBuilder.CONTAINER_TYPE_PROPERTY, "child"), envAsSystemProperty(ContainerBuilder.CONTAINER_NUMBER_PROPERTY, "1"),
                 envAsSystemProperty(SshContainerBuilder.SSH_HOSTS_PROPERTY), envAsSystemProperty(SshContainerBuilder.SSH_USERS_PROPERTY),
                 envAsSystemProperty(SshContainerBuilder.SSH_PASSWORD_PROPERTY), envAsSystemProperty(SshContainerBuilder.SSH_RESOLVER_PROPERTY),
+                KarafDistributionOption.editConfigurationFilePut("etc/system.properties", "patching.disabled", "true"),
                 //Add Pax Logging to the default profile so that child containers store their logs under the root containers data folder. This way we retain logs even after containers are destroyed.
                 KarafDistributionOption.editConfigurationFilePut("fabric/import/fabric/profiles/default.profile/org.ops4j.pax.logging.properties", "log4j.rootLogger", "INFO, out, osgi:*"),
                 KarafDistributionOption.editConfigurationFilePut("fabric/import/fabric/profiles/default.profile/org.ops4j.pax.logging.properties", "log4j.appender.out", "org.apache.log4j.RollingFileAppender"),
