@@ -1093,7 +1093,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             backupDir = new File(backupDir, ref);
                             if (backupDir.exists() && backupDir.isDirectory()) {
                                 Activator.log2(LogService.LOG_DEBUG, String.format("Restoring content of %s", backupDir.getCanonicalPath()));
-                                copyManagedDirectories(backupDir, karafHome, false, false, false);
+                                copyManagedDirectories(backupDir, karafBase, false, false, false);
                             }
                         }
 
@@ -2527,7 +2527,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      */
     private void applyChanges(Git git) throws IOException, GitAPIException {
         File wcDir = git.getRepository().getWorkTree();
-        copyManagedDirectories(wcDir, karafHome, true, true, true);
+        copyManagedDirectories(wcDir, karafBase, true, true, true);
         FileUtils.copyDirectory(new File(wcDir, "lib"), new File(karafHome, "lib.next"));
         // we do exception for etc/overrides.properties
         File overrides = new File(karafHome, "etc/overrides.properties");
