@@ -2247,8 +2247,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     /**
-     * Update private history tracking branch in fabric env. This method is called when it's needed. Method
-     * <strong>always</strong> changes private history branch and align current version
+     * Update private history tracking branch in fabric env. This method is called when it's needed. not every time
+     * patch-management bundle is started/stopped/updated.
+     * Method <strong>always</strong> changes private history branch and align current version
      * @param fork
      */
     private void trackFabricContainerBaselineRepository(Git fork, String version) throws IOException, GitAPIException {

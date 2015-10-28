@@ -112,6 +112,13 @@ public class Deployer {
         void provisionList(Set<Resource> resources);
 
         void restoreConfigAdminIfNeeded();
+
+        /**
+         * Called at very end of agent provisioning, when all that's left to do is to check if there's low-level
+         * <em>provisioning</em> to be done - like patch management.
+         * @return <code>false</code> if container requires restart.
+         */
+        boolean done();
     }
 
     public static class PartialDeploymentException extends Exception {
@@ -943,7 +950,9 @@ public class Deployer {
         // Info about final list of deployed bundles
         callback.provisionList(deployment.resToBnd.keySet());
 
-        print("Done.", display);
+        if (callback.done()) {
+            print("Done.", display);
+        }
     }
 
     private void propagateState(Map<Resource, Constants.RequestedState> states, Resource resource, Constants.RequestedState state, SubsystemResolver resolver) {

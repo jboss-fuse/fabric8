@@ -36,10 +36,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -55,10 +53,12 @@ import io.fabric8.agent.service.FeatureConfigInstaller;
 import io.fabric8.agent.service.State;
 import io.fabric8.api.Container;
 import io.fabric8.api.FabricService;
+import io.fabric8.api.Profile;
 import io.fabric8.common.util.ChecksumUtils;
 import io.fabric8.common.util.Files;
 import io.fabric8.maven.MavenResolver;
 import io.fabric8.maven.MavenResolvers;
+import io.fabric8.patch.management.PatchManagement;
 import io.fabric8.utils.NamedThreadFactory;
 import org.apache.felix.utils.properties.Properties;
 import org.apache.felix.utils.version.VersionRange;
@@ -119,6 +119,7 @@ public class DeploymentAgent implements ManagedService {
     private volatile String provisioningStatus;
     private volatile Throwable provisioningError;
     private volatile Collection<Resource> provisionList;
+    private volatile boolean requiresRestart = false;
     private volatile boolean fabricNotAvailableLogged;
 
     private volatile String httpUrl;
@@ -636,8 +637,33 @@ public class DeploymentAgent implements ManagedService {
                 DeploymentAgent.this.state.replace(newState);
             }
 
+            @Override
             protected void provisionList(Set<Resource> resources) {
                 DeploymentAgent.this.provisionList = resources;
+            }
+
+            @Override
+            protected boolean done() {
+                // agent finished provisioning, we can call back to low level patch management
+                ServiceReference<PatchManagement> srPm = systemBundleContext.getServiceReference(PatchManagement.class);
+                ServiceReference<FabricService> srFs = systemBundleContext.getServiceReference(FabricService.class);
+                if (srPm != null && srFs != null) {
+                    PatchManagement pm = systemBundleContext.getService(srPm);
+                    FabricService fs = systemBundleContext.getService(srFs);
+                    if (pm != null && fs != null) {
+                        LOGGER.info("Validating baseline information");
+                        this.updateStatus("Validating baseline information");
+                        Profile profile = fs.getCurrentContainer().getOverlayProfile();
+                        Map<String, String> versions = profile.getConfiguration("io.fabric8.version");
+                        if (pm.alignTo(versions)) {
+                            this.updateStatus("requires full restart");
+                            // let's reuse the same flag
+                            restart.set(true);
+                            return false;
+                        }
+                    }
+                }
+                return true;
             }
         };
         agent.provision(
@@ -649,6 +675,10 @@ public class DeploymentAgent implements ManagedService {
                 getPrefixedProperties(properties, "optional."),
                 getMetadata(properties, "metadata#")
         );
+        if (restart.get()) {
+            // prevent updating status to "success"
+            return false;
+        }
         return true;
     }
 

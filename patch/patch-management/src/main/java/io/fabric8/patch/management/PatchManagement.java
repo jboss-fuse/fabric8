@@ -133,7 +133,7 @@ public interface PatchManagement {
     boolean alignTo(Map<String, String> versions) throws PatchException;
 
     /**
-     * Callback to be passed to method that uploads content of retrieved patched to remote repository.
+     * Callback to be passed to method that uploads content of retrieved patches to remote repository.
      */
     public interface UploadCallback {
 

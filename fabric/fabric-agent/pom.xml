@@ -39,6 +39,7 @@
             io.fabric8.maven;version="[1.2,2)",
             io.fabric8.maven.util;version="[1.2,2)",
             io.fabric8.service;version="[1.2,2)",
+            io.fabric8.patch.management;resolution:=optional,
             javax.management,
             javax.net.ssl,
             javax.security.auth,
@@ -126,6 +127,11 @@
         <dependency>
             <groupId>io.fabric8</groupId>
             <artifactId>fabric-maven</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.fabric8.patch</groupId>
+            <artifactId>patch-management</artifactId>
         </dependency>
 
         <dependency>
