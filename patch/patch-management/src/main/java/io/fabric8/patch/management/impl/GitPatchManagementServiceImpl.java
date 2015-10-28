@@ -2337,7 +2337,16 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             // commit the changes to main repository
             Status status = git.status().call();
             if (!status.isClean()) {
-                Activator.log(LogService.LOG_DEBUG, "Storing user changes");
+                boolean amend = false;
+                if (status.getUntracked().size() == 0
+                        && status.getMissing().size() == 0
+                        && status.getModified().size() == 1) {
+                    if ("etc/io.fabric8.mq.fabric.server-broker.cfg".equals(status.getModified().iterator().next())) {
+                        amend = true;
+                    }
+                }
+                Activator.log(LogService.LOG_DEBUG, (amend ? "Amending" : "Storing") + " user changes");
+
                 git.add()
                         .addFilepattern(".")
                         .call();
@@ -2348,7 +2357,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 //                    git.rm().addFilepattern(name).call();
 //                }
 
-                gitPatchRepository.prepareCommit(git, MARKER_USER_CHANGES_COMMIT).call();
+                gitPatchRepository.prepareCommit(git, MARKER_USER_CHANGES_COMMIT)
+                        .setAmend(amend)
+                        .call();
                 gitPatchRepository.push(git);
 
                 // now main repository has exactly the same content as ${karaf.home}
