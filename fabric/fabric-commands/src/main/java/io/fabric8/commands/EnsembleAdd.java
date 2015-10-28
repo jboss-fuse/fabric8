@@ -94,7 +94,7 @@ public class EnsembleAdd extends AbstractCommandComponent {
         this.bootstrapConfiguration.bind(configuration);
     }
 
-    void unbindContainerCompleter(BootstrapConfiguration configuration) {
+    void unbindBootstrapConfiguration(BootstrapConfiguration configuration) {
         this.bootstrapConfiguration.unbind(configuration);
     }
 }
