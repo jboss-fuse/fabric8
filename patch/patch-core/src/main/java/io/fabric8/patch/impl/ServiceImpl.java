@@ -1060,11 +1060,12 @@ public class ServiceImpl implements Service {
 
             try {
                 if (!simulate) {
+                    // let's backup data files before configadmin detects changes to etc/* files.
+                    backupService.backupDataFiles(result, Pending.ROLLUP_ROLLBACK);
+
                     patchManagement.rollback(patch.getPatchData());
                     result.setPending(Pending.ROLLUP_ROLLBACK);
                     result.store();
-
-                    backupService.backupDataFiles(result, Pending.ROLLUP_ROLLBACK);
 
                     if (isJvmRestartNeeded(result)) {
                         boolean handlesFullRestart = Boolean.getBoolean("karaf.restart.jvm.supported");
