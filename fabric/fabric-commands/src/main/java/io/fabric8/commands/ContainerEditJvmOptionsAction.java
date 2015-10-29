@@ -20,6 +20,8 @@ import io.fabric8.api.CreateContainerMetadata;
 import io.fabric8.api.FabricAuthenticationException;
 import io.fabric8.api.FabricService;
 import io.fabric8.boot.commands.support.FabricCommand;
+import io.fabric8.core.jmx.FabricManager;
+import io.fabric8.service.FabricServiceImpl;
 import io.fabric8.utils.shell.ShellUtils;
 import org.apache.felix.gogo.commands.Argument;
 import org.apache.felix.gogo.commands.Command;
@@ -57,11 +59,17 @@ public class ContainerEditJvmOptionsAction extends AbstractAction {
     @Option(name = "-p", aliases = {"--password"}, description = "Remote user password", required = false, multiValued = false)
     private String password;
 
-    private final FabricService fabricService;
+    @Option(name = "-f", aliases = {"--full"}, description = "Shows the full set of jvm params, included those specified at script level", required = false, multiValued = false)
+    private boolean full = false;
+
+    private final FabricServiceImpl fabricService;
 
 
     ContainerEditJvmOptionsAction(FabricService fabricService) {
-        this.fabricService = fabricService;
+        if(! (fabricService instanceof FabricServiceImpl)){
+            throw new IllegalArgumentException("FabricService instance should be of specialized typed FabricServiceImpl");
+        }
+        this.fabricService = (FabricServiceImpl) fabricService;
 
     }
 
@@ -82,31 +90,31 @@ public class ContainerEditJvmOptionsAction extends AbstractAction {
             return null;
         }
 
-        String jmxUrl = null;
-        JMXConnector connector = null;
-        MBeanServerConnection remote = null;
-        HashMap<String, String[]> authenticationData = null;
+        // read current jvm values
+        FabricManager fabricManager = new FabricManager( fabricService);
 
-        jmxUrl = containerInstance.getJmxUrl();
-        authenticationData = prepareAuthenticationData();
+        if (full) {
+            String jmxUrl = null;
+            JMXConnector connector = null;
+            MBeanServerConnection remote = null;
+            HashMap<String, String[]> authenticationData = null;
 
-        try {
-            connector = connectOrRetry(authenticationData, jmxUrl);
-        } catch (Exception e){
-            username = null;
-            password = null;
-            System.out.println("Operation Failed. Check logs.");
-            log.error("Unable to connect to JMX Server", e);
-            return null;
-        }
-
-        remote = connector.getMBeanServerConnection();
-
-        ObjectName objName = null;
-        if (jvmOptions == null) {
-            objName = new ObjectName(JAVA_LANG_OBJECT_NAME);
+            jmxUrl = containerInstance.getJmxUrl();
+            authenticationData = prepareAuthenticationData();
 
             try {
+                connector = connectOrRetry(authenticationData, jmxUrl);
+            } catch (Exception e){
+                username = null;
+                password = null;
+                System.out.println("Operation Failed. Check logs.");
+                log.error("Unable to connect to JMX Server", e);
+                return null;
+            }
+            ObjectName  objName = new ObjectName(JAVA_LANG_OBJECT_NAME);
+
+            try {
+                remote = connector.getMBeanServerConnection();
                 String[] arguments = (String[]) remote.getAttribute(objName, "InputArguments");
                 String output = Arrays.toString(arguments);
                 output = output.replaceAll(",", "");
@@ -116,70 +124,33 @@ public class ContainerEditJvmOptionsAction extends AbstractAction {
                 System.out.println("Operation Failed. Check logs.");
                 log.error("Unable to fetch child jvm opts", e);
             }
+            try{
+                connector.close();
+            } catch(IOException e){
+                log.error("Errors closing remote MBean connection", e);
+            }
+        } else{
+            try {
+                String output = fabricManager.getJvmOpts(container);
+                if( "Inapplicable".equals(output) ){
+                    String message = container + " jvmOpts cannot be handled within Fabric. You have to set required values directly in startup scripts.";
+                    System.out.println(message);
+                    log.error(message);
+                    return null;
+                }
 
-        } else {
-            jvmOptions = stripSlashes(jvmOptions);
-
-            String providerType = null;
-            CreateContainerMetadata<?> metadata = containerInstance.getMetadata();
-            if(metadata == null){
-                //root container
-                //disallowed for the time being. something odd screws authentication
-                // providerType = "child";
-                System.out.println("Modifying current container is not allowed. Please turn the instance off and manually edit env variables");
-                return null;
-            }else{
-                providerType = metadata.getCreateOptions().getProviderType();
+                if (jvmOptions == null) {
+                    System.out.println(output);
+                } else {
+                    fabricManager.setJvmOpts(container, jvmOptions);
+                    System.out.println("Operation succeeded. New JVM flags will be loaded at the next start of " + container + " container");
+                    log.info("Updated JVM flags for container {}", container);
+                }
+            }catch (Exception e) {
+                System.out.println("Operation Failed. Check logs.");
+                log.error("Unable to set ssh jvm opts", e);
             }
 
-
-            switch(providerType){
-                case "ssh":
-                    //we need to operate on an ensamble member container
-                    containerInstance= fabricService.getCurrentContainer();
-
-                    jmxUrl = containerInstance.getJmxUrl();
-                    authenticationData = prepareAuthenticationData();
-
-                    connector = connectOrRetry(authenticationData, jmxUrl);
-                    remote = connector.getMBeanServerConnection();
-
-                    objName = new ObjectName(String.format(FABRIC_OBJECT_NAME, container));
-
-                    try {
-                        remote.invoke(objName, OPERATION_SSH, new Object[]{container,  "jvmOpts", jvmOptions},
-                                new String[]{String.class.getName(), String.class.getName(), Object.class.getName()});
-                        System.out.println("Operation succeeded. New JVM flags will be loaded at the next start of " + container + " container");
-                        log.info("Updated JVM flags for container {}", container);
-                    } catch (Exception e) {
-                        System.out.println("Operation Failed. Check logs.");
-                        log.error("Unable to set ssh jvm opts", e);
-                    }
-                    break;
-
-                case "child":
-                    objName = new ObjectName(String.format(KARAF_ADMIN_OBJECT_NAME, container));
-
-                    try {
-                        remote.invoke(objName, OPERATION_CHILD, new Object[]{container, jvmOptions},
-                                new String[]{String.class.getName(), String.class.getName()});
-                        System.out.println("Operation succeeded. New JVM flags will be loaded at the next start of " + container + " container");
-                        log.info("Updated JVM flags for container {}", container);
-                    } catch (Exception e) {
-                        System.out.println("Operation Failed. Check logs.");
-                        log.error("Unable to set child jvm opts", e);
-                    }
-                    break;
-                default:
-                    System.out.println(String.format("Operation aborted. %s containers are not supported", providerType));
-            }
-
-        }
-
-        try{
-            connector.close();
-        } catch(IOException e){
-            log.error("Errors closing remote MBean connection", e);
         }
 
         return null;
@@ -208,14 +179,6 @@ public class ContainerEditJvmOptionsAction extends AbstractAction {
             connector = JMXConnectorFactory.connect(target, env);
         }
         return connector;
-    }
-
-    private String stripSlashes(String jvmOptions) {
-        String result = jvmOptions;
-        if (jvmOptions == null) {
-            result = "";
-        }
-        return result.replaceAll("\\\\", "");
     }
 
     /**
