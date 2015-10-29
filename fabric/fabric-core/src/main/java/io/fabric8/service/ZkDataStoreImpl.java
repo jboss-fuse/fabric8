@@ -451,7 +451,9 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
             Set<String> idset = new HashSet<>();
             StringBuilder sb = new StringBuilder();
             for (String profileId : profileIds) {
-                IllegalArgumentAssertion.assertFalse(idset.contains(profileId), "Duplicate profile id in: " + profileIds);
+                if(idset.contains(profileId)){
+                    continue;
+                }
                 if (sb.length() > 0) {
                     sb.append(" ");
                 }
