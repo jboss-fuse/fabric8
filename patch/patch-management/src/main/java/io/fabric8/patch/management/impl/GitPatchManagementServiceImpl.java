@@ -1620,17 +1620,19 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         .setTagOpt(TagOpt.FETCH_TAGS)
                         .call();
 
-                // I think it's enough to compare the main HEADs. if there are no remote branches
-                // for patch management or their HEADs are the same, we are the MAIN container that performs
-                // git patch management
-                ObjectId ours = mainRepository.getRepository()
-                        .resolve("refs/heads/" + gitPatchRepository.getFuseRootContainerPatchBranchName());
-                ObjectId theirs = mainRepository.getRepository()
-                        .resolve("refs/remotes/origin/" + gitPatchRepository.getFuseRootContainerPatchBranchName());
-                if (theirs == null || theirs.equals(ours)) {
-                    // if ours is null, then we've just started git patch management
-                    master = true;
-                    gitPatchRepository.setMaster(true);
+                if (env == EnvType.FABRIC_FUSE) {
+                    // I think it's enough to compare the main HEADs. if there are no remote branches
+                    // for patch management or their HEADs are the same, we are the MAIN container that performs
+                    // git patch management
+                    ObjectId ours = mainRepository.getRepository()
+                            .resolve("refs/heads/" + gitPatchRepository.getFuseRootContainerPatchBranchName());
+                    ObjectId theirs = mainRepository.getRepository()
+                            .resolve("refs/remotes/origin/" + gitPatchRepository.getFuseRootContainerPatchBranchName());
+                    if (theirs == null || theirs.equals(ours)) {
+                        // if ours is null, then we've just started git patch management
+                        master = true;
+                        gitPatchRepository.setMaster(true);
+                    }
                 }
             }
 
