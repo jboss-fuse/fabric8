@@ -30,6 +30,7 @@ import io.fabric8.api.FabricService;
 import io.fabric8.api.GitContext;
 import io.fabric8.api.Profile;
 import io.fabric8.api.ProfileRegistry;
+import io.fabric8.api.ProfileService;
 import io.fabric8.api.RuntimeProperties;
 import io.fabric8.common.util.Base64Encoder;
 import io.fabric8.git.GitDataStore;
@@ -148,6 +149,8 @@ public class FabricPatchServiceImpl implements FabricPatchService {
             throw new UnsupportedOperationException("Can't install Rollup patch in current version. Please install" +
                     " this patch in new version and then upgrade existing container(s)");
         }
+
+        fabricService.adapt(ProfileService.class).getRequiredVersion(versionId);
 
         // just a list of new bundle locations - in fabric the updatable version depends on the moment we
         // apply the new version to existing containers.
