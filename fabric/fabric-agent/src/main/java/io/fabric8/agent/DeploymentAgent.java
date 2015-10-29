@@ -58,6 +58,7 @@ import io.fabric8.common.util.ChecksumUtils;
 import io.fabric8.common.util.Files;
 import io.fabric8.maven.MavenResolver;
 import io.fabric8.maven.MavenResolvers;
+import io.fabric8.patch.FabricPatchService;
 import io.fabric8.patch.management.PatchManagement;
 import io.fabric8.utils.NamedThreadFactory;
 import org.apache.felix.utils.properties.Properties;
@@ -652,10 +653,25 @@ public class DeploymentAgent implements ManagedService {
                     FabricService fs = systemBundleContext.getService(srFs);
                     if (pm != null && fs != null) {
                         LOGGER.info("Validating baseline information");
-                        this.updateStatus("Validating baseline information");
+                        this.updateStatus("validating baseline information");
                         Profile profile = fs.getCurrentContainer().getOverlayProfile();
                         Map<String, String> versions = profile.getConfiguration("io.fabric8.version");
-                        if (pm.alignTo(versions)) {
+                        if (pm.alignTo(versions, new Runnable() {
+                            @Override
+                            public void run() {
+                                ServiceReference<FabricPatchService> srFps = systemBundleContext.getServiceReference(FabricPatchService.class);
+                                if (srFps != null) {
+                                    FabricPatchService fps = systemBundleContext.getService(srFps);
+                                    if (fps != null) {
+                                        try {
+                                            fps.synchronize();
+                                        } catch (Exception e) {
+                                            LOGGER.error(e.getMessage(), e);
+                                        }
+                                    }
+                                }
+                            }
+                        })) {
                             this.updateStatus("requires full restart");
                             // let's reuse the same flag
                             restart.set(true);

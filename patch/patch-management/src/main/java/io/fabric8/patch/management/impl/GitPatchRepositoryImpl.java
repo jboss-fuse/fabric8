@@ -57,7 +57,7 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
 
     public static final String MAIN_GIT_REPO_LOCATION = ".management/history";
 
-    private static final Pattern BASELINE_TAG_PATTERN = Pattern.compile("^baseline-(.+)$");
+    private static final Pattern BASELINE_TAG_PATTERN = Pattern.compile("^baseline-.*(\\d.+)$");
 
     // what kind of env we're operating?
     private final boolean isFabric;
@@ -391,24 +391,43 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
     public RevTag findCurrentBaseline(Git git) throws GitAPIException, IOException {
         List<Ref> tags = git.tagList().call();
         RevWalk walk = new RevWalk(git.getRepository());
-        Map<ObjectId, RevTag> tagMap = new HashMap<>();
+        Map<ObjectId, List<RevTag>> tagMap = new HashMap<>();
         for (Ref tag : tags) {
             Ref peeled = git.getRepository().peel(tag);
             RevTag revTag = walk.parseTag(tag.getObjectId());
             if (!BASELINE_TAG_PATTERN.matcher(revTag.getTagName()).matches()) {
                 continue;
             }
+            ObjectId key = null;
             if (peeled.getPeeledObjectId() != null) {
-                tagMap.put(peeled.getPeeledObjectId(), revTag);
+                key = peeled.getPeeledObjectId();
             } else {
-                tagMap.put(peeled.getObjectId(), revTag);
+                key = peeled.getObjectId();
             }
+            if (!tagMap.containsKey(key)) {
+                tagMap.put(key, new LinkedList<RevTag>());
+            }
+            tagMap.get(key).add(revTag);
         }
 
         Iterable<RevCommit> log = git.log().add(git.getRepository().resolve(getMainBranchName())).call();
         for (RevCommit rc : log) {
             if (tagMap.containsKey(rc.getId())) {
-                return tagMap.get(rc.getId());
+                if (tagMap.get(rc.getId()).size() == 1) {
+                    return tagMap.get(rc.getId()).get(0);
+                } else {
+                    // we may assume there's tag from standalone baseline and from fabric baseline
+                    // standalone may look like "baseline-6.2.1.xxx-NNN"
+                    // fabric may look like "baseline-root-fuse-6.2.1.xxx-NNN"
+                    // so we can do simplest thing - select tag with longer name...
+                    RevTag result = null;
+                    for (RevTag t : tagMap.get(rc.getId())) {
+                        if (result == null || result.getTagName().length() < t.getTagName().length()) {
+                            result = t;
+                        }
+                    }
+                    return result;
+                }
             }
         }
 

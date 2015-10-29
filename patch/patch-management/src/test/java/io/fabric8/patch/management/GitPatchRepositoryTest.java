@@ -196,11 +196,13 @@ public class GitPatchRepositoryTest {
         RevCommit c3 = repository.prepareCommit(repo, "commit3").call();
 
         repo.tag().setName("baseline-1.2.3").setObjectId(c1).call();
+        repo.tag().setName("baseline-y-z-1.2.4").setObjectId(c1).call();
         // lower version, newer commit/tag
         repo.tag().setName("baseline-1.2.1").setObjectId(c3).call();
+        repo.tag().setName("baseline-x-1.2.2").setObjectId(c3).call();
 
         RevTag tag = repository.findLatestBaseline(repo);
-        assertThat(tag.getTagName(), equalTo("baseline-1.2.3"));
+        assertThat(tag.getTagName(), equalTo("baseline-y-z-1.2.4"));
         assertThat(tag.getObject(), equalTo(c1.getId()));
     }
 
@@ -212,13 +214,14 @@ public class GitPatchRepositoryTest {
         repo.tag().setName("baseline-1.2.3").setObjectId(c1).call();
         RevCommit c2 = repository.prepareCommit(repo, "commit2").call();
         repo.tag().setName("baseline-1.2.1").setObjectId(c2).call(); // for the purpose of test
+        repo.tag().setName("baseline-in-fabric-1.2.1").setObjectId(c2).call(); // 2nd tag for the same commit
         RevCommit c3 = repository.prepareCommit(repo, "commit3").call();
 
         RevTag tag1 = repository.findLatestBaseline(repo);
         assertThat(tag1.getTagName(), equalTo("baseline-1.2.3"));
         assertThat(tag1.getObject(), equalTo(c1.getId()));
         RevTag tag2 = repository.findCurrentBaseline(repo);
-        assertThat(tag2.getTagName(), equalTo("baseline-1.2.1"));
+        assertThat(tag2.getTagName(), equalTo("baseline-in-fabric-1.2.1"));
         assertThat(tag2.getObject(), equalTo(c2.getId()));
     }
 

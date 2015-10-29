@@ -48,6 +48,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
 import java.util.regex.Matcher;
@@ -166,6 +167,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     private GitPatchRepository gitPatchRepository;
     private ConflictResolver conflictResolver = new ConflictResolver();
     private EnvService envService;
+
+    private AtomicBoolean aligning = new AtomicBoolean(false);
 
     // ${karaf.home}
     private File karafHome;
@@ -1603,7 +1606,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      */
     @Override
     public void ensurePatchManagementInitialized() {
-        Activator.log(LogService.LOG_INFO, "INITIALIZING PATCH MANAGEMENT SYSTEM");
+        Activator.log(LogService.LOG_INFO, "Configuring patch management system");
 
         Git fork = null;
         try {
@@ -1679,7 +1682,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 String tagName = String.format(env.getBaselineTagFormat(), determineVersion(env.getProductId()));
 
                 RevTag tag = gitPatchRepository.findCurrentBaseline(fork);
-                if (tag == null/* || !tagName.equals(tag.getTagName())*/) {
+                if (tag == null || !tagName.equals(tag.getTagName())) {
                     trackFabricContainerBaselineRepository(fork, null);
                     applyUserChanges(fork);
                 }
@@ -1792,9 +1795,13 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     private void trackBaselinesForChildContainers(Git fork) throws IOException, GitAPIException {
         if (fork.getRepository().getRef("refs/heads/" + gitPatchRepository.getChildBranchName()) == null) {
             // checkout patches-child branch - it'll track baselines for fabric:container-create-child containers
+            String startPoint = "patch-management^{commit}";
+            if (fork.getRepository().getRef("refs/remotes/origin/" + gitPatchRepository.getChildBranchName()) != null) {
+                startPoint = "refs/remotes/origin/" + gitPatchRepository.getChildBranchName();
+            }
             gitPatchRepository.checkout(fork)
                     .setName(gitPatchRepository.getChildBranchName())
-                    .setStartPoint("patch-management^{commit}")
+                    .setStartPoint(startPoint)
                     .setCreateBranch(true)
                     .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
                     .call();
@@ -1916,17 +1923,25 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     public void trackBaselinesForSSHContainers(Git fork) throws IOException, GitAPIException {
         // two separate branches for two kinds of baselines for SSH containers
         if (fork.getRepository().getRef("refs/heads/" + gitPatchRepository.getFuseSSHContainerPatchBranchName()) == null) {
+            String startPoint = "patch-management^{commit}";
+            if (fork.getRepository().getRef("refs/remotes/origin/" + gitPatchRepository.getFuseSSHContainerPatchBranchName()) != null) {
+                startPoint = "refs/remotes/origin/" + gitPatchRepository.getFuseSSHContainerPatchBranchName();
+            }
             gitPatchRepository.checkout(fork)
                     .setName(gitPatchRepository.getFuseSSHContainerPatchBranchName())
-                    .setStartPoint("patch-management^{commit}")
+                    .setStartPoint(startPoint)
                     .setCreateBranch(true)
                     .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
                     .call();
         }
         if (fork.getRepository().getRef("refs/heads/" + gitPatchRepository.getFabric8SSHContainerPatchBranchName()) == null) {
+            String startPoint = "patch-management^{commit}";
+            if (fork.getRepository().getRef("refs/remotes/origin/" + gitPatchRepository.getFabric8SSHContainerPatchBranchName()) != null) {
+                startPoint = "refs/remotes/origin/" + gitPatchRepository.getFabric8SSHContainerPatchBranchName();
+            }
             gitPatchRepository.checkout(fork)
                     .setName(gitPatchRepository.getFabric8SSHContainerPatchBranchName())
-                    .setStartPoint("patch-management^{commit}")
+                    .setStartPoint(startPoint)
                     .setCreateBranch(true)
                     .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
                     .call();
@@ -2073,17 +2088,25 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     private void trackBaselinesForRootContainer(Git fork) throws IOException, GitAPIException {
         // two separate branches for two kinds of baselines for root containers
         if (fork.getRepository().getRef("refs/heads/" + gitPatchRepository.getFuseRootContainerPatchBranchName()) == null) {
+            String startPoint = "patch-management^{commit}";
+            if (fork.getRepository().getRef("refs/remotes/origin/" + gitPatchRepository.getFuseRootContainerPatchBranchName()) != null) {
+                startPoint = "refs/remotes/origin/" + gitPatchRepository.getFuseRootContainerPatchBranchName();
+            }
             gitPatchRepository.checkout(fork)
                     .setName(gitPatchRepository.getFuseRootContainerPatchBranchName())
-                    .setStartPoint("patch-management^{commit}")
+                    .setStartPoint(startPoint)
                     .setCreateBranch(true)
                     .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
                     .call();
         }
         if (fork.getRepository().getRef("refs/heads/" + gitPatchRepository.getAmqRootContainerPatchBranchName()) == null) {
+            String startPoint = "patch-management^{commit}";
+            if (fork.getRepository().getRef("refs/remotes/origin/" + gitPatchRepository.getAmqRootContainerPatchBranchName()) != null) {
+                startPoint = "refs/remotes/origin/" + gitPatchRepository.getAmqRootContainerPatchBranchName();
+            }
             gitPatchRepository.checkout(fork)
                     .setName(gitPatchRepository.getAmqRootContainerPatchBranchName())
-                    .setStartPoint("patch-management^{commit}")
+                    .setStartPoint(startPoint)
                     .setCreateBranch(true)
                     .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
                     .call();
@@ -2247,16 +2270,20 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     /**
-     * Update private history tracking branch in fabric env. This method is called when it's needed. not every time
+     * Update private history tracking branch in fabric env. This method is called when it's needed, not every time
      * patch-management bundle is started/stopped/updated.
      * Method <strong>always</strong> changes private history branch and align current version
      * @param fork
      */
     private void trackFabricContainerBaselineRepository(Git fork, String version) throws IOException, GitAPIException {
         if (fork.getRepository().getRef("refs/heads/" + gitPatchRepository.getMainBranchName()) == null) {
+            String startPoint = "patch-management^{commit}";
+            if (fork.getRepository().getRef("refs/remotes/origin/" + gitPatchRepository.getMainBranchName()) != null) {
+                startPoint = "refs/remotes/origin/" + gitPatchRepository.getMainBranchName();
+            }
             gitPatchRepository.checkout(fork)
                     .setName(gitPatchRepository.getMainBranchName())
-                    .setStartPoint("patch-management^{commit}")
+                    .setStartPoint(startPoint)
                     .setCreateBranch(true)
                     .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
                     .call();
@@ -2299,6 +2326,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         ListIterator<RevCommit> it = userChanges.listIterator(userChanges.size());
         int prefixSize = Integer.toString(userChanges.size()).length();
         int count = 1;
+
+        // we may have unadded changes - when file mode is changed
+        fork.reset().setMode(ResetCommand.ResetType.HARD).call();
 
         while (it.hasPrevious()) {
             RevCommit userChange = it.previous();
@@ -2732,39 +2762,74 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     @Override
-    public boolean alignTo(Map<String, String> versions) throws PatchException {
-        if (env.isFabric()) {
-            Git fork = null;
-            try {
-                String version = versions.get(env.getProductId());
-                String tagName = String.format(env.getBaselineTagFormat(), version);
-                // we have to be at that tag
-                Git mainRepository = gitPatchRepository.findOrCreateMainGitRepository();
-                fork = gitPatchRepository.cloneRepository(mainRepository, true);
-                gitPatchRepository.checkout(fork)
-                        .setName(gitPatchRepository.getMainBranchName())
-                        .call();
-
-                RevTag tag = gitPatchRepository.findCurrentBaseline(fork);
-                if (tag != null && tagName.equals(tag.getTagName())) {
-                    return false;
-                }
-
-                applyUserChanges(fork);
-                trackFabricContainerBaselineRepository(fork, version);
-                applyChanges(fork);
-
-                return true;
-            } catch (Exception e) {
-                throw new PatchException(e.getMessage(), e);
-            } finally {
-                if (fork != null) {
-                    gitPatchRepository.closeRepository(fork, true);
-                }
-            }
+    public boolean alignTo(Map<String, String> versions, Runnable callback) throws PatchException {
+        if (aligning.getAndSet(true)) {
+            return false;
         }
 
-        return false;
+        try {
+            if (!env.isFabric()) {
+                try {
+                    // we probably survived fabric:create without refreshing patch-management bundle
+                    env = envService.determineEnvironmentType();
+                    File patchRepositoryLocation = new File(patchesDir, GitPatchRepositoryImpl.MAIN_GIT_REPO_LOCATION);
+
+                    getGitPatchRepository().close();
+                    GitPatchRepositoryImpl repository = new GitPatchRepositoryImpl(env.isFabric(), patchRepositoryLocation,
+                            karafHome, karafBase, patchesDir);
+                    setGitPatchRepository(repository);
+                    start();
+
+                    // let's tweak the configuration when entering fabric mode
+                    // this way we will track other kinds of baselines
+                    ensurePatchManagementInitialized();
+
+                    if (master) {
+                        // let the caller know that we've configured patch management in "master" container
+                        // this is mainly to push the changes from local to cluster git repository
+                        // so child/ssh containers created in fabric can fetch correct baselines
+                        callback.run();
+                    }
+                } catch (Exception e) {
+                    throw new PatchException(e.getMessage(), e);
+                }
+            }
+
+            if (env.isFabric()) {
+                Git fork = null;
+                try {
+                    String version = versions.get(env.getProductId());
+                    String tagName = String.format(env.getBaselineTagFormat(), version);
+                    // we have to be at that tag
+                    Git mainRepository = gitPatchRepository.findOrCreateMainGitRepository();
+                    fork = gitPatchRepository.cloneRepository(mainRepository, true);
+                    gitPatchRepository.checkout(fork)
+                            .setName(gitPatchRepository.getMainBranchName())
+                            .call();
+
+                    RevTag tag = gitPatchRepository.findCurrentBaseline(fork);
+                    if (tag != null && tagName.equals(tag.getTagName())) {
+                        return false;
+                    }
+
+                    applyUserChanges(fork);
+                    trackFabricContainerBaselineRepository(fork, version);
+                    applyChanges(fork);
+
+                    return true;
+                } catch (Exception e) {
+                    throw new PatchException(e.getMessage(), e);
+                } finally {
+                    if (fork != null) {
+                        gitPatchRepository.closeRepository(fork, true);
+                    }
+                }
+            }
+
+            return false;
+        } finally {
+            aligning.set(false);
+        }
     }
 
     /**
