@@ -46,6 +46,7 @@ import io.fabric8.agent.download.DownloadManager;
 import io.fabric8.agent.download.DownloadManagers;
 import io.fabric8.agent.download.Downloader;
 import io.fabric8.agent.download.StreamProvider;
+import io.fabric8.agent.download.impl.MavenDownloadManager;
 import io.fabric8.agent.internal.Macro;
 import io.fabric8.agent.service.Agent;
 import io.fabric8.agent.service.Constants;
@@ -63,6 +64,7 @@ import io.fabric8.patch.management.PatchManagement;
 import io.fabric8.utils.NamedThreadFactory;
 import org.apache.felix.utils.properties.Properties;
 import org.apache.felix.utils.version.VersionRange;
+import org.eclipse.aether.repository.LocalRepository;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
@@ -383,7 +385,7 @@ public class DeploymentAgent implements ManagedService {
             fabricServiceOperations.unlock();
         }
         addMavenProxies(properties, httpUrl, mavenRepoURIs);
-        MavenResolver resolver = MavenResolvers.createMavenResolver(properties, "org.ops4j.pax.url.mvn");
+        final MavenResolver resolver = MavenResolvers.createMavenResolver(properties, "org.ops4j.pax.url.mvn");
         final DownloadManager manager = DownloadManagers.createDownloadManager(resolver, getDownloadExecutor());
         manager.addListener(new DownloadCallback() {
             @Override
@@ -656,7 +658,8 @@ public class DeploymentAgent implements ManagedService {
                         this.updateStatus("validating baseline information");
                         Profile profile = fs.getCurrentContainer().getOverlayProfile();
                         Map<String, String> versions = profile.getConfiguration("io.fabric8.version");
-                        if (pm.alignTo(versions, new Runnable() {
+                        File localRepository = resolver.getLocalRepository();
+                        if (pm.alignTo(versions, localRepository, new Runnable() {
                             @Override
                             public void run() {
                                 ServiceReference<FabricPatchService> srFps = systemBundleContext.getServiceReference(FabricPatchService.class);

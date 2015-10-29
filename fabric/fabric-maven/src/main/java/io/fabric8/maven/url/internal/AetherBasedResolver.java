@@ -752,6 +752,11 @@ public class AetherBasedResolver implements MavenResolver {
         return collectDependencies(pomDetails, excludeDependencyFilter);
     }
 
+    @Override
+    public File getLocalRepository() {
+        return localRepository == null ? null : localRepository.getBasedir();
+    }
+
     public DependencyNode collectDependencies(PomDetails pomDetails, Filter<Dependency> excludeDependencyFilter) throws IOException, RepositoryException {
         Model model = pomDetails.getModel();
         return collectDependenciesFromPom(pomDetails.getFile(), model, excludeDependencyFilter);

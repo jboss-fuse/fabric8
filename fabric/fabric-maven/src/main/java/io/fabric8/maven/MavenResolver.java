@@ -26,6 +26,7 @@ import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.graph.Dependency;
 import org.eclipse.aether.graph.DependencyNode;
+import org.eclipse.aether.repository.LocalRepository;
 import org.eclipse.aether.repository.RemoteRepository;
 
 public interface MavenResolver {
@@ -59,5 +60,11 @@ public interface MavenResolver {
      * Build a tree of dependencies for the specified jar file
      */
     DependencyNode collectDependenciesForJar(File artifactFile, Filter<Dependency> excludeFilter) throws IOException, RepositoryException;
+
+    /**
+     * Returns {@link LocalRepository} used by the resolver
+     * @return
+     */
+    File getLocalRepository();
 
 }

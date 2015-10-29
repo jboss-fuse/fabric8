@@ -127,10 +127,11 @@ public interface PatchManagement {
      * (<code>io.fabric8.version</code> PID). It's job is to update static resources of the container.
      * This method should be called in fabric mode.
      * @param versions
+     * @param localMavenRepository
      * @param callback
      * @return <code>true</code> if container needs restart
      */
-    boolean alignTo(Map<String, String> versions, Runnable callback) throws PatchException;
+    boolean alignTo(Map<String, String> versions, File localMavenRepository, Runnable callback) throws PatchException;
 
     /**
      * Callback to be passed to method that uploads content of retrieved patches to remote repository.
