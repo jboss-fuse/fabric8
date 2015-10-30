@@ -38,6 +38,7 @@
             org.osgi.service.metatype, 
             org.osgi.util.tracker,
             org.slf4j,
+            javax.management
             javax.xml.parsers,
             org.w3c.dom,
             org.xml.sax
