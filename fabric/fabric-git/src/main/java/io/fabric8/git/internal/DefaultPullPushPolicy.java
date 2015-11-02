@@ -50,6 +50,7 @@ import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.RemoteRefUpdate;
 import org.eclipse.jgit.transport.RemoteRefUpdate.Status;
 import io.fabric8.api.gravia.IllegalStateAssertion;
+import org.eclipse.jgit.transport.TagOpt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,7 +86,9 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
         
         Exception lastException = null;
         try {
-            git.fetch().setTimeout(gitTimeout).setCredentialsProvider(credentialsProvider).setRemote(remoteRef).call();
+            git.fetch().setTimeout(gitTimeout).setCredentialsProvider(credentialsProvider)
+                    .setTagOpt(TagOpt.FETCH_TAGS)
+                    .setRemote(remoteRef).call();
         } catch (GitAPIException | JGitInternalException ex) {
             lastException = ex;
         }

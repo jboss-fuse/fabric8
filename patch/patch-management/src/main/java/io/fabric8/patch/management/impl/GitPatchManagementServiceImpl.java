@@ -2819,22 +2819,24 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     applyChanges(fork);
 
                     // let's copy artifacts referenced in etc/startup.properties from localMavenRepository to system
-                    try {
-                        File etcStartupProperties = new File(karafBase, "etc/startup.properties");
-                        try (FileInputStream fis = new FileInputStream(etcStartupProperties)) {
-                            Properties props = new Properties();
-                            props.load(fis);
-                            for (String artifact : props.stringPropertyNames()) {
-                                File systemRepo = getSystemRepository(karafHome, systemContext);
-                                File target = new File(systemRepo, artifact);
-                                File src = new File(localMavenRepository, artifact);
-                                if (!target.exists() && src.isFile()) {
-                                    FileUtils.copyFile(src, target);
+                    if (localMavenRepository != null) {
+                        try {
+                            File etcStartupProperties = new File(karafBase, "etc/startup.properties");
+                            try (FileInputStream fis = new FileInputStream(etcStartupProperties)) {
+                                Properties props = new Properties();
+                                props.load(fis);
+                                for (String artifact : props.stringPropertyNames()) {
+                                    File systemRepo = getSystemRepository(karafHome, systemContext);
+                                    File target = new File(systemRepo, artifact);
+                                    File src = new File(localMavenRepository, artifact);
+                                    if (!target.exists() && src.isFile()) {
+                                        FileUtils.copyFile(src, target);
+                                    }
                                 }
                             }
+                        } catch (Exception e) {
+                            Activator.log(LogService.LOG_ERROR, null, e.getMessage(), e, false);
                         }
-                    } catch (Exception e) {
-                        Activator.log(LogService.LOG_ERROR, null, e.getMessage(), e, false);
                     }
                     return true;
                 } catch (Exception e) {

@@ -118,6 +118,8 @@ public class Agent {
     private final StateStorage storage;
     private EnumSet<Option> options = EnumSet.noneOf(Option.class);
 
+    private String deploymentAgentId;
+
     public Agent(Bundle serviceBundle, BundleContext systemBundleContext, DownloadManager manager) {
         this(serviceBundle, systemBundleContext, manager, null, null, DEFAULT_FEATURE_RESOLUTION_RANGE, DEFAULT_BUNDLE_UPDATE_RANGE, UPDATE_SNAPSHOTS_CRC, null, Constants.BUNDLE_START_TIMEOUT);
     }
@@ -341,9 +343,10 @@ public class Agent {
                             configInstaller.restoreConfigAdminIfNeeded();
                         }
                     }
+
                     @Override
-                    public boolean done() {
-                        return Agent.this.done();
+                    public boolean done(boolean agentStarted) {
+                        return Agent.this.done(agentStarted);
                     }
                 };
 
@@ -356,6 +359,7 @@ public class Agent {
 //                LOGGER.debug("Waiting for ProfileUrlHandler finished");
 
                 Deployer deployer = new Deployer(manager, callback);
+                deployer.setDeploymentAgentId(deploymentAgentId);
                 deployer.deploy(dstate, request);
                 break;
             } catch (Deployer.PartialDeploymentException e) {
@@ -384,7 +388,7 @@ public class Agent {
     protected void provisionList(Set<Resource> resources) {
     }
 
-    protected boolean done() {
+    protected boolean done(boolean agentStarted) {
         return true;
     }
 
@@ -394,6 +398,10 @@ public class Agent {
 
     public EnumSet<Option> getOptions() {
         return options;
+    }
+
+    public void setDeploymentAgentId(String deploymentAgentId) {
+        this.deploymentAgentId = deploymentAgentId;
     }
 
     abstract class BaseDeployCallback implements Deployer.DeployCallback {

@@ -116,9 +116,10 @@ public class Deployer {
         /**
          * Called at very end of agent provisioning, when all that's left to do is to check if there's low-level
          * <em>provisioning</em> to be done - like patch management.
+         * @param agentStarted whether fabric-agent bundle was started during deployment
          * @return <code>false</code> if container requires restart.
          */
-        boolean done();
+        boolean done(boolean agentStarted);
     }
 
     public static class PartialDeploymentException extends Exception {
@@ -175,9 +176,15 @@ public class Deployer {
     private final DownloadManager manager;
     private final DeployCallback callback;
 
+    private String deploymentAgentId;
+
     public Deployer(DownloadManager manager, DeployCallback callback) {
         this.manager = manager;
         this.callback = callback;
+    }
+
+    public void setDeploymentAgentId(String deploymentAgentId) {
+        this.deploymentAgentId = deploymentAgentId;
     }
 
     /**
@@ -188,7 +195,8 @@ public class Deployer {
      */
     public void deploy(DeploymentState dstate, final DeploymentRequest request) throws Exception {
 
-        ExecutorService deploymentsExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory("deployer"));
+        String threadFactoryName = deploymentAgentId != null ? String.format("%s-deployer", deploymentAgentId) : "deployer";
+        ExecutorService deploymentsExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory(threadFactoryName));
 
         boolean noRefreshUnmanaged = request.options.contains(Constants.Option.NoAutoRefreshUnmanagedBundles);
         boolean noRefreshManaged = request.options.contains(Constants.Option.NoAutoRefreshManagedBundles);
@@ -897,6 +905,8 @@ public class Deployer {
         removeBundlesInState(toResolve, UNINSTALLED);
         callback.resolveBundles(toResolve, resolver.getWiring(), deployment.resToBnd);
 
+        final boolean[] agentStarted = new boolean[] { false };
+
         // Compute bundles to start
         removeFragmentsAndBundlesInState(toStart, UNINSTALLED | ACTIVE | STARTING);
         if (!toStart.isEmpty()) {
@@ -911,6 +921,9 @@ public class Deployer {
                 for (final Bundle bundle : bs) {
                     print("  " + bundle.getSymbolicName() + " / " + bundle.getVersion(), display);
 
+                    if ("io.fabric8.fabric-agent".equals(bundle.getSymbolicName())) {
+                        agentStarted[0] = true;
+                    }
                     List<Future<Void>> futures = deploymentsExecutor.invokeAll(
                             Arrays.asList(
                                     new Callable<Void>() {
@@ -950,7 +963,7 @@ public class Deployer {
         // Info about final list of deployed bundles
         callback.provisionList(deployment.resToBnd.keySet());
 
-        if (callback.done()) {
+        if (callback.done(agentStarted[0])) {
             print("Done.", display);
         }
     }

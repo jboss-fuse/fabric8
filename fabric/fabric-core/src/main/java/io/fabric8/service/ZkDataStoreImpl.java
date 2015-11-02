@@ -42,6 +42,7 @@ import io.fabric8.common.util.Strings;
 import io.fabric8.internal.RequirementsJson;
 import io.fabric8.utils.Base64Encoder;
 import io.fabric8.utils.FabricVersionUtils;
+import io.fabric8.utils.NamedThreadFactory;
 import io.fabric8.zookeeper.ZkPath;
 
 import java.io.ByteArrayInputStream;
@@ -95,8 +96,8 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
     private final ValidatingReference<RuntimeProperties> runtimeProperties = new ValidatingReference<RuntimeProperties>();
     
     private final CopyOnWriteArrayList<Runnable> callbacks = new CopyOnWriteArrayList<Runnable>();
-    private final ExecutorService cacheExecutor = Executors.newSingleThreadExecutor();
-    private final ExecutorService callbacksExecutor = Executors.newSingleThreadExecutor();
+    private final ExecutorService cacheExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory("zk-cache"));
+    private final ExecutorService callbacksExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory("zk-datastore"));
     private TreeCache configCache;
     private TreeCache containerCache;
 

@@ -46,7 +46,6 @@ import io.fabric8.agent.download.DownloadManager;
 import io.fabric8.agent.download.DownloadManagers;
 import io.fabric8.agent.download.Downloader;
 import io.fabric8.agent.download.StreamProvider;
-import io.fabric8.agent.download.impl.MavenDownloadManager;
 import io.fabric8.agent.internal.Macro;
 import io.fabric8.agent.service.Agent;
 import io.fabric8.agent.service.Constants;
@@ -64,10 +63,10 @@ import io.fabric8.patch.management.PatchManagement;
 import io.fabric8.utils.NamedThreadFactory;
 import org.apache.felix.utils.properties.Properties;
 import org.apache.felix.utils.version.VersionRange;
-import org.eclipse.aether.repository.LocalRepository;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
+import org.osgi.framework.wiring.BundleRevision;
 import org.osgi.resource.Resource;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.cm.ConfigurationException;
@@ -90,6 +89,8 @@ public class DeploymentAgent implements ManagedService {
     private static final String DEFAULT_DOWNLOAD_THREADS = "4";
     private static final String DOWNLOAD_THREADS = "io.fabric8.agent.download.threads";
 
+    private static long agentCounter = 1;
+
     private static final String KARAF_HOME = System.getProperty("karaf.home");
     private static final String KARAF_BASE = System.getProperty("karaf.base");
     private static final String KARAF_DATA = System.getProperty("karaf.data");
@@ -103,7 +104,7 @@ public class DeploymentAgent implements ManagedService {
 
     private ServiceTracker<FabricService, FabricService> fabricService;
 
-    private final ExecutorService executor = Executors.newSingleThreadExecutor(new NamedThreadFactory("fabric-agent-" + Integer.toHexString(hashCode())));
+    private final ExecutorService executor;
     private final ScheduledExecutorService downloadExecutor;
 
     private final BundleContext bundleContext;
@@ -137,6 +138,8 @@ public class DeploymentAgent implements ManagedService {
 
     private final State state = new State();
 
+    private final String deploymentAgentId;
+
     public DeploymentAgent(BundleContext bundleContext) throws IOException {
         this.bundleContext = bundleContext;
         this.systemBundleContext = bundleContext.getBundle(0).getBundleContext();
@@ -150,6 +153,9 @@ public class DeploymentAgent implements ManagedService {
         this.managedEndorsedLibs  = new Properties(bundleContext.getDataFile("endorsed.properties"));
         this.managedExtensionLibs  = new Properties(bundleContext.getDataFile("extension.properties"));
         this.managedEtcs = new Properties(bundleContext.getDataFile("etc.properties"));
+        String revision = bundleContext.getBundle().adapt(BundleRevision.class).toString();
+        deploymentAgentId = String.format("fabric-agent-%s.%s", revision, agentCounter++);
+        this.executor = Executors.newSingleThreadExecutor(new NamedThreadFactory(deploymentAgentId));
         this.downloadExecutor = createDownloadExecutor();
 
         fabricService = new ServiceTracker<>(systemBundleContext, FabricService.class, new ServiceTrackerCustomizer<FabricService, FabricService>() {
@@ -217,18 +223,33 @@ public class DeploymentAgent implements ManagedService {
     }
 
     public void start() throws IOException {
-        LOGGER.info("Starting DeploymentAgent");
+        LOGGER.info("Starting DeploymentAgent " + deploymentAgentId);
         loadLibChecksums(LIB_PATH, libChecksums);
         loadLibChecksums(LIB_ENDORSED_PATH, endorsedChecksums);
         loadLibChecksums(LIB_EXT_PATH, extensionChecksums);
         loadLibChecksums(KARAF_ETC, etcChecksums);
+
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                LOGGER.info("DeploymentAgent ready to accept configadmin tasks");
+            }
+        });
     }
 
     public void stop() throws InterruptedException {
-        LOGGER.info("Stopping DeploymentAgent");
+        LOGGER.info("Stopping DeploymentAgent " + deploymentAgentId);
         // We can't wait for the threads to finish because the agent needs to be able to
         // update itself and this would cause a deadlock
-        executor.shutdown();
+        synchronized (executor) {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    LOGGER.info("DeploymentAgent won't accept new configadmin tasks");
+                }
+            });
+            executor.shutdown();
+        }
         downloadExecutor.shutdown();
         fabricService.close();
     }
@@ -249,26 +270,28 @@ public class DeploymentAgent implements ManagedService {
     }
 
     public void updated(final Dictionary<String, ?> props) throws ConfigurationException {
-        LOGGER.info("DeploymentAgent updated with {}", props);
-        if (executor.isShutdown() || props == null) {
-            return;
-        }
-        executor.submit(new Runnable() {
-            public void run() {
-                Throwable result = null;
-                boolean success = false;
-                try {
-                    success = doUpdate(props);
-                } catch (Throwable e) {
-                    result = e;
-                    LOGGER.error("Unable to update agent", e);
-                }
-                // This update is critical, so
-                if (success || result != null) {
-                    updateStatus(success ? Container.PROVISION_SUCCESS : Container.PROVISION_ERROR, result, true);
-                }
+        LOGGER.info("DeploymentAgent {} updated with {}", deploymentAgentId, props);
+        synchronized (executor) {
+            if (executor.isShutdown() || props == null) {
+                return;
             }
-        });
+            executor.submit(new Runnable() {
+                public void run() {
+                    Throwable result = null;
+                    boolean success = false;
+                    try {
+                        success = doUpdate(props);
+                    } catch (Throwable e) {
+                        result = e;
+                        LOGGER.error("Unable to update agent", e);
+                    }
+                    // This update is critical, so
+                    if (success || result != null) {
+                        updateStatus(success ? Container.PROVISION_SUCCESS : Container.PROVISION_ERROR, result, true);
+                    }
+                }
+            });
+        }
     }
 
     private void updateStatus(String status, Throwable result) {
@@ -646,7 +669,11 @@ public class DeploymentAgent implements ManagedService {
             }
 
             @Override
-            protected boolean done() {
+            protected boolean done(boolean agentStarted) {
+                if (agentStarted) {
+                    // let's do patch-management "last touch" only if new agent wasn't started.
+                    return true;
+                }
                 // agent finished provisioning, we can call back to low level patch management
                 ServiceReference<PatchManagement> srPm = systemBundleContext.getServiceReference(PatchManagement.class);
                 ServiceReference<FabricService> srFs = systemBundleContext.getServiceReference(FabricService.class);
@@ -685,6 +712,7 @@ public class DeploymentAgent implements ManagedService {
                 return true;
             }
         };
+        agent.setDeploymentAgentId(deploymentAgentId);
         agent.provision(
                 getPrefixedProperties(properties, "repository."),
                 getPrefixedProperties(properties, "feature."),
