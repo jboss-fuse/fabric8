@@ -1981,6 +1981,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     String rootDir = String.format("fabric8-karaf-%s", fabric8Version);
                     String branchName = unzipFabric8Distro(rootDir, baselineDistribution, fork);
 
+                    // remove the deletes
+                    for (String missing : fork.status().call().getMissing()) {
+                        fork.rm().addFilepattern(missing).call();
+                    }
+
                     // and we'll tag the child baseline
                     String tagName = branchName.replace("patches-", "");
 
@@ -2013,6 +2018,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * @throws IOException
      */
     private String unzipFabric8Distro(String rootDir, File artifact, Git fork) throws IOException, GitAPIException {
+        for (String managedDirectory : MANAGED_DIRECTORIES) {
+            FileUtils.deleteDirectory(new File(fork.getRepository().getWorkTree(), managedDirectory));
+        }
         ZipFile zf = new ZipFile(artifact);
         try {
             // first pass - what's this distro?
@@ -2057,7 +2065,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 if (!(name.startsWith("bin")
                         || name.startsWith("etc")
                         || name.startsWith("fabric")
-                        || name.startsWith("lib"))) {
+                        || name.startsWith("lib")
+                        || name.startsWith("licenses")
+                        || name.startsWith("metatype"))) {
                     continue;
                 }
                 if (!entry.isDirectory() && !entry.isUnixSymlink()) {
