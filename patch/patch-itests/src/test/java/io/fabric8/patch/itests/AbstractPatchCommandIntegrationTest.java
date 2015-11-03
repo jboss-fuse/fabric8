@@ -69,7 +69,7 @@ public abstract class AbstractPatchCommandIntegrationTest {
             String result = null;
             try {
                 result = CommandSupport.executeCommand(String.format("patch:list", name));
-            } catch (InvalidComponentException exception) {
+            } catch (Exception exception) {
                 // when we're updating patch-core, we may use stale patch:list service. Try again then before timeout.
                 continue;
             }
