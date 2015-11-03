@@ -77,13 +77,47 @@ public abstract class PatchActionSupport extends AbstractAction {
      * @param listBundles
      */
     protected void display(Iterable<Patch> patches, boolean listBundles) {
-        System.out.println(String.format("%-40s %-11s %s", "[name]", "[installed]", "[description]"));
+        int l1 = "[name]".length(), l2 = "[installed]".length(), l3 = "[description]".length();
+        for (Patch patch : patches) {
+            if (patch.getPatchData().getId().length() > l1) {
+                l1 = patch.getPatchData().getId().length();
+            }
+            if (patch.getResult() != null) {
+                java.util.List<String> versions = patch.getResult().getVersions();
+                if (versions.size() > 0) {
+                    // patch installed in fabric
+                    for (String v : versions) {
+                        if (("Version " + v).length() > l2) {
+                            l2 = ("Version " + v).length();
+                        }
+                    }
+                }
+            }
+            String desc = patch.getPatchData().getDescription() != null ? patch.getPatchData().getDescription() : "";
+            if (desc.length() > l3) {
+                l3 = desc.length();
+            }
+        }
+
+        System.out.println(String.format("%-" + l1 + "s %-" + l2 + "s %-" + l3 + "s", "[name]", "[installed]", "[description]"));
         for (Patch patch : patches) {
             String desc = patch.getPatchData().getDescription() != null ? patch.getPatchData().getDescription() : "";
-            System.out.println(String.format("%-40s %-11s %s", patch.getPatchData().getId(), Boolean.toString(patch.isInstalled()), desc));
+            String installed = Boolean.toString(patch.isInstalled());
+            if (patch.getResult() != null && patch.getResult().getVersions().size() > 0) {
+                installed = "Version " + patch.getResult().getVersions().get(0);
+            }
+            System.out.println(String.format("%-" + l1 + "s %-" + l2 + "s %-" + l3 + "s", patch.getPatchData().getId(),
+                    installed, desc));
+            if (patch.getResult() != null && patch.getResult().getVersions().size() > 1) {
+                for (String v : patch.getResult().getVersions().subList(1, patch.getResult().getVersions().size())) {
+                    System.out.println(String.format("%-" + l1 + "s %-" + l2 + "s %-" + l3 + "s", " ",
+                            "Version " + v, " "));
+                }
+            }
+
             if (listBundles) {
                 for (String b : patch.getPatchData().getBundles()) {
-                    System.out.println(String.format("\t%s", b));
+                    System.out.println(String.format(" - %s", b));
                 }
             }
         }

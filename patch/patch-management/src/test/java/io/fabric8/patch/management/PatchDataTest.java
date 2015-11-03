@@ -63,4 +63,24 @@ public class PatchDataTest {
         assertThat(props.getProperty("id"), equalTo("otherid"));
     }
 
+    @Test
+    public void persistPatchResult() throws IOException {
+        PatchData pd = new PatchData("otherid");
+        PatchResult res = new PatchResult(pd, false, 42L, null, null);
+        res.getVersions().add("1.0");
+        res.getVersions().add("1.1");
+
+        File result = new File("target/patch-descriptor-2.patch.result");
+        FileOutputStream out = new FileOutputStream(result);
+        res.storeTo(out);
+
+        Properties props = new Properties();
+        props.load(new FileInputStream(result));
+        assertThat(Integer.parseInt(props.getProperty("version.count")), equalTo(2));
+        assertThat(Integer.parseInt(props.getProperty("update.count")), equalTo(0));
+
+        PatchResult res2 = PatchResult.load(pd, props);
+        assertThat(res.getVersions().get(0), equalTo("1.0"));
+    }
+
 }

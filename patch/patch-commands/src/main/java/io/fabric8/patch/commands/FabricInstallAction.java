@@ -63,7 +63,7 @@ public class FabricInstallAction extends PatchActionSupport {
 
     @Override
     protected void doExecute(Service service) throws Exception {
-        Patch patch = super.getPatch(patchId);
+        Patch patch = service.getPatch(patchId);
         ProfileUpdateStrategy strategy = ProfileUpdateStrategy.GIT;
         if ((mergeOverwrite && (mergeSelectNew || mergeKeepExisting))
                 || (mergeSelectNew && (mergeOverwrite || mergeKeepExisting))

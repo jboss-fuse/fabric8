@@ -2764,6 +2764,16 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             File dst = new File(git.getRepository().getWorkTree(), "fabric/profiles");
             ProfileFileUtils.copyDirectory(src, dst, strategy);
             git.add().addFilepattern(".").call();
+
+            // no commit - this will be performed in upper layer, where there's access to ZK credentials
+
+            PatchResult result = patch.getResult();
+            if (result == null) {
+                result = new PatchResult(patch.getPatchData(), false, new Date().getTime(), null, null);
+                patch.setResult(result);
+            }
+            result.getVersions().add(versionId);
+            result.store();
         } catch (Exception e) {
             throw new PatchException(e.getMessage(), e);
         } finally {

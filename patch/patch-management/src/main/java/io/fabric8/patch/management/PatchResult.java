@@ -26,6 +26,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 
+import com.sun.corba.se.impl.corba.CORBAObjectImpl;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.ParseException;
@@ -56,6 +57,8 @@ public class PatchResult {
     private static final String FEATURE_NEW_REPOSITORY = "new-repository";
     private static final String FEATURE_OLD_REPOSITORY = "old-repository";
 
+    private static final String VERSIONS = "version";
+
     private static final String COUNT = "count";
     private static final String RANGE = "range";
 
@@ -68,6 +71,7 @@ public class PatchResult {
 
     private List<BundleUpdate> bundleUpdates = new LinkedList<>();
     private List<FeatureUpdate> featureUpdates = new LinkedList<>();
+    private List<String> versions = new LinkedList<>();
 
     public PatchResult(PatchData patchData) {
         this.patchData = patchData;
@@ -153,7 +157,15 @@ public class PatchResult {
             fupdates.add(new FeatureUpdate(n, or, ov, nr, nv));
         }
 
-        return new PatchResult(patchData, false, date, bupdates, fupdates);
+        List<String> versions = new ArrayList<>();
+        count = Integer.parseInt(props.getProperty(VERSIONS + "." + COUNT, "0"));
+        for (int i = 0; i < count; i++) {
+            versions.add(props.getProperty(VERSIONS + "." + Integer.toString(i)));
+        }
+
+        PatchResult result = new PatchResult(patchData, false, date, bupdates, fupdates);
+        result.getVersions().addAll(versions);
+        return result;
     }
 
     public void store() throws IOException {
@@ -215,6 +227,13 @@ public class PatchResult {
             i++;
         }
 
+        pw.write(VERSIONS + "." + COUNT + " = " + Integer.toString(getVersions().size()) + "\n");
+        i = 0;
+        for (String version : getVersions()) {
+            pw.write(VERSIONS + "." + Integer.toString(i) + " = " + version + "\n");
+            i++;
+        }
+
         pw.close();
     }
 
@@ -244,6 +263,10 @@ public class PatchResult {
 
     public void setPending(Pending pending) {
         this.pending = pending;
+    }
+
+    public List<String> getVersions() {
+        return versions;
     }
 
 }
