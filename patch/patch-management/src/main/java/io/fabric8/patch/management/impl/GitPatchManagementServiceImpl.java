@@ -1330,7 +1330,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 if (resolved == null) {
                     // automatic conflict resolution
                     String message = String.format(" - %s (%s): Choosing %s", entry.getKey(), conflicts.get(entry.getKey()), choose);
-                    Activator.log2(LogService.LOG_DEBUG, message);
+                    Activator.log2(LogService.LOG_INFO, message);
 
                     ObjectLoader loader = null;
                     ObjectLoader loaderForBackup = null;
@@ -2388,7 +2388,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         amend = true;
                     }
                 }
-                Activator.log(LogService.LOG_DEBUG, (amend ? "Amending" : "Storing") + " user changes");
+                Activator.log(LogService.LOG_INFO, (amend ? "Amending" : "Storing") + " user changes");
 
                 git.add()
                         .addFilepattern(".")
@@ -2412,7 +2412,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 //    and if everything goes fine, simply override ${karaf.hoome} content with the working copy content
                 // method 2. doesn't require real working copy and ${karaf.home}/.git directory
             } else {
-                Activator.log(LogService.LOG_DEBUG, "No user changes detected");
+                Activator.log(LogService.LOG_INFO, "No user changes detected");
             }
         } catch (GitAPIException | IOException e) {
             Activator.log(LogService.LOG_ERROR, null, e.getMessage(), e, true);
@@ -2872,7 +2872,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      */
     private void restoreDataDirectory(String dataCache, Bundle bundle, File backupDir) {
         if (backupDir.isDirectory()) {
-            Activator.log2(LogService.LOG_DEBUG, String.format("Restoring data directory for bundle %s", bundle.toString()));
+            Activator.log2(LogService.LOG_INFO, String.format("Restoring data directory for bundle %s", bundle.toString()));
             File bundleDataDir = new File(dataCache, "bundle" + bundle.getBundleId() + "/data");
             try {
                 FileUtils.copyDirectory(backupDir, bundleDataDir);
