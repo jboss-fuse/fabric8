@@ -232,7 +232,10 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
         Iterator<PushResult> resit = null;
         Exception lastException = null;
         try {
-            resit = git.push().setTimeout(gitTimeout).setCredentialsProvider(credentialsProvider).setPushAll().call().iterator();
+            resit = git.push().setTimeout(gitTimeout).setCredentialsProvider(credentialsProvider)
+                    .setPushTags()
+                    .setPushAll()
+                    .call().iterator();
         } catch (GitAPIException | JGitInternalException ex) {
             lastException = ex;
         }
