@@ -245,6 +245,7 @@
         <javax.inject.bundle.version>1_2</javax.inject.bundle.version>
         <jaxb-api-version>2.1</jaxb-api-version>
         <jaxb-version>2.2.11</jaxb-version>
+        <jaxb-smx-version>2.2.11_1</jaxb-smx-version>
         <jboss-javaee-6-version>1.0.0.Final</jboss-javaee-6-version>
         <!-- TODO is this always the same as drools-version? -->
         <jbpm-version>6.1.0.CR1</jbpm-version>

@@ -56,7 +56,20 @@ public final class JaxbUtil {
 
     static {
         try {
-            FEATURES_CONTEXT = JAXBContext.newInstance(Features.class);
+            FEATURES_CONTEXT = JAXBContext.newInstance(
+                    BundleInfo.class,
+                    Capability.class,
+                    Conditional.class,
+                    Config.class,
+                    ConfigFile.class,
+                    Content.class,
+                    Dependency.class,
+                    Feature.class,
+                    Features.class,
+                    Requirement.class,
+                    ScopeFilter.class,
+                    Scoping.class
+            );
         } catch (JAXBException e) {
             throw new RuntimeException(e);
         }
