@@ -75,6 +75,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     private final EnsurePath ensurePath;
     private final BlockingQueue<Operation> operations = new LinkedBlockingQueue<Operation>();
     private final ListenerContainer<GroupListener<T>> listeners = new ListenerContainer<GroupListener<T>>();
+    private final String guid = UUID.randomUUID().toString();
     protected final ConcurrentMap<String, ChildData<T>> currentData = Maps.newConcurrentMap();
     private final AtomicBoolean started = new AtomicBoolean();
     private final AtomicBoolean connected = new AtomicBoolean();
@@ -170,6 +171,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
      */
     @Override
     public void close() throws IOException {
+        LOG.debug(this + ".close, connected:" + connected);
         if (started.compareAndSet(true, false)) {
             client.getConnectionStateListenable().removeListener(connectionStateListener);
             executorService.shutdownNow();
@@ -179,8 +181,8 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
                 throw (IOException) new InterruptedIOException().initCause(e);
             }
             try {
+                doUpdate(null);
                 if (isConnected()) {
-                    doUpdate(null);
                     callListeners(GroupListener.GroupEvent.DISCONNECTED);
                 }
             } catch (Exception e) {
@@ -222,33 +224,53 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     }
 
     protected void doUpdate(T state) throws Exception {
-        if (isConnected()) {
-            if (state == null) {
-                if (id != null) {
-                    try {
-                        client.delete().guaranteed().forPath(id);
-                    } catch (KeeperException.NoNodeException e) {
-                        // Ignore
-                    } finally {
-                        id = null;
-                    }
+        LOG.trace(this + " doUpdate, state:" + state + " id:" + id);
+        if (state == null) {
+            if (id != null) {
+                try {
+                    client.delete().guaranteed().forPath(id);
+                } catch (KeeperException.NoNodeException e) {
+                    // Ignore
+                } finally {
+                    id = null;
                 }
+            }
+        } else if (isConnected()) {
+            if (id == null) {
+                id = createEphemeralNode(state);
             } else {
-                if (id == null) {
-                    id = client.create().creatingParentsIfNeeded()
-                        .withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
-                        .forPath(path + "/0", encode(state));
-                } else {
-                    try {
-                        client.setData().forPath(id, encode(state));
-                    } catch (KeeperException.NoNodeException e) {
-                        id = client.create().creatingParentsIfNeeded()
-                                .withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
-                                .forPath(path + "/0", encode(state));
-                    }
+                try {
+                    client.setData().forPath(id, encode(state));
+                } catch (KeeperException.NoNodeException e) {
+                    id = createEphemeralNode(state);
                 }
             }
         }
+    }
+
+    private String createEphemeralNode(T state) throws Exception {
+        String pathId = client.create().creatingParentsIfNeeded()
+            .withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
+            .forPath(path + "/" + sequenceEphemeralNode(), encode(state));
+        LOG.trace(this + ". New ephemeralSequential path:" + pathId);
+        prunePartialState(pathId);
+        return pathId;
+    }
+
+    // remove nodes created on server but not visible on client
+    private void prunePartialState(final String pathId) throws Exception {
+        clearAndRefresh(true, true);
+        Set<String> nodes = members().keySet();
+        for (String node : nodes) {
+            if (node.contains(guid) && !pathId.equals(node)) {
+                LOG.debug("Deleting partially created : " + node);
+                client.delete().guaranteed().forPath(node);
+            }
+        }
+    }
+
+    private String sequenceEphemeralNode() throws Exception {
+        return guid + "_0";
     }
 
     @Override
