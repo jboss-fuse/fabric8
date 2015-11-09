@@ -1620,7 +1620,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         .setTagOpt(TagOpt.FETCH_TAGS)
                         .call();
 
-                if (env == EnvType.FABRIC_FUSE) {
+                if (env == EnvType.FABRIC_FUSE || env == EnvType.FABRIC_AMQ) {
                     // I think it's enough to compare the main HEADs. if there are no remote branches
                     // for patch management or their HEADs are the same, we are the MAIN container that performs
                     // git patch management
