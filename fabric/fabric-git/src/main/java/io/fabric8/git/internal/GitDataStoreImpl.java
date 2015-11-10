@@ -1128,7 +1128,11 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
             Set<String> pullVersions = pullResult.getVersions();
             if (!pullVersions.isEmpty() && !pullVersions.equals(versions)) {
                 versions.clear();
-                versions.addAll(pullVersions);
+                for (String v : pullVersions) {
+                    if (!v.startsWith("patches-") && !v.startsWith("patch-")) {
+                        versions.add(v);
+                    }
+                }
             }
             if (pullResult.remoteUpdateRequired()) {
                 doPushInternal(context, credentialsProvider);
