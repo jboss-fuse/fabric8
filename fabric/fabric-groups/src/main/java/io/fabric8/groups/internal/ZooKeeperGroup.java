@@ -270,7 +270,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     }
 
     private String sequenceEphemeralNode() throws Exception {
-        return guid + "_0";
+        return guid + ":0";
     }
 
     @Override

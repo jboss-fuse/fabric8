@@ -27,6 +27,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.net.ServerSocket;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -72,6 +73,61 @@ public class GroupTest {
         cnxnFactory.configure(cfg.getClientPortAddress(), cfg.getMaxClientCnxns());
         cnxnFactory.startup(zkServer);
         return cnxnFactory;
+    }
+
+
+    @Test
+    public void testOrder() throws Exception {
+        int port = findFreePort();
+
+        CuratorFramework curator = CuratorFrameworkFactory.builder()
+                .connectString("localhost:" + port)
+                .retryPolicy(new RetryNTimes(10, 100))
+                .build();
+        curator.start();
+
+
+        final String path = "/singletons/test/Order" + System.currentTimeMillis();
+        ArrayList<ZooKeeperGroup> members = new ArrayList<ZooKeeperGroup>();
+        for (int i=0;i<4;i++) {
+            ZooKeeperGroup<NodeState> group = new ZooKeeperGroup<NodeState>(curator, path, NodeState.class);
+            group.add(listener);
+            members.add(group);
+        }
+
+        for (ZooKeeperGroup group : members) {
+            assertFalse(group.isConnected());
+            assertFalse(group.isMaster());
+        }
+
+        NIOServerCnxnFactory cnxnFactory = startZooKeeper(port);
+
+        curator.getZookeeperClient().blockUntilConnectedOrTimedOut();
+
+        // first to start should be master if members are ordered...
+        int i=0;
+        for (ZooKeeperGroup group : members) {
+            group.start();
+            group.update(new NodeState("foo" + i));
+            i++;
+
+            // wait for registration
+            while (group.getId() == null) {
+                TimeUnit.MILLISECONDS.sleep(100);
+            }
+        }
+
+        boolean firsStartedIsMaster = members.get(0).isMaster();
+
+        for (ZooKeeperGroup group : members) {
+            group.close();
+        }
+        curator.close();
+        cnxnFactory.shutdown();
+        cnxnFactory.join();
+
+        assertTrue("first started is master", firsStartedIsMaster);
+
     }
 
     @Test
