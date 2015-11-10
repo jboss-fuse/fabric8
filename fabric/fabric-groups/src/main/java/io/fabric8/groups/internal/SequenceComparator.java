@@ -20,6 +20,12 @@ import java.util.Comparator;
 public class SequenceComparator implements Comparator<ChildData> {
     @Override
     public int compare(ChildData left, ChildData right) {
-        return left.getPath().compareTo(right.getPath());
+        return extractSequenceString(left.getPath()).compareTo(extractSequenceString(right.getPath()));
+    }
+
+    private String extractSequenceString(String path) {
+        // v1 0
+        // v2 uuid:0
+        return path.substring(path.lastIndexOf(':') + 1);
     }
 }

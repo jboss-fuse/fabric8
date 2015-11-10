@@ -64,6 +64,7 @@ public class ServiceFactoryTest {
 
         CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder()
                 .connectString("localhost:" + zkPort)
+                .sessionTimeoutMs(5000)
                 .retryPolicy(new RetryNTimes(5000, 1000));
 
         curator = builder.build();
@@ -122,7 +123,7 @@ public class ServiceFactoryTest {
 
             underTest.deleted("b");
 
-            assertTrue("Broker stopped - transport interrupted", interrupted.await(5, TimeUnit.SECONDS));
+            assertTrue("Broker stopped - failover transport interrupted", interrupted.await(5, TimeUnit.SECONDS));
 
             connection.close();
         }
@@ -130,7 +131,10 @@ public class ServiceFactoryTest {
 
     @Test
     public void testZkDisconnectFastReconnect() throws Exception {
-        doTestZkDisconnectFastReconnect(false);
+        for (int i=0;i<10;i++) {
+            LOG.info("testZkDisconnectFastReconnect - Iteration:" + i);
+            doTestZkDisconnectFastReconnect(false);
+        }
     }
 
     @Test
@@ -161,7 +165,7 @@ public class ServiceFactoryTest {
 
                 if (waitForInitalconnect) {
                     try {
-                        connected.await(5, TimeUnit.SECONDS);
+                        connected.await(15, TimeUnit.SECONDS);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -184,7 +188,7 @@ public class ServiceFactoryTest {
             @Override
             public void run() {
                 try {
-                    ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("failover:(tcp://localhost:61616)?useExponentialBackOff=false");
+                    ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("failover:(tcp://localhost:61616)?useExponentialBackOff=false&initialReconnectDelay=500");
 
                     amqConnection[0] = (ActiveMQConnection) cf.createConnection();
 
@@ -203,13 +207,13 @@ public class ServiceFactoryTest {
 
         underTest.updated("b", props);
 
-        assertTrue("zk closeAll complete", zkInterruptionComplete.await(20, TimeUnit.SECONDS));
+        assertTrue("zk closeAll complete", zkInterruptionComplete.await(60, TimeUnit.SECONDS));
 
         LOG.info("Zk close all done!");
 
-        assertTrue("was connected", connected.await(20, TimeUnit.SECONDS));
+        assertTrue("was connected", connected.await(15, TimeUnit.SECONDS));
 
-        for (int i = 0; i < 20; i++) {
+        for (int i = 0; i < 30; i++) {
             LOG.info("Checking for connection...");
             if (amqConnection[0].getTransport().isConnected()) {
                 break;
