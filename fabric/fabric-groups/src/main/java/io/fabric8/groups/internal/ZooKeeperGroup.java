@@ -79,6 +79,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     private final AtomicBoolean started = new AtomicBoolean();
     private final AtomicBoolean connected = new AtomicBoolean();
     protected final SequenceComparator sequenceComparator = new SequenceComparator();
+    private final String uuid = UUID.randomUUID().toString();
 
     private volatile String id;
     private volatile T state;
@@ -170,6 +171,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
      */
     @Override
     public void close() throws IOException {
+        LOG.debug(this + ".close, connected:" + connected);
         if (started.compareAndSet(true, false)) {
             client.getConnectionStateListenable().removeListener(connectionStateListener);
             executorService.shutdownNow();
@@ -179,8 +181,8 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
                 throw (IOException) new InterruptedIOException().initCause(e);
             }
             try {
+                doUpdate(null);
                 if (isConnected()) {
-                    doUpdate(null);
                     callListeners(GroupListener.GroupEvent.DISCONNECTED);
                 }
             } catch (Exception e) {
@@ -222,30 +224,50 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     }
 
     protected void doUpdate(T state) throws Exception {
-        if (isConnected()) {
-            if (state == null) {
-                if (id != null) {
-                    try {
-                        client.delete().guaranteed().forPath(id);
-                    } catch (KeeperException.NoNodeException e) {
-                        // Ignore
-                    } finally {
-                        id = null;
-                    }
+        LOG.trace(this + " doUpdate, state:" + state + " id:" + id);
+        if (state == null) {
+            if (id != null) {
+                try {
+                    client.delete().guaranteed().forPath(id);
+                } catch (KeeperException.NoNodeException e) {
+                    // Ignore
+                } finally {
+                    id = null;
                 }
+            }
+        } else if (isConnected()) {
+            if (id == null) {
+                id = createEphemeralNode(state);
             } else {
-                if (id == null) {
-                    id = client.create().creatingParentsIfNeeded()
-                        .withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
-                        .forPath(path + "/0", encode(state));
-                } else {
-                    try {
-                        client.setData().forPath(id, encode(state));
-                    } catch (KeeperException.NoNodeException e) {
-                        id = client.create().creatingParentsIfNeeded()
-                                .withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
-                                .forPath(path + "/0", encode(state));
-                    }
+                try {
+                    client.setData().forPath(id, encode(state));
+                } catch (KeeperException.NoNodeException e) {
+                    id = createEphemeralNode(state);
+                }
+            }
+        }
+    }
+
+    private String createEphemeralNode(T state) throws Exception {
+        state.uuid = uuid;
+        String pathId = client.create().creatingParentsIfNeeded()
+            .withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
+            .forPath(path + "/0", encode(state));
+        LOG.trace(this + ", state:" + state + ", new ephemeralSequential path:" + pathId);
+        prunePartialState(state, pathId);
+        state.uuid = null;
+        return pathId;
+    }
+
+    // remove ephemeral sequential nodes created on server but not visible on client
+    private void prunePartialState(final T ourState, final String pathId) throws Exception {
+        if (ourState.uuid != null) {
+            clearAndRefresh(true, true);
+            List<ChildData<T>> children = new ArrayList<ChildData<T>>(currentData.values());
+            for (ChildData<T> child : children) {
+                if (ourState.uuid.equals(child.getNode().uuid) && !child.getPath().equals(pathId)) {
+                    LOG.debug("Deleting partially created znode: " + child.getPath());
+                    client.delete().guaranteed().forPath(child.getPath());
                 }
             }
         }
