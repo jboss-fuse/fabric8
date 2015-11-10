@@ -1289,10 +1289,13 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     // when doing custom resolution, we prefer user change
                     File base = null, first = null, second = null;
                     try {
-                        base = new File(fork.getRepository().getWorkTree(), entry.getKey() + ".1");
-                        ObjectLoader loader = objectReader.open(entry.getValue()[1]);
-                        try (FileOutputStream fos = new FileOutputStream(base)) {
-                            loader.copyTo(fos);
+                        ObjectLoader loader = null;
+                        if (entry.getValue()[1] != null) {
+                            base = new File(fork.getRepository().getWorkTree(), entry.getKey() + ".1");
+                            loader = objectReader.open(entry.getValue()[1]);
+                            try (FileOutputStream fos = new FileOutputStream(base)) {
+                                loader.copyTo(fos);
+                            }
                         }
 
                         // if preferNew (P patch) then first will be change from patch
