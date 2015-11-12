@@ -236,7 +236,7 @@
         <influxdb-version>1.2</influxdb-version>
         <jackson-version>1.9.12</jackson-version>
         <jackson2-version>2.4.3</jackson2-version>
-        <jackson-module-scala-version>2.1.5_2</jackson-module-scala-version>
+        <jackson-module-scala-version>2.1.5_3</jackson-module-scala-version>
         <jansi-version>1.11</jansi-version>
         <jasypt-smx-version>1.9.3.redhat_2</jasypt-smx-version>
         <jasypt-spring-smx-version>1.9.3.redhat_2</jasypt-spring-smx-version>
