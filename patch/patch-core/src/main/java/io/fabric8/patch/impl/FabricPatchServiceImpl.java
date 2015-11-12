@@ -237,7 +237,8 @@ public class FabricPatchServiceImpl implements FabricPatchService {
     }
 
     @Override
-    public void synchronize() throws Exception {
+    public String synchronize() throws Exception {
+        final String[] remoteUrl = new String[] { null };
         GitOperation operation = new GitOperation() {
             @Override
             public Object call(Git git, GitContext context) throws Exception {
@@ -259,10 +260,12 @@ public class FabricPatchServiceImpl implements FabricPatchService {
                         .setPushAll()
                         .call();
 
+                remoteUrl[0] = git.getRepository().getConfig().getString("remote", "origin", "url");
                 return null;
             }
         };
         gitDataStore.gitOperation(new GitContext(), operation, null);
+        return remoteUrl[0];
     }
 
 }
