@@ -214,6 +214,7 @@ public class MavenDownloadProxyServlet extends MavenProxyServletSupport {
                         } else if ("HEAD".equals(req.getMethod())) {
                             asyncContext.complete();
                         }
+                        future.release();
                         return;
                     } catch (Exception e) {
                         Closeables.closeQuietly(channel);
