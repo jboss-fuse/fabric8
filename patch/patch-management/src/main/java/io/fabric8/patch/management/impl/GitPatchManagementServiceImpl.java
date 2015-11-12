@@ -515,6 +515,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     Activator.log2(LogService.LOG_DEBUG, String.format("Uploaded %d/%d", count, artifacts.size()));
                 }
                 String relativeName = Utils.relative(Utils.getSystemRepository(karafHome, bundleContext), f.getCanonicalFile());
+                relativeName = relativeName.replace('\\', '/');
                 URL uploadUrl = uploadAddress.resolve(relativeName).toURL();
                 URLConnection con = uploadUrl.openConnection();
                 callback.doWithUrlConnection(con);
