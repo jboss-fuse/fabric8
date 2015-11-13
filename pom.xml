@@ -240,9 +240,9 @@
         <jackson2-version>2.6.3</jackson2-version>
         <jackson-module-scala-version>2.1.5_3</jackson-module-scala-version>
         <jansi-version>1.11</jansi-version>
-        <jasypt-smx-version>1.9.3.redhat_2</jasypt-smx-version>
-        <jasypt-spring-smx-version>1.9.3.redhat_2</jasypt-spring-smx-version>
-        <jasypt-version>1.9.3.redhat_2</jasypt-version>
+        <jasypt-smx-version>1.9.3.redhat_3</jasypt-smx-version>
+        <jasypt-spring-smx-version>1.9.3.redhat_3</jasypt-spring-smx-version>
+        <jasypt-version>1.9.3.redhat_3</jasypt-version>
         <javassist-version>3.19.0-GA</javassist-version>
         <javax.inject.bundle.version>1_2</javax.inject.bundle.version>
         <jaxb-api-version>2.1</jaxb-api-version>
