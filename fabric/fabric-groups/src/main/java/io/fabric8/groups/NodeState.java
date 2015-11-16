@@ -30,9 +30,6 @@ public class NodeState {
     @JsonProperty
     public final String container;
 
-    @JsonProperty
-    public String uuid; // internal use to suppress duplicates
-
     public NodeState() {
         this(null);
     }
