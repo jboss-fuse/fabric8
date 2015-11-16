@@ -15,6 +15,7 @@
  */
 package io.fabric8.groups;
 
+import io.fabric8.groups.internal.ChildData;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryNTimes;
@@ -34,6 +35,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 public class GroupTest {
@@ -277,6 +279,62 @@ public class GroupTest {
             assertTrue(entries.isEmpty());
         }
 
+        curator.close();
+        cnxnFactory.shutdown();
+        cnxnFactory.join();
+    }
+
+    @Test
+    public void testAddFieldIgnoredOnParse() throws Exception {
+
+        int port = findFreePort();
+        NIOServerCnxnFactory cnxnFactory = startZooKeeper(port);
+
+        CuratorFramework curator = CuratorFrameworkFactory.builder()
+                .connectString("localhost:" + port)
+                .retryPolicy(new RetryNTimes(10, 100))
+                .build();
+        curator.start();
+        curator.getZookeeperClient().blockUntilConnectedOrTimedOut();
+        String groupNode =  "/singletons/test" + System.currentTimeMillis();
+        curator.create().creatingParentsIfNeeded().forPath(groupNode);
+
+        curator.getZookeeperClient().blockUntilConnectedOrTimedOut();
+
+        final ZooKeeperGroup<NodeState> group = new ZooKeeperGroup<NodeState>(curator, groupNode, NodeState.class);
+        group.add(listener);
+        group.start();
+
+        GroupCondition groupCondition = new GroupCondition();
+        group.add(groupCondition);
+
+        group.update(new NodeState("foo"));
+
+        assertTrue(groupCondition.waitForConnected(5, TimeUnit.SECONDS));
+        assertTrue(groupCondition.waitForMaster(5, TimeUnit.SECONDS));
+
+        ChildData currentData = group.getCurrentData().get(0);
+        final int version = currentData.getStat().getVersion();
+
+        NodeState lastState = group.getLastState();
+        String json = lastState.toString();
+        System.err.println("JSON:" + json);
+
+        String newValWithNewField = json.substring(0, json.lastIndexOf('}')) + ",\"Rubbish\":\"Rubbish\"}";
+        curator.getZookeeperClient().getZooKeeper().setData(group.getId(), newValWithNewField.getBytes(), version);
+
+        assertTrue(group.isMaster());
+
+        int attempts = 0;
+        while (attempts++ < 5 && version == group.getCurrentData().get(0).getStat().getVersion()) {
+            TimeUnit.SECONDS.sleep(1);
+        }
+
+        assertNotEquals("We see the updated version", version, group.getCurrentData().get(0).getStat().getVersion());
+
+        System.err.println("CurrentData:" + group.getCurrentData());
+
+        group.close();
         curator.close();
         cnxnFactory.shutdown();
         cnxnFactory.join();
