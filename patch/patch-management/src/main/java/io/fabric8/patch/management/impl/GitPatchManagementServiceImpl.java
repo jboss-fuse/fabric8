@@ -1309,7 +1309,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         second = new File(fork.getRepository().getWorkTree(), entry.getKey() + ".3");
                         loader = objectReader.open(entry.getValue()[preferNew ? 0 : 2]);
                         try (FileOutputStream fos = new FileOutputStream(second)) {
-                            loader.copyTo(new FileOutputStream(second));
+                            loader.copyTo(fos);
                         }
 
                         // resolvers treat patch change as less important - user lines overwrite patch lines
@@ -2672,14 +2672,16 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 return VERSION_PATTERN.matcher(name).matches();
             }
         });
-        for (File anotherPatchManagementBundle : deployedPatchManagementBundles) {
-            Matcher matcher = VERSION_PATTERN.matcher(anotherPatchManagementBundle.getName());
-            matcher.find();
-            String version = matcher.group(1);
-            Version deployedVersion = new Version(version);
-            if (ourVersion.compareTo(deployedVersion) >= 0) {
-                Activator.log(LogService.LOG_INFO, "Deleting " + anotherPatchManagementBundle);
-                FileUtils.deleteQuietly(anotherPatchManagementBundle);
+        if (deployedPatchManagementBundles != null) {
+            for (File anotherPatchManagementBundle : deployedPatchManagementBundles) {
+                Matcher matcher = VERSION_PATTERN.matcher(anotherPatchManagementBundle.getName());
+                matcher.find();
+                String version = matcher.group(1);
+                Version deployedVersion = new Version(version);
+                if (ourVersion.compareTo(deployedVersion) >= 0) {
+                    Activator.log(LogService.LOG_INFO, "Deleting " + anotherPatchManagementBundle);
+                    FileUtils.deleteQuietly(anotherPatchManagementBundle);
+                }
             }
         }
     }

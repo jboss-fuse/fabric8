@@ -253,7 +253,7 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
 
     @Override
     public void closeRepository(Git git, boolean deleteWorkingCopy) {
-        git.close();
+        git.getRepository().close();
         if (deleteWorkingCopy) {
             FileUtils.deleteQuietly(git.getRepository().getDirectory().getParentFile());
         }

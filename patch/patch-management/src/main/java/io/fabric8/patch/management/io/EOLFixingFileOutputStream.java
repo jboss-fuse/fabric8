@@ -21,9 +21,11 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import io.fabric8.patch.management.Utils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.output.ByteArrayOutputStream;
 
 /**
  * {@link FileOutputStream} replacement which ensures that for critical files (inside <code>bin</code> or
@@ -36,6 +38,10 @@ public class EOLFixingFileOutputStream extends FileOutputStream {
     private String EOL = "\n";
     private int EOLLength = 1;
     private long additionalBytes = 0L;
+    private boolean fixCRLF;
+
+    private boolean lineConversionMode = false;
+    private ByteArrayOutputStream conversionBuffer = null;
 
     private volatile boolean closed = false;
 
@@ -56,21 +62,28 @@ public class EOLFixingFileOutputStream extends FileOutputStream {
     public EOLFixingFileOutputStream(File targetDirectory, File file) throws IOException {
         super(file);
         String path = Utils.relative(targetDirectory, file);
-        String[] tab = path.split("/");
+        String[] tab = path.split(Pattern.quote(File.separator));
         if (tab.length >= 2) {
             String firstDirectory = tab[0];
-            if (IMPORTANT_DIRECTORIES.contains(firstDirectory.toLowerCase())) {
-                String ext = FilenameUtils.getExtension(file.getName());
-                if (ext.indexOf('#') > 0) {
-                    ext = ext.substring(ext.indexOf('#'));
+            String ext = FilenameUtils.getExtension(file.getName());
+            if ("etc".equals(firstDirectory) && "cfg".equals(ext)) {
+                // ENTESB-4367: fileinstall converts all LF to CRLF on Windows when etc/**/*.cfg files are
+                // changed. It doesn't happen initially - only after first change!
+                lineConversionMode = true;
+                conversionBuffer = new ByteArrayOutputStream();
+            } else {
+                if (IMPORTANT_DIRECTORIES.contains(firstDirectory.toLowerCase())) {
+                    if (ext.indexOf('#') > 0) {
+                        ext = ext.substring(ext.indexOf('#'));
+                    }
+                    if (!"fabric".equals(firstDirectory.toLowerCase()) || IMPORTANT_EXTENSIONS.contains(ext)) {
+                        needsChecking = true;
+                    }
                 }
-                if (!"fabric".equals(firstDirectory.toLowerCase()) || IMPORTANT_EXTENSIONS.contains(ext)) {
-                    needsChecking = true;
+                if (path.endsWith(".bat")) {
+                    EOL = "\r\n";
+                    EOLLength = 2;
                 }
-            }
-            if (path.endsWith(".bat")) {
-                EOL = "\r\n";
-                EOLLength = 1;
             }
         }
     }
@@ -82,16 +95,20 @@ public class EOLFixingFileOutputStream extends FileOutputStream {
 
     @Override
     public void write(byte[] b, int off, int len) throws IOException {
-        super.write(b, off, len);
-        if (!needsChecking) {
-            return;
-        }
-        if (EOLLength == 2 && len >= 2 && b[off + len - 2] != (byte) '\r' && b[off + len - 1] != (byte) '\n') {
-            probablyNeedsFixing = true;
-        } else if (EOLLength == 1 && len >= 1 && b[off + len - 1] != (byte) '\n') {
-            probablyNeedsFixing = true;
+        if (lineConversionMode) {
+            conversionBuffer.write(b, off, len);
         } else {
-            probablyNeedsFixing = false;
+            super.write(b, off, len);
+            if (!needsChecking) {
+                return;
+            }
+            if (EOLLength == 2 && len >= 2 && b[off + len - 2] != (byte) '\r' && b[off + len - 1] != (byte) '\n') {
+                probablyNeedsFixing = true;
+            } else if (EOLLength == 1 && len >= 1 && b[off + len - 1] != (byte) '\n') {
+                probablyNeedsFixing = true;
+            } else {
+                probablyNeedsFixing = false;
+            }
         }
     }
 
@@ -100,13 +117,30 @@ public class EOLFixingFileOutputStream extends FileOutputStream {
         if (closed) {
             return;
         }
-        if (needsChecking && probablyNeedsFixing) {
-            if (EOL.length() == 2) {
-                super.write(new byte[] { (byte) '\r', (byte) '\n' }, 0, 2);
-                additionalBytes = 2L;
-            } else {
-                super.write(new byte[] { (byte) '\n' }, 0, 1);
-                additionalBytes = 1L;
+        if (lineConversionMode) {
+            byte[] bytes = conversionBuffer.toByteArray();
+            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+            for (int i = 0; i < bytes.length; i++) {
+                if (bytes[i] != (byte) '\r') {
+                    buffer.write((int) bytes[i]);
+                } else {
+                    additionalBytes -= 1L;
+                }
+            }
+            if (bytes[bytes.length - 1] != (byte) '\n') {
+                additionalBytes += 1L;
+                buffer.write((int) bytes[bytes.length - 1]);
+            }
+            super.write(buffer.toByteArray());
+        } else {
+            if (needsChecking && probablyNeedsFixing) {
+                if (EOL.length() == 2) {
+                    super.write(new byte[] { (byte) '\r', (byte) '\n' }, 0, 2);
+                    additionalBytes = 2L;
+                } else {
+                    super.write(new byte[] { (byte) '\n' }, 0, 1);
+                    additionalBytes = 1L;
+                }
             }
         }
         closed = true;
@@ -121,4 +155,7 @@ public class EOLFixingFileOutputStream extends FileOutputStream {
         return additionalBytes;
     }
 
+    public void setFixCRLF(boolean fixCRLF) {
+        this.fixCRLF = fixCRLF;
+    }
 }

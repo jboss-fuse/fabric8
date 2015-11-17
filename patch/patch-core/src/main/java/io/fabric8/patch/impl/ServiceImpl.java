@@ -475,6 +475,13 @@ public class ServiceImpl implements Service {
                         // single shot
                         backupService.backupDataFiles(result, Pending.ROLLUP_INSTALLATION);
 
+                        for (Bundle b : coreBundles.values()) {
+                            if (Utils.stripSymbolicName(b.getSymbolicName()).equals("org.apache.felix.fileinstall\n")) {
+                                b.stop(Bundle.STOP_TRANSIENT);
+                                break;
+                            }
+                        }
+
                         // update KARAF_HOME
                         patchManagement.commitInstallation(transaction);
 
@@ -1065,6 +1072,13 @@ public class ServiceImpl implements Service {
                 if (!simulate) {
                     // let's backup data files before configadmin detects changes to etc/* files.
                     backupService.backupDataFiles(result, Pending.ROLLUP_ROLLBACK);
+
+                    for (Bundle b : this.bundleContext.getBundles()) {
+                        if (Utils.stripSymbolicName(b.getSymbolicName()).equals("org.apache.felix.fileinstall\n")) {
+                            b.stop(Bundle.STOP_TRANSIENT);
+                            break;
+                        }
+                    }
 
                     patchManagement.rollback(patch.getPatchData());
                     result.setPending(Pending.ROLLUP_ROLLBACK);

@@ -23,7 +23,8 @@ import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class EOLFixesTest {
@@ -81,6 +82,28 @@ public class EOLFixesTest {
             IOUtils.write("test", output);
             IOUtils.closeQuietly(output);
             assertThat(FileUtils.readFileToString(f), not(equalTo("test\n")));
+        }
+    }
+
+    @Test
+    public void lineConversionInEtc() throws IOException {
+        {
+            File t = target;
+            File f = new File(t, "etc/x1.cfg");
+            f.getParentFile().mkdirs();
+            EOLFixingFileOutputStream output = new EOLFixingFileOutputStream(t, f);
+            IOUtils.write("test\r\n", output);
+            IOUtils.closeQuietly(output);
+            assertThat(FileUtils.readFileToString(f), equalTo("test\n"));
+        }
+        {
+            File t = target;
+            File f = new File(t, "etc/x2.cfg2");
+            f.getParentFile().mkdirs();
+            EOLFixingFileOutputStream output = new EOLFixingFileOutputStream(t, f);
+            IOUtils.write("test\r\n", output);
+            IOUtils.closeQuietly(output);
+            assertThat(FileUtils.readFileToString(f), equalTo("test\r\n"));
         }
     }
 
