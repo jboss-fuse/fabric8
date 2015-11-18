@@ -2790,7 +2790,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     @Override
-    public boolean alignTo(Map<String, String> versions, File localMavenRepository, Runnable callback) throws PatchException {
+    public boolean alignTo(Map<String, String> versions, List<String> urls, File localMavenRepository, Runnable callback) throws PatchException {
         if (aligning.getAndSet(true)) {
             return false;
         }
@@ -2844,20 +2844,29 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     trackFabricContainerBaselineRepository(fork, version);
                     applyChanges(fork);
 
-                    // let's copy artifacts referenced in etc/startup.properties from localMavenRepository to system
                     if (localMavenRepository != null) {
                         try {
+                            File systemRepo = getSystemRepository(karafHome, systemContext);
+                            // let's copy artifacts referenced in etc/startup.properties from localMavenRepository to system
                             File etcStartupProperties = new File(karafBase, "etc/startup.properties");
                             try (FileInputStream fis = new FileInputStream(etcStartupProperties)) {
                                 Properties props = new Properties();
                                 props.load(fis);
                                 for (String artifact : props.stringPropertyNames()) {
-                                    File systemRepo = getSystemRepository(karafHome, systemContext);
                                     File target = new File(systemRepo, artifact);
                                     File src = new File(localMavenRepository, artifact);
                                     if (!target.exists() && src.isFile()) {
                                         FileUtils.copyFile(src, target);
                                     }
+                                }
+                            }
+                            // now the URLs from the passed lis
+                            for (String url : urls) {
+                                String path = Utils.mvnurlToPath(url);
+                                File target = new File(systemRepo, path);
+                                File src = new File(localMavenRepository, path);
+                                if (!target.exists() && src.isFile()) {
+                                    FileUtils.copyFile(src, target);
                                 }
                             }
                         } catch (Exception e) {
