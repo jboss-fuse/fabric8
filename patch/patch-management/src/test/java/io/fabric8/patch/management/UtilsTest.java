@@ -77,6 +77,16 @@ public class UtilsTest {
     }
 
     @Test
+    public void mvnUrisToPaths() {
+        assertThat(mvnurlToPath("mvn:a/b/c"), equalTo("a/b/c/b-c.jar"));
+        assertThat(mvnurlToPath("mvn:a.b/b/c"), equalTo("a/b/b/c/b-c.jar"));
+        assertThat(mvnurlToPath("mvn:a.b/b/c/jar/d"), equalTo("a/b/b/c/b-c-d.jar"));
+        assertThat(mvnurlToPath("mvn:a/b/c/war"), equalTo("a/b/c/b-c.war"));
+        assertThat(mvnurlToPath("mvn:a/b/c/war/x"), equalTo("a/b/c/b-c-x.war"));
+        assertThat(mvnurlToPath("mvn:a/b/c/xml/x-y"), equalTo("a/b/c/b-c-x-y.xml"));
+    }
+
+    @Test
     public void testSymbolicNameStrip() {
         assertEquals("my.bundle", stripSymbolicName("my.bundle"));
         assertEquals("my.bundle", stripSymbolicName("my.bundle;singleton:=true"));
