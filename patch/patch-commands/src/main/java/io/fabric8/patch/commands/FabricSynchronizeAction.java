@@ -19,7 +19,7 @@ import io.fabric8.patch.FabricPatchService;
 import org.apache.felix.gogo.commands.Command;
 import org.apache.karaf.shell.console.AbstractAction;
 
-@Command(scope = "patch", name = "fabric-install", description = "Synchronize information about patches to cluster's git server")
+@Command(scope = "patch", name = "fabric-synchronize", description = "Synchronize information about patches to cluster's git server")
 public class FabricSynchronizeAction extends AbstractAction {
 
     private final FabricPatchService fabricPatchService;
@@ -30,7 +30,10 @@ public class FabricSynchronizeAction extends AbstractAction {
 
     @Override
     protected Object doExecute() throws Exception {
-        fabricPatchService.synchronize();
+        String remoteUrl = fabricPatchService.synchronize();
+        if (remoteUrl != null) {
+            System.out.println("Patch information synchronized to git repository at: " + remoteUrl);
+        }
 
         return null;
     }

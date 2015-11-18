@@ -19,8 +19,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -28,6 +33,7 @@ import java.util.jar.Attributes;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
 
+import io.fabric8.patch.management.FeatureUpdate;
 import io.fabric8.patch.management.Utils;
 import org.apache.commons.io.IOUtils;
 import org.apache.karaf.features.FeaturesService;
@@ -108,4 +114,46 @@ public class OSGiPatchHelper {
         return new String[] { sn, vr };
     }
 
+    /**
+     * Sorts feature updates in the way that features listed in etc/org.apache.karaf.features.cfg:featuresBoot
+     * are updated first
+     * @param featureUpdatesInThisPatch
+     */
+    public void sortFeatureUpdates(List<FeatureUpdate> featureUpdatesInThisPatch) throws IOException {
+        Properties props = new Properties();
+        FileInputStream stream = new FileInputStream(new File(karafHome, "etc/org.apache.karaf.features.cfg"));
+        props.load(stream);
+        IOUtils.closeQuietly(stream);
+        String p = props.getProperty("featuresBoot");
+        if (p != null) {
+            String[] properties = p.split("\\s,\\s");
+            Set<String> featuresBoot = new LinkedHashSet<>(Arrays.asList(properties));
+//            Set<String> featuresSpecial = new LinkedHashSet<>(Arrays.asList("cxf-specs", "cxf-core", "cxf-jaxrs"));
+            Set<String> featuresSpecial = new LinkedHashSet<>(Arrays.asList("fabric-cxf"));
+            Map<String, FeatureUpdate> newOrderedUpdates = new HashMap<>();
+            List<FeatureUpdate> newOtherUpdates = new LinkedList<>();
+            List<FeatureUpdate> newUpdates = new LinkedList<>();
+            for (Iterator<FeatureUpdate> iterator = featureUpdatesInThisPatch.iterator(); iterator.hasNext(); ) {
+                FeatureUpdate update = iterator.next();
+                if (update.getName() != null && (featuresBoot.contains(update.getName()) || featuresSpecial.contains(update.getName()))) {
+                    newOrderedUpdates.put(update.getName(), update);
+                } else {
+                    newOtherUpdates.add(update);
+                }
+            }
+            for (String fb : featuresBoot) {
+                if (newOrderedUpdates.containsKey(fb)) {
+                    newUpdates.add(newOrderedUpdates.get(fb));
+                }
+            }
+            for (String fs : featuresSpecial) {
+                if (newOrderedUpdates.containsKey(fs)) {
+                    newUpdates.add(newOrderedUpdates.get(fs));
+                }
+            }
+            newUpdates.addAll(newOtherUpdates);
+            featureUpdatesInThisPatch.clear();
+            featureUpdatesInThisPatch.addAll(newUpdates);
+        }
+    }
 }

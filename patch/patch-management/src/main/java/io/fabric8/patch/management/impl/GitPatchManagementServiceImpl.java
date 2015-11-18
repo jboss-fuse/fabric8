@@ -515,6 +515,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     Activator.log2(LogService.LOG_DEBUG, String.format("Uploaded %d/%d", count, artifacts.size()));
                 }
                 String relativeName = Utils.relative(Utils.getSystemRepository(karafHome, bundleContext), f.getCanonicalFile());
+                relativeName = relativeName.replace('\\', '/');
                 URL uploadUrl = uploadAddress.resolve(relativeName).toURL();
                 URLConnection con = uploadUrl.openConnection();
                 callback.doWithUrlConnection(con);
@@ -1289,10 +1290,13 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     // when doing custom resolution, we prefer user change
                     File base = null, first = null, second = null;
                     try {
-                        base = new File(fork.getRepository().getWorkTree(), entry.getKey() + ".1");
-                        ObjectLoader loader = objectReader.open(entry.getValue()[1]);
-                        try (FileOutputStream fos = new FileOutputStream(base)) {
-                            loader.copyTo(fos);
+                        ObjectLoader loader = null;
+                        if (entry.getValue()[1] != null) {
+                            base = new File(fork.getRepository().getWorkTree(), entry.getKey() + ".1");
+                            loader = objectReader.open(entry.getValue()[1]);
+                            try (FileOutputStream fos = new FileOutputStream(base)) {
+                                loader.copyTo(fos);
+                            }
                         }
 
                         // if preferNew (P patch) then first will be change from patch
@@ -1305,7 +1309,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         second = new File(fork.getRepository().getWorkTree(), entry.getKey() + ".3");
                         loader = objectReader.open(entry.getValue()[preferNew ? 0 : 2]);
                         try (FileOutputStream fos = new FileOutputStream(second)) {
-                            loader.copyTo(new FileOutputStream(second));
+                            loader.copyTo(fos);
                         }
 
                         // resolvers treat patch change as less important - user lines overwrite patch lines
@@ -1620,7 +1624,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         .setTagOpt(TagOpt.FETCH_TAGS)
                         .call();
 
-                if (env == EnvType.FABRIC_FUSE) {
+                if (env == EnvType.FABRIC_FUSE || env == EnvType.FABRIC_AMQ) {
                     // I think it's enough to compare the main HEADs. if there are no remote branches
                     // for patch management or their HEADs are the same, we are the MAIN container that performs
                     // git patch management
@@ -2668,14 +2672,16 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 return VERSION_PATTERN.matcher(name).matches();
             }
         });
-        for (File anotherPatchManagementBundle : deployedPatchManagementBundles) {
-            Matcher matcher = VERSION_PATTERN.matcher(anotherPatchManagementBundle.getName());
-            matcher.find();
-            String version = matcher.group(1);
-            Version deployedVersion = new Version(version);
-            if (ourVersion.compareTo(deployedVersion) >= 0) {
-                Activator.log(LogService.LOG_INFO, "Deleting " + anotherPatchManagementBundle);
-                FileUtils.deleteQuietly(anotherPatchManagementBundle);
+        if (deployedPatchManagementBundles != null) {
+            for (File anotherPatchManagementBundle : deployedPatchManagementBundles) {
+                Matcher matcher = VERSION_PATTERN.matcher(anotherPatchManagementBundle.getName());
+                matcher.find();
+                String version = matcher.group(1);
+                Version deployedVersion = new Version(version);
+                if (ourVersion.compareTo(deployedVersion) >= 0) {
+                    Activator.log(LogService.LOG_INFO, "Deleting " + anotherPatchManagementBundle);
+                    FileUtils.deleteQuietly(anotherPatchManagementBundle);
+                }
             }
         }
     }

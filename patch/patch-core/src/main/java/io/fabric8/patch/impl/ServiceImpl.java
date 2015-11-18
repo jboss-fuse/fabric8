@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -178,8 +179,8 @@ public class ServiceImpl implements Service {
 
             // feature time
 
-            Set<String> newRepositories = new HashSet<>();
-            Set<String> features = new HashSet<>();
+            Set<String> newRepositories = new LinkedHashSet<>();
+            Set<String> features = new LinkedHashSet<>();
             for (FeatureUpdate featureUpdate : patch.getResult().getFeatureUpdates()) {
                 if (featureUpdate.getName() == null && featureUpdate.getPreviousRepository() != null) {
                     // feature was not shipped by patch
@@ -398,6 +399,8 @@ public class ServiceImpl implements Service {
                 if (kind == PatchKind.ROLLUP) {
                     // list of feature updates for the current patch
                     featureUpdatesInThisPatch = featureUpdatesInPatch(patch, updatesForFeatureKeys, kind);
+
+                    helper.sortFeatureUpdates(featureUpdatesInThisPatch);
                 }
 
                 // list of bundle updates for the current patch - for ROLLUP patch, we minimize the list of bundles
@@ -461,9 +464,6 @@ public class ServiceImpl implements Service {
             // then required repositories, features and bundles will be reinstalled
             if (kind == PatchKind.ROLLUP) {
                 if (!simulate) {
-                    // update KARAF_HOME
-                    patchManagement.commitInstallation(transaction);
-
                     if (patches.size() == 1) {
                         Patch patch = patches.iterator().next();
                         PatchResult result = results.get(patch.getPatchData().getId());
@@ -474,6 +474,16 @@ public class ServiceImpl implements Service {
                         // backup all datafiles of all bundles - we we'll backup configadmin configurations in
                         // single shot
                         backupService.backupDataFiles(result, Pending.ROLLUP_INSTALLATION);
+
+                        for (Bundle b : coreBundles.values()) {
+                            if (Utils.stripSymbolicName(b.getSymbolicName()).equals("org.apache.felix.fileinstall\n")) {
+                                b.stop(Bundle.STOP_TRANSIENT);
+                                break;
+                            }
+                        }
+
+                        // update KARAF_HOME
+                        patchManagement.commitInstallation(transaction);
 
                         // Some updates need a full JVM restart.
                         if( isJvmRestartNeeded(results) ) {
@@ -1062,6 +1072,13 @@ public class ServiceImpl implements Service {
                 if (!simulate) {
                     // let's backup data files before configadmin detects changes to etc/* files.
                     backupService.backupDataFiles(result, Pending.ROLLUP_ROLLBACK);
+
+                    for (Bundle b : this.bundleContext.getBundles()) {
+                        if (Utils.stripSymbolicName(b.getSymbolicName()).equals("org.apache.felix.fileinstall\n")) {
+                            b.stop(Bundle.STOP_TRANSIENT);
+                            break;
+                        }
+                    }
 
                     patchManagement.rollback(patch.getPatchData());
                     result.setPending(Pending.ROLLUP_ROLLBACK);

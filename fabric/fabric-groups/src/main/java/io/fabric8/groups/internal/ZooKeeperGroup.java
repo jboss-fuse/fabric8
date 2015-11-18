@@ -15,6 +15,7 @@
  */
 package io.fabric8.groups.internal;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
@@ -64,7 +65,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
 
-    static public final ObjectMapper MAPPER = new ObjectMapper();
+    static public final ObjectMapper MAPPER = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
     static private final Logger LOG = LoggerFactory.getLogger(ZooKeeperGroup.class);
 
@@ -528,10 +529,9 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     public static <T> Map<String, T> members(CuratorFramework curator, String path, Class<T> clazz) throws Exception {
         Map<String, T> map = new TreeMap<String, T>();
         List<String> nodes = curator.getChildren().forPath(path);
-        ObjectMapper mapper = new ObjectMapper();
         for (String node : nodes) {
             byte[] data = curator.getData().forPath(path + "/" + node);
-            T val = mapper.readValue(data, clazz);
+            T val = MAPPER.readValue(data, clazz);
             map.put(node, val);
         }
         return map;

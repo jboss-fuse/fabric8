@@ -16,6 +16,7 @@
 package io.fabric8.patch.management.impl;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
@@ -97,8 +98,15 @@ public class FileBackupService implements BackupService {
             if (bundlesWithData.containsKey(key)) {
                 File dataFileBackupDir = new File(dataBackupDir, prefix + "/" + key + "/data");
                 dataFileBackupDir.mkdirs();
-                Bundle b = bundlesWithData.get(key);
-                FileUtils.copyDirectory(b.getDataFile(""), dataFileBackupDir);
+                final Bundle b = bundlesWithData.get(key);
+                FileUtils.copyDirectory(b.getDataFile(""), dataFileBackupDir, new FileFilter() {
+                    @Override
+                    public boolean accept(File pathname) {
+                        return pathname.isDirectory()
+                                || !b.getSymbolicName().equals("org.apache.felix.configadmin")
+                                || pathname.getName().endsWith(".config");
+                    }
+                });
                 properties.setProperty(key, key);
                 properties.setProperty(String.format("%s$$%s", update.getSymbolicName(), update.getPreviousVersion()), key);
                 if (update.getNewVersion() != null) {
