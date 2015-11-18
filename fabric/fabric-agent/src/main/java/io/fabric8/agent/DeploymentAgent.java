@@ -675,7 +675,7 @@ public class DeploymentAgent implements ManagedService {
             }
 
             @Override
-            protected boolean done(boolean agentStarted) {
+            protected boolean done(boolean agentStarted, List<String> urls) {
                 if (agentStarted) {
                     // let's do patch-management "last touch" only if new agent wasn't started.
                     return true;
@@ -692,7 +692,7 @@ public class DeploymentAgent implements ManagedService {
                         Profile profile = fs.getCurrentContainer().getOverlayProfile();
                         Map<String, String> versions = profile.getConfiguration("io.fabric8.version");
                         File localRepository = resolver.getLocalRepository();
-                        if (pm.alignTo(versions, localRepository, new Runnable() {
+                        if (pm.alignTo(versions, urls, localRepository, new Runnable() {
                             @Override
                             public void run() {
                                 ServiceReference<FabricPatchService> srFps = systemBundleContext.getServiceReference(FabricPatchService.class);
