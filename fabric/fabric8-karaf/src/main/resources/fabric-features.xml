@@ -32,6 +32,22 @@
     <repository>mvn:org.apache.karaf.assemblies.features/spring/${karaf-version}/xml/features</repository>
     <repository>mvn:org.apache.karaf.assemblies.features/enterprise/${karaf-version}/xml/features</repository>
 
+    <feature name="fabric-startup" version="${project.version}" resolver="(obr)">
+        <!-- bundles referenced from $KARAF_HOME/etc/startup.properties -->
+        <bundle dependency="true">mvn:org.ops4j.pax.url/pax-url-aether/${pax.url.version}</bundle>
+        <bundle dependency="true">mvn:org.ops4j.pax.url/pax-url-wrap/${pax.url.version}/jar/uber</bundle>
+        <bundle dependency="true">mvn:org.ops4j.pax.logging/pax-logging-api/${pax.logging.version}</bundle>
+        <bundle dependency="true">mvn:org.ops4j.pax.logging/pax-logging-service/${pax.logging.version}</bundle>
+        <bundle dependency="true">mvn:org.apache.felix/org.apache.felix.configadmin/${felix-configadmin-version}</bundle>
+        <bundle dependency="true">mvn:org.apache.felix/org.apache.felix.fileinstall/${felix-fileinstall-version}</bundle>
+        <bundle dependency="true">mvn:io.fabric8/fabric-ssl/${project.version}</bundle>
+        <bundle dependency="true">mvn:org.apache.felix/org.apache.felix.metatype/${felix-metatype-version}</bundle>
+        <bundle dependency="true">mvn:org.apache.karaf.services/org.apache.karaf.services.eventadmin/${karaf-version}</bundle>
+        <bundle dependency="true">mvn:org.apache.karaf.admin/org.apache.karaf.admin.management/${karaf-version}</bundle>
+        <bundle dependency="true">mvn:io.fabric8.patch/patch-management/${project.version}</bundle>
+        <bundle dependency="true">mvn:org.apache.karaf.features/org.apache.karaf.features.core/${karaf-version}</bundle>
+    </feature>
+
     <feature name="karaf" version="${karaf-version}" resolver="(obr)">
         <bundle>mvn:io.fabric8/fabric-ssl/${project.version}</bundle>
         <bundle>mvn:org.apache.felix/org.apache.felix.configadmin/${felix-configadmin-version}</bundle>
