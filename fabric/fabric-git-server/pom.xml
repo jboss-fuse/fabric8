@@ -34,7 +34,7 @@
 
     <properties>
         <fuse.osgi.import>
-            org.eclipse.jetty.plus.jaas,
+            org.eclipse.jetty.jaas,
             *
         </fuse.osgi.import>
         <fuse.osgi.export>
