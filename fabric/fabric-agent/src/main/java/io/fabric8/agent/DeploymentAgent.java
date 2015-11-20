@@ -660,7 +660,12 @@ public class DeploymentAgent implements ManagedService {
         ) {
             @Override
             public void updateStatus(String status) {
-                DeploymentAgent.this.updateStatus(status, null);
+                DeploymentAgent.this.updateStatus(status, null, false);
+            }
+
+            @Override
+            public void updateStatus(String status, boolean force) {
+                DeploymentAgent.this.updateStatus(status, null, force);
             }
 
             @Override
@@ -688,7 +693,7 @@ public class DeploymentAgent implements ManagedService {
                     FabricService fs = systemBundleContext.getService(srFs);
                     if (pm != null && fs != null) {
                         LOGGER.info("Validating baseline information");
-                        this.updateStatus("validating baseline information");
+                        this.updateStatus("validating baseline information", true);
                         Profile profile = fs.getCurrentContainer().getOverlayProfile();
                         Map<String, String> versions = profile.getConfiguration("io.fabric8.version");
                         File localRepository = resolver.getLocalRepository();
@@ -708,7 +713,7 @@ public class DeploymentAgent implements ManagedService {
                                 }
                             }
                         })) {
-                            this.updateStatus("requires full restart");
+                            this.updateStatus("requires full restart", true);
                             // let's reuse the same flag
                             restart.set(true);
                             return false;
