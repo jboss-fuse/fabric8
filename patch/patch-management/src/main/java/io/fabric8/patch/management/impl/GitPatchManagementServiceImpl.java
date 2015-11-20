@@ -1685,7 +1685,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 // do fabric history branch initialization
                 // each container has to make sure their private history branch is created and that it contains
                 // tag related to the "version" of container (child: karaf, ssh: fabric8 or fuse, root: fuse or amq)
-                String tagName = String.format(env.getBaselineTagFormat(), determineVersion(env.getProductId()));
+                String tagName = String.format(env.getBaselineTagFormat(), determineVersion(karafBase, env.getProductId()));
 
                 RevTag tag = gitPatchRepository.findCurrentBaseline(fork);
                 if (tag == null || !tagName.equals(tag.getTagName())) {
@@ -1724,22 +1724,50 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * @return
      */
     private String determineVersion(File home, String product) {
-        File versions = new File(home, "fabric/import/fabric/profiles/default.profile/io.fabric8.version.properties");
-        if (versions.exists() && versions.isFile()) {
-            Properties props = new Properties();
-            FileInputStream fis = null;
-            try {
-                fis = new FileInputStream(versions);
-                props.load(fis);
-                return props.getProperty(product);
-            } catch (IOException e) {
-                Activator.log(LogService.LOG_ERROR, null, e.getMessage(), e, true);
-                return null;
-            } finally {
-                IOUtils.closeQuietly(fis);
+        if (env != EnvType.FABRIC_CHILD) {
+            File versions = new File(home, "fabric/import/fabric/profiles/default.profile/io.fabric8.version.properties");
+            if (versions.exists() && versions.isFile()) {
+                Properties props = new Properties();
+                FileInputStream fis = null;
+                try {
+                    fis = new FileInputStream(versions);
+                    props.load(fis);
+                    return props.getProperty(product);
+                } catch (IOException e) {
+                    Activator.log(LogService.LOG_ERROR, null, e.getMessage(), e, true);
+                    return null;
+                } finally {
+                    IOUtils.closeQuietly(fis);
+                }
+            } else {
+                Activator.log2(LogService.LOG_ERROR, "Can't find io.fabric8.version.properties file in default profile");
             }
         } else {
-            Activator.log2(LogService.LOG_ERROR, "Can't find io.fabric8.version.properties file in default profile");
+            // for child container we have to be more careful and not examine root container's io.fabric8.version.properties!
+            File startup = new File(home, "etc/startup.properties");
+            if (startup.exists() && startup.isFile()) {
+                Properties props = new Properties();
+                FileInputStream fis = null;
+                try {
+                    fis = new FileInputStream(startup);
+                    props.load(fis);
+                    for (String key : props.stringPropertyNames()) {
+                        if (key.startsWith("org/apache/karaf/features/org.apache.karaf.features.core")) {
+                            String url = Utils.pathToMvnurl(key);
+                            Artifact artifact = Utils.mvnurlToArtifact(url, true);
+                            return artifact.getVersion();
+                        }
+                    }
+                } catch (IOException e) {
+                    Activator.log(LogService.LOG_ERROR, null, e.getMessage(), e, true);
+                    return null;
+                } finally {
+                    IOUtils.closeQuietly(fis);
+                }
+            } else {
+                Activator.log2(LogService.LOG_ERROR, "Can't find etc/startup.properties file in child container");
+            }
+
         }
         return null;
     }
@@ -2565,18 +2593,34 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     /**
-     * <p>This method updates ${karaf.home} simply by copying all files from currently checked out working copy
-     * (usually HEAD of main patch branch) to <code>${karaf.home}</code></p>
+     * <p>This method updates ${karaf.base} simply by copying all files from currently checked out working copy
+     * (usually HEAD of main patch branch) to <code>${karaf.base}</code></p>
      * @param git
      * @throws IOException
      * @throws GitAPIException
      */
     private void applyChanges(Git git) throws IOException, GitAPIException {
+        Bundle fileInstall = null;
+        for (Bundle b : systemContext.getBundles()) {
+            if (Utils.stripSymbolicName(b.getSymbolicName()).equals("org.apache.felix.fileinstall")) {
+                fileInstall = b;
+                break;
+            }
+        }
+
+        if (fileInstall != null) {
+            try {
+                fileInstall.stop(Bundle.STOP_TRANSIENT);
+            } catch (Exception e) {
+                Activator.log(LogService.LOG_WARNING, e.getMessage());
+            }
+        }
+
         File wcDir = git.getRepository().getWorkTree();
         copyManagedDirectories(wcDir, karafBase, true, true, true);
-        FileUtils.copyDirectory(new File(wcDir, "lib"), new File(karafHome, "lib.next"));
+        FileUtils.copyDirectory(new File(wcDir, "lib"), new File(karafBase, "lib.next"));
         // we do exception for etc/overrides.properties
-        File overrides = new File(karafHome, "etc/overrides.properties");
+        File overrides = new File(karafBase, "etc/overrides.properties");
         if (overrides.exists() && overrides.length() == 0) {
             FileUtils.deleteQuietly(overrides);
         }
@@ -2602,7 +2646,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
         // Changes to the lib dir get done in the lib.next directory.  Lets copy
         // the lib dir just in case we do have modification to it.
-        FileUtils.copyDirectory(new File(karafHome, "lib"), new File(karafHome, "lib.next"));
+        FileUtils.copyDirectory(new File(karafBase, "lib"), new File(karafBase, "lib.next"));
         boolean libDirectoryChanged = false;
 
         for (DiffEntry de : diff) {
@@ -2658,7 +2702,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
         if (!libDirectoryChanged) {
             // lib.next directory might not be needed.
-            FileUtils.deleteDirectory(new File(karafHome, "lib.next"));
+            FileUtils.deleteDirectory(new File(karafBase, "lib.next"));
         }
     }
 
