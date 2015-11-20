@@ -509,9 +509,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 }
             }
             int delta = artifacts.size() / 10;
-            int count = 1;
+            int count = 0;
             for (File f : artifacts) {
-                if (count++ % delta == 0) {
+                if (++count % delta == 0) {
                     Activator.log2(LogService.LOG_DEBUG, String.format("Uploaded %d/%d", count, artifacts.size()));
                 }
                 String relativeName = Utils.relative(Utils.getSystemRepository(karafHome, bundleContext), f.getCanonicalFile());
