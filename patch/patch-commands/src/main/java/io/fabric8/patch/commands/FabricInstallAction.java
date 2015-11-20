@@ -18,6 +18,7 @@ package io.fabric8.patch.commands;
 import io.fabric8.patch.FabricPatchService;
 import io.fabric8.patch.Service;
 import io.fabric8.patch.management.Patch;
+import io.fabric8.patch.management.PatchException;
 import io.fabric8.patch.management.PatchResult;
 import io.fabric8.patch.management.ProfileUpdateStrategy;
 import org.apache.felix.gogo.commands.Argument;
@@ -64,6 +65,9 @@ public class FabricInstallAction extends PatchActionSupport {
     @Override
     protected void doExecute(Service service) throws Exception {
         Patch patch = service.getPatch(patchId);
+        if (patch == null) {
+            throw new PatchException("Patch '" + patchId + "' not found");
+        }
         ProfileUpdateStrategy strategy = ProfileUpdateStrategy.GIT;
         if ((mergeOverwrite && (mergeSelectNew || mergeKeepExisting))
                 || (mergeSelectNew && (mergeOverwrite || mergeKeepExisting))

@@ -70,6 +70,9 @@ public class OSGiPatchHelper {
             locations.add(Utils.pathToMvnurl(startupBundle));
         }
         for (Bundle b : allBundles) {
+            if (b == null || b.getSymbolicName() == null) {
+                continue;
+            }
             String symbolicName = Utils.stripSymbolicName(b.getSymbolicName());
             if ("org.apache.felix.framework".equals(symbolicName)) {
                 coreBundles.put(symbolicName, b);
