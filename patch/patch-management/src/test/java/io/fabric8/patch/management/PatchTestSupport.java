@@ -77,6 +77,7 @@ public abstract class PatchTestSupport {
                 return properties.get(invocation.getArguments()[0]);
             }
         });
+        when(systemContext.getBundles()).thenReturn(new Bundle[0]);
     }
 
     protected void preparePatchZip(String directoryToZip, String zipFile, final boolean includeParentDirectory) throws IOException {
