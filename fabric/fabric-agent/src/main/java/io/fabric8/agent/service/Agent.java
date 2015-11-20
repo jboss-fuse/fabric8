@@ -170,6 +170,9 @@ public class Agent {
     public void updateStatus(String status) {
     }
 
+    public void updateStatus(String status, boolean force) {
+    }
+
     public void provision(Set<String> repositories,
                           Set<String> features,
                           Set<String> bundles,
