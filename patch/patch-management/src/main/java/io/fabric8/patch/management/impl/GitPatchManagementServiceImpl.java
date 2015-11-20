@@ -2677,7 +2677,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         libDirectoryChanged = true;
                     }
                     File srcFile = new File(wcDir, newPath);
-                    File destFile = new File(karafHome, targetPath);
+                    File destFile = new File(karafBase, targetPath);
                     // we do exception for etc/overrides.properties
                     if ("etc/overrides.properties".equals(newPath) && srcFile.exists() && srcFile.length() == 0) {
                         FileUtils.deleteQuietly(destFile);
@@ -2691,7 +2691,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         oldPath = "lib.next/" + oldPath.substring(4);
                         libDirectoryChanged = true;
                     }
-                    FileUtils.deleteQuietly(new File(karafHome, oldPath));
+                    FileUtils.deleteQuietly(new File(karafBase, oldPath));
                     break;
                 case COPY:
                 case RENAME:
