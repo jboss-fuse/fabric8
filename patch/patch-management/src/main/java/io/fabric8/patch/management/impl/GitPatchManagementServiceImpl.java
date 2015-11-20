@@ -537,7 +537,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     IOUtils.closeQuietly(os);
                 }
             }
-            Activator.log2(LogService.LOG_DEBUG, String.format("Uploaded %d/%d", count-1, artifacts.size()));
+            Activator.log2(LogService.LOG_DEBUG, String.format("Uploaded %d/%d", count, artifacts.size()));
         } catch (Exception e) {
             throw new PatchException(e.getMessage(), e);
         }
