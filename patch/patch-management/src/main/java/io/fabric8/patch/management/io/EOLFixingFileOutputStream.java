@@ -129,7 +129,7 @@ public class EOLFixingFileOutputStream extends FileOutputStream {
             }
             if (bytes[bytes.length - 1] != (byte) '\n') {
                 additionalBytes += 1L;
-                buffer.write((int) bytes[bytes.length - 1]);
+                buffer.write((int) '\n');
             }
             super.write(buffer.toByteArray());
         } else {
