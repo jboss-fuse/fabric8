@@ -210,7 +210,7 @@ public class ProfileFileUtils {
             IOUtils.closeQuietly(fis);
         }
 
-        if (srcFile.length() != destFile.length()) {
+        if ((strategy == ProfileUpdateStrategy.GIT || !ext.equals("properties")) && srcFile.length() != destFile.length()) {
             throw new IOException("Failed to copy full contents from '" + srcFile + "' to '" + destFile + "'");
         }
         destFile.setLastModified(srcFile.lastModified());
