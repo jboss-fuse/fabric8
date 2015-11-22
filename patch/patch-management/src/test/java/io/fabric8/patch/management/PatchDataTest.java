@@ -83,4 +83,20 @@ public class PatchDataTest {
         assertThat(res.getVersions().get(0), equalTo("1.0"));
     }
 
+    @Test
+    public void persistPatchResultOnWindows() throws IOException {
+        PatchData pd = new PatchData("otherid");
+        PatchResult res = new PatchResult(pd, false, 42L, null, null);
+        BundleUpdate bu = new BundleUpdate("C__Dev_jboss-fuse", null, null, "6.2.1", "wrap:jardir:C:\\Dev\\jboss-fuse-6.2.1.redhat-076\\etc\\auth$Bundle-SymbolicName=C:\\Dev\\jboss-fuse&Bundle-Version=6.2.1");
+        res.getBundleUpdates().add(bu);
+
+        File result = new File("target/patch-descriptor-3.patch.result");
+        FileOutputStream out = new FileOutputStream(result);
+        res.storeTo(out);
+
+        PatchResult pr = PatchResult.load(pd, new FileInputStream(result));
+
+        assertThat(pr.getBundleUpdates().get(0).getPreviousLocation(), equalTo("wrap:jardir:C:\\Dev\\jboss-fuse-6.2.1.redhat-076\\etc\\auth$Bundle-SymbolicName=C:\\Dev\\jboss-fuse&Bundle-Version=6.2.1"));
+    }
+
 }
