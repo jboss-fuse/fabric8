@@ -966,18 +966,20 @@ public class Deployer {
 
         // list of bundles in special "fabric-startup" feature
         List<String> urls = new LinkedList<>();
-        Feature f = null;
         for (Feature ft : dstate.features.values()) {
-            if (ft.getName().equals("fabric-startup")) {
-                f = ft;
-                break;
+            if (ft.getName().equals("fabric-startup") && ft.getBundles() != null) {
+                for (BundleInfo bi : ft.getBundles()) {
+                    urls.add(bi.getLocation());
+                }
+            }
+            // special case for Fuse/AMQ...
+            if (ft.getName().equals("esb-commands-startup") && ft.getBundles() != null) {
+                for (BundleInfo bi : ft.getBundles()) {
+                    urls.add(bi.getLocation());
+                }
             }
         }
-        if (f != null && f.getBundles() != null) {
-            for (BundleInfo bi : f.getBundles()) {
-                urls.add(bi.getLocation());
-            }
-        }
+
         if (callback.done(agentStarted[0], urls)) {
             print("Done.", display);
         }
