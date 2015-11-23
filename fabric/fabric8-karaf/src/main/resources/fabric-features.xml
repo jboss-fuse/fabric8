@@ -46,6 +46,8 @@
         <bundle dependency="true">mvn:org.apache.karaf.admin/org.apache.karaf.admin.management/${karaf-version}</bundle>
         <bundle dependency="true">mvn:io.fabric8.patch/patch-management/${project.version}</bundle>
         <bundle dependency="true">mvn:org.apache.karaf.features/org.apache.karaf.features.core/${karaf-version}</bundle>
+        <bundle dependency="true">mvn:org.apache.felix/org.apache.felix.bundlerepository/${felix.obr.version}</bundle>
+        <bundle dependency="true">mvn:org.apache.karaf.features/org.apache.karaf.features.obr/${karaf-version}</bundle>
         <!-- bundles referenced from $KARAF_HOME/bin/admin and $KARAF_HOME/bin/client -->
         <bundle dependency="true">mvn:org.apache.karaf.admin/org.apache.karaf.admin.command/${karaf-version}</bundle>
         <bundle dependency="true">mvn:org.apache.karaf.admin/org.apache.karaf.admin.core/${karaf-version}</bundle>
