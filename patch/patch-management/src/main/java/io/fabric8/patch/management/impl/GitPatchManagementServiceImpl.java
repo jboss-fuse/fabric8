@@ -1992,48 +1992,57 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         }
         for (Version v : versions) {
             String fabric8Version = v.toString();
-            if (gitPatchRepository.containsTag(fork, String.format("baseline-ssh-fabric8-%s", fabric8Version))
-                    || gitPatchRepository.containsTag(fork, String.format("baseline-ssh-fuse-%s", fabric8Version))) {
-                continue;
-            }
 
-            File baselineDistribution = null;
-            String location = String.format(systemRepo.getCanonicalPath() + "/io/fabric8/fabric8-karaf/%1$s/fabric8-karaf-%1$s.zip", fabric8Version);
-            // TODO: probably we should check other classifiers or even groupIds, when we decide to create SSH containers
-            // from something else
-            if (new File(location).isFile()) {
-                baselineDistribution = new File(location);
-                Activator.log(LogService.LOG_INFO, "Found SSH baseline distribution: " + baselineDistribution.getCanonicalPath());
-            }
+            // each version may have two (maybe more?) baseline distros.
+            // we may have "official" fabric8-karaf and the one created from FUSE_HOME (zipped on-fly).
 
-            if (baselineDistribution != null) {
-                try {
-                    // we don't know yet which branch we have to checkout, this method will do 2 pass unzipping
-                    // and leave the fork checked out to correct branch - its name will be returned
-                    String rootDir = String.format("fabric8-karaf-%s", fabric8Version);
-                    String branchName = unzipFabric8Distro(rootDir, baselineDistribution, fork);
+            String[] artifactPatterns = new String[] {
+                    "fabric8-karaf-%1$s.zip",
+                    "fabric8-karaf-%1$s-custom.zip"
+            };
 
-                    // remove the deletes
-                    for (String missing : fork.status().call().getMissing()) {
-                        fork.rm().addFilepattern(missing).call();
+            for (String artifactPattern : artifactPatterns) {
+                File baselineDistribution = null;
+                String location = String.format(systemRepo.getCanonicalPath() + "/io/fabric8/fabric8-karaf/%1$s/" + artifactPattern, fabric8Version);
+
+                if (new File(location).isFile()) {
+                    baselineDistribution = new File(location);
+                    Activator.log(LogService.LOG_INFO, "Found SSH baseline distribution: " + baselineDistribution.getCanonicalPath());
+                }
+
+                if (baselineDistribution != null) {
+                    try {
+                        // we don't know yet which branch we have to checkout, this method will do 2 pass unzipping
+                        // and leave the fork checked out to correct branch - its name will be returned
+                        String rootDir = String.format("fabric8-karaf-%s", fabric8Version);
+                        String branchName = unzipFabric8Distro(rootDir, baselineDistribution, fabric8Version, fork);
+
+                        if (branchName == null) {
+                            continue;
+                        }
+
+                        // remove the deletes
+                        for (String missing : fork.status().call().getMissing()) {
+                            fork.rm().addFilepattern(missing).call();
+                        }
+
+                        // and we'll tag the child baseline
+                        String tagName = branchName.replace("patches-", "");
+
+                        fork.add()
+                                .addFilepattern(".")
+                                .call();
+                        RevCommit commit = gitPatchRepository.prepareCommit(fork,
+                                String.format(MARKER_BASELINE_SSH_COMMIT_PATTERN, tagName, fabric8Version))
+                                .call();
+
+                        fork.tag()
+                                .setName(String.format("baseline-%s-%s", tagName, fabric8Version))
+                                .setObjectId(commit)
+                                .call();
+                    } catch (Exception e) {
+                        Activator.log(LogService.LOG_ERROR, null, e.getMessage(), e, true);
                     }
-
-                    // and we'll tag the child baseline
-                    String tagName = branchName.replace("patches-", "");
-
-                    fork.add()
-                            .addFilepattern(".")
-                            .call();
-                    RevCommit commit = gitPatchRepository.prepareCommit(fork,
-                            String.format(MARKER_BASELINE_SSH_COMMIT_PATTERN, tagName, fabric8Version))
-                            .call();
-
-                    fork.tag()
-                            .setName(String.format("baseline-%s-%s", tagName, fabric8Version))
-                            .setObjectId(commit)
-                            .call();
-                } catch (Exception e) {
-                    Activator.log(LogService.LOG_ERROR, null, e.getMessage(), e, true);
                 }
             }
         }
@@ -2046,13 +2055,12 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * Unzips <code>bin</code> and <code>etc</code> everything we need from org.apache.karaf.admin.core.
      * @param rootDir
      * @param artifact
+     * @param version
      * @param fork
+     * @return branch name where the distro should be tracked, or <code>null</code> if it's already tracked
      * @throws IOException
      */
-    private String unzipFabric8Distro(String rootDir, File artifact, Git fork) throws IOException, GitAPIException {
-        for (String managedDirectory : MANAGED_DIRECTORIES) {
-            FileUtils.deleteDirectory(new File(fork.getRepository().getWorkTree(), managedDirectory));
-        }
+    private String unzipFabric8Distro(String rootDir, File artifact, String version, Git fork) throws IOException, GitAPIException {
         ZipFile zf = new ZipFile(artifact);
         try {
             // first pass - what's this distro?
@@ -2079,14 +2087,25 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             }
             // checkout correct branch
             if (officialFabric8) {
+                if (gitPatchRepository.containsTag(fork, String.format("baseline-ssh-fabric8-%s", version))) {
+                    return null;
+                }
                 gitPatchRepository.checkout(fork)
                         .setName(gitPatchRepository.getFabric8SSHContainerPatchBranchName())
                         .call();
             } else {
+                if (gitPatchRepository.containsTag(fork, String.format("baseline-ssh-fuse-%s", version))) {
+                    return null;
+                }
                 gitPatchRepository.checkout(fork)
                         .setName(gitPatchRepository.getFuseSSHContainerPatchBranchName())
                         .call();
             }
+
+            for (String managedDirectory : MANAGED_DIRECTORIES) {
+                FileUtils.deleteDirectory(new File(fork.getRepository().getWorkTree(), managedDirectory));
+            }
+
             // second pass - unzip what we need
             for (Enumeration<ZipArchiveEntry> e = zf.getEntries(); e.hasMoreElements(); ) {
                 ZipArchiveEntry entry = e.nextElement();
