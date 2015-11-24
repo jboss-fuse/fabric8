@@ -134,8 +134,6 @@ public final class ProjectDeployerImpl extends AbstractComponent implements Proj
             JMXUtils.registerMBean(this, mbeanServer, OBJECT_NAME);
         }
 
-        loadServiceMixBundles();
-
         activateComponent();
     }
 
