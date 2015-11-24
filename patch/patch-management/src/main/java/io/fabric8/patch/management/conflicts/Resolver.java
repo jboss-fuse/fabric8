@@ -33,7 +33,7 @@ public interface Resolver {
      * </ul>
      * Generally, {@link io.fabric8.patch.management.PatchKind} determinates what version is more important, but
      * sometimes we want to change this - for example, in case of
-     * {@link io.fabric8.patch.management.PatchKind#ROLLUP rollup patches}, we prefer patch' version and user
+     * {@link io.fabric8.patch.management.PatchKind#ROLLUP rollup patches}, we prefer patch' version and conflicting user
      * changes rebased on top of new patch are rejected. But we don't want to do it for <code>etc/users.properties</code>
      * where user may have defined additional users.</p>
      * <p>Classes implementing this resolve may do a special handling of merge conflict, for example by comparing

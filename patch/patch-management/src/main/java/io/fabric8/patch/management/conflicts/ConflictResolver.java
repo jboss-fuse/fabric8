@@ -30,8 +30,8 @@ public class ConflictResolver {
 
     public ConflictResolver() {
         builtInResolvers.put("etc/users.properties", new UsersPropertiesResolver());
-        builtInResolvers.put("bin/setenv", new SetEnvResolver());
-        builtInResolvers.put("bin/setenv.bat", new SetEnvBatResolver());
+        builtInResolvers.put("bin/setenv", new ChooseUserVersionResolver());
+        builtInResolvers.put("bin/setenv.bat", new ChooseUserVersionResolver());
     }
 
     /**
