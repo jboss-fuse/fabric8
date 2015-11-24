@@ -45,8 +45,9 @@ public class DefaultEnvService implements EnvService {
         if (localGitRepository.isDirectory() && new File(localGitRepository, ".git").isDirectory()) {
             // we have git repository of current container - is it initalized?
             boolean hasMasterBranch = new File(localGitRepository, ".git/refs/heads/master").isFile();
-            boolean hasRootTag = new File(localGitRepository, ".git/refs/tags/root").isFile();
-            if (hasMasterBranch && hasRootTag) {
+            boolean has10Branch = new File(localGitRepository, ".git/refs/heads/1.0").isFile();
+            // maybe check if .git/config contains remote "origin" ending with "/git/fabric/"?
+            if (hasMasterBranch && has10Branch) {
                 if (isChild) {
                     return EnvType.FABRIC_CHILD;
                 } else {
