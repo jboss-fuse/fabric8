@@ -90,7 +90,9 @@ public class MavenRepositoryURL
     public MavenRepositoryURL( final String repositorySpec )
         throws MalformedURLException
     {
-        NullArgumentException.validateNotEmpty( repositorySpec, true, "Repository spec" );
+        if( repositorySpec == null || "".equals(repositorySpec.trim()) ){
+            LOG.info("Repository spec is empty. Configuration will fall back to the content of maven xml settngs.");
+        }
 
         final String[] segments = repositorySpec.split( ServiceConstants.SEPARATOR_OPTIONS );
         final StringBuilder urlBuilder = new StringBuilder();
