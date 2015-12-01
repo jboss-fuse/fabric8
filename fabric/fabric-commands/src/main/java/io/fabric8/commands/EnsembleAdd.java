@@ -20,6 +20,7 @@ import io.fabric8.api.scr.ValidatingReference;
 import io.fabric8.boot.commands.support.AbstractCommandComponent;
 
 import io.fabric8.commands.support.EnsembleAddCompleter;
+import io.fabric8.zookeeper.bootstrap.BootstrapConfiguration;
 import org.apache.felix.gogo.commands.Action;
 import org.apache.felix.gogo.commands.basic.AbstractCommand;
 import org.apache.felix.scr.annotations.Activate;
@@ -46,6 +47,10 @@ public class EnsembleAdd extends AbstractCommandComponent {
     @Reference(referenceInterface = ZooKeeperClusterService.class)
     private final ValidatingReference<ZooKeeperClusterService> clusterService = new ValidatingReference<ZooKeeperClusterService>();
 
+    @Reference(referenceInterface = BootstrapConfiguration.class)
+    private final ValidatingReference<BootstrapConfiguration> bootstrapConfiguration = new ValidatingReference<BootstrapConfiguration>();
+
+
     // Completers
     @Reference(referenceInterface = EnsembleAddCompleter.class, bind = "bindContainerCompleter", unbind = "unbindContainerCompleter")
     private EnsembleAddCompleter containerCompleter; // dummy field
@@ -66,7 +71,7 @@ public class EnsembleAdd extends AbstractCommandComponent {
     @Override
     public Action createNewAction() {
         assertValid();
-        return new EnsembleAddAction(bundleContext, clusterService.get());
+        return new EnsembleAddAction(bundleContext, clusterService.get(), bootstrapConfiguration.get());
     }
 
     void bindClusterService(ZooKeeperClusterService clusterService) {
@@ -83,5 +88,13 @@ public class EnsembleAdd extends AbstractCommandComponent {
 
     void unbindContainerCompleter(EnsembleAddCompleter completer) {
         unbindCompleter(completer);
+    }
+
+    void bindBootstrapConfiguration(BootstrapConfiguration configuration) {
+        this.bootstrapConfiguration.bind(configuration);
+    }
+
+    void unbindBootstrapConfiguration(BootstrapConfiguration configuration) {
+        this.bootstrapConfiguration.unbind(configuration);
     }
 }
