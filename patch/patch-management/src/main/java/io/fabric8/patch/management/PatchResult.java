@@ -194,11 +194,11 @@ public class PatchResult {
             String prefix = BUNDLE_UPDATES + "." + Integer.toString(i) + ".";
             pw.write(prefix + SYMBOLIC_NAME + " = " + update.getSymbolicName() + "\n");
             pw.write(prefix + OLD_VERSION + " = " + update.getPreviousVersion() + "\n");
-            pw.write(prefix + OLD_LOCATION + " = " + update.getPreviousLocation() + "\n");
+            pw.write(prefix + OLD_LOCATION + " = " + update.getPreviousLocation().replace("\\", "\\\\") + "\n");
             pw.write(prefix + INDEPENDENT + " = " + update.isIndependent() + "\n");
             if (update.getNewVersion() != null) {
                 pw.write(prefix + NEW_VERSION + " = " + update.getNewVersion() + "\n");
-                pw.write(prefix + NEW_LOCATION + " = " + update.getNewLocation() + "\n");
+                pw.write(prefix + NEW_LOCATION + " = " + update.getNewLocation().replace("\\", "\\\\") + "\n");
             }
             if (update.getStartLevel() > -1) {
                 pw.write(prefix + START_LEVEL + " = " + update.getStartLevel() + "\n");

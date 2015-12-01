@@ -660,7 +660,12 @@ public class DeploymentAgent implements ManagedService {
         ) {
             @Override
             public void updateStatus(String status) {
-                DeploymentAgent.this.updateStatus(status, null);
+                DeploymentAgent.this.updateStatus(status, null, false);
+            }
+
+            @Override
+            public void updateStatus(String status, boolean force) {
+                DeploymentAgent.this.updateStatus(status, null, force);
             }
 
             @Override
@@ -675,7 +680,7 @@ public class DeploymentAgent implements ManagedService {
             }
 
             @Override
-            protected boolean done(boolean agentStarted) {
+            protected boolean done(boolean agentStarted, List<String> urls) {
                 if (agentStarted) {
                     // let's do patch-management "last touch" only if new agent wasn't started.
                     return true;
@@ -688,11 +693,11 @@ public class DeploymentAgent implements ManagedService {
                     FabricService fs = systemBundleContext.getService(srFs);
                     if (pm != null && fs != null) {
                         LOGGER.info("Validating baseline information");
-                        this.updateStatus("validating baseline information");
+                        this.updateStatus("validating baseline information", true);
                         Profile profile = fs.getCurrentContainer().getOverlayProfile();
                         Map<String, String> versions = profile.getConfiguration("io.fabric8.version");
                         File localRepository = resolver.getLocalRepository();
-                        if (pm.alignTo(versions, localRepository, new Runnable() {
+                        if (pm.alignTo(versions, urls, localRepository, new Runnable() {
                             @Override
                             public void run() {
                                 ServiceReference<FabricPatchService> srFps = systemBundleContext.getServiceReference(FabricPatchService.class);
@@ -708,7 +713,7 @@ public class DeploymentAgent implements ManagedService {
                                 }
                             }
                         })) {
-                            this.updateStatus("requires full restart");
+                            this.updateStatus("requires full restart", true);
                             // let's reuse the same flag
                             restart.set(true);
                             return false;
