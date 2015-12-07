@@ -35,12 +35,15 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  */
@@ -60,10 +63,8 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
     public void handle(final HttpServerRequest request) {
     	long callStart = System.nanoTime();
         String uri = request.uri();
-        String uri2 = null;
-        if (!uri.endsWith("/")) {
-            uri2 = uri + "/";
-        }
+        String uri2 = normalizeUri(uri);
+
         if (LOG.isDebugEnabled()) {
             LOG.debug("Proxying request: " + uri);
         }
@@ -93,9 +94,13 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
                     mappedServices = entry.getValue();
 
                     String pathPrefix = path;
-                    if (uri.startsWith(pathPrefix) || (uri2 != null && uri2.startsWith(pathPrefix))) {
+                    boolean uriMatches = uri.startsWith(pathPrefix);
+                    boolean uri2Matches = uri2 != null && uri2.startsWith(pathPrefix);
+                    if (uriMatches || uri2Matches) {
                         int pathPrefixLength = pathPrefix.length();
-                        if (pathPrefixLength < uri.length()) {
+                        if (uri2Matches && pathPrefixLength < uri2.length()) {
+                            remaining = uri2.substring(pathPrefixLength);
+                        } else if (pathPrefixLength < uri.length()) {
                             remaining = uri.substring(pathPrefixLength);
                         } else {
                             remaining = null;
@@ -232,4 +237,23 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
 
     }
 
+    /**
+     * Normalizes the passed in URI value by appending a '/' to the path if necessary.
+     *
+     * @return same URI with the normalized path or <code>null</code> if the path already ends with '/'
+     */
+    protected static String normalizeUri(String value) {
+        try {
+            String result = null;
+            URI uri = new URI(value);
+            String path = uri.getPath();
+            if (!path.endsWith("/")) {
+                result = value.replaceFirst(Pattern.quote(path), path + "/");
+            }
+            return result;
+        } catch (URISyntaxException e) {
+            LOG.debug("Exception caught while normalizing URI path - proceeding with the original path value", e);
+            return null;
+        }
+    }
 }
