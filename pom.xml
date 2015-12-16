@@ -231,8 +231,8 @@
         <hawtio-kibana-version>3.1.2_2</hawtio-kibana-version>
         <hawtio-swagger-version>${hawtio-version}</hawtio-swagger-version>
         <hawtio-version>1.4.redhat-621076</hawtio-version>
-        <http-client-version>4.3.6</http-client-version>
-        <http-core-version>4.3.3</http-core-version>
+        <http-client-version>4.4.1</http-client-version>
+        <http-core-version>4.4.1</http-core-version>
         <influxdb-version>1.2</influxdb-version>
         <jackson-version>1.9.12</jackson-version>
         <jackson2-version>2.4.3</jackson2-version>
