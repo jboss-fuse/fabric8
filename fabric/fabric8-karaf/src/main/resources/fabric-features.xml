@@ -26,7 +26,7 @@
 -->
     <repository>mvn:org.apache.camel.karaf/apache-camel/${camel-version}/xml/features</repository>
     <repository>mvn:org.apache.activemq/activemq-karaf/${activemq-version}/xml/features-core</repository>
-    <repository>mvn:org.apache.jclouds.karaf/jclouds-karaf/${jclouds-karaf-version}/xml/features</repository>
+    <repository>mvn:io.fabric8/fabric8-jclouds-features/${project.version}/xml/features</repository>
     <repository>mvn:io.hawt/hawtio-karaf/${hawtio-version}/xml/features</repository>
     <repository>mvn:org.apache.karaf.assemblies.features/standard/${karaf-version}/xml/features</repository>
     <repository>mvn:org.apache.karaf.assemblies.features/spring/${karaf-version}/xml/features</repository>
@@ -378,8 +378,8 @@
     <feature name="fabric-jclouds" version="${project.version}" resolver="(obr)">
         <bundle dependency='true'>mvn:org.apache.servicemix.specs/org.apache.servicemix.specs.activation-api-1.1/${servicemix-specs-version}</bundle>
         <feature version="${project.version}">fabric-commands</feature>
-        <feature version='${jclouds-karaf-version}'>jclouds-commands</feature>
-        <feature version='${jclouds-karaf-version}'>jclouds-api-ec2</feature>
+        <feature version='${project.version}'>jclouds-commands</feature>
+        <feature version='${project.version}'>jclouds-api-ec2</feature>
         <bundle>mvn:io.fabric8/common-util/${project.version}</bundle>
         <bundle>mvn:io.fabric8/fabric-core-agent-jclouds/${project.version}</bundle>
     </feature>
