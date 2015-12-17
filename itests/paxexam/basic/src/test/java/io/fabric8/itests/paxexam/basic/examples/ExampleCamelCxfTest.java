@@ -28,6 +28,7 @@ import java.util.Set;
 
 import org.fusesource.jansi.AnsiString;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Configuration;
@@ -44,6 +45,7 @@ import org.ops4j.pax.exam.spi.reactors.PerMethod;
 public class ExampleCamelCxfTest extends FabricTestSupport {
 
     @Test
+    @Ignore("ENTESB-4710 - we have to switch to camel 2.16.x")
     public void testExample() throws Exception {
         System.out.println(executeCommand("fabric:create -n --wait-for-provisioning"));
         //System.out.println(executeCommand("shell:info"));

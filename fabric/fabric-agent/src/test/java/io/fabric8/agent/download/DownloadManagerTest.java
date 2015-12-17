@@ -35,6 +35,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.junit.After;
 import org.junit.Before;
@@ -93,7 +94,7 @@ public class DownloadManagerTest {
 
         Properties custom = new Properties();
         custom.setProperty("org.ops4j.pax.url.mvn.proxySupport", "true");
-        String settings = createMavenSettingsWithProxy(server.getConnectors()[0].getLocalPort());
+        String settings = createMavenSettingsWithProxy(((ServerConnector)server.getConnectors()[0]).getLocalPort());
         DownloadManager dm = createDownloadManager("http://relevant.not/maven2@id=central", settings, custom);
 
         try {
@@ -132,7 +133,7 @@ public class DownloadManagerTest {
 
         Properties custom = new Properties();
         custom.setProperty("org.ops4j.pax.url.mvn.proxySupport", "true");
-        String settings = createMavenSettingsWithProxy(server.getConnectors()[0].getLocalPort());
+        String settings = createMavenSettingsWithProxy(((ServerConnector)server.getConnectors()[0]).getLocalPort());
         DownloadManager dm = createDownloadManager("http://relevant.not/maven2@id=central", settings, custom);
 
         try {
