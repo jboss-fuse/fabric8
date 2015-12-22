@@ -30,8 +30,10 @@
 		<tycho-version>0.21.0</tycho-version>
 		<maven.compiler.target>1.7</maven.compiler.target>
 		<maven.compiler.source>1.7</maven.compiler.source>
+		<maven-surefire-plugin-version>2.19</maven-surefire-plugin-version>
 		<camel-version>2.15.1.redhat-621012</camel-version>
 		<camel.sap.plugin.version>6.2.1-SNAPSHOT</camel.sap.plugin.version>
+
 		
         <!-- OSGi bundles properties -->
         <fuse.osgi.bundle.name>${project.name}</fuse.osgi.bundle.name>
@@ -516,6 +518,11 @@
                         </execution>
                     </executions>
                 </plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-surefire-plugin</artifactId>
+					<version>${maven-surefire-plugin-version}</version>
+				</plugin>
 			</plugins>
 		</pluginManagement>
 		<plugins>
