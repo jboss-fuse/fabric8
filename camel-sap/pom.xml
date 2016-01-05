@@ -31,7 +31,7 @@
 		<maven.compiler.target>1.7</maven.compiler.target>
 		<maven.compiler.source>1.7</maven.compiler.source>
 		<maven-surefire-plugin-version>2.19</maven-surefire-plugin-version>
-		<camel-version>2.15.1.redhat-621083</camel-version>
+		<camel-version>2.15.1.redhat-621084</camel-version>
 		<camel.sap.plugin.version>6.2.1-SNAPSHOT</camel.sap.plugin.version>
 
 		
@@ -200,16 +200,16 @@
 		</dependencies>
 	</dependencyManagement>
 	<dependencies>
-      	<dependency>
-      		<groupId>com.sap.conn.jco</groupId>
-      		<artifactId>com.sap.conn.jco</artifactId>
-      		<version>3.0.11.redhat_1</version>
-      	</dependency>
-      	<dependency>
-      		<groupId>com.sap.conn.idoc</groupId>
-      		<artifactId>com.sap.conn.idoc</artifactId>
-      		<version>3.0.10.redhat_1</version>
-      	</dependency>
+		<dependency>
+			<groupId>com.sap.conn.jco</groupId>
+			<artifactId>com.sap.conn.jco</artifactId>
+			<version>3.0.11.redhat_1</version>
+		</dependency>
+		<dependency>
+			<groupId>com.sap.conn.idoc</groupId>
+			<artifactId>com.sap.conn.idoc</artifactId>
+			<version>3.0.10.redhat_1</version>
+		</dependency>
 	</dependencies>
 	<profiles>
 		<profile>
@@ -596,6 +596,18 @@
 				<enabled>true</enabled>
 			</releases>
 		</repository>
+		<repository>
+			<id>RH2</id>
+			<url>http://download.eng.bos.redhat.com/brewroot/repos/jb-fsw-6.2-build/latest/maven</url>
+			<layout>default</layout>
+		</repository>
 	</repositories>
+	<pluginRepositories>
+		<pluginRepository>
+			<id>RH2</id>
+			<url>http://download.eng.bos.redhat.com/brewroot/repos/jb-fsw-6.2-build/latest/maven</url>
+			<layout>default</layout>
+		</pluginRepository>
+	</pluginRepositories>
 	<description>Provides SAP Camel Component</description>
 </project>
