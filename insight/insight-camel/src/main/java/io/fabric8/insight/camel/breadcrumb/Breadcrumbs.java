@@ -22,6 +22,7 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.api.management.ManagedResource;
 import org.apache.camel.model.ProcessorDefinition;
+import org.apache.camel.processor.FilterProcessor;
 import org.apache.camel.spi.ProcessorFactory;
 import org.apache.camel.spi.RouteContext;
 
@@ -62,6 +63,9 @@ public class Breadcrumbs extends SwitchableContainerStrategy implements Breadcru
     public Processor wrap(RouteContext routeContext, ProcessorDefinition<?> definition, Processor processor) {
         if (processor == null) {
             return null;
+        }
+        if (processor instanceof FilterProcessor) {
+            return processor;
         }
         BreadcrumbsProcessor breadcrumbsProcessor = new BreadcrumbsProcessor(this, processor);
         breadcrumbsProcessor.setCamelContext(routeContext.getCamelContext());

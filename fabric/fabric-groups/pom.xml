@@ -32,6 +32,9 @@
     <name>Fabric8 :: Groups</name>
 
     <properties>
+        <fuse.osgi.import.additional>
+            com.google.common*;version="[16,20)",
+        </fuse.osgi.import.additional>
         <fuse.osgi.export>
             io.fabric8.groups*;version=${project.version},
         </fuse.osgi.export>

@@ -53,6 +53,7 @@ import org.ops4j.pax.exam.spi.reactors.PerMethod;
 public class ExampleCamelClusterTest extends FabricTestSupport {
 
     @Test
+    @Ignore
     public void testRegistryEntries() throws Exception {
         System.out.println(executeCommand("fabric:create -n --wait-for-provisioning root"));
         //System.out.println(executeCommand("shell:info"));

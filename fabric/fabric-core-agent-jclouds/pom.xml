@@ -94,6 +94,11 @@
             <artifactId>jclouds-core</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>16.0.1</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.jclouds</groupId>
             <artifactId>jclouds-blobstore</artifactId>
         </dependency>

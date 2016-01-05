@@ -24,6 +24,7 @@ import org.apache.camel.model.ProcessorDefinition;
 import org.apache.camel.model.ProcessorDefinitionHelper;
 import org.apache.camel.model.RouteDefinition;
 import org.apache.camel.model.RouteDefinitionHelper;
+import org.apache.camel.processor.FilterProcessor;
 import org.apache.camel.spi.ProcessorFactory;
 import org.apache.camel.spi.RouteContext;
 import org.apache.camel.util.StringHelper;
@@ -69,6 +70,9 @@ public class Profiler extends SwitchableContainerStrategy implements ProfilerMBe
     public Processor wrap(RouteContext routeContext, ProcessorDefinition<?> definition, Processor processor) {
         if (processor == null) {
             return null;
+        }
+        if (processor instanceof FilterProcessor) {
+            return processor;
         }
         RouteDefinition route = ProcessorDefinitionHelper.getRoute(definition);
         if (route != null) {

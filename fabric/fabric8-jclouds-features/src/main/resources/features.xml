@@ -19,7 +19,7 @@ limitations under the License.
 
     <feature name='jclouds-guice' description='Jclouds - Google Guice' version='${project.version}' resolver='(obr)'>
         <bundle dependency='true'>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.javax-inject/${javax.inject.bundle.version}</bundle>
-        <bundle dependency='true'>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.aopalliance/1.0_6</bundle>
+        <bundle dependency='true'>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.aopalliance/${aopalliance.bundle.version}</bundle>
         <bundle>mvn:com.google.inject/guice/${guice.version}</bundle>
         <bundle>mvn:com.google.inject.extensions/guice-assistedinject/${guice.version}</bundle>
         <bundle>mvn:com.google.inject.extensions/guice-multibindings/${guice.version}</bundle>
@@ -31,7 +31,7 @@ limitations under the License.
         <bundle dependency='true'>mvn:com.google.guava/guava/${guava-version}</bundle>
         <bundle dependency='true'>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.oauth-commons/20100527_1</bundle>
         <bundle dependency='true'>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.jersey-core/1.11_1</bundle>
-        <bundle dependency='true'>mvn:com.google.code.gson/gson/2.2.2</bundle>
+        <bundle dependency='true'>mvn:com.google.code.gson/gson/2.3</bundle>
         <bundle>mvn:org.apache.jclouds/jclouds-core/${jclouds-version}</bundle>
     </feature>
 
@@ -47,17 +47,12 @@ limitations under the License.
         <bundle>mvn:org.apache.jclouds/jclouds-compute/${jclouds-version}</bundle>
     </feature>
 
-    <feature name='jclouds-management' description='jclouds Management' version='${project.version}' resolver='(obr)'>
-        <feature version='${project.version}'>jclouds-compute</feature>
+    <!-- APIS -->
+    <feature name='jclouds-api-atmos' description='jclouds - API - Atmos' version='${project.version}' resolver='(obr)'>
         <feature version='${project.version}'>jclouds-blobstore</feature>
-        <bundle>mvn:org.apache.jclouds.labs.representations/representations-core/${jclouds-version}</bundle>
-        <bundle>mvn:org.apache.jclouds.labs.representations/representations-codec/${jclouds-version}</bundle>
-        <bundle>mvn:org.apache.jclouds.labs.management/management-core/${jclouds-version}</bundle>
-        <bundle>mvn:org.apache.jclouds.labs.management/management-blobstore/${jclouds-version}</bundle>
-        <bundle>mvn:org.apache.jclouds.labs.management/management-compute/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.api/atmos/${jclouds-version}</bundle>
     </feature>
 
-    <!-- APIS -->
     <feature name='jclouds-api-filesystem' description='jclouds - API - FileSystem' version='${project.version}' resolver='(obr)'>
         <feature version='${project.version}'>jclouds-blobstore</feature>
         <bundle>mvn:org.apache.jclouds.api/filesystem/${jclouds-version}</bundle>
@@ -68,16 +63,16 @@ limitations under the License.
         <bundle>mvn:org.apache.jclouds.api/elasticstack/${jclouds-version}</bundle>
     </feature>
 
-    <feature name='jclouds-api-vcloud' description='jclouds - API - Vcloud' version='${project.version}' resolver='(obr)'>
-        <feature version='${project.version}'>jclouds-compute</feature>
-        <bundle dependency='true'>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.java-xmlbuilder/0.3_1</bundle>
-        <bundle>mvn:org.apache.jclouds.api/vcloud/${jclouds-version}</bundle>
-    </feature>
-
     <feature name='jclouds-api-byon' description='jclouds - API - Byon' version='${project.version}' resolver='(obr)'>
         <feature version='${project.version}'>jclouds-compute</feature>
         <bundle dependency='true'>mvn:org.yaml/snakeyaml/1.11</bundle>
         <bundle>mvn:org.apache.jclouds.api/byon/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-api-openstack-swift' description='jclouds - API - OpenStack Swift' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-blobstore</feature>
+        <feature version='${project.version}'>jclouds-api-openstack-keystone</feature>
+        <bundle>mvn:org.apache.jclouds.api/openstack-swift/${jclouds-version}</bundle>
     </feature>
 
     <feature name='jclouds-api-swift' description='jclouds - API - Swift' version='${project.version}' resolver='(obr)'>
@@ -153,6 +148,11 @@ limitations under the License.
     <feature name="jclouds-api-route53" description="Jclouds - API - Route53" version="${project.version}" resolver="(obr)">
         <feature version='${project.version}'>jclouds-api-sts</feature>
         <bundle>mvn:org.apache.jclouds.api/route53/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-api-cloudsigma2' description='jclouds - API - CloudSigma v2' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle>mvn:org.apache.jclouds.labs/cloudsigma2/${jclouds-version}</bundle>
     </feature>
 
     <feature name='jclouds-aws-cloudwatch' description='Amazon Web Service - Cloudwatch' version='${project.version}' resolver='(obr)'>
@@ -240,22 +240,6 @@ limitations under the License.
         <bundle>mvn:org.apache.jclouds.provider/rackspace-cloudloadbalancers-uk/${jclouds-version}</bundle>
     </feature>
 
-    <feature name='jclouds-cloudserver-uk' description='Cloudservers UK' version='${project.version}' resolver='(obr)'>
-        <feature version='${project.version}'>jclouds-compute</feature>
-        <bundle dependency='true'>mvn:org.apache.jclouds.common/openstack-common/${jclouds-version}</bundle>
-        <bundle dependency='true'>mvn:org.apache.jclouds.api/cloudservers/${jclouds-version}</bundle>
-        <bundle dependency='true'>mvn:org.apache.jclouds/jclouds-scriptbuilder/${jclouds-version}</bundle>
-        <bundle dependency='true'>mvn:org.apache.jclouds/jclouds-compute/${jclouds-version}</bundle>
-        <bundle>mvn:org.apache.jclouds.provider/cloudservers-uk/${jclouds-version}</bundle>
-    </feature>
-
-    <feature name='jclouds-cloudserver-us' description='Cloudservers US' version='${project.version}' resolver='(obr)'>
-        <feature version='${project.version}'>jclouds-compute</feature>
-        <bundle dependency='true'>mvn:org.apache.jclouds.common/openstack-common/${jclouds-version}</bundle>
-        <bundle dependency='true'>mvn:org.apache.jclouds.api/cloudservers/${jclouds-version}</bundle>
-        <bundle>mvn:org.apache.jclouds.provider/cloudservers-us/${jclouds-version}</bundle>
-    </feature>
-
     <feature name='jclouds-rackspace-cloudservers-us' description='Rackspace Cloudservers US' version='${project.version}' resolver='(obr)'>
         <feature version='${project.version}'>jclouds-compute</feature>
         <feature version='${project.version}'>jclouds-api-openstack-nova</feature>
@@ -290,6 +274,20 @@ limitations under the License.
         <feature version='${project.version}'>jclouds-api-openstack-cinder</feature>
         <feature version='${project.version}'>jclouds-api-rackspace-cloudidentity</feature>
         <bundle>mvn:org.apache.jclouds.provider/rackspace-cloudblockstorage-uk/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-rackspace-cloudfiles-uk' description='Rackspace Cloud Files UK' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-api-openstack-swift</feature>
+        <feature version='${project.version}'>jclouds-api-rackspace-cloudidentity</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.api/rackspace-cloudfiles/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.provider/rackspace-cloudfiles-uk/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-rackspace-cloudfiles-us' description='Rackspace Cloud Files US' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-api-openstack-swift</feature>
+        <feature version='${project.version}'>jclouds-api-rackspace-cloudidentity</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.api/rackspace-cloudfiles/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.provider/rackspace-cloudfiles-us/${jclouds-version}</bundle>
     </feature>
 
     <feature name='jclouds-elastichosts-lon-b' description='Elastichosts Bluesquare London' version='${project.version}' resolver='(obr)'>
@@ -380,19 +378,45 @@ limitations under the License.
         <bundle>mvn:org.apache.jclouds.labs/digitalocean/${jclouds-version}</bundle>
     </feature>
 
+    <feature name='jclouds-cloudsigma2-hnl' description='CloudSigma v2 Honolulu' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.labs/cloudsigma2/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.labs/cloudsigma2-hnl/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-cloudsigma2-lvs' description='CloudSigma v2 Las Vegas' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.labs/cloudsigma2/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.labs/cloudsigma2-lvs/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-cloudsigma2-sjc' description='CloudSigma v2 San Jose' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.labs/cloudsigma2/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.labs/cloudsigma2-sjc/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-cloudsigma2-wdc' description='CloudSigma v2 Washington DC' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.labs/cloudsigma2/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.labs/cloudsigma2-wdc/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-cloudsigma2-zrh' description='CloudSigma v2 Zurich' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.labs/cloudsigma2/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.labs/cloudsigma2-zrh/${jclouds-version}</bundle>
+    </feature>
+
     <feature name="jclouds-services" description="OSGi Service Factories for jclouds" version="${project.version}" resolver="(obr)">
         <configfile finalname="/etc/org.apache.jclouds.credentials.cfg">mvn:org.apache.jclouds.karaf/jclouds-karaf/${jclouds-version}/cfg/credentials</configfile>
         <feature version='${project.version}'>jclouds-compute</feature>
         <feature version='${project.version}'>jclouds-blobstore</feature>
-        <feature version='${project.version}'>jclouds-management</feature>
         <bundle dependency='true'>mvn:net.schmizz/sshj/${sshj.version}</bundle>
-        <!-- not currently available as a usable bundle - see https://issues.apache.org/jira/browse/SMX4-1749 -->
-        <!-- TODO: https://issues.apache.org/jira/browse/SMX4-1749 -->
-        <bundle>wrap:mvn:com.jcraft/jsch.agentproxy.sshj/0.0.7</bundle>
-        <bundle dependency='true'>mvn:com.jcraft/jsch.agentproxy.connector-factory/0.0.7</bundle>
-        <bundle dependency='true'>mvn:com.jcraft/jsch.agentproxy.usocket-nc/0.0.7</bundle>
-        <bundle dependency='true'>mvn:com.jcraft/jsch.agentproxy.sshagent/0.0.7</bundle>
-        <!-- /TODO -->
+        <bundle dependency='true'>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.jsch-agentproxy-sshj/0.0.9_1</bundle>
+        <bundle dependency='true'>mvn:com.jcraft/jsch.agentproxy.connector-factory/0.0.9</bundle>
+        <bundle dependency='true'>mvn:com.jcraft/jsch.agentproxy.usocket-nc/0.0.9</bundle>
+        <bundle dependency='true'>mvn:com.jcraft/jsch.agentproxy.sshagent/0.0.9</bundle>
         <bundle dependency='true'>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.jzlib/1.0.7_1</bundle>
         <bundle dependency='true'>mvn:org.bouncycastle/bcpkix-jdk15on/${bouncycastle-version}</bundle>
         <bundle dependency='true'>mvn:org.bouncycastle/bcprov-jdk15on/${bouncycastle-version}</bundle>
@@ -410,7 +434,7 @@ limitations under the License.
         <configfile finalname="/etc/org.apache.jclouds.shell.cfg">mvn:org.apache.jclouds.karaf/jclouds-karaf/${jclouds-version}/cfg/shell</configfile>
         <feature version='${project.version}'>jclouds-services</feature>
         <bundle>mvn:org.apache.servicemix.specs/org.apache.servicemix.specs.scripting-api-1.0/${servicemix-specs-version}</bundle>
-        <bundle dependency="true">mvn:org.codehaus.groovy/groovy-all/${groovy1-version}</bundle>
+        <bundle dependency="true">mvn:org.codehaus.groovy/groovy-all/${groovy-version}</bundle>
         <bundle>mvn:org.apache.jclouds.karaf/core/${jclouds-version}</bundle>
         <bundle>mvn:org.apache.jclouds.karaf/recipe/${jclouds-version}</bundle>
         <bundle>mvn:org.apache.jclouds.karaf/commands/${jclouds-version}</bundle>

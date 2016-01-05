@@ -375,9 +375,9 @@
                 <classifier>features</classifier>
             </dependency>
             <dependency>
-                <groupId>io.fabric8</groupId>
-                <artifactId>fabric8-jclouds-features</artifactId>
-                <version>${project.version}</version>
+                <groupId>org.apache.karaf.assemblies.features</groupId>
+                <artifactId>jclouds-features</artifactId>
+                <version>${karaf-version}</version>
                 <type>xml</type>
                 <classifier>features</classifier>
             </dependency>

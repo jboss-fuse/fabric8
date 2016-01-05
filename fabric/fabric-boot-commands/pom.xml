@@ -37,6 +37,7 @@
             io.fabric8.boot.commands.support;version=${project.version};-noimport:=true
         </fuse.osgi.export>
         <fuse.osgi.import.additional>
+            com.google.common*;version="[16,20)",
             org.apache.karaf.features*;resolution:=optional,
         </fuse.osgi.import.additional>
         <fuse.osgi.private.pkg>
