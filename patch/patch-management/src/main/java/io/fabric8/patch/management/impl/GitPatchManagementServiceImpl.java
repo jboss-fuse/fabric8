@@ -509,9 +509,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 }
             }
             int delta = artifacts.size() / 10;
-            int count = 1;
+            int count = 0;
             for (File f : artifacts) {
-                if (count++ % delta == 0) {
+                if (++count % delta == 0) {
                     Activator.log2(LogService.LOG_DEBUG, String.format("Uploaded %d/%d", count, artifacts.size()));
                 }
                 String relativeName = Utils.relative(Utils.getSystemRepository(karafHome, bundleContext), f.getCanonicalFile());
@@ -537,7 +537,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     IOUtils.closeQuietly(os);
                 }
             }
-            Activator.log2(LogService.LOG_DEBUG, String.format("Uploaded %d/%d", count-1, artifacts.size()));
+            Activator.log2(LogService.LOG_DEBUG, String.format("Uploaded %d/%d", count, artifacts.size()));
         } catch (Exception e) {
             throw new PatchException(e.getMessage(), e);
         }
@@ -1685,7 +1685,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 // do fabric history branch initialization
                 // each container has to make sure their private history branch is created and that it contains
                 // tag related to the "version" of container (child: karaf, ssh: fabric8 or fuse, root: fuse or amq)
-                String tagName = String.format(env.getBaselineTagFormat(), determineVersion(env.getProductId()));
+                String tagName = String.format(env.getBaselineTagFormat(), determineVersion(karafBase, env.getProductId()));
 
                 RevTag tag = gitPatchRepository.findCurrentBaseline(fork);
                 if (tag == null || !tagName.equals(tag.getTagName())) {
@@ -1724,22 +1724,50 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * @return
      */
     private String determineVersion(File home, String product) {
-        File versions = new File(home, "fabric/import/fabric/profiles/default.profile/io.fabric8.version.properties");
-        if (versions.exists() && versions.isFile()) {
-            Properties props = new Properties();
-            FileInputStream fis = null;
-            try {
-                fis = new FileInputStream(versions);
-                props.load(fis);
-                return props.getProperty(product);
-            } catch (IOException e) {
-                Activator.log(LogService.LOG_ERROR, null, e.getMessage(), e, true);
-                return null;
-            } finally {
-                IOUtils.closeQuietly(fis);
+        if (env != EnvType.FABRIC_CHILD) {
+            File versions = new File(home, "fabric/import/fabric/profiles/default.profile/io.fabric8.version.properties");
+            if (versions.exists() && versions.isFile()) {
+                Properties props = new Properties();
+                FileInputStream fis = null;
+                try {
+                    fis = new FileInputStream(versions);
+                    props.load(fis);
+                    return props.getProperty(product);
+                } catch (IOException e) {
+                    Activator.log(LogService.LOG_ERROR, null, e.getMessage(), e, true);
+                    return null;
+                } finally {
+                    IOUtils.closeQuietly(fis);
+                }
+            } else {
+                Activator.log2(LogService.LOG_ERROR, "Can't find io.fabric8.version.properties file in default profile");
             }
         } else {
-            Activator.log2(LogService.LOG_ERROR, "Can't find io.fabric8.version.properties file in default profile");
+            // for child container we have to be more careful and not examine root container's io.fabric8.version.properties!
+            File startup = new File(home, "etc/startup.properties");
+            if (startup.exists() && startup.isFile()) {
+                Properties props = new Properties();
+                FileInputStream fis = null;
+                try {
+                    fis = new FileInputStream(startup);
+                    props.load(fis);
+                    for (String key : props.stringPropertyNames()) {
+                        if (key.startsWith("org/apache/karaf/features/org.apache.karaf.features.core")) {
+                            String url = Utils.pathToMvnurl(key);
+                            Artifact artifact = Utils.mvnurlToArtifact(url, true);
+                            return artifact.getVersion();
+                        }
+                    }
+                } catch (IOException e) {
+                    Activator.log(LogService.LOG_ERROR, null, e.getMessage(), e, true);
+                    return null;
+                } finally {
+                    IOUtils.closeQuietly(fis);
+                }
+            } else {
+                Activator.log2(LogService.LOG_ERROR, "Can't find etc/startup.properties file in child container");
+            }
+
         }
         return null;
     }
@@ -1964,48 +1992,57 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         }
         for (Version v : versions) {
             String fabric8Version = v.toString();
-            if (gitPatchRepository.containsTag(fork, String.format("baseline-ssh-fabric8-%s", fabric8Version))
-                    || gitPatchRepository.containsTag(fork, String.format("baseline-ssh-fuse-%s", fabric8Version))) {
-                continue;
-            }
 
-            File baselineDistribution = null;
-            String location = String.format(systemRepo.getCanonicalPath() + "/io/fabric8/fabric8-karaf/%1$s/fabric8-karaf-%1$s.zip", fabric8Version);
-            // TODO: probably we should check other classifiers or even groupIds, when we decide to create SSH containers
-            // from something else
-            if (new File(location).isFile()) {
-                baselineDistribution = new File(location);
-                Activator.log(LogService.LOG_INFO, "Found SSH baseline distribution: " + baselineDistribution.getCanonicalPath());
-            }
+            // each version may have two (maybe more?) baseline distros.
+            // we may have "official" fabric8-karaf and the one created from FUSE_HOME (zipped on-fly).
 
-            if (baselineDistribution != null) {
-                try {
-                    // we don't know yet which branch we have to checkout, this method will do 2 pass unzipping
-                    // and leave the fork checked out to correct branch - its name will be returned
-                    String rootDir = String.format("fabric8-karaf-%s", fabric8Version);
-                    String branchName = unzipFabric8Distro(rootDir, baselineDistribution, fork);
+            String[] artifactPatterns = new String[] {
+                    "fabric8-karaf-%1$s.zip",
+                    "fabric8-karaf-%1$s-custom.zip"
+            };
 
-                    // remove the deletes
-                    for (String missing : fork.status().call().getMissing()) {
-                        fork.rm().addFilepattern(missing).call();
+            for (String artifactPattern : artifactPatterns) {
+                File baselineDistribution = null;
+                String location = String.format(systemRepo.getCanonicalPath() + "/io/fabric8/fabric8-karaf/%1$s/" + artifactPattern, fabric8Version);
+
+                if (new File(location).isFile()) {
+                    baselineDistribution = new File(location);
+                    Activator.log(LogService.LOG_INFO, "Found SSH baseline distribution: " + baselineDistribution.getCanonicalPath());
+                }
+
+                if (baselineDistribution != null) {
+                    try {
+                        // we don't know yet which branch we have to checkout, this method will do 2 pass unzipping
+                        // and leave the fork checked out to correct branch - its name will be returned
+                        String rootDir = String.format("fabric8-karaf-%s", fabric8Version);
+                        String branchName = unzipFabric8Distro(rootDir, baselineDistribution, fabric8Version, fork);
+
+                        if (branchName == null) {
+                            continue;
+                        }
+
+                        // remove the deletes
+                        for (String missing : fork.status().call().getMissing()) {
+                            fork.rm().addFilepattern(missing).call();
+                        }
+
+                        // and we'll tag the child baseline
+                        String tagName = branchName.replace("patches-", "");
+
+                        fork.add()
+                                .addFilepattern(".")
+                                .call();
+                        RevCommit commit = gitPatchRepository.prepareCommit(fork,
+                                String.format(MARKER_BASELINE_SSH_COMMIT_PATTERN, tagName, fabric8Version))
+                                .call();
+
+                        fork.tag()
+                                .setName(String.format("baseline-%s-%s", tagName, fabric8Version))
+                                .setObjectId(commit)
+                                .call();
+                    } catch (Exception e) {
+                        Activator.log(LogService.LOG_ERROR, null, e.getMessage(), e, true);
                     }
-
-                    // and we'll tag the child baseline
-                    String tagName = branchName.replace("patches-", "");
-
-                    fork.add()
-                            .addFilepattern(".")
-                            .call();
-                    RevCommit commit = gitPatchRepository.prepareCommit(fork,
-                            String.format(MARKER_BASELINE_SSH_COMMIT_PATTERN, tagName, fabric8Version))
-                            .call();
-
-                    fork.tag()
-                            .setName(String.format("baseline-%s-%s", tagName, fabric8Version))
-                            .setObjectId(commit)
-                            .call();
-                } catch (Exception e) {
-                    Activator.log(LogService.LOG_ERROR, null, e.getMessage(), e, true);
                 }
             }
         }
@@ -2018,13 +2055,12 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * Unzips <code>bin</code> and <code>etc</code> everything we need from org.apache.karaf.admin.core.
      * @param rootDir
      * @param artifact
+     * @param version
      * @param fork
+     * @return branch name where the distro should be tracked, or <code>null</code> if it's already tracked
      * @throws IOException
      */
-    private String unzipFabric8Distro(String rootDir, File artifact, Git fork) throws IOException, GitAPIException {
-        for (String managedDirectory : MANAGED_DIRECTORIES) {
-            FileUtils.deleteDirectory(new File(fork.getRepository().getWorkTree(), managedDirectory));
-        }
+    private String unzipFabric8Distro(String rootDir, File artifact, String version, Git fork) throws IOException, GitAPIException {
         ZipFile zf = new ZipFile(artifact);
         try {
             // first pass - what's this distro?
@@ -2051,14 +2087,25 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             }
             // checkout correct branch
             if (officialFabric8) {
+                if (gitPatchRepository.containsTag(fork, String.format("baseline-ssh-fabric8-%s", version))) {
+                    return null;
+                }
                 gitPatchRepository.checkout(fork)
                         .setName(gitPatchRepository.getFabric8SSHContainerPatchBranchName())
                         .call();
             } else {
+                if (gitPatchRepository.containsTag(fork, String.format("baseline-ssh-fuse-%s", version))) {
+                    return null;
+                }
                 gitPatchRepository.checkout(fork)
                         .setName(gitPatchRepository.getFuseSSHContainerPatchBranchName())
                         .call();
             }
+
+            for (String managedDirectory : MANAGED_DIRECTORIES) {
+                FileUtils.deleteDirectory(new File(fork.getRepository().getWorkTree(), managedDirectory));
+            }
+
             // second pass - unzip what we need
             for (Enumeration<ZipArchiveEntry> e = zf.getEntries(); e.hasMoreElements(); ) {
                 ZipArchiveEntry entry = e.nextElement();
@@ -2565,18 +2612,34 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     /**
-     * <p>This method updates ${karaf.home} simply by copying all files from currently checked out working copy
-     * (usually HEAD of main patch branch) to <code>${karaf.home}</code></p>
+     * <p>This method updates ${karaf.base} simply by copying all files from currently checked out working copy
+     * (usually HEAD of main patch branch) to <code>${karaf.base}</code></p>
      * @param git
      * @throws IOException
      * @throws GitAPIException
      */
     private void applyChanges(Git git) throws IOException, GitAPIException {
+        Bundle fileInstall = null;
+        for (Bundle b : systemContext.getBundles()) {
+            if (Utils.stripSymbolicName(b.getSymbolicName()).equals("org.apache.felix.fileinstall")) {
+                fileInstall = b;
+                break;
+            }
+        }
+
+        if (fileInstall != null) {
+            try {
+                fileInstall.stop(Bundle.STOP_TRANSIENT);
+            } catch (Exception e) {
+                Activator.log(LogService.LOG_WARNING, e.getMessage());
+            }
+        }
+
         File wcDir = git.getRepository().getWorkTree();
         copyManagedDirectories(wcDir, karafBase, true, true, true);
-        FileUtils.copyDirectory(new File(wcDir, "lib"), new File(karafHome, "lib.next"));
+        FileUtils.copyDirectory(new File(wcDir, "lib"), new File(karafBase, "lib.next"));
         // we do exception for etc/overrides.properties
-        File overrides = new File(karafHome, "etc/overrides.properties");
+        File overrides = new File(karafBase, "etc/overrides.properties");
         if (overrides.exists() && overrides.length() == 0) {
             FileUtils.deleteQuietly(overrides);
         }
@@ -2602,7 +2665,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
         // Changes to the lib dir get done in the lib.next directory.  Lets copy
         // the lib dir just in case we do have modification to it.
-        FileUtils.copyDirectory(new File(karafHome, "lib"), new File(karafHome, "lib.next"));
+        FileUtils.copyDirectory(new File(karafBase, "lib"), new File(karafBase, "lib.next"));
         boolean libDirectoryChanged = false;
 
         for (DiffEntry de : diff) {
@@ -2633,7 +2696,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         libDirectoryChanged = true;
                     }
                     File srcFile = new File(wcDir, newPath);
-                    File destFile = new File(karafHome, targetPath);
+                    File destFile = new File(karafBase, targetPath);
                     // we do exception for etc/overrides.properties
                     if ("etc/overrides.properties".equals(newPath) && srcFile.exists() && srcFile.length() == 0) {
                         FileUtils.deleteQuietly(destFile);
@@ -2647,7 +2710,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         oldPath = "lib.next/" + oldPath.substring(4);
                         libDirectoryChanged = true;
                     }
-                    FileUtils.deleteQuietly(new File(karafHome, oldPath));
+                    FileUtils.deleteQuietly(new File(karafBase, oldPath));
                     break;
                 case COPY:
                 case RENAME:
@@ -2658,7 +2721,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
         if (!libDirectoryChanged) {
             // lib.next directory might not be needed.
-            FileUtils.deleteDirectory(new File(karafHome, "lib.next"));
+            FileUtils.deleteDirectory(new File(karafBase, "lib.next"));
         }
     }
 
@@ -2790,7 +2853,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     @Override
-    public boolean alignTo(Map<String, String> versions, File localMavenRepository, Runnable callback) throws PatchException {
+    public boolean alignTo(Map<String, String> versions, List<String> urls, File localMavenRepository, Runnable callback) throws PatchException {
         if (aligning.getAndSet(true)) {
             return false;
         }
@@ -2844,20 +2907,29 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     trackFabricContainerBaselineRepository(fork, version);
                     applyChanges(fork);
 
-                    // let's copy artifacts referenced in etc/startup.properties from localMavenRepository to system
                     if (localMavenRepository != null) {
                         try {
+                            File systemRepo = getSystemRepository(karafHome, systemContext);
+                            // let's copy artifacts referenced in etc/startup.properties from localMavenRepository to system
                             File etcStartupProperties = new File(karafBase, "etc/startup.properties");
                             try (FileInputStream fis = new FileInputStream(etcStartupProperties)) {
                                 Properties props = new Properties();
                                 props.load(fis);
                                 for (String artifact : props.stringPropertyNames()) {
-                                    File systemRepo = getSystemRepository(karafHome, systemContext);
                                     File target = new File(systemRepo, artifact);
                                     File src = new File(localMavenRepository, artifact);
                                     if (!target.exists() && src.isFile()) {
                                         FileUtils.copyFile(src, target);
                                     }
+                                }
+                            }
+                            // now the URLs from the passed lis
+                            for (String url : urls) {
+                                String path = Utils.mvnurlToPath(url);
+                                File target = new File(systemRepo, path);
+                                File src = new File(localMavenRepository, path);
+                                if (!target.exists() && src.isFile()) {
+                                    FileUtils.copyFile(src, target);
                                 }
                             }
                         } catch (Exception e) {

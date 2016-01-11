@@ -1,0 +1,458 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<features name="jclouds-${project.version}" xmlns="http://karaf.apache.org/xmlns/features/v1.0.0">
+
+    <feature name='jclouds-guice' description='Jclouds - Google Guice' version='${project.version}' resolver='(obr)'>
+        <bundle dependency='true'>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.javax-inject/${javax.inject.bundle.version}</bundle>
+        <bundle dependency='true'>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.aopalliance/${aopalliance.bundle.version}</bundle>
+        <bundle>mvn:com.google.inject/guice/${guice.version}</bundle>
+        <bundle>mvn:com.google.inject.extensions/guice-assistedinject/${guice.version}</bundle>
+        <bundle>mvn:com.google.inject.extensions/guice-multibindings/${guice.version}</bundle>
+        <bundle>mvn:org.99soft.guice/rocoto/6.2</bundle>
+    </feature>
+
+    <feature name='jclouds' description='jclouds' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-guice</feature>
+        <bundle dependency='true'>mvn:com.google.guava/guava/${guava-version}</bundle>
+        <bundle dependency='true'>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.oauth-commons/20100527_1</bundle>
+        <bundle dependency='true'>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.jersey-core/1.11_1</bundle>
+        <bundle dependency='true'>mvn:com.google.code.gson/gson/2.3</bundle>
+        <bundle>mvn:org.apache.jclouds/jclouds-core/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-blobstore' description='jclouds Blobstore' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds</feature>
+        <bundle>mvn:org.apache.jclouds/jclouds-blobstore/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-compute' description='jclouds Compute' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.driver/jclouds-log4j/${jclouds-version}</bundle>
+        <bundle dependency='true'>mvn:org.apache.jclouds/jclouds-scriptbuilder/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds/jclouds-compute/${jclouds-version}</bundle>
+    </feature>
+
+    <!-- APIS -->
+    <feature name='jclouds-api-atmos' description='jclouds - API - Atmos' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-blobstore</feature>
+        <bundle>mvn:org.apache.jclouds.api/atmos/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-api-filesystem' description='jclouds - API - FileSystem' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-blobstore</feature>
+        <bundle>mvn:org.apache.jclouds.api/filesystem/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-api-elasticstack' description='jclouds - API - Elasticstack' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle>mvn:org.apache.jclouds.api/elasticstack/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-api-byon' description='jclouds - API - Byon' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle dependency='true'>mvn:org.yaml/snakeyaml/1.11</bundle>
+        <bundle>mvn:org.apache.jclouds.api/byon/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-api-openstack-swift' description='jclouds - API - OpenStack Swift' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-blobstore</feature>
+        <feature version='${project.version}'>jclouds-api-openstack-keystone</feature>
+        <bundle>mvn:org.apache.jclouds.api/openstack-swift/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-api-swift' description='jclouds - API - Swift' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-blobstore</feature>
+        <feature version='${project.version}'>jclouds-api-openstack-keystone</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.common/openstack-common/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.api/swift/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-api-openstack-nova' description='jclouds - API - OpenStack Nova' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <feature version='${project.version}'>jclouds-api-openstack-keystone</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.common/openstack-common/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.api/openstack-nova/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-api-openstack-keystone' description='jclouds - API - OpenStack Keystone' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds</feature>
+        <bundle>mvn:org.apache.jclouds.api/openstack-keystone/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-api-openstack-cinder' description='jclouds - API - OpenStack Cinder' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <feature version='${project.version}'>jclouds-api-openstack-keystone</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.common/openstack-common/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.api/openstack-cinder/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name="jclouds-api-s3" description="S3 API" version="${project.version}" resolver="(obr)">
+        <feature version='${project.version}'>jclouds-blobstore</feature>
+        <feature version='${project.version}'>jclouds-api-sts</feature>
+        <bundle dependency='true'>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.java-xmlbuilder/0.3_1</bundle>
+        <bundle>mvn:org.apache.jclouds.api/s3/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name="jclouds-api-sqs" description="SQS API" version="${project.version}" resolver="(obr)">
+        <feature version='${project.version}'>jclouds-api-sts</feature>
+        <bundle>mvn:org.apache.jclouds.api/sqs/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name="jclouds-api-ec2" description="EC2 API" version="${project.version}" resolver="(obr)">
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <feature version='${project.version}'>jclouds-api-sts</feature>
+        <bundle>mvn:org.apache.jclouds.api/ec2/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name="jclouds-api-cloudstack" description="Cloudstack API" version="${project.version}" resolver="(obr)">
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle>mvn:org.apache.jclouds.api/cloudstack/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name="jclouds-api-rackspace-cloudidentity" description="Rackspace Cloud Identity API" version="${project.version}" resolver="(obr)">
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <feature version='${project.version}'>jclouds-api-openstack-keystone</feature>
+        <bundle>mvn:org.apache.jclouds.api/rackspace-cloudidentity/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name="jclouds-api-rackspace-clouddns" description="Rackspace Cloud DNS API" version="${project.version}" resolver="(obr)">
+        <feature version='${project.version}'>jclouds-api-rackspace-cloudidentity</feature>
+        <bundle>mvn:org.apache.jclouds.api/rackspace-clouddns/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name="jclouds-api-chef" description="Jclouds - API - Chef" version="${project.version}" resolver="(obr)">
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle>mvn:org.apache.jclouds.api/chef/${jclouds.chef-version}</bundle>
+    </feature>
+
+    <feature name="jclouds-api-sts" description="Jclouds - API - STS" version="${project.version}" resolver="(obr)">
+        <feature version='${project.version}'>jclouds</feature>
+        <bundle>mvn:org.apache.jclouds.api/sts/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name="jclouds-api-route53" description="Jclouds - API - Route53" version="${project.version}" resolver="(obr)">
+        <feature version='${project.version}'>jclouds-api-sts</feature>
+        <bundle>mvn:org.apache.jclouds.api/route53/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-api-cloudsigma2' description='jclouds - API - CloudSigma v2' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle>mvn:org.apache.jclouds.labs/cloudsigma2/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-aws-cloudwatch' description='Amazon Web Service - Cloudwatch' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-api-sts</feature>
+        <bundle>mvn:org.apache.jclouds.api/cloudwatch/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.provider/aws-cloudwatch/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-aws-ec2' description='Amazon Web Service - EC2' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-api-ec2</feature>
+        <bundle>mvn:org.apache.jclouds.provider/aws-ec2/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-aws-route53' description='Amazon Web Service - Route 53' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-api-route53</feature>
+        <bundle>mvn:org.apache.jclouds.provider/aws-route53/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-aws-s3' description='Amazon Web Service - S3' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-api-s3</feature>
+        <bundle dependency='true'>mvn:org.bouncycastle/bcprov-jdk15on/${bouncycastle-version}</bundle>
+        <bundle dependency='true'>mvn:org.apache.jclouds.driver/jclouds-bouncycastle/${jclouds-version}</bundle>
+        <bundle dependency='true'>mvn:io.netty/netty/${netty3.version}</bundle>
+        <bundle dependency='true'>mvn:org.apache.httpcomponents/httpcore-osgi/${http-core-version}</bundle>
+        <bundle dependency='true'>mvn:org.apache.httpcomponents/httpclient-osgi/${http-client-version}</bundle>
+        <bundle dependency='true'>mvn:joda-time/joda-time/${joda-time2-version}</bundle>
+        <bundle dependency='true'>mvn:org.apache.jclouds.driver/jclouds-joda/${jclouds-version}</bundle>
+        <bundle dependency='true'>mvn:org.apache.jclouds.driver/jclouds-netty/${jclouds-version}</bundle>
+        <bundle dependency='true'>mvn:org.apache.jclouds.driver/jclouds-enterprise/${jclouds-version}</bundle>
+        <bundle dependency='true'>mvn:org.apache.jclouds.driver/jclouds-apachehc/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.provider/aws-s3/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-aws-sqs' description='Amazon Web Service - SQS' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-api-sqs</feature>
+        <bundle>mvn:org.apache.jclouds.provider/aws-sqs/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-aws-sts' description='Amazon Web Service - STS' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-api-sts</feature>
+        <bundle>mvn:org.apache.jclouds.provider/aws-sts/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-azureblob' description='Azureblob' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-blobstore</feature>
+        <bundle>mvn:org.apache.jclouds.provider/azureblob/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-cloudfiles-uk' description='Cloudfiles UK' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-api-swift</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.api/cloudfiles/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.provider/cloudfiles-uk/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-cloudfiles-us' description='Cloudfiles US' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-api-swift</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.api/cloudfiles/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.provider/cloudfiles-us/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-dynect' description='DynECT Managed DNS' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds</feature>
+        <bundle>mvn:org.apache.jclouds.provider/dynect/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-rackspace-cloudloadbalancers-us' description='Cloud Load Balancers US' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds</feature>
+        <feature version='${project.version}'>jclouds-api-rackspace-cloudidentity</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.common/openstack-common/${jclouds-version}</bundle>
+        <bundle dependency='true'>mvn:org.apache.jclouds/jclouds-loadbalancer/${jclouds-version}</bundle>
+        <bundle dependency='true'>mvn:org.apache.jclouds/jclouds-scriptbuilder/${jclouds-version}</bundle>
+        <bundle dependency='true'>mvn:org.apache.jclouds/jclouds-compute/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.api/rackspace-cloudloadbalancers/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.provider/rackspace-cloudloadbalancers-us/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-rackspace-cloudloadbalancers-uk' description='Cloud Load Balancers UK' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds</feature>
+        <feature version='${project.version}'>jclouds-api-rackspace-cloudidentity</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.common/openstack-common/${jclouds-version}</bundle>
+        <bundle dependency='true'>mvn:org.apache.jclouds/jclouds-loadbalancer/${jclouds-version}</bundle>
+        <bundle dependency='true'>mvn:org.apache.jclouds/jclouds-scriptbuilder/${jclouds-version}</bundle>
+        <bundle dependency='true'>mvn:org.apache.jclouds/jclouds-compute/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.api/rackspace-cloudloadbalancers/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.provider/rackspace-cloudloadbalancers-uk/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-rackspace-cloudservers-us' description='Rackspace Cloudservers US' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <feature version='${project.version}'>jclouds-api-openstack-nova</feature>
+        <feature version='${project.version}'>jclouds-api-rackspace-cloudidentity</feature>
+        <bundle>mvn:org.apache.jclouds.provider/rackspace-cloudservers-us/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-rackspace-cloudservers-uk' description='Rackspace Cloudservers UK' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <feature version='${project.version}'>jclouds-api-openstack-nova</feature>
+        <feature version='${project.version}'>jclouds-api-rackspace-cloudidentity</feature>
+        <bundle>mvn:org.apache.jclouds.provider/rackspace-cloudservers-uk/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-rackspace-clouddns-us' description='Racksapce Cloud DNS US' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-api-rackspace-clouddns</feature>
+        <bundle>mvn:org.apache.jclouds.provider/rackspace-clouddns-us/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-rackspace-clouddns-uk' description='Racksapce Cloud DNS UK' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-api-rackspace-clouddns</feature>
+        <bundle>mvn:org.apache.jclouds.provider/rackspace-clouddns-uk/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-rackspace-cloudblockstorage-us' description='Racksapce Cloud Block Storage US' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-api-openstack-cinder</feature>
+        <feature version='${project.version}'>jclouds-api-rackspace-cloudidentity</feature>
+        <bundle>mvn:org.apache.jclouds.provider/rackspace-cloudblockstorage-us/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-rackspace-cloudblockstorage-uk' description='Racksapce Cloud Block Storage UK' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-api-openstack-cinder</feature>
+        <feature version='${project.version}'>jclouds-api-rackspace-cloudidentity</feature>
+        <bundle>mvn:org.apache.jclouds.provider/rackspace-cloudblockstorage-uk/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-rackspace-cloudfiles-uk' description='Rackspace Cloud Files UK' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-api-openstack-swift</feature>
+        <feature version='${project.version}'>jclouds-api-rackspace-cloudidentity</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.api/rackspace-cloudfiles/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.provider/rackspace-cloudfiles-uk/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-rackspace-cloudfiles-us' description='Rackspace Cloud Files US' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-api-openstack-swift</feature>
+        <feature version='${project.version}'>jclouds-api-rackspace-cloudidentity</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.api/rackspace-cloudfiles/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.provider/rackspace-cloudfiles-us/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-elastichosts-lon-b' description='Elastichosts Bluesquare London' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.api/elasticstack/${jclouds-version}</bundle>
+        <bundle dependency='true'>mvn:org.apache.jclouds.common/openstack-common/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.provider/elastichosts-lon-b/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-elastichosts-lon-p' description='Elastichosts Peer1 London' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.api/elasticstack/${jclouds-version}</bundle>
+        <bundle dependency='true'>mvn:org.apache.jclouds.common/openstack-common/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.provider/elastichosts-lon-p/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-elastichosts-sat-p' description='Elastichosts Peer1 San Antonio' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.api/elasticstack/${jclouds-version}</bundle>
+        <bundle dependency='true'>mvn:org.apache.jclouds.common/openstack-common/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.provider/elastichosts-sat-p/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-elastichosts-lax-p' description='Elastichosts Peer1 Los Angeles' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.api/elasticstack/${jclouds-version}</bundle>
+        <bundle dependency='true'>mvn:org.apache.jclouds.common/openstack-common/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.provider/elastichosts-lax-p/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-elastichosts-tor-p' description='Elastichosts Peer1 Toronto' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.api/elasticstack/${jclouds-version}</bundle>
+        <bundle dependency='true'>mvn:org.apache.jclouds.common/openstack-common/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.provider/elastichosts-tor-p/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-gogrid' description='GoGrid' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle>mvn:org.apache.jclouds.provider/gogrid/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-go2cloud-jhb1' description='Go2Cloud implementation targeted to Johannesburg1' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-api-elasticstack</feature>
+        <bundle>mvn:org.apache.jclouds.provider/go2cloud-jhb1/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-glesys' description='GleSYS' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle>mvn:org.apache.jclouds.provider/glesys/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-hpcloud-objectstorage' description='HP Cloud Object Storage' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-api-swift</feature>
+        <bundle>mvn:org.apache.jclouds.provider/hpcloud-objectstorage/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-hpcloud-compute' description='HP Cloud Compute' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-api-openstack-nova</feature>
+        <bundle>mvn:org.apache.jclouds.provider/hpcloud-compute/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-openhosting-east1' description='Open Hosting for East1' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.api/elasticstack/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.provider/openhosting-east1/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-serverlove-z1-man' description='Serverlove implementation targeted to Manchester' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.api/elasticstack/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.provider/serverlove-z1-man/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-skalicloud-sdg-my' description='SkaliCloud implementation targeted to Malaysia' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.api/elasticstack/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.provider/skalicloud-sdg-my/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-softlayer' description='Components to access SoftLayer' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle>mvn:org.apache.jclouds.provider/softlayer/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-digitalocean' description='Components to access DigitalOcean' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle>mvn:org.apache.jclouds.labs/digitalocean/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-cloudsigma2-hnl' description='CloudSigma v2 Honolulu' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.labs/cloudsigma2/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.labs/cloudsigma2-hnl/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-cloudsigma2-lvs' description='CloudSigma v2 Las Vegas' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.labs/cloudsigma2/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.labs/cloudsigma2-lvs/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-cloudsigma2-sjc' description='CloudSigma v2 San Jose' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.labs/cloudsigma2/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.labs/cloudsigma2-sjc/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-cloudsigma2-wdc' description='CloudSigma v2 Washington DC' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.labs/cloudsigma2/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.labs/cloudsigma2-wdc/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name='jclouds-cloudsigma2-zrh' description='CloudSigma v2 Zurich' version='${project.version}' resolver='(obr)'>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.labs/cloudsigma2/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.labs/cloudsigma2-zrh/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name="jclouds-services" description="OSGi Service Factories for jclouds" version="${project.version}" resolver="(obr)">
+        <configfile finalname="/etc/org.apache.jclouds.credentials.cfg">mvn:org.apache.jclouds.karaf/jclouds-karaf/${jclouds-version}/cfg/credentials</configfile>
+        <feature version='${project.version}'>jclouds-compute</feature>
+        <feature version='${project.version}'>jclouds-blobstore</feature>
+        <bundle dependency='true'>mvn:net.schmizz/sshj/${sshj.version}</bundle>
+        <bundle dependency='true'>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.jsch-agentproxy-sshj/0.0.9_1</bundle>
+        <bundle dependency='true'>mvn:com.jcraft/jsch.agentproxy.connector-factory/0.0.9</bundle>
+        <bundle dependency='true'>mvn:com.jcraft/jsch.agentproxy.usocket-nc/0.0.9</bundle>
+        <bundle dependency='true'>mvn:com.jcraft/jsch.agentproxy.sshagent/0.0.9</bundle>
+        <bundle dependency='true'>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.jzlib/1.0.7_1</bundle>
+        <bundle dependency='true'>mvn:org.bouncycastle/bcpkix-jdk15on/${bouncycastle-version}</bundle>
+        <bundle dependency='true'>mvn:org.bouncycastle/bcprov-jdk15on/${bouncycastle-version}</bundle>
+        <bundle dependency='true'>mvn:org.apache.jclouds.driver/jclouds-bouncycastle/${jclouds-version}</bundle>
+        <bundle dependency='true'>mvn:org.apache.jclouds.driver/jclouds-slf4j/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.driver/jclouds-sshj/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.driver/jclouds-log4j/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.karaf/core/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.karaf/cache/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.karaf/recipe/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.karaf/services/${jclouds-version}</bundle>
+    </feature>
+
+    <feature name="jclouds-commands" description="Karaf Commands for jclouds" version="${project.version}" resolver="(obr)">
+        <configfile finalname="/etc/org.apache.jclouds.shell.cfg">mvn:org.apache.jclouds.karaf/jclouds-karaf/${jclouds-version}/cfg/shell</configfile>
+        <feature version='${project.version}'>jclouds-services</feature>
+        <bundle>mvn:org.apache.servicemix.specs/org.apache.servicemix.specs.scripting-api-1.0/${servicemix-specs-version}</bundle>
+        <bundle dependency="true">mvn:org.codehaus.groovy/groovy-all/${groovy-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.karaf/core/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.karaf/recipe/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.karaf/commands/${jclouds-version}</bundle>
+    </feature>
+
+
+    <feature name="jclouds-chef" description="jclouds Chef Services and Commands" version="${project.version}" resolver="(obr)">
+        <feature version='${project.version}'>jclouds-api-chef</feature>
+        <feature version='${project.version}'>jclouds-commands</feature>
+        <bundle dependency='true'>mvn:org.apache.jclouds.driver/jclouds-slf4j/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.karaf.chef/cache/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.karaf.chef/services/${jclouds-version}</bundle>
+        <bundle>mvn:org.apache.jclouds.karaf.chef/commands/${jclouds-version}</bundle>
+    </feature>
+
+     <feature name="jclouds-url-handler" description="Url Handler for jclouds Blobs" version="${project.version}" resolver="(obr)">
+        <feature version='${project.version}'>jclouds</feature>
+        <bundle>mvn:org.apache.jclouds.karaf/urlhandler/${jclouds-version}</bundle>
+    </feature>
+
+</features>

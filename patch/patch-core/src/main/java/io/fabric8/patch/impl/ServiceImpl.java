@@ -476,7 +476,7 @@ public class ServiceImpl implements Service {
                         backupService.backupDataFiles(result, Pending.ROLLUP_INSTALLATION);
 
                         for (Bundle b : coreBundles.values()) {
-                            if (Utils.stripSymbolicName(b.getSymbolicName()).equals("org.apache.felix.fileinstall\n")) {
+                            if (Utils.stripSymbolicName(b.getSymbolicName()).equals("org.apache.felix.fileinstall")) {
                                 b.stop(Bundle.STOP_TRANSIENT);
                                 break;
                             }
@@ -1074,7 +1074,7 @@ public class ServiceImpl implements Service {
                     backupService.backupDataFiles(result, Pending.ROLLUP_ROLLBACK);
 
                     for (Bundle b : this.bundleContext.getBundles()) {
-                        if (Utils.stripSymbolicName(b.getSymbolicName()).equals("org.apache.felix.fileinstall\n")) {
+                        if (Utils.stripSymbolicName(b.getSymbolicName()).equals("org.apache.felix.fileinstall")) {
                             b.stop(Bundle.STOP_TRANSIENT);
                             break;
                         }

@@ -43,6 +43,7 @@
             !javax.xml.parsers,
             !com.sun.management,
             !org.jboss.netty*,
+            com.google.common*;version="[16,20)"
         </fuse.osgi.import.before.defaults>
         <fuse.osgi.import.additional>
             org.apache.log4j*;version="[1.2,2)"

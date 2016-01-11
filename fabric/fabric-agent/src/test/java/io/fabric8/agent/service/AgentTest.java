@@ -90,9 +90,9 @@ public class AgentTest {
                 "mvn:org.apache.karaf.shell/org.apache.karaf.shell.ssh/" + karafVersion,
                 "mvn:org.apache.mina/mina-core/2.0.9",
                 "mvn:org.apache.sshd/sshd-core/0.14.0",
-                "mvn:org.ow2.asm/asm-all/5.0.3",
-                "mvn:org.ops4j.pax.logging/pax-logging-api/1.8.3",
-                "mvn:org.ops4j.pax.logging/pax-logging-service/1.8.3",
+                "mvn:org.ow2.asm/asm-all/5.0.4",
+                "mvn:org.ops4j.pax.logging/pax-logging-api/1.8.4",
+                "mvn:org.ops4j.pax.logging/pax-logging-service/1.8.4",
         };
         for (String bundleUri : bundles) {
             File file = mavenResolver.download(bundleUri);
@@ -133,8 +133,8 @@ public class AgentTest {
                 Collections.<String>emptySet(),
                 Collections.<String>emptySet(),
                 new HashSet<>(Arrays.asList(
-                        "mvn:org.ops4j.pax.logging/pax-logging-api/1.8.3",
-                        "mvn:org.ops4j.pax.logging/pax-logging-service/1.8.3",
+                        "mvn:org.ops4j.pax.logging/pax-logging-api/1.8.4",
+                        "mvn:org.ops4j.pax.logging/pax-logging-service/1.8.4",
                         "mvn:org.apache.felix/org.apache.felix.configadmin/1.8.4"
                 )),
                 Collections.<String, Map<VersionRange, Map<String, String>>>emptyMap()

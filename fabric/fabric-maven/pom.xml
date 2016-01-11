@@ -156,7 +156,7 @@
                             org.slf4j.*,
                             org.ops4j.util.property.*,
                             org.apache.commons.lang.*,
-                            org.apache.commons.logging.*,
+                            org.apache.commons.logging.*;version="[1.1,2)",
                             org.apache.commons.codec.*,
                             org.apache.commons.codec.binary.*
                         </Import-Package>

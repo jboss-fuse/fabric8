@@ -69,6 +69,7 @@ import org.easymock.internal.matchers.Captures;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.junit.*;
 import org.junit.rules.TestName;
@@ -240,6 +241,7 @@ public class MavenProxyServletSupportTest {
     }
 
     @Test(timeout=30000)
+    @Ignore("CXF-6704 - we have to wait for CXF 3.1.5 to have httpclient 4.5.x")
     public void testDownloadUsingAuthenticatedProxy() throws Exception {
         testDownload(new AbstractHandler() {
             @Override
@@ -407,7 +409,7 @@ public class MavenProxyServletSupportTest {
         server.start();
 
         try {
-            int localPort = server.getConnectors()[0].getLocalPort();
+            int localPort = ((ServerConnector)server.getConnectors()[0]).getLocalPort();
             List<String> remoteRepos = Arrays.asList("http://relevant.not/repo1@id=repo1,http://relevant.not/repo2@id=repo2");
             RuntimeProperties props = new MockRuntimeProperties();
             // TODO: local repo should point to target/tmp
@@ -529,7 +531,7 @@ public class MavenProxyServletSupportTest {
         server.start();
 
         try {
-            int localPort = server.getConnectors()[0].getLocalPort();
+            int localPort = ((ServerConnector)server.getConnectors()[0]).getLocalPort();
             List<String> remoteRepos = Arrays.asList("http://relevant.not/maven2@id=central");
             RuntimeProperties props = new MockRuntimeProperties();
             // TODO: local repo should point to target/tmp
@@ -870,7 +872,7 @@ public class MavenProxyServletSupportTest {
         server.start();
 
         try {
-            int localPort = server.getConnectors()[0].getLocalPort();
+            int localPort = ((ServerConnector)server.getConnectors()[0]).getLocalPort();
             List<String> remoteRepos = Arrays.asList("http://relevant.not/maven2@id=central");
             RuntimeProperties props = new MockRuntimeProperties();
             MavenResolver resolver = createResolver("target/tmp", remoteRepos, "http", "localhost", localPort, "fuse", "fuse", null);

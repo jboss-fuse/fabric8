@@ -98,6 +98,15 @@ public class EOLFixesTest {
         }
         {
             File t = target;
+            File f = new File(t, "etc/x2.cfg");
+            f.getParentFile().mkdirs();
+            EOLFixingFileOutputStream output = new EOLFixingFileOutputStream(t, f);
+            IOUtils.write("test", output);
+            IOUtils.closeQuietly(output);
+            assertThat(FileUtils.readFileToString(f), equalTo("test\n"));
+        }
+        {
+            File t = target;
             File f = new File(t, "etc/x2.cfg2");
             f.getParentFile().mkdirs();
             EOLFixingFileOutputStream output = new EOLFixingFileOutputStream(t, f);

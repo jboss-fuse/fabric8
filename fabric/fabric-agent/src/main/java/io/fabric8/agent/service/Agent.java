@@ -170,6 +170,9 @@ public class Agent {
     public void updateStatus(String status) {
     }
 
+    public void updateStatus(String status, boolean force) {
+    }
+
     public void provision(Set<String> repositories,
                           Set<String> features,
                           Set<String> bundles,
@@ -345,8 +348,8 @@ public class Agent {
                     }
 
                     @Override
-                    public boolean done(boolean agentStarted) {
-                        return Agent.this.done(agentStarted);
+                    public boolean done(boolean agentStarted, List<String> urls) {
+                        return Agent.this.done(agentStarted, urls);
                     }
                 };
 
@@ -388,7 +391,7 @@ public class Agent {
     protected void provisionList(Set<Resource> resources) {
     }
 
-    protected boolean done(boolean agentStarted) {
+    protected boolean done(boolean agentStarted, List<String> urls) {
         return true;
     }
 

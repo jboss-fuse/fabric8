@@ -561,6 +561,7 @@ public class ActiveMQServiceFactory  {
         }
 
         public void close() throws Exception {
+            LOG.debug(this + " close");
             synchronized (ActiveMQServiceFactory.this) {
                 if (pool_enabled) {
                     return_pool(this);
@@ -631,6 +632,7 @@ public class ActiveMQServiceFactory  {
                 if (server != null && server.broker != null) {
                     // slave blocked on store lock
                     try {
+                        LOG.debug("sync broker.stop()");
                         server.broker.stop();
                     } catch (Exception e) {
                         LOG.warn("Call to stop failed with exception:" + e.getLocalizedMessage());
@@ -677,6 +679,7 @@ public class ActiveMQServiceFactory  {
                                 @Override
                                 public void groupEvent(Group<ActiveMQNode> group, GroupEvent event) {
                                     try {
+                                        LOG.trace("Event:" + event + ", started:" + started.get());
                                         if (event.equals(GroupEvent.CONNECTED) || event.equals(GroupEvent.CHANGED)) {
                                             if (discoveryAgent.getGroup().isMaster(name)) {
                                                 if (started.compareAndSet(false, true)) {

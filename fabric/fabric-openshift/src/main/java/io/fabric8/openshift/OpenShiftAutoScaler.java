@@ -67,7 +67,7 @@ public class OpenShiftAutoScaler implements ContainerAutoScaler {
                 NameValidator fabricNameValidator = Containers.createNameValidator(fabricService.getContainers());
                 NameValidator nameValidator = Containers.joinNameValidators(openShiftValidator, fabricNameValidator);
 
-                String name = Containers.createContainerName(containers, profile, containerProvider.getScheme(), nameValidator);
+                String name = Containers.createAutoScaleContainerName(containers, profile, containerProvider.getScheme(), nameValidator);
 
                 CreateOpenshiftContainerOptions options = configuredBuilder.name(name).build();
                 LOG.info("Creating container name " + name + " version " + version + " profile " + profile + " " + count + " container(s)");

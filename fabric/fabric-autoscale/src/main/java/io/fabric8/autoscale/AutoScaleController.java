@@ -24,6 +24,7 @@ import io.fabric8.api.Containers;
 import io.fabric8.api.DataStore;
 import io.fabric8.api.FabricRequirements;
 import io.fabric8.api.FabricService;
+import io.fabric8.api.Profile;
 import io.fabric8.api.ProfileRequirements;
 import io.fabric8.api.jcip.GuardedBy;
 import io.fabric8.api.jcip.ThreadSafe;
@@ -50,8 +51,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicReference;
@@ -229,9 +232,13 @@ public final class AutoScaleController extends AbstractComponent implements Grou
         final String profile = profileRequirement.getProfile();
         Integer minimumInstances = profileRequirement.getMinimumInstances();
         Integer maximumInstances = profileRequirement.getMaximumInstances();
+
+        String requirementsVersion = requirements.getVersion();
+        final String version = Strings.isNotBlank(requirementsVersion) ? requirementsVersion : service.getDefaultVersionId();
+
         if (maximumInstances != null || minimumInstances != null) {
             if (maximumInstances != null) {
-                List<Container> containers = Containers.aliveAndSuccessfulContainersForProfile(profile, service);
+                List<Container> containers = Containers.aliveAndSuccessfulContainersForProfile(version, profile, service);
                 int count = containers.size();
                 int delta = count - maximumInstances;
                 if (delta > 0) {
@@ -240,19 +247,31 @@ public final class AutoScaleController extends AbstractComponent implements Grou
             }
             if (minimumInstances != null) {
                 // lets check if we need to provision more
-                List<Container> containers = Containers.aliveOrPendingContainersForProfile(profile, service);
+                List<Container> containers = Containers.aliveOrPendingContainersForProfile(version, profile, service);
                 int count = containers.size();
                 int delta = minimumInstances - count;
                 try {
                     AutoScaleProfileStatus profileStatus = status.profileStatus(profile);
                     if (delta < 0) {
-                        profileStatus.destroyingContainer();
-                        autoScaler.destroyContainers(profile, -delta, containers);
+
+                        FabricService fs = this.fabricService.get();
+                        if( fs!=null ) {
+
+                            profileStatus.destroyingContainer();
+                            for (int i = delta; i < 0  ; i++) {
+                                while(!containers.isEmpty()) {
+                                    Container container = containers.remove(0);
+                                    if( container.getId().startsWith("auto_") ) {
+                                        fs.destroyContainer(container);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
                     } else if (delta > 0) {
-                        if (AutoScalers.requirementsSatisfied(service, requirements, profileRequirement, status)) {
+                        if (AutoScalers.requirementsSatisfied(service, version, requirements, profileRequirement, status)) {
                             profileStatus.creatingContainer();
-                            String requirementsVersion = requirements.getVersion();
-                            final String version = Strings.isNotBlank(requirementsVersion) ? requirementsVersion : service.getDefaultVersionId();
                             final AutoScaleRequest command = new AutoScaleRequest(service, version, profile, delta, requirements, profileRequirement, status);
                             new Thread("Creating container for " + command.getProfile()) {
                                 @Override

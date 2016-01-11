@@ -117,9 +117,10 @@ public class Deployer {
          * Called at very end of agent provisioning, when all that's left to do is to check if there's low-level
          * <em>provisioning</em> to be done - like patch management.
          * @param agentStarted whether fabric-agent bundle was started during deployment
+         * @param urls list of URLs of critical bundles referenced from fabric-startup feature
          * @return <code>false</code> if container requires restart.
          */
-        boolean done(boolean agentStarted);
+        boolean done(boolean agentStarted, List<String> urls);
     }
 
     public static class PartialDeploymentException extends Exception {
@@ -963,7 +964,23 @@ public class Deployer {
         // Info about final list of deployed bundles
         callback.provisionList(deployment.resToBnd.keySet());
 
-        if (callback.done(agentStarted[0])) {
+        // list of bundles in special "fabric-startup" feature
+        List<String> urls = new LinkedList<>();
+        for (Feature ft : dstate.features.values()) {
+            if (ft.getName().equals("fabric-startup") && ft.getBundles() != null) {
+                for (BundleInfo bi : ft.getBundles()) {
+                    urls.add(bi.getLocation());
+                }
+            }
+            // special case for Fuse/AMQ...
+            if (ft.getName().equals("esb-commands-startup") && ft.getBundles() != null) {
+                for (BundleInfo bi : ft.getBundles()) {
+                    urls.add(bi.getLocation());
+                }
+            }
+        }
+
+        if (callback.done(agentStarted[0], urls)) {
             print("Done.", display);
         }
     }

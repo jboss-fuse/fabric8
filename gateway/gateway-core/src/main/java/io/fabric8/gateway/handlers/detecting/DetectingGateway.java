@@ -69,8 +69,8 @@ public class DetectingGateway implements DetectingGatewayMBean {
     final AtomicLong receivedConnectionAttempts = new AtomicLong();
     final AtomicLong successfulConnectionAttempts = new AtomicLong();
     final AtomicLong failedConnectionAttempts = new AtomicLong();
-    HashSet<SocketWrapper> socketsConnecting = new HashSet<SocketWrapper>();
-    HashSet<ConnectedSocketInfo> socketsConnected = new HashSet<ConnectedSocketInfo>();
+    Set<SocketWrapper> socketsConnecting = Collections.synchronizedSet(new HashSet<SocketWrapper>());
+    Set<ConnectedSocketInfo> socketsConnected = Collections.synchronizedSet(new HashSet<ConnectedSocketInfo>());
     private ShutdownTracker shutdownTacker = new ShutdownTracker();
 
     private int port;
@@ -203,9 +203,17 @@ public class DetectingGateway implements DetectingGatewayMBean {
     }
 
     public void handle(final SocketWrapper socket) {
-        shutdownTacker.retain();
+        try {
+            shutdownTacker.retain();
+            if( !socketsConnecting.add(socket) ) {
+                throw new AssertionError("Socket existed in the socketsConnecting set");
+            }
+        } catch (Throwable e) {
+            LOG.debug("Could not accept connection from: "+socket.remoteAddress(), e);
+            socket.close();
+            return;
+        }
         receivedConnectionAttempts.incrementAndGet();
-        socketsConnecting.add(socket);
 
         if( connectionTimeout > 0 ) {
             vertx.setTimer(connectionTimeout, new Handler<Long>() {
@@ -267,7 +275,8 @@ public class DetectingGateway implements DetectingGatewayMBean {
                             sslSocketWrapper.initServer(sslContext, clientAuth, disabledCypherSuites, enabledCipherSuites);
 
                             // Undo initial connection accounting since we will be redoing @ the SSL level.
-                            socketsConnecting.remove(socket);
+                            boolean removed = socketsConnecting.remove(socket);
+                            assert removed;
                             receivedConnectionAttempts.decrementAndGet();
 
                             DetectingGateway.this.handle(sslSocketWrapper);
@@ -399,9 +408,12 @@ public class DetectingGateway implements DetectingGatewayMBean {
                     final NetSocket socketToServer = asyncSocket.result();
 
                     successfulConnectionAttempts.incrementAndGet();
-                    socketsConnecting.remove(socketFromClient);
+                    boolean removed = socketsConnecting.remove(socketFromClient);
+                    assert removed;
+
                     final ConnectedSocketInfo connectedInfo = new ConnectedSocketInfo(params, url, socketFromClient, netClient);
-                    socketsConnected.add(connectedInfo);
+                    boolean added = socketsConnected.add(connectedInfo);
+                    assert added;
 
                     Handler<Void> endHandler = new Handler<Void>() {
                         @Override

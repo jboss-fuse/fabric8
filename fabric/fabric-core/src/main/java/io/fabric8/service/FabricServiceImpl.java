@@ -863,7 +863,9 @@ public final class FabricServiceImpl extends AbstractComponent implements Fabric
                         if (mavenRepo != null && !mavenRepo.endsWith("/")) {
                             mavenRepo += "/";
                         }
-                        uris.add(new URI(mavenRepo));
+                        if(mavenRepo != null) {
+                            uris.add(new URI(mavenRepo));
+                        }
                     }
                 }
             }
@@ -1128,6 +1130,15 @@ public final class FabricServiceImpl extends AbstractComponent implements Fabric
     public void setRequirements(FabricRequirements requirements) throws IOException {
         assertValid();
         validateRequirements(this, requirements);
+
+        Set<String> activeAutoScaledProfiles = new HashSet<>();
+        for (Container container : getContainers()) {
+            if( container.getId().startsWith("auto_") ) {
+                activeAutoScaledProfiles.addAll(container.getProfileIds());
+            }
+        }
+        requirements.removeEmptyRequirements(activeAutoScaledProfiles);
+
         dataStore.get().setRequirements(requirements);
     }
 

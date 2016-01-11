@@ -452,7 +452,9 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
             Set<String> idset = new HashSet<>();
             StringBuilder sb = new StringBuilder();
             for (String profileId : profileIds) {
-                IllegalArgumentAssertion.assertFalse(idset.contains(profileId), "Duplicate profile id in: " + profileIds);
+                if(idset.contains(profileId)){
+                    continue;
+                }
                 if (sb.length() > 0) {
                     sb.append(" ");
                 }
@@ -730,7 +732,6 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
     public void setRequirements(FabricRequirements requirements) throws IOException {
         assertValid();
         try {
-            requirements.removeEmptyRequirements();
             String json = RequirementsJson.toJSON(requirements);
             setData(curator.get(), REQUIREMENTS_JSON_PATH, json);
         } catch (Exception e) {

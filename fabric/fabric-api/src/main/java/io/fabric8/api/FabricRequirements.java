@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -148,12 +149,16 @@ public class FabricRequirements {
 
     /**
      * Removes all the empty requirements; usually used just before saving to JSON
+     * @param excludes
      */
-    public void removeEmptyRequirements() {
+    public void removeEmptyRequirements(Set<String> excludes) {
         Iterator<ProfileRequirements> iterator = profileRequirements.iterator();
         while (iterator.hasNext()) {
-            if (iterator.next().checkIsEmpty()) {
-                iterator.remove();
+            ProfileRequirements requirements = iterator.next();
+            if( !excludes.contains(requirements.getProfile()) ) {
+                if (requirements.checkIsEmpty()) {
+                    iterator.remove();
+                }
             }
         }
     }

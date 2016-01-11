@@ -62,7 +62,7 @@ public class ConflictResolutionTest {
                 new File("src/test/resources/conflicts/setenv.base.txt"),
                 new File("src/test/resources/conflicts/setenv.custom.txt")
         );
-        String expected = FileUtils.readFileToString(new File("src/test/resources/conflicts/setenv.expected.txt"));
+        String expected = FileUtils.readFileToString(new File("src/test/resources/conflicts/setenv.custom.txt"));
         assertThat(resolved, equalTo(expected));
     }
 
@@ -73,7 +73,7 @@ public class ConflictResolutionTest {
                 new File("src/test/resources/conflicts/setenv.bat.base.txt"),
                 new File("src/test/resources/conflicts/setenv.bat.custom.txt")
         );
-        String expected = FileUtils.readFileToString(new File("src/test/resources/conflicts/setenv.bat.expected.txt"));
+        String expected = FileUtils.readFileToString(new File("src/test/resources/conflicts/setenv.bat.custom.txt"));
         assertThat(resolved, equalTo(expected));
     }
 
