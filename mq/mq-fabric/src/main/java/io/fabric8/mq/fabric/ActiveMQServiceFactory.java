@@ -91,41 +91,41 @@ public class ActiveMQServiceFactory  {
         PropertyEditorManager.registerEditor(URI.class, URIEditor.class);
     }
 
-    public static void info(String str) {
-        if (LOG.isInfoEnabled()) {
-            LOG.info(str);
-        }
-    }
-
-    public static void info(String str, Object... args) {
-        if (LOG.isInfoEnabled()) {
-            LOG.info(String.format(str, args));
-        }
-    }
-
-    public static void debug(String str) {
-        if (LOG.isDebugEnabled()) {
-            LOG.debug(str);
-        }
-    }
-
-    public static void debug(String str, Object... args) {
-        if (LOG.isDebugEnabled()) {
-            LOG.debug(String.format(str, args));
-        }
-    }
-
-    public static void warn(String str) {
-        if (LOG.isWarnEnabled()) {
-            LOG.warn(str);
-        }
-    }
-
-    public static void warn(String str, Object... args) {
-        if (LOG.isWarnEnabled()) {
-            LOG.warn(String.format(str, args));
-        }
-    }
+//    public static void info(String str) {
+//        if (LOG.isInfoEnabled()) {
+//            LOG.info(str);
+//        }
+//    }
+//
+//    public static void info(String str, Object... args) {
+//        if (LOG.isInfoEnabled()) {
+//            LOG.info(String.format(str, args));
+//        }
+//    }
+//
+//    public static void debug(String str) {
+//        if (LOG.isDebugEnabled()) {
+//            LOG.debug(str);
+//        }
+//    }
+//
+//    public static void debug(String str, Object... args) {
+//        if (LOG.isDebugEnabled()) {
+//            LOG.debug(String.format(str, args));
+//        }
+//    }
+//
+//    public static void warn(String str) {
+//        if (LOG.isWarnEnabled()) {
+//            LOG.warn(str);
+//        }
+//    }
+//
+//    public static void warn(String str, Object... args) {
+//        if (LOG.isWarnEnabled()) {
+//            LOG.warn(String.format(str, args));
+//        }
+//    }
 
     public static Dictionary<String, Object> toDictionary(Properties properties) {
         Hashtable<String, Object> answer = new Hashtable<String, Object>();
@@ -381,7 +381,7 @@ public class ActiveMQServiceFactory  {
 
             if (standalone) {
                 if (started.compareAndSet(false, true)) {
-                    info("Standalone broker %s is starting.", name);
+                    LOG.info("Standalone broker " + name + " is starting.");
                     start();
                 }
             } else {
@@ -406,12 +406,12 @@ public class ActiveMQServiceFactory  {
                         pool_enabled = value;
                         if (value) {
                             if (pool != null) {
-                                info("Broker %s added to pool %s.", name, pool);
+                                LOG.info("Broker " + name + " added to pool " + pool +".");
                             }
                             discoveryAgent.start();
                         } else {
                             if (pool != null) {
-                                info("Broker %s removed from pool %s.", name, pool);
+                                LOG.info("Broker " + name + " removed from pool " + pool + ".");
                             }
                             discoveryAgent.stop();
                         }
@@ -427,19 +427,19 @@ public class ActiveMQServiceFactory  {
             Hashtable<String, String> properties = new Hashtable<String, String>();
             properties.put("name", broker.getBrokerName());
             cfServiceRegistration = bundleContext.registerService(ConnectionFactory.class/*.getName()*/, connectionFactory, properties);
-            debug("registerService of type " + javax.jms.ConnectionFactory.class.getName()  + " as: " + connectionFactory + " with name: " + broker.getBrokerName() + "; " + cfServiceRegistration);
+            LOG.debug("registerService of type " + javax.jms.ConnectionFactory.class.getName()  + " as: " + connectionFactory + " with name: " + broker.getBrokerName() + "; " + cfServiceRegistration);
         }
 
         public void osgiUnregister(BrokerService broker) {
             if (cfServiceRegistration != null) {
                 cfServiceRegistration.unregister();
             }
-            debug("unregister connection factory for: " + broker.getBrokerName() + "; " + cfServiceRegistration);
+            LOG.debug("unregister connection factory for: " + broker.getBrokerName() + "; " + cfServiceRegistration);
         }
 
         private void start() {
             if (start_future == null || start_future.isDone()) {
-                info("Broker %s is being started.", name);
+                LOG.info("Broker " + name + " is being started.");
                 start_future = executor.submit(new Runnable() {
                     @Override
                     public void run() {
@@ -453,15 +453,15 @@ public class ActiveMQServiceFactory  {
                                 started = true;
                             } catch (Throwable e) {
                                 if (start_future.isCancelled() || Thread.currentThread().isInterrupted()) {
-                                    info("Broker %s interrupted while starting", name);
+                                    LOG.info("Broker " + name + " interrupted while starting");
                                     break;
                                 }
-                                info("Broker %s failed to start.  Will try again in 10 seconds", name);
+                                LOG.info("Broker " + name + " failed to start.  Will try again in 10 seconds");
                                 LOG.error("Exception on start: " + e.getMessage(), e);
                                 try {
                                     Thread.sleep(1000 * 10);
                                 } catch (InterruptedException ignore) {
-                                    info("Broker %s interrupted while starting", name);
+                                    LOG.info("Broker " + name + " interrupted while starting");
                                     break;
                                 }
                             }
@@ -490,7 +490,7 @@ public class ActiveMQServiceFactory  {
                 }
             }
             // ok boot up the server..
-            info("booting up a broker from: " + config);
+            LOG.info("booting up a broker from: " + config);
             server = createBroker(config, properties);
             // configure ports
             for (TransportConnector t : server.getBroker().getTransportConnectors()) {
@@ -504,7 +504,7 @@ public class ActiveMQServiceFactory  {
             }
 
             server.getBroker().start();
-            info("Broker %s has started.", name);
+            LOG.info("Broker " + name + " has started.");
 
             server.getBroker().waitUntilStarted();
             server.getBroker().addShutdownHook(new Runnable() {
@@ -514,14 +514,14 @@ public class ActiveMQServiceFactory  {
                     // it has lost a Locker and wants a restart.
                     if (started.get() && server != null) {
                         if (server.getBroker().isRestartAllowed() && server.getBroker().isRestartRequested()) {
-                            info("Restarting broker '%s' after shutdown on restart request", name);
+                            LOG.info("Restarting broker '" + name + "' after shutdown on restart request");
                             if (!standalone) {
                                 discoveryAgent.setServices(new String[0]);
                             }
                             start();
                         } else if (stop_future == null || stop_future.isDone()) {
                             // abnormal exit
-                            info("Broker '%s' shut down, giving up being master", name);
+                            LOG.info("Broker '" + name + "' shut down, giving up being master");
                             try {
                                 updateCurator(curator);
                             } catch (Exception e) {
@@ -552,7 +552,7 @@ public class ActiveMQServiceFactory  {
             for (String name : connectors) {
                 TransportConnector connector = server.getBroker().getConnectorByName(name);
                 if (connector == null) {
-                    warn("ActiveMQ broker '%s' does not have a connector called '%s'", server.getBroker().getBrokerName(), name);
+                    LOG.warn("ActiveMQ broker '" + server.getBroker().getBrokerName() + "' does not have a connector called '" + name + "'");
                 } else {
                     services.add(connector.getConnectUri().getScheme() + "://${zk:" + System.getProperty("runtime.id") + "/ip}:" + connector.getPublishableConnectURI().getPort());
                 }
@@ -654,7 +654,7 @@ public class ActiveMQServiceFactory  {
                         discoveryAgent.stop();
                         discoveryAgent = null;
                         if (started.compareAndSet(true, false)) {
-                            info("Lost zookeeper service for broker %s, stopping the broker.", name);
+                            LOG.info("Lost zookeeper service for broker " + name + ", stopping the broker.");
                             stop();
                             waitForStop();
                             return_pool(this);
@@ -663,7 +663,7 @@ public class ActiveMQServiceFactory  {
                     }
                     waitForStop();
                     if (curator != null) {
-                        info("Found zookeeper service for broker %s.", name);
+                        LOG.info("Found zookeeper service for broker " + name + ".");
                         discoveryAgent = new FabricDiscoveryAgent();
                         discoveryAgent.setAgent(System.getProperty("runtime.id"));
                         discoveryAgent.setId(name);
@@ -671,7 +671,7 @@ public class ActiveMQServiceFactory  {
                         discoveryAgent.setCurator(curator);
                         if (replicating) {
                             if (started.compareAndSet(false, true)) {
-                                info("Replicating broker %s is starting.", name);
+                                LOG.info("Replicating broker " + name + " is starting.");
                                 start();
                             }
                         } else {
@@ -684,7 +684,7 @@ public class ActiveMQServiceFactory  {
                                             if (discoveryAgent.getGroup().isMaster(name)) {
                                                 if (started.compareAndSet(false, true)) {
                                                     if (take_pool(ClusteredConfiguration.this)) {
-                                                        info("Broker %s is now the master, starting the broker.", name);
+                                                        LOG.info("Broker " + name + " is now the master, starting the broker.");
                                                         start();
                                                     } else {
                                                         update_pool_state();
@@ -692,18 +692,18 @@ public class ActiveMQServiceFactory  {
                                                     }
                                                 } else {
                                                     if (discoveryAgent.getServices().isEmpty() && server != null && server.getBroker() != null && server.getBroker().isStarted()) {
-                                                        info("Reconnected to the group", name);
+                                                        LOG.info("Reconnected to the group " + name);
                                                         registerConnectors();
                                                     }
                                                 }
                                             } else {
                                                 if (started.compareAndSet(true, false)) {
                                                     return_pool(ClusteredConfiguration.this);
-                                                    info("Broker %s is now a slave, stopping the broker.", name);
+                                                    LOG.info("Broker " + name + " is now a slave, stopping the broker.");
                                                     stop();
                                                 } else {
                                                     if (event.equals(GroupEvent.CHANGED)) {
-                                                        info("Broker %s is slave", name);
+                                                        LOG.info("Broker " + name + " is slave");
                                                         if (!discoveryAgent.getServices().isEmpty()) {
                                                             discoveryAgent.setServices(new String[0]);
                                                         }
@@ -711,7 +711,7 @@ public class ActiveMQServiceFactory  {
                                                 }
                                             }
                                         } else if (event.equals(GroupEvent.DISCONNECTED)) {
-                                            info("Disconnected from the group", name);
+                                            LOG.info("Disconnected from the group " + name);
                                             disconnect();
                                         }
                                     } catch (Exception e) {
@@ -720,11 +720,11 @@ public class ActiveMQServiceFactory  {
                                 }
                             });
 
-                            info("Broker %s is waiting to become the master", name);
+                            LOG.info("Broker " + name + " is waiting to become the master");
                             update_pool_state();
                         }
                     } else {
-                        info("Lost zookeeper service for broker %s", name);
+                        LOG.info("Lost zookeeper service for broker " + name);
                         disconnect();
                     }
                 }
@@ -734,10 +734,10 @@ public class ActiveMQServiceFactory  {
         private void disconnect() throws Exception {
             if (started.compareAndSet(true, false)) {
               return_pool(ClusteredConfiguration.this);
-              info("Stopping the broker %s.", name);
+              LOG.info("Stopping the broker " + name + ".");
               stop();
             } else {
-              info("Disconnecting the broker %s.", name);
+              LOG.info("Disconnecting the broker " + name + ".");
               discoveryAgent.setServices(new String[0]);
               pool_enabled = false;
             }
@@ -758,7 +758,7 @@ public class ActiveMQServiceFactory  {
                             long lm = c.server.getResource().lastModified();
                             if (lm != c.lastModified) {
                                 c.lastModified = lm;
-                                info("updating " + c.properties);
+                                LOG.info("updating " + c.properties);
                                 updated((String) c.properties.get("service.pid"), c.properties);
                             }
                         }
