@@ -43,6 +43,9 @@ public class SapTransactionalIDocListServerComponent extends UriEndpointComponen
 
 	private static final Logger LOG = LoggerFactory.getLogger(SapTransactionalIDocListServerComponent.class);
 	
+	/* Interval to wait while JCo server is stopping */
+	private static final long JCO_SERVER_STOPPING_WAIT_INTERVAL = 100;
+
 	protected File tidStoresLocation = new File(".");
 
 	protected Map<String,JCoIDocServer> activeServers = new HashMap<String,JCoIDocServer>();
@@ -106,9 +109,16 @@ public class SapTransactionalIDocListServerComponent extends UriEndpointComponen
 		if (server == null) {
 			server = JCoIDoc.getServer(serverName);
 			
-			if (server.getState() != JCoServerState.STOPPED) {
+			if (server.getState() == JCoServerState.STARTED || server.getState() == JCoServerState.ALIVE) {
 				// Another application has already registered and started this server connection.
 				throw new Exception("The server connection '" + serverName + "' is already in use");
+			}
+
+			if (server.getState() == JCoServerState.STOPPING) {
+				// Wait for server to stop
+				while(server.getState() != JCoServerState.STOPPED) {
+					wait(JCO_SERVER_STOPPING_WAIT_INTERVAL);
+				}
 			}
 
 			server.setIDocHandlerFactory(new IDocHandlerFactory());
