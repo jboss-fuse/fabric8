@@ -20,6 +20,7 @@ import java.io.IOException;
 
 import io.fabric8.patch.management.EnvService;
 import io.fabric8.patch.management.EnvType;
+import org.apache.commons.io.FileUtils;
 import org.osgi.framework.BundleContext;
 
 public class DefaultEnvService implements EnvService {
@@ -44,10 +45,8 @@ public class DefaultEnvService implements EnvService {
         boolean isChild = isChild(systemContext);
         if (localGitRepository.isDirectory() && new File(localGitRepository, ".git").isDirectory()) {
             // we have git repository of current container - is it initalized?
-            boolean hasMasterBranch = new File(localGitRepository, ".git/refs/heads/master").isFile();
-            boolean has10Branch = new File(localGitRepository, ".git/refs/heads/1.0").isFile();
-            // maybe check if .git/config contains remote "origin" ending with "/git/fabric/"?
-            if (hasMasterBranch && has10Branch) {
+            // TODO: maybe check if .git/config contains remote "origin" ending with "/git/fabric/"?
+            if (hasBranch(localGitRepository, "master") && hasBranch(localGitRepository, "1.0")) {
                 if (isChild) {
                     return EnvType.FABRIC_CHILD;
                 } else {
@@ -67,6 +66,23 @@ public class DefaultEnvService implements EnvService {
         }
 
         return /*isChild ? EnvType.STANDALONE_CHILD : */EnvType.STANDALONE;
+    }
+
+    /**
+     * Checks if git repository (a dir containing <code>.git</code> subdir) has particular branch
+     * @param localGitRepository
+     * @param name
+     * @return
+     */
+    private boolean hasBranch(File localGitRepository, String name) {
+        boolean separateRef = new File(localGitRepository, ".git/refs/heads/" + name).isFile();
+        boolean packedRef = false;
+        try {
+            String packedRefsFile = FileUtils.readFileToString(new File(localGitRepository, ".git/packed-refs"));
+            packedRef = packedRefsFile != null && packedRefsFile.contains("refs/heads/" + name);
+        } catch (IOException ignored) {
+        }
+        return separateRef || packedRef;
     }
 
     /**
