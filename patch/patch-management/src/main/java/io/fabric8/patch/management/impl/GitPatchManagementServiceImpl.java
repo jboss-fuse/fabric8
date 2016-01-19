@@ -174,6 +174,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     private File karafHome;
     // ${karaf.base}
     private File karafBase;
+    // ${karaf.data}
+    private File karafData;
     // main patches directory at ${fuse.patch.location} (defaults to ${karaf.home}/patches)
     private File patchesDir;
 
@@ -199,6 +201,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         this.systemContext = context.getBundle(0).getBundleContext();
         karafHome = new File(systemContext.getProperty("karaf.home"));
         karafBase = new File(systemContext.getProperty("karaf.base"));
+        karafData = new File(systemContext.getProperty("karaf.data"));
 
         envService = new DefaultEnvService(systemContext, karafHome, karafBase);
         env = envService.determineEnvironmentType();
@@ -221,7 +224,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         File patchRepositoryLocation = new File(patchesDir, GitPatchRepositoryImpl.MAIN_GIT_REPO_LOCATION);
 
         GitPatchRepositoryImpl repository = new GitPatchRepositoryImpl(env.isFabric(), patchRepositoryLocation,
-                karafHome, karafBase, patchesDir);
+                karafHome, karafData, patchesDir);
         setGitPatchRepository(repository);
     }
 
@@ -2867,7 +2870,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
                     getGitPatchRepository().close();
                     GitPatchRepositoryImpl repository = new GitPatchRepositoryImpl(env.isFabric(), patchRepositoryLocation,
-                            karafHome, karafBase, patchesDir);
+                            karafHome, karafData, patchesDir);
                     setGitPatchRepository(repository);
                     start();
 

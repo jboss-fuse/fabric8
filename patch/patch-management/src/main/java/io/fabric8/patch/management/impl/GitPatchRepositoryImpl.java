@@ -64,8 +64,9 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
 
     // ${karaf.home}
     private File karafHome;
-    // ${karaf.base}
-    private File karafBase;
+    // ${karaf.data}
+    private File karafData;
+
     // main patches directory at ${fuse.patch.location} (defaults to ${karaf.home}/patches)
     private File patchesDir;
 
@@ -99,9 +100,10 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
      * @param fabric
      * @param patchRepositoryLocation
      * @param karafHome
+     * @param karafData
      * @param patchesDir
      */
-    public GitPatchRepositoryImpl(boolean fabric, File patchRepositoryLocation, File karafHome, File karafBase, File patchesDir) {
+    public GitPatchRepositoryImpl(boolean fabric, File patchRepositoryLocation, File karafHome, File karafData, File patchesDir) {
         this.isFabric = fabric;
 
         // private branch - don't pushed anywhere outside of patches/.management/history
@@ -122,7 +124,7 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
 
         this.gitPatchManagement = patchRepositoryLocation;
         this.karafHome = karafHome;
-        this.karafBase = karafBase;
+        this.karafData = karafData;
         this.patchesDir = patchesDir;
     }
 
@@ -180,7 +182,7 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
             // we connect patch repo with fabric repo
             StoredConfig config = mainRepository.getRepository().getConfig();
             if (config.getString("remote", "origin", "url") == null) {
-                File origin = new File(karafBase, "data/git/local/fabric");
+                File origin = new File(karafData, "git/local/fabric");
                 config.setString("remote", "origin", "url", origin.getCanonicalPath());
                 config.setString("remote", "origin", "fetch", "+refs/heads/*:refs/remotes/origin/*");
                 config.save();

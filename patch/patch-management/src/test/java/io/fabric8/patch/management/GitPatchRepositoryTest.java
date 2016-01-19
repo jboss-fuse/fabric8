@@ -42,7 +42,7 @@ import static org.junit.Assert.*;
 public class GitPatchRepositoryTest {
 
     private File karafHome;
-    private File karafBase;
+    private File karafData;
     private File patchesHome;
 
     private GitPatchRepository repository;
@@ -50,12 +50,12 @@ public class GitPatchRepositoryTest {
     @Before
     public void init() throws IOException, GitAPIException {
         karafHome = new File("target/karaf");
-        karafBase = new File("target/karaf");
+        karafData = new File("target/karaf/data");
         FileUtils.deleteQuietly(karafHome);
         patchesHome = new File(karafHome, "patches");
         File patchRepositoryLocation = new File(patchesHome, GitPatchRepositoryImpl.MAIN_GIT_REPO_LOCATION);
 
-        repository = new GitPatchRepositoryImpl(false, patchRepositoryLocation, karafHome, karafBase, patchesHome);
+        repository = new GitPatchRepositoryImpl(false, patchRepositoryLocation, karafHome, karafData, patchesHome);
         repository.open();
     }
 
