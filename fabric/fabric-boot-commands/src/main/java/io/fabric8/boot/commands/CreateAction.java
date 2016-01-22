@@ -16,6 +16,7 @@
 package io.fabric8.boot.commands;
 
 import io.fabric8.api.*;
+import io.fabric8.utils.OsgiUtils;
 import io.fabric8.utils.PasswordEncoder;
 import io.fabric8.utils.Ports;
 import io.fabric8.utils.shell.ShellUtils;
@@ -28,6 +29,7 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.felix.gogo.commands.Argument;
 import org.apache.felix.gogo.commands.Command;
@@ -299,7 +301,8 @@ class CreateAction extends AbstractAction {
             builder.zookeeperPassword(zookeeperPassword);
         }
 
-        bootConfiguration.update(bootProperties);
+        OsgiUtils.updateCmConfigurationAndWait(bundleContext, bootConfiguration, bootProperties, bootstrapTimeout, TimeUnit.MILLISECONDS);
+
         CreateEnsembleOptions options = builder.users(userProps)
                                                .withUser(newUser, newUserPassword , newUserRole)
                                                .build();

@@ -25,8 +25,6 @@ import static io.fabric8.zookeeper.curator.Constants.ZOOKEEPER_PASSWORD;
 import static io.fabric8.zookeeper.curator.Constants.ZOOKEEPER_URL;
 
 import java.io.IOException;
-import java.sql.Time;
-import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -37,6 +35,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import io.fabric8.api.CuratorComplete;
 import io.fabric8.api.scr.Configurer;
 
 import io.fabric8.utils.NamedThreadFactory;
@@ -60,7 +59,6 @@ import io.fabric8.zookeeper.bootstrap.BootstrapConfiguration;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
-import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,6 +100,7 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
         final CuratorConfig configuration;
         final AtomicBoolean closed = new AtomicBoolean();
         ServiceRegistration<CuratorFramework> registration;
+        ServiceRegistration<CuratorComplete> curatorCompleteRegistration;
         CuratorFramework curator;
         final AtomicInteger retryCount = new AtomicInteger(0);
 
@@ -116,6 +115,10 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
                 if (registration != null) {
                     registration.unregister();
                     registration = null;
+                }
+                if (curatorCompleteRegistration != null) {
+                    curatorCompleteRegistration.unregister();
+                    curatorCompleteRegistration = null;
                 }
                 // then stop it
                 if (curator != null) {
@@ -149,7 +152,10 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
             if (newState == ConnectionState.CONNECTED || newState == ConnectionState.READ_ONLY || newState == ConnectionState.RECONNECTED) {
                 retryCount.set(0);
                 if (registration == null) {
+                    // this is where the magic happens...
                     registration = bundleContext.registerService(CuratorFramework.class, curator, null);
+                    // 12 (at least) seconds passed, >100 SCR components were activated
+                    curatorCompleteRegistration = bundleContext.registerService(CuratorComplete.class, new CuratorCompleteService(), null);
                 }
             }
             for (ConnectionStateListener listener : connectionStateListeners) {
@@ -168,13 +174,13 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
 
         public void close() {
             closed.set(true);
-            CuratorFramework curator = this.curator;
-            if (curator != null) {
-                for (ConnectionStateListener listener : connectionStateListeners) {
-                    listener.stateChanged(curator, ConnectionState.LOST);
-                }
-                curator.getZookeeperClient().stop();
-            }
+//            CuratorFramework curator = this.curator;
+//            if (curator != null) {
+//                for (ConnectionStateListener listener : connectionStateListeners) {
+//                    listener.stateChanged(curator, ConnectionState.LOST);
+//                }
+//                curator.getZookeeperClient().stop();
+//            }
             try {
                 executor.submit(this).get();
             } catch (Exception e) {
@@ -191,7 +197,7 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
                         if(retryCount.getAndIncrement() < configuration.getZookeeperRetryMax()){
                             try {
                                 LOGGER.warn("Retry attempt " + (retryCount.get()) + " of " + configuration.getZookeeperRetryMax() + ", as per " + Constants.ZOOKEEPER_CLIENT_PID  + "/zookeeper.retry.max" , e);
-                                Thread.currentThread().sleep(configuration.getZookeeperRetryInterval());
+                                Thread.sleep(configuration.getZookeeperRetryInterval());
                             } catch (InterruptedException e1) {
                                 LOGGER.debug("Sleep call interrupted", e1);
                             }

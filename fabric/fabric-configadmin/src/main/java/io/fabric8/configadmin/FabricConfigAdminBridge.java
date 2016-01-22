@@ -26,11 +26,13 @@ import io.fabric8.api.scr.ValidatingReference;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -115,6 +117,11 @@ public final class FabricConfigAdminBridge extends AbstractComponent implements 
         });
     }
 
+    /**
+     * Method scheduled to run in separate thread - so be careful, as we may be running in deactivated SCR
+     * component.
+     * @throws Exception
+     */
     private synchronized void updateInternal() throws Exception {
         
         Container currentContainer = fabricService.get().getCurrentContainer();
@@ -138,7 +145,9 @@ public final class FabricConfigAdminBridge extends AbstractComponent implements 
             if (!pid.equals(Constants.AGENT_PID)) {
                 Hashtable<String, Object> c = new Hashtable<String, Object>();
                 c.putAll(configurations.get(pid));
-                updateConfig(zkConfigs, pid, c);
+                if (!updateConfig(zkConfigs, pid, c)) {
+                    return;
+                }
             }
         }
         // Process agent configuration last
@@ -147,17 +156,41 @@ public final class FabricConfigAdminBridge extends AbstractComponent implements 
                 Hashtable<String, Object> c = new Hashtable<String, Object>();
                 c.putAll(configurations.get(pid));
                 c.put(Profile.HASH, String.valueOf(effectiveProfile.getProfileHash()));
-                updateConfig(zkConfigs, pid, c);
+                if (!updateConfig(zkConfigs, pid, c)) {
+                    return;
+                }
             }
         }
         for (Configuration config : zkConfigs) {
             LOGGER.info("Deleting configuration {}", config.getPid());
             fabricService.get().getPortService().unregisterPort(fabricService.get().getCurrentContainer(), config.getPid());
+            if (!isValid()) {
+                return;
+            }
             config.delete();
         }
+
+        // end of update
+        Configuration fcab = configAdmin.get().getConfiguration(Constants.CONFIGADMIN_BRIDGE_PID, null);
+        Hashtable<String, String> props = new Hashtable<>();
+        props.put("lastUpdate", Long.toString(new Date().getTime()));
+        fcab.update(props);
     }
 
-    private void updateConfig(List<Configuration> configs, String pid, Hashtable<String, Object> c) throws Exception {
+    /**
+     * Update CM configuration if there's a change. First check if {@link FabricConfigAdminBridge} is still valid,
+     * as we don't want to update configs that may lead to invocation of SCR components that are no longer valid
+     * (like {@link io.fabric8.service.ProfileUrlHandler} or {@link FabricService})
+     * @param configs
+     * @param pid
+     * @param c
+     * @return
+     * @throws Exception
+     */
+    private boolean updateConfig(List<Configuration> configs, String pid, Hashtable<String, Object> c) throws Exception {
+        if (!isValid()) {
+            return false;
+        }
         String p[] = parsePid(pid);
         //Get the configuration by fabric zookeeper pid, pid and factory pid.
         Configuration config = getConfiguration(configAdmin.get(), pid, p[0], p[1]);
@@ -203,6 +236,8 @@ public final class FabricConfigAdminBridge extends AbstractComponent implements 
                 LOGGER.debug("Ignoring configuration {} (no changes)", config.getPid());
             }
         }
+
+        return true;
     }
 
     @SuppressWarnings("unchecked")

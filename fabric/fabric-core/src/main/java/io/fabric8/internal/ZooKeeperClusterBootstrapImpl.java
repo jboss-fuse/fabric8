@@ -16,8 +16,10 @@
 package io.fabric8.internal;
 
 import io.fabric8.api.BootstrapComplete;
+import io.fabric8.api.Constants;
 import io.fabric8.api.Container;
 import io.fabric8.api.CreateEnsembleOptions;
+import io.fabric8.api.CuratorComplete;
 import io.fabric8.api.DataStoreTemplate;
 import io.fabric8.api.FabricComplete;
 import io.fabric8.api.FabricException;
@@ -29,13 +31,13 @@ import io.fabric8.api.scr.AbstractComponent;
 import io.fabric8.api.scr.Configurer;
 import io.fabric8.api.scr.ValidatingReference;
 import io.fabric8.utils.BundleUtils;
+import io.fabric8.utils.OsgiUtils;
 import io.fabric8.zookeeper.bootstrap.BootstrapConfiguration;
 import io.fabric8.zookeeper.bootstrap.BootstrapConfiguration.DataStoreOptions;
 import io.fabric8.zookeeper.bootstrap.DataStoreBootstrapTemplate;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -56,8 +58,11 @@ import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceEvent;
 import org.osgi.framework.ServiceListener;
 import org.osgi.framework.ServiceReference;
+import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
+import org.osgi.service.cm.ConfigurationEvent;
+import org.osgi.service.cm.ConfigurationListener;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -121,24 +126,56 @@ public final class ZooKeeperClusterBootstrapImpl extends AbstractComponent imple
 
             stopBundles();
 
+            BundleContext syscontext = bundleContext.getBundle(0).getBundleContext();
+            long bootstrapTimeout = options.getBootstrapTimeout();
+
             RuntimeProperties runtimeProps = runtimeProperties.get();
             BootstrapConfiguration bootConfig = bootstrapConfiguration.get();
-            BundleContext syscontext = bundleContext.getBundle(0).getBundleContext();
             if (options.isClean()) {
                 bootConfig = cleanInternal(syscontext, bootConfig, runtimeProps);
             }
 
-            BootstrapCreateHandler createHandler = new BootstrapCreateHandler(bootConfig, runtimeProps);
+            // before we start fabric, register CM listener that'll mark end of work of FabricConfigAdminBridge
+            final CountDownLatch fcabLatch = new CountDownLatch(1);
+            final ServiceRegistration<ConfigurationListener> registration = bundleContext.registerService(ConfigurationListener.class, new ConfigurationListener() {
+                @Override
+                public void configurationEvent(ConfigurationEvent event) {
+                    if (event.getType() == ConfigurationEvent.CM_UPDATED && event.getPid() != null
+                            && event.getPid().equals(Constants.CONFIGADMIN_BRIDGE_PID)) {
+                        fcabLatch.countDown();
+                    }
+                }
+            }, null);
+
+            BootstrapCreateHandler createHandler = new BootstrapCreateHandler(syscontext, bootConfig, runtimeProps);
             createHandler.bootstrapFabric(name, homeDir, options);
 
             startBundles(options);
 
             long startTime = System.currentTimeMillis();
-            long bootstrapTimeout = options.getBootstrapTimeout();
+
             ServiceLocator.awaitService(FabricComplete.class, bootstrapTimeout, TimeUnit.MILLISECONDS);
-            
-            long timeDiff = System.currentTimeMillis() - startTime; 
-			createHandler.waitForContainerAlive(name, syscontext, bootstrapTimeout - timeDiff);
+
+            // FabricComplete is registered somewhere in the middle of registering CuratorFramework (SCR activates
+            // it when CuratorFramework is registered), but CuratorFramework leads to activation of >100 SCR
+            // components, so let's wait for new CuratorComplete service - it is registered after registration
+            // of CuratorFramework finishes
+            ServiceLocator.awaitService(CuratorComplete.class, bootstrapTimeout, TimeUnit.MILLISECONDS);
+
+            // HttpService is registered differently. not as SCR component activation, but after
+            // FabricConfigAdminBridge updates (or doesn't touch) org.ops4j.pax.web CM configuration
+            // however in fabric, this PID contains URL to jetty configuration in the form "profile:jetty.xml"
+            // so we have to have FabricService and ProfileUrlHandler active
+            // some ARQ (single container instance) tests failed because tests ended without http service running
+            // of course we have to think if all fabric instances need http service
+            ServiceLocator.awaitService("org.osgi.service.http.HttpService", bootstrapTimeout, TimeUnit.MILLISECONDS);
+
+            // and last wait - too much synchronization never hurts
+            fcabLatch.await(bootstrapTimeout, TimeUnit.MILLISECONDS);
+            registration.unregister();
+
+            long timeDiff = System.currentTimeMillis() - startTime;
+            createHandler.waitForContainerAlive(name, syscontext, bootstrapTimeout);
 
             if (options.isWaitForProvision() && options.isAgentEnabled()) {
                 long currentTime = System.currentTimeMillis();
@@ -151,10 +188,23 @@ public final class ZooKeeperClusterBootstrapImpl extends AbstractComponent imple
         }
     }
 
-    private BootstrapConfiguration cleanInternal(final BundleContext syscontext, BootstrapConfiguration bootConfig, RuntimeProperties runtimeProps) throws TimeoutException {
+    private BootstrapConfiguration cleanInternal(final BundleContext syscontext, final BootstrapConfiguration bootConfig, RuntimeProperties runtimeProps) throws TimeoutException {
         LOGGER.debug("Begin clean fabric");
         try {
-            Configuration[] configs = configAdmin.get().listConfigurations("(|(service.factoryPid=io.fabric8.zookeeper.server)(service.pid=io.fabric8.zookeeper))");
+            Configuration zkClientCfg = null;
+            Configuration zkServerCfg = null;
+            Configuration[] configsSet = configAdmin.get().listConfigurations("(|(service.factoryPid=io.fabric8.zookeeper.server)(service.pid=io.fabric8.zookeeper))");
+            if (configsSet != null) {
+                for (Configuration cfg : configsSet) {
+                    // let's explicitly delete client config first
+                    if ("io.fabric8.zookeeper".equals(cfg.getPid())) {
+                        zkClientCfg = cfg;
+                    }
+                    if ("io.fabric8.zookeeper.server".equals(cfg.getFactoryPid())) {
+                        zkServerCfg = cfg;
+                    }
+                }
+            }
             File karafData = new File(data);
 
             // Setup the listener for unregistration of {@link BootstrapConfiguration}
@@ -164,7 +214,7 @@ public final class ZooKeeperClusterBootstrapImpl extends AbstractComponent imple
                 public void serviceChanged(ServiceEvent event) {
                     if (event.getType() == ServiceEvent.UNREGISTERING) {
                         LOGGER.debug("Unregistering BootstrapConfiguration");
-                        syscontext.removeServiceListener(this);
+                        bootConfig.getComponentContext().getBundleContext().removeServiceListener(this);
                         unregisterLatch.countDown();
                     }
                 }
@@ -173,17 +223,41 @@ public final class ZooKeeperClusterBootstrapImpl extends AbstractComponent imple
             // FABRIC-1052: register listener using the same bundle context that is used for listeners related to SCR
             bootConfig.getComponentContext().getBundleContext().addServiceListener(listener, filter);
 
+            CountDownLatch unregisterLatch2 = null;
+            if (syscontext.getServiceReference(CuratorComplete.class) != null) {
+                unregisterLatch2 = new CountDownLatch(1);
+                final CountDownLatch finalUnregisterLatch = unregisterLatch2;
+                listener = new ServiceListener() {
+                    @Override
+                    public void serviceChanged(ServiceEvent event) {
+                        if (event.getType() == ServiceEvent.UNREGISTERING) {
+                            LOGGER.debug("Unregistering CuratorComplete");
+                            bootConfig.getComponentContext().getBundleContext().removeServiceListener(this);
+                            finalUnregisterLatch.countDown();
+                        }
+                    }
+                };
+                bootConfig.getComponentContext().getBundleContext().addServiceListener(listener, "(objectClass=" + CuratorComplete.class.getName() + ")");
+            }
+
             // Disable the BootstrapConfiguration component
+            // ENTESB-4827: disabling BootstrapConfiguration leads to deactivation of FabricService and ProfileUrlHandler
+            // and we have race condition if we're --cleaning after recently created fabric. previous fabric
+            // started FabricConfigAdminBridge which scheduled CM updates for tens of PIDs - among others,
+            // org.ops4j.pax.web, which leads to an attempt to reconfigure Jetty with "profile:jetty.xml"
+            // and if we disable ProfileUrlHandler we may loose Jetty instance
             LOGGER.debug("Disable BootstrapConfiguration");
             ComponentContext componentContext = bootConfig.getComponentContext();
             componentContext.disableComponent(BootstrapConfiguration.COMPONENT_NAME);
 
             if (!unregisterLatch.await(30, TimeUnit.SECONDS))
                 throw new TimeoutException("Timeout for unregistering BootstrapConfiguration service");
+            if (unregisterLatch2 != null && !unregisterLatch2.await(30, TimeUnit.SECONDS))
+                throw new TimeoutException("Timeout for unregistering CuratorComplete service");
 
             // Do the cleanup
             runtimeProps.clearRuntimeAttributes();
-            cleanConfigurations(configs);
+            cleanConfigurations(syscontext, zkClientCfg, zkServerCfg);
             cleanZookeeperDirectory(karafData);
             cleanGitDirectory(karafData);
 
@@ -222,12 +296,14 @@ public final class ZooKeeperClusterBootstrapImpl extends AbstractComponent imple
         }
     }
 
-    private void cleanConfigurations(Configuration[] configs) throws IOException, InvalidSyntaxException {
-        if (configs != null) {
-            LOGGER.debug("cleanConfigurations: {}", Arrays.asList(configs));
-            for (Configuration config : configs) {
-                config.delete();
-            }
+    private void cleanConfigurations(BundleContext sysContext, Configuration zkClientCfg, Configuration zkServerCfg) throws IOException, InvalidSyntaxException, InterruptedException {
+        if (zkClientCfg != null) {
+            LOGGER.debug("cleanConfiguration: {}", zkClientCfg);
+            OsgiUtils.deleteCmConfigurationAndWait(sysContext, zkClientCfg, Constants.ZOOKEEPER_CLIENT_PID, 20, TimeUnit.SECONDS);
+        }
+        if (zkServerCfg != null) {
+            LOGGER.debug("cleanConfiguration: {}", zkServerCfg);
+            OsgiUtils.deleteCmFactoryConfigurationAndWait(sysContext, zkServerCfg, Constants.ZOOKEEPER_SERVER_PID, 20, TimeUnit.SECONDS);
         }
     }
 
@@ -258,6 +334,7 @@ public final class ZooKeeperClusterBootstrapImpl extends AbstractComponent imple
     private void stopBundles() throws BundleException {
         BundleUtils bundleUtils = new BundleUtils(bundleContext);
         bundleUtils.findAndStopBundle("io.fabric8.fabric-agent");
+//        bundleUtils.findAndStopBundle("org.ops4j.pax.web.pax-web-jetty");
     }
 
     private void startBundles(CreateEnsembleOptions options) throws BundleException {
@@ -266,6 +343,10 @@ public final class ZooKeeperClusterBootstrapImpl extends AbstractComponent imple
         if (agentBundle != null && options.isAgentEnabled()) {
             agentBundle.start();
         }
+//        Bundle webBundle = bundleUtils.findBundle("org.ops4j.pax.web.pax-web-jetty");
+//        if (webBundle != null) {
+//            webBundle.start();
+//        }
     }
 
     private static void delete(File dir) {
@@ -316,21 +397,30 @@ public final class ZooKeeperClusterBootstrapImpl extends AbstractComponent imple
     static class BootstrapCreateHandler {
         private final BootstrapConfiguration bootConfig;
         private final RuntimeProperties runtimeProperties;
+        private final BundleContext sysContext;
 
-        BootstrapCreateHandler(BootstrapConfiguration bootConfig, RuntimeProperties runtimeProperties) {
+        BootstrapCreateHandler(BundleContext sysContext, BootstrapConfiguration bootConfig, RuntimeProperties runtimeProperties) {
+            this.sysContext = sysContext;
             this.bootConfig = bootConfig;
             this.runtimeProperties = runtimeProperties;
         }
 
-        void bootstrapFabric(String containerId, File homeDir, CreateEnsembleOptions options) throws IOException {
-
+        void bootstrapFabric(String containerId, File homeDir, CreateEnsembleOptions options) throws Exception {
             String connectionUrl = bootConfig.getConnectionUrl(options);
             DataStoreOptions bootOptions = new DataStoreOptions(containerId, homeDir, connectionUrl, options);
             runtimeProperties.putRuntimeAttribute(DataStoreTemplate.class, new DataStoreBootstrapTemplate(bootOptions));
 
             bootConfig.createOrUpdateDataStoreConfig(options);
-            bootConfig.createZooKeeeperServerConfig(options);
-            bootConfig.createZooKeeeperClientConfig(connectionUrl, options);
+
+            boolean success = bootConfig.createZooKeeeperServerConfig(sysContext, options);
+            if (!success) {
+                throw new TimeoutException("Timeout waiting for " + Constants.ZOOKEEPER_SERVER_PID + " configuration update");
+            }
+
+            success = bootConfig.createZooKeeeperClientConfig(sysContext, connectionUrl, options);
+            if (!success) {
+                throw new TimeoutException("Timeout waiting for " + Constants.ZOOKEEPER_CLIENT_PID + " configuration update");
+            }
         }
 
         private void waitForContainerAlive(String containerName, BundleContext syscontext, long timeout) throws TimeoutException {
