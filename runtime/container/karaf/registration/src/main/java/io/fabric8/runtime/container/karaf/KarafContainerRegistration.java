@@ -182,7 +182,9 @@ public final class KarafContainerRegistration extends AbstractComponent implemen
 
             ip =  getSubstitutedData(curator.get(), getContainerPointer(curator.get(), runtimeIdentity));
             setData(curator.get(), CONTAINER_IP.getPath(runtimeIdentity), ip);
-            createDefault(curator.get(), CONTAINER_GEOLOCATION.getPath(runtimeIdentity), geoLocationService.get().getGeoLocation());
+            if (Boolean.parseBoolean(runtimeProperties.get().getProperty("service.geoip.enabled", "false"))) {
+                createDefault(curator.get(), CONTAINER_GEOLOCATION.getPath(runtimeIdentity), geoLocationService.get().getGeoLocation());
+            }
 
             //We are creating a dummy container object, since this might be called before the actual container is ready.
             Container current = new ImmutableContainerBuilder().id(runtimeIdentity).ip(ip).build();
