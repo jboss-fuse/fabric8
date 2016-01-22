@@ -80,7 +80,7 @@ public class JoinTest {
 
             AdminService adminService = ServiceLocator.awaitService(AdminService.class);
             String version = System.getProperty("fabric.version");
-            System.err.println(CommandSupport.executeCommand("admin:create -o '-server -Xmx1536M -Dcom.sun.management.jmxremote -XX:+UnlockDiagnosticVMOptions -XX:+UnsyncloadClass -Dpatching.disabled=true' --featureURL mvn:io.fabric8/fabric8-karaf/" + version + "/xml/features --feature fabric-git --feature fabric-agent --feature fabric-boot-commands smoke_child_d"));
+            System.err.println(CommandSupport.executeCommand("admin:create -o '-server -Xmx1536M -Dcom.sun.management.jmxremote -XX:+UnlockDiagnosticVMOptions -XX:+UnsyncloadClass -Dpatching.disabled=true -Djava.security.egd=file:/dev/./urandom' --featureURL mvn:io.fabric8/fabric8-karaf/" + version + "/xml/features --feature fabric-git --feature fabric-agent --feature fabric-boot-commands smoke_child_d"));
 
             try {
                 System.err.println(CommandSupport.executeCommand("admin:start smoke_child_d"));
