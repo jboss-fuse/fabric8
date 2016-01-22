@@ -194,7 +194,7 @@ final class JoinAction extends AbstractAction {
                 System.err.println("A container with the name: " + containerName + " is already member of the cluster. You can specify a different name as an argument.");
                 return null;
             }
-            Configuration config = configAdmin.getConfiguration(Constants.ZOOKEEPER_CLIENT_PID);
+            Configuration config = configAdmin.getConfiguration(Constants.ZOOKEEPER_CLIENT_PID, null);
             Hashtable<String, Object> properties = new Hashtable<String, Object>();
             properties.put("zookeeper.url", zookeeperUrl);
             properties.put("zookeeper.password", PasswordEncoder.encode(encodedPassword));
