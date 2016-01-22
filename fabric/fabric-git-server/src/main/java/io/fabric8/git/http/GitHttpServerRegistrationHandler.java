@@ -49,6 +49,7 @@ import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.zookeeper.KeeperException;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.storage.file.WindowCacheConfig;
 import org.osgi.service.cm.Configuration;
@@ -266,7 +267,7 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
     private String readExternalGitUrl() {
         String result = null;
         try {
-            Configuration conf = configAdmin.get().getConfiguration(Constants.DATASTORE_PID);
+            Configuration conf = configAdmin.get().getConfiguration(Constants.DATASTORE_PID, null);
             if (conf == null) {
                 LOGGER.warn("No configuration for pid " + Constants.DATASTORE_PID);
             } else {
@@ -314,6 +315,7 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
                     LOGGER.info("Older ZK \"/fabric/registry/clusters/git\" entry for node " + runtimeIdentity + " has been removed");
                 }
             }
+        } catch (KeeperException.NoNodeException ignored) {
         } catch (Exception e) {
             LOGGER.warn("Failed to remove git server from registry.", e);
         }

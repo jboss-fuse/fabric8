@@ -101,6 +101,11 @@ public final class ServiceLocator {
         return awaitService(bundleContext, type, filterspec, DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
     }
 
+    public static <T> T awaitService(String type, long timeout, TimeUnit unit) {
+        BundleContext bundleContext = getSystemContext();
+        return awaitService(bundleContext, type, null, timeout, unit);
+    }
+
     public static <T> T awaitService(Class<T> type, long timeout, TimeUnit unit) {
         BundleContext bundleContext = getSystemContext();
         return awaitService(bundleContext, type, null, timeout, unit);
@@ -112,7 +117,10 @@ public final class ServiceLocator {
     }
 
     public static <T> T awaitService(final BundleContext bundleContext, Class<T> type, String filterspec, long timeout, TimeUnit unit) {
+        return awaitService(bundleContext, type.getName(), filterspec, timeout, unit);
+    }
 
+    public static <T> T awaitService(final BundleContext bundleContext, String type, String filterspec, long timeout, TimeUnit unit) {
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicReference<T> serviceRef = new AtomicReference<T>();
         final Filter serviceFilter;
@@ -135,7 +143,7 @@ public final class ServiceLocator {
         tracker.open();
         try {
             if (!latch.await(timeout, unit)) {
-                String srvspec = (type != null ? type.getName() : "") + (serviceFilter != null ? serviceFilter : "");
+                String srvspec = (type != null ? type : "") + (serviceFilter != null ? serviceFilter : "");
                 throw new IllegalStateException("Cannot obtain service: " + srvspec);
             }
             return serviceRef.get();

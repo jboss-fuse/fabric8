@@ -15,14 +15,25 @@
  */
 package io.fabric8.utils;
 
-import org.osgi.framework.*;
-import org.osgi.util.tracker.ServiceTracker;
-
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Enumeration;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.Filter;
+import org.osgi.framework.FrameworkUtil;
+import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.framework.ServiceReference;
+import org.osgi.framework.ServiceRegistration;
+import org.osgi.service.cm.Configuration;
+import org.osgi.service.cm.ConfigurationEvent;
+import org.osgi.service.cm.ConfigurationListener;
+import org.osgi.util.tracker.ServiceTracker;
 
 public class OsgiUtils {
 
@@ -96,4 +107,131 @@ public class OsgiUtils {
     private static Collection<ServiceReference> asCollection(ServiceReference[] references) {
         return references != null ? Arrays.asList(references) : Collections.<ServiceReference>emptyList();
     }
+
+    /**
+     * Deletes CM configuration and waits for CM_DELETE event to be send
+     * @param bundleContext
+     * @param config
+     * @param timeout
+     * @param unit
+     * @return
+     */
+    public static boolean deleteCmConfigurationAndWait(BundleContext bundleContext, final Configuration config,
+                                                       final String pid,
+                                                       long timeout, TimeUnit unit) throws IOException, InterruptedException {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final ServiceRegistration<ConfigurationListener> registration = bundleContext.registerService(ConfigurationListener.class, new ConfigurationListener() {
+            @Override
+            public void configurationEvent(ConfigurationEvent event) {
+                if (event.getType() == ConfigurationEvent.CM_DELETED && event.getPid() != null
+                        && event.getPid().equals(pid)) {
+                    latch.countDown();
+                }
+            }
+        }, null);
+
+        config.delete();
+
+        try {
+            return latch.await(timeout, unit);
+        } finally {
+            registration.unregister();
+        }
+    }
+
+    /**
+     * Deletes CM factory configuration and waits for CM_DELETE event to be send
+     * @param bundleContext
+     * @param config
+     * @param timeout
+     * @param unit
+     * @return
+     */
+    public static boolean deleteCmFactoryConfigurationAndWait(BundleContext bundleContext, final Configuration config,
+                                                              final String pid,
+                                                              long timeout, TimeUnit unit) throws IOException, InterruptedException {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final ServiceRegistration<ConfigurationListener> registration = bundleContext.registerService(ConfigurationListener.class, new ConfigurationListener() {
+            @Override
+            public void configurationEvent(ConfigurationEvent event) {
+                if (event.getType() == ConfigurationEvent.CM_DELETED && event.getFactoryPid() != null
+                        && event.getFactoryPid().startsWith(pid)) {
+                    latch.countDown();
+                }
+            }
+        }, null);
+
+        config.delete();
+
+        try {
+            return latch.await(timeout, unit);
+        } finally {
+            registration.unregister();
+        }
+    }
+
+    /**
+     * Updates CM configuration and waits for CM_UPDATE event to be send
+     * @param bundleContext
+     * @param config
+     * @param properties
+     * @param timeout
+     * @param unit
+     * @return
+     */
+    public static boolean updateCmConfigurationAndWait(BundleContext bundleContext, final Configuration config,
+                                                    Dictionary<String, Object> properties,
+                                                    long timeout, TimeUnit unit) throws IOException, InterruptedException {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final ServiceRegistration<ConfigurationListener> registration = bundleContext.registerService(ConfigurationListener.class, new ConfigurationListener() {
+            @Override
+            public void configurationEvent(ConfigurationEvent event) {
+                if (event.getType() == ConfigurationEvent.CM_UPDATED && event.getPid() != null
+                        && event.getPid().equals(config.getPid())) {
+                    latch.countDown();
+                }
+            }
+        }, null);
+
+        config.update(properties);
+
+        try {
+            return latch.await(timeout, unit);
+        } finally {
+            registration.unregister();
+        }
+    }
+
+    /**
+     * Updates CM configuration and waits for CM_UPDATE event to be send
+     * @param bundleContext
+     * @param config
+     * @param properties
+     * @param timeout
+     * @param unit
+     * @return
+     */
+    public static boolean updateCmFactoryConfigurationAndWait(BundleContext bundleContext, final Configuration config,
+                                                    Dictionary<String, Object> properties,
+                                                    long timeout, TimeUnit unit) throws IOException, InterruptedException {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final ServiceRegistration<ConfigurationListener> registration = bundleContext.registerService(ConfigurationListener.class, new ConfigurationListener() {
+            @Override
+            public void configurationEvent(ConfigurationEvent event) {
+                if (event.getType() == ConfigurationEvent.CM_UPDATED && event.getFactoryPid() != null
+                        && event.getFactoryPid().startsWith(config.getFactoryPid())) {
+                    latch.countDown();
+                }
+            }
+        }, null);
+
+        config.update(properties);
+
+        try {
+            return latch.await(timeout, unit);
+        } finally {
+            registration.unregister();
+        }
+    }
+
 }

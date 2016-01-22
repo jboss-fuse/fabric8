@@ -44,6 +44,7 @@ import io.fabric8.api.scr.Configurer;
 import io.fabric8.api.scr.ValidatingReference;
 import io.fabric8.common.util.Strings;
 import io.fabric8.utils.HostUtils;
+import io.fabric8.utils.OsgiUtils;
 import io.fabric8.utils.PasswordEncoder;
 import io.fabric8.utils.Ports;
 
@@ -57,6 +58,7 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -209,7 +211,7 @@ public class BootstrapConfiguration extends AbstractComponent {
                 .importPath(profilesAutoImportPath).resolver(localResolver).globalResolver(globalResolver).users(userProps).minimumPort(minport).maximumPort(maxport).profiles(profiles).version(version).build();
     }
 
-    void bootIfNeeded() throws IOException {
+    void bootIfNeeded() throws IOException, InterruptedException {
         BundleContext bundleContext = componentContext.getBundleContext();
         boolean isCreated = checkCreated(bundleContext);
 
@@ -219,8 +221,8 @@ public class BootstrapConfiguration extends AbstractComponent {
             runtimeProperties.get().putRuntimeAttribute(DataStoreTemplate.class, new DataStoreBootstrapTemplate(bootOptions));
 
             createOrUpdateDataStoreConfig(options);
-            createZooKeeeperServerConfig(options);
-            createZooKeeeperClientConfig(connectionUrl, options);
+            createZooKeeeperServerConfig(componentContext.getBundleContext(), options);
+            createZooKeeeperClientConfig(componentContext.getBundleContext(), connectionUrl, options);
 
             // On restart, the configuration should be available in configadmin
             markCreated(bundleContext);
@@ -274,16 +276,13 @@ public class BootstrapConfiguration extends AbstractComponent {
         if (updateConfig) {
             config.update(properties);
         }
-        if (updateConfig) {
-            config.update(properties);
-        }
 
     }
 
     /**
      * Creates ZooKeeper server configuration
      */
-    public void createZooKeeeperServerConfig(CreateEnsembleOptions options) throws IOException {
+    public boolean createZooKeeeperServerConfig(BundleContext context, CreateEnsembleOptions options) throws IOException, InterruptedException {
         int serverPort = Ports.mapPortToRange(options.getZooKeeperServerPort(), options.getMinimumPort(), options.getMaximumPort());
         String serverHost = options.getBindAddress();
         Dictionary<String, Object> properties = new Hashtable<String, Object>();
@@ -298,13 +297,13 @@ public class BootstrapConfiguration extends AbstractComponent {
         properties.put("clientPortAddress", serverHost);
         properties.put("fabric.zookeeper.pid", "io.fabric8.zookeeper.server-0000");
         Configuration config = configAdmin.get().createFactoryConfiguration(Constants.ZOOKEEPER_SERVER_PID, null);
-        config.update(properties);
+        return OsgiUtils.updateCmFactoryConfigurationAndWait(context, config, properties, 30, TimeUnit.SECONDS);
     }
 
     /**
      * Creates ZooKeeper client configuration.
      */
-    public void createZooKeeeperClientConfig(String connectionUrl, CreateEnsembleOptions options) throws IOException {
+    public boolean createZooKeeeperClientConfig(BundleContext context, String connectionUrl, CreateEnsembleOptions options) throws IOException, InterruptedException {
         Dictionary<String, Object> properties = new Hashtable<String, Object>();
         if (options.isAutoImportEnabled()) {
             loadPropertiesFrom(properties, options.getImportPath() + "/fabric/profiles/default.profile/io.fabric8.zookeeper.properties");
@@ -315,7 +314,7 @@ public class BootstrapConfiguration extends AbstractComponent {
         properties.put("fabric.zookeeper.pid", Constants.ZOOKEEPER_CLIENT_PID);
         properties.put("zookeeper.password", PasswordEncoder.encode(options.getZookeeperPassword()));
         Configuration config = configAdmin.get().getConfiguration(Constants.ZOOKEEPER_CLIENT_PID, null);
-        config.update(properties);
+        return OsgiUtils.updateCmConfigurationAndWait(context, config, properties, 30, TimeUnit.SECONDS);
     }
 
     private String getConnectionAddress(CreateEnsembleOptions options) throws UnknownHostException {

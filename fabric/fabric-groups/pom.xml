@@ -38,6 +38,9 @@
         <fuse.osgi.export>
             io.fabric8.groups*;version=${project.version},
         </fuse.osgi.export>
+        <fuse.osgi.private.pkg>
+            io.fabric8.utils;-split-package:=first
+        </fuse.osgi.private.pkg>
     </properties>
 
     <dependencies>

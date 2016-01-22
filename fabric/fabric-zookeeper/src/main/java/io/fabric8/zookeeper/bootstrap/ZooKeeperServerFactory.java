@@ -207,7 +207,29 @@ public class ZooKeeperServerFactory extends AbstractComponent {
             registration = null;
         }
         if (destroyable != null) {
-            destroyable.destroy();
+            // let's destroy it in separate thread, to prevent blocking CM Event thread
+            Thread t = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        LOGGER.info("Destroying zookeeper server in new thread: {}", destroyable);
+                        destroyable.destroy();
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    } catch (Exception e) {
+                        LOGGER.error(e.getMessage(), e);
+                    }
+                }
+            });
+            t.start();
+            // let's wait at most 10 seconds...
+            t.join(10000);
+            if (destroyable != null && destroyable instanceof ServerStats.Provider) {
+                ServerStats.Provider sp = (ServerStats.Provider) this.destroyable;
+                LOGGER.info("Zookeeper server stats after shutdown: connections: " + sp.getNumAliveConnections()
+                        + ", outstandingRequests: " + sp.getOutstandingRequests());
+            }
+            t.interrupt();
             destroyable = null;
         }
     }

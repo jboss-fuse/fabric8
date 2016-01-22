@@ -180,7 +180,7 @@ public final class MavenProxyRegistrationHandler extends AbstractComponent imple
                     deleteSafe(curator.get(), entry);
                 }
             } catch (Exception e) {
-                LOGGER.warn("Failed to remove maven proxy from registry.");
+                LOGGER.warn("Failed to remove maven proxy from registry: " + e.getMessage(), e);
             }
             registeredProxies.get(type).clear();
         }

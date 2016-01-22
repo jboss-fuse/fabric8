@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import io.fabric8.utils.NamedThreadFactory;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.listen.ListenerContainer;
 import org.apache.curator.framework.state.ConnectionState;
@@ -120,7 +121,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
      */
     public ZooKeeperGroup(CuratorFramework client, String path, Class<T> clazz) {
         this(client, path, clazz,
-                Executors.newSingleThreadExecutor(ThreadUtils.newThreadFactory("ZooKeeperGroup")));
+                Executors.newSingleThreadExecutor(new NamedThreadFactory("ZKGroup")));
     }
 
     /**
@@ -151,6 +152,11 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     public void start() {
         if (started.compareAndSet(false, true)) {
             connected.set(client.getZookeeperClient().isConnected());
+
+            if (isConnected()) {
+                handleStateChange(ConnectionState.CONNECTED);
+            }
+
             client.getConnectionStateListenable().addListener(connectionStateListener);
             executorService.execute(new Runnable() {
                 @Override
@@ -158,10 +164,6 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
                     mainLoop();
                 }
             });
-
-            if (isConnected()) {
-                handleStateChange(ConnectionState.CONNECTED);
-            }
         }
     }
 
@@ -218,8 +220,10 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
                         ||   state != null && oldState == null
                         || !Arrays.equals(encode(state), encode(oldState));
             if (update) {
-                offerOperation(new RefreshOperation(this, RefreshMode.FORCE_GET_DATA_AND_STAT));
-                offerOperation(new UpdateOperation<T>(this, state));
+                offerOperation(new CompositeOperation(
+                        new RefreshOperation(this, RefreshMode.FORCE_GET_DATA_AND_STAT),
+                        new UpdateOperation<T>(this, state)
+                ));
             }
         }
     }
@@ -389,15 +393,19 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     }
 
     void refresh(final RefreshMode mode) throws Exception {
-        ensurePath.ensure(client.getZookeeperClient());
-        List<String> children = client.getChildren().usingWatcher(childrenWatcher).forPath(path);
-        Collections.sort(children, new Comparator<String>() {
-            @Override
-            public int compare(String left, String right) {
-                return left.compareTo(right);
-            }
-        });
-        processChildren(children, mode);
+        try {
+            ensurePath.ensure(client.getZookeeperClient());
+            List<String> children = client.getChildren().usingWatcher(childrenWatcher).forPath(path);
+            Collections.sort(children, new Comparator<String>() {
+                @Override
+                public int compare(String left, String right) {
+                    return left.compareTo(right);
+                }
+            });
+            processChildren(children, mode);
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+        }
     }
 
     void callListeners(final GroupListener.GroupEvent event) {
@@ -464,9 +472,11 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
             case CONNECTED:
             case RECONNECTED: {
                 connected.set(true);
-                offerOperation(new RefreshOperation(this, RefreshMode.FORCE_GET_DATA_AND_STAT));
-                offerOperation(new UpdateOperation<T>(this, state));
-                offerOperation(new EventOperation(this, GroupListener.GroupEvent.CONNECTED));
+                offerOperation(new CompositeOperation(
+                        new RefreshOperation(this, RefreshMode.FORCE_GET_DATA_AND_STAT),
+                        new UpdateOperation<T>(this, state),
+                        new EventOperation(this, GroupListener.GroupEvent.CONNECTED)
+                ));
                 break;
             }
         }
@@ -544,8 +554,10 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     }
 
     private void offerOperation(Operation operation) {
-        operations.remove(operation);   // avoids herding for refresh operations
-        operations.offer(operation);
+        if (!operations.contains(operation)) {
+            operations.offer(operation);
+        }
+//        operations.remove(operation);   // avoids herding for refresh operations
     }
 
     public static <T> Map<String, T> members(CuratorFramework curator, String path, Class<T> clazz) throws Exception {
