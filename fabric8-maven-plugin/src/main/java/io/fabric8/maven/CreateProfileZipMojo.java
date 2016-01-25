@@ -124,7 +124,7 @@ public class CreateProfileZipMojo extends AbstractProfileMojo {
     @Parameter(property = "fabric8.deployFileGoal", defaultValue = "deploy:deploy-file")
     protected String deployFileGoal;
 
-    @Parameter(defaultValue = "${project.distributionManagementArtifactRepository}", readonly = true, required = true)
+    @Parameter(defaultValue = "${project.distributionManagementArtifactRepository}", readonly = true, required = false)
     private ArtifactRepository deploymentRepository;
 
     @Parameter(defaultValue = "${altDeploymentRepository}", readonly = true)
