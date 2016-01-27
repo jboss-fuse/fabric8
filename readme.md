@@ -9,7 +9,9 @@ Get Started
 * [Getting Started Guide](http://fabric8.io/gitbook/getStarted.html) for how to run fabric8 on your local computer
 * [Run fabric8 on OpenShift](https://www.openshift.com/quickstarts/jboss-fuse-61) for using fabric8 on the open hybrid cloud. More details [here](https://github.com/jboss-fuse/fuse-openshift-cartridge/blob/master/README.md)
 * [Run fabric8 on docker](https://github.com/fabric8io/fabric8-docker#try-it-out)
-
+* Run fabric8 or Fuse on an OpenStack node, if you want to add the insight-console to a container, you first need to do the following
+  1. Set the environment variable OPENSTACK_FLOATING_IP to the floating IP of that node
+  2. The fabric.environment system property has to be set to "openstack" at startup.
 Demos
 -----
 
