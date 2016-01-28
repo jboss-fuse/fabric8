@@ -222,7 +222,12 @@ public class FabricTestSupport extends FabricKarafTestSupport {
                 CoreOptions.mavenBundle("io.fabric8.tooling.testing", "pax-exam-karaf").versionAsInProject(), new DoNotModifyLogOption(),
                 KarafDistributionOption.keepRuntimeFolder(),
                 // See ENTESB-3731
-                KarafDistributionOption.editConfigurationFilePut("fabric/import/fabric/profiles/default.profile/io.fabric8.maven.properties", "io.fabric8.maven.localRepository", "${karaf.data}/repository")
+                KarafDistributionOption.editConfigurationFilePut("fabric/import/fabric/profiles/default.profile/io.fabric8.maven.properties", "io.fabric8.maven.localRepository", "${karaf.data}/repository"),
+                // disable fetching maven-metadata.xml for SNAPSHOTS
+                KarafDistributionOption.editConfigurationFilePut("fabric/import/fabric/profiles/default.profile/io.fabric8.agent.properties", "org.ops4j.pax.url.mvn.globalUpdatePolicy", "never"),
+                KarafDistributionOption.editConfigurationFilePut("fabric/import/fabric/profiles/default.profile/io.fabric8.agent.properties", "org.ops4j.pax.url.mvn.globalChecksumPolicy", "ignore"),
+                KarafDistributionOption.editConfigurationFilePut("etc/org.ops4j.pax.url.mvn.cfg", "org.ops4j.pax.url.mvn.globalUpdatePolicy", "never"),
+                KarafDistributionOption.editConfigurationFilePut("etc/org.ops4j.pax.url.mvn.cfg", "org.ops4j.pax.url.mvn.globalChecksumPolicy", "ignore")
         };
     }
 
