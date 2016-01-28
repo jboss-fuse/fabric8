@@ -175,7 +175,9 @@ public final class FabricWebRegistrationHandler extends AbstractComponent implem
             //We don't want to register / it's fabric-redirect for hawtio
             if (!servletEvent.getAlias().equals("/")) {
                 String path = createServletPath(servletEvent, id, bundleName, bundleVersion);
-                setData(curator.get(), path, json, CreateMode.EPHEMERAL);
+                synchronized (servletEvent.getBundle()) {
+                    setData(curator.get(), path, json, CreateMode.EPHEMERAL);
+                }
             }
         } catch (Exception e) {
             LOGGER.error("Failed to register servlet {}.", servletEvent.getAlias(), e);
@@ -222,7 +224,9 @@ public final class FabricWebRegistrationHandler extends AbstractComponent implem
                 ",\"bundleVersion\":" + jsonEncodeString(bundleVersion) +
                 ",\"container\":" + jsonEncodeString(id) + "}";
         try {
-            setData(curator.get(), ZkPath.WEBAPPS_CONTAINER.getPath(bundleName, webEvent.getBundle().getVersion().toString(), id), json, CreateMode.EPHEMERAL);
+            synchronized (webEvent.getBundle()) {
+                setData(curator.get(), ZkPath.WEBAPPS_CONTAINER.getPath(bundleName, webEvent.getBundle().getVersion().toString(), id), json, CreateMode.EPHEMERAL);
+            }
         } catch (Exception e) {
             LOGGER.error("Failed to register webapp {}.", webEvent.getContextPath(), e);
         }

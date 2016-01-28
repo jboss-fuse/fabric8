@@ -122,3 +122,36 @@ And access the book from a web browser at
     http://localhost:4000
 
 To add new sections into the gitbook, ecit the `docs/SUMMARY.md` file.
+
+
+Tests stability checks
+======================
+
+When testing stability, it's useful to have full logs available after tests are run. I was running series of
+smoke/karaf integration tests using the following script:
+
+    for n in `seq 10 100`; do
+      nn=`printf '%02d' $n`;
+      echo $nn;
+      pkill -f karaf;
+      mvn clean test -f itests/smoke/karaf/pom.xml;
+      cp -fv itests/smoke/karaf/target/fabric8-karaf-1.2.0.redhat-630-SNAPSHOT/data/log/fuse.log /tmp/fuse-$nn.log;
+      mv itests/smoke/karaf/target/fabric8-karaf-1.2.0.redhat-630-SNAPSHOT/instances/ /tmp/instances-$nn;
+    done | tee /tmp/fuse-all-tests.txt
+
+and in separate shell:
+
+    tail -f /tmp/fuse-all-tests.txt | grep "Tests run\|BUILD\|^[0-9][0-9]$"
+
+to see nice:
+
+    01
+    Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.457 sec - in io.fabric8.itests.common.BootstrapServiceTest
+    Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 11.716 sec - in io.fabric8.itests.common.ContainerStartupTest
+    Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 13.801 sec - in io.fabric8.itests.common.FabricCreateCommandTest
+    Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.98 sec - in io.fabric8.itests.common.ManagedContainerTest
+    Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 7.668 sec - in io.fabric8.itests.common.ProfileManagementJolokiaTest
+    Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.322 sec - in io.fabric8.itests.common.ProfileManagementProxyTest
+    Tests run: 14, Failures: 0, Errors: 0, Skipped: 0
+    [INFO] BUILD SUCCESS
+    ...
