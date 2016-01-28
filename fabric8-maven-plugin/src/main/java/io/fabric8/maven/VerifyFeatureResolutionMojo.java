@@ -307,7 +307,9 @@ public class VerifyFeatureResolutionMojo extends AbstractMojo {
 
         String exportPackages = configProps.getProperty("org.osgi.framework.system.packages");
         if (configProps.containsKey("org.osgi.framework.system.packages.extra")) {
-            exportPackages += "," + configProps.getProperty("org.osgi.framework.system.packages.extra");
+            if (!"".equals(configProps.getProperty("org.osgi.framework.system.packages.extra").trim())) {
+                exportPackages += "," + configProps.getProperty("org.osgi.framework.system.packages.extra");
+            }
         }
         headers.put(Constants.EXPORT_PACKAGE, exportPackages);
 
