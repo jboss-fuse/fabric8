@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class ShutdownTracker {
 
+    public static final boolean DISABLED = Boolean.getBoolean("io.fabric8.common.util.ShutdownTracker.DISABLED");
     public static class ShutdownException extends IllegalStateException {}
 
     private AtomicInteger retained = new AtomicInteger(1);
@@ -47,8 +48,10 @@ public class ShutdownTracker {
      * @throws ShutdownException once {@see shutdown} has been called.
      */
     public void retain() {
-        if(!attemptRetain()) {
-            throw new ShutdownException(); // fail the attempt at retaining.
+        if(!attemptRetain() ) {
+            if( !DISABLED ) {
+                throw new ShutdownException(); // fail the attempt at retaining.
+            }
         }
     }
 
@@ -75,7 +78,9 @@ public class ShutdownTracker {
         if( retained.decrementAndGet()==0 ) {
             // not retained anymore? this should only happen when we are shutting down.
             if( !stopping.get() ) {
-                throw new IllegalStateException("Unbalanced calls to release detected.");
+                if( !DISABLED ) {
+                    throw new IllegalStateException("Unbalanced calls to release detected.");
+                }
             } else {
                 if( onStopCallback!=null ) {
                     onStopCallback.run();
@@ -116,7 +121,9 @@ public class ShutdownTracker {
             this.onStopCallback = onStopCallback;
             release();
         } else {
-            throw new ShutdownException();
+            if( !DISABLED ) {
+                throw new ShutdownException();
+            }
         }
     }
 
