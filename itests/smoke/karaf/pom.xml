@@ -147,6 +147,12 @@
                                 <concat destfile="${karaf.home}/fabric/import/fabric/profiles/default.profile/io.fabric8.maven.properties" append="true">
                                     <filelist dir="src/test/resources" files="io.fabric8.maven.properties" />
                                 </concat>
+                                <concat destfile="${karaf.home}/fabric/import/fabric/profiles/default.profile/io.fabric8.agent.properties" append="true">
+                                    <filelist dir="src/test/resources" files="io.fabric8.agent.properties" />
+                                </concat>
+                                <concat destfile="${karaf.home}/etc/org.ops4j.pax.url.mvn.cfg" append="true">
+                                    <filelist dir="src/test/resources" files="io.fabric8.agent.properties" />
+                                </concat>
                             </target>
                         </configuration>
                     </execution>
