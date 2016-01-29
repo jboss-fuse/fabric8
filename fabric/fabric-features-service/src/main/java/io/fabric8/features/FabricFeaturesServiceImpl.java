@@ -54,6 +54,7 @@ import org.apache.karaf.features.FeaturesService;
 import org.apache.karaf.features.Repository;
 import org.apache.karaf.features.internal.FeatureValidationUtil;
 import org.apache.karaf.features.internal.RepositoryImpl;
+import org.osgi.service.url.URLStreamHandlerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,6 +79,8 @@ public final class FabricFeaturesServiceImpl extends AbstractComponent implement
 
     @Reference(referenceInterface = FabricService.class)
     private final ValidatingReference<FabricService> fabricService = new ValidatingReference<FabricService>();
+    @Reference(referenceInterface = URLStreamHandlerService.class, target = "(url.handler.protocol=mvn)")
+    private final ValidatingReference<URLStreamHandlerService> urlHandler = new ValidatingReference<URLStreamHandlerService>();
 
     @GuardedBy("this")
     private final LoadingCache<String, Repository> repositories = CacheBuilder.newBuilder().build(new CacheLoader<String, Repository>() {
@@ -424,6 +427,14 @@ public final class FabricFeaturesServiceImpl extends AbstractComponent implement
 
     void unbindFabricService(FabricService fabricService) {
         this.fabricService.unbind(fabricService);
+    }
+
+    void bindUrlHandler(URLStreamHandlerService urlHandler) {
+        this.urlHandler.bind(urlHandler);
+    }
+
+    void unbindUrlHandler(URLStreamHandlerService urlHandler) {
+        this.urlHandler.unbind(urlHandler);
     }
 
     static class VersionProfileOptionsProvider implements OptionsProvider<ProfileBuilder> {
