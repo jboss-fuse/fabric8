@@ -455,6 +455,33 @@ public class Deployer {
                 states.put(resource, Constants.RequestedState.Started);
             }
         }
+        // Override explicit disabled state
+        for (Resource resource : featuresState.keySet()) {
+            if(resource instanceof  FeatureResource){
+                FeatureResource featureResource = (FeatureResource) resource;
+                List<BundleInfo> bundles = featureResource.getFeature().getBundles();
+                for(BundleInfo bundleInfo : bundles){
+                    if(bundleInfo.isStart() == false){
+                        String location = bundleInfo.getLocation();
+                        int protocolMarker = location.lastIndexOf(":");
+                        location = location.substring(protocolMarker + 1);
+                        String[] split = location.split("/");
+                        if(split.length < 3)
+                            continue;
+                        String key = split[0] + "." + split[1] + "/" + split[2];
+
+                        for(Iterator<Resource> iter = resolver.getBundles().keySet().iterator(); iter.hasNext();){
+                            Resource res = iter.next();
+                            if(res.toString().equals(key)){
+                                states.put(res, Constants.RequestedState.Installed);
+                            }
+
+                        }
+                    }
+                }
+            }
+
+        }
         // Only keep bundles resources
        states.keySet().retainAll(resolver.getBundles().keySet());
         //
