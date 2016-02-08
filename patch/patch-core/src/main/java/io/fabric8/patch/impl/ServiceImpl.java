@@ -661,6 +661,9 @@ public class ServiceImpl implements Service {
         Map<String, String> locationsOfBundleKeys = new HashMap<>();
 
         for (Bundle b : allBundles) {
+            if (b.getSymbolicName() == null) {
+                continue;
+            }
             Version v = b.getVersion();
             Version updateableVersion = new Version(v.getMajor(), v.getMinor(), 0);
             String key = String.format("%s|%s", stripSymbolicName(b.getSymbolicName()), updateableVersion.toString());
