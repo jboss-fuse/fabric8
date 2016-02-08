@@ -35,7 +35,6 @@ import java.util.Set;
 import org.apache.curator.framework.CuratorFramework;
 import org.fusesource.jansi.AnsiString;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Configuration;
@@ -53,7 +52,6 @@ import org.ops4j.pax.exam.spi.reactors.PerMethod;
 public class ExampleCamelClusterTest extends FabricTestSupport {
 
     @Test
-    @Ignore
     public void testRegistryEntries() throws Exception {
         System.out.println(executeCommand("fabric:create -n --wait-for-provisioning root"));
         //System.out.println(executeCommand("shell:info"));
