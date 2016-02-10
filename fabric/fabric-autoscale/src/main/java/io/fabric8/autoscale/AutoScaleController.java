@@ -83,12 +83,12 @@ public final class AutoScaleController extends AbstractComponent implements Grou
     @Property(value = "10000", label = "Poll period", description = "The number of milliseconds between polls to check if the system still has its requirements satisfied.")
     private static final String POLL_TIME = "pollTime";
     private Long pollTime;
-    @Property(value = "", label = "Profile name pattern", description = "Profiles matching this regex will be autoscaled.")
+    @Property(value = ".*", label = "Profile name pattern", description = "Profiles matching this regex will be autoscaled.")
     private static final String PROFILE_PATTERN = "profilePattern";
-    private String profilePattern;
-    @Property(value = "", label = "Container name pattern", description = "Containers matching this regex will be use for assignment autoscaling.")
+    private Matcher profilePattern;
+    @Property(value = ".*", label = "Container name pattern", description = "Containers matching this regex will be use for assignment autoscaling.")
     private static final String CONTAINER_PATTERN = "containerPattern";
-    private String containerPattern;
+    private Matcher containerPattern;
     @Property(value = "true", label = "Scale containers", description = "true = scale with containers, false = scale with profile assignments.")
     private static final String SCALE_CONTAINERS = "scaleContainers";
     private Boolean scaleContainers;
@@ -121,8 +121,8 @@ public final class AutoScaleController extends AbstractComponent implements Grou
     @Activate
     void activate(final Map<String, String> properties) {
         this.pollTime = Long.parseLong(properties.get(POLL_TIME));
-        this.profilePattern = properties.get(PROFILE_PATTERN);
-        this.containerPattern = properties.get(CONTAINER_PATTERN);
+        this.profilePattern = Pattern.compile(properties.get(PROFILE_PATTERN)).matcher("");
+        this.containerPattern = Pattern.compile(properties.get(CONTAINER_PATTERN)).matcher("");
         this.scaleContainers = Boolean.parseBoolean(properties.get(SCALE_CONTAINERS));
         this.defaultMaximumInstancesPerHost = Integer.parseInt(properties.get(DEFAULT_MAXIMUM_INSTANCES_PER_HOST));
         this.autoscalerGroupId = properties.get(AUTOSCALER_GROUP_ID);
@@ -227,17 +227,14 @@ public final class AutoScaleController extends AbstractComponent implements Grou
         FabricRequirements requirements = service.getRequirements();
         List<ProfileRequirements> profileRequirements = requirements.getProfileRequirements();
         // Filter profiles according to the profile pattern
-        if (!profilePattern.isEmpty()) {
-            Matcher matcher = Pattern.compile(profilePattern).matcher("");
-            Iterator<ProfileRequirements> it = profileRequirements.iterator();
-            while (it.hasNext()) {
-                ProfileRequirements p = it.next();
-                if (!matcher.reset(p.getProfile()).matches()) {
-                    it.remove();
-                }
+        Iterator<ProfileRequirements> it = profileRequirements.iterator();
+        while (it.hasNext()) {
+            ProfileRequirements p = it.next();
+            if (!profilePattern.reset(p.getProfile()).matches()) {
+                it.remove();
             }
         }
-        if (profileRequirements != null && !profileRequirements.isEmpty()) {
+        if (!profileRequirements.isEmpty()) {
             AutoScaleStatus status = new AutoScaleStatus();
             if (scaleContainers) { // Scale with containers
                 for (ProfileRequirements profileRequirement : profileRequirements) {
@@ -332,26 +329,10 @@ public final class AutoScaleController extends AbstractComponent implements Grou
     private void autoScaleProfileAssignments(FabricService service, FabricRequirements requirements, List<ProfileRequirements> profileRequirements) {
         final Map<Container, ContainerJob> allContainerJobs = new HashMap<>();
 
-        // Create matcher for the container pattern
-        final Matcher containerMatcher;
-        if (!containerPattern.isEmpty()) {
-            containerMatcher = Pattern.compile(containerPattern).matcher("");
-        } else {
-            containerMatcher = Pattern.compile(".*").matcher("");
-        }
-
-        // Create matcher for the profile pattern
-        final Matcher profileMatcher;
-        if (!profilePattern.isEmpty()) {
-            profileMatcher = Pattern.compile(profilePattern).matcher("");
-        } else {
-            profileMatcher = Pattern.compile(".*").matcher("");
-        }
-
         try {
             // Collect all applicable containers
             for (Container container : Arrays.asList(service.getContainers())) {
-                if (containerMatcher.reset(container.getId()).matches() && container.isAlive()) {
+                if (containerPattern.reset(container.getId()).matches() && container.isAlive()) {
                     allContainerJobs.put(container, new ContainerJob(container));
                 }
             }
