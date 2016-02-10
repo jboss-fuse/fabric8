@@ -69,7 +69,7 @@ public class FeatureConfigInstaller {
     private Configuration createConfiguration(ConfigurationAdmin configurationAdmin,
                                               String pid, String factoryPid) throws IOException, InvalidSyntaxException {
         if (factoryPid != null) {
-            return configurationAdmin.createFactoryConfiguration(factoryPid, null);
+            return configurationAdmin.createFactoryConfiguration(pid, null);
         } else {
             return configurationAdmin.getConfiguration(pid, null);
         }
@@ -94,13 +94,16 @@ public class FeatureConfigInstaller {
     void installFeatureConfigs(Feature feature) throws IOException, InvalidSyntaxException {
     	for (Config config : feature.getConfigurations()) {
 			Properties props = config.getProperties();
-			String[] pid = parsePid(config.getName());
-			Configuration cfg = findExistingConfiguration(configAdmin, pid[0], pid[1]);
+			String[] split = parsePid(config.getName());
+            // see http://felix.apache.org/documentation/subprojects/apache-felix-file-install.html#configurations
+            String pid = split[0];
+            String subname = split[1];
+			Configuration cfg = findExistingConfiguration(configAdmin, pid, subname);
 			if (cfg == null) {
 				Dictionary<String, String> cfgProps = convertToDict(props);
 
-				cfg = createConfiguration(configAdmin, pid[0], pid[1]);
-				String key = createConfigurationKey(pid[0], pid[1]);
+				cfg = createConfiguration(configAdmin, pid, subname);
+				String key = createConfigurationKey(pid, subname);
 				cfgProps.put(CONFIG_KEY, key);
 				cfg.update(cfgProps);
 			} else if (config.isAppend()) {
