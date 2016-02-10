@@ -55,7 +55,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
@@ -104,6 +103,9 @@ public final class AutoScaleController extends AbstractComponent implements Grou
     @Property(value = "1", label = "Maximum deviation, n * average (n >= 0)", description = "If one container has more than average + (n * average) profiles assigned, the excess will be reassigned.")
     private static final String MAXIMUM_DEVIATION = "maximumDeviation";
     private Integer maximumDeviation;
+    @Property(value = "false", label = "Inherit requirements", description = "Profile dependencies will inherit their requirements from parent if their requirements are not set.")
+    private static final String INHERIT_REQUIREMENTS = "inheritRequirements";
+    private Boolean inheritRequirements;
 
     private AtomicReference<Timer> timer = new AtomicReference<Timer>();
 
@@ -128,6 +130,7 @@ public final class AutoScaleController extends AbstractComponent implements Grou
         this.autoscalerGroupId = properties.get(AUTOSCALER_GROUP_ID);
         this.minimumContainerCount = Integer.parseInt(properties.get(MINIMUM_CONTAINER_COUNT));
         this.maximumDeviation = Integer.parseInt(properties.get(MAXIMUM_DEVIATION)) >= 0 ? Integer.parseInt(properties.get(MAXIMUM_DEVIATION)) : 1;
+        this.inheritRequirements = Boolean.parseBoolean(properties.get(INHERIT_REQUIREMENTS));
         CuratorFramework curator = this.curator.get();
         enableMasterZkCache(curator);
         group = new ZooKeeperGroup<AutoScalerNode>(curator, ZkPath.AUTO_SCALE_CLUSTER.getPath(autoscalerGroupId), AutoScalerNode.class);
@@ -225,15 +228,7 @@ public final class AutoScaleController extends AbstractComponent implements Grou
     private void autoScale() {
         FabricService service = fabricService.get();
         FabricRequirements requirements = service.getRequirements();
-        List<ProfileRequirements> profileRequirements = requirements.getProfileRequirements();
-        // Filter profiles according to the profile pattern
-        Iterator<ProfileRequirements> it = profileRequirements.iterator();
-        while (it.hasNext()) {
-            ProfileRequirements p = it.next();
-            if (!profilePattern.reset(p.getProfile()).matches()) {
-                it.remove();
-            }
-        }
+        List<ProfileRequirements> profileRequirements = checkProfileRequirements(requirements.getProfileRequirements(), profilePattern, inheritRequirements);
         if (!profileRequirements.isEmpty()) {
             AutoScaleStatus status = new AutoScaleStatus();
             if (scaleContainers) { // Scale with containers
@@ -326,9 +321,51 @@ public final class AutoScaleController extends AbstractComponent implements Grou
         return profilesPerContainerAverage + (int)Math.round(Math.abs(factor) * profilesPerContainerAverage);
     }
 
+    // Check the profile requirements against profile pattern and check the profile dependencies
+    private static List<ProfileRequirements> checkProfileRequirements(Collection<ProfileRequirements> profileRequirements, Matcher profilePattern, Boolean inheritRequirements) {
+        Map<String, ProfileRequirements> profileRequirementsMap = new HashMap<>();
+        for (ProfileRequirements p : profileRequirements) {
+            profileRequirementsMap.put(p.getProfile(), p);
+        }
+        Map<String, ProfileRequirements> checkedProfileRequirements = new HashMap<>();
+        for (ProfileRequirements p : profileRequirements) {
+            checkProfileRequirements(p, checkedProfileRequirements, profileRequirementsMap, profilePattern, inheritRequirements);
+        }
+        return new ArrayList<>(checkedProfileRequirements.values());
+    }
+
+    private static Map<String, ProfileRequirements> checkProfileRequirements(ProfileRequirements profileRequirement, Map<String, ProfileRequirements> checkedProfileRequirements, Map<String, ProfileRequirements> profileRequirementsMap, Matcher profilePattern, Boolean inheritRequirements) {
+        if (profileRequirement == null || profilePattern.reset(profileRequirement.getProfile()).matches()) {
+            return null;
+        }
+        // Add this profile requirement to the result
+        checkedProfileRequirements.put(profileRequirement.getProfile(), profileRequirement);
+        // Check the profile dependencies
+        if (!profileRequirement.hasMinimumInstances() && (profileRequirement.getMaximumInstances() == null || profileRequirement.getMaximumInstances() == 0)) {
+            // Profile doesn't have instances, skip the dependencies
+            return null;
+        }
+        for (String profile : profileRequirement.getDependentProfiles()) {
+            if (!profilePattern.reset(profile).matches()) {
+                // Profile dependency doesn't match profile pattern
+                LOGGER.error("Profile dependency {} for profile {} doesn't match profile pattern.", profile, profileRequirement.getProfile());
+                return null;
+            } else if (profileRequirementsMap.get(profile) == null && inheritRequirements) {
+                // Requirements missing, inherit them from the parent
+                LOGGER.info("Profile dependency {} inherited requirements from {}.", profile, profileRequirement.getProfile());
+                profileRequirementsMap.put(profile, new ProfileRequirements(profile, profileRequirement.getMinimumInstances(), profileRequirement.getMaximumInstances()));
+            } else if (profileRequirementsMap.get(profile) == null) {
+                // Requirements missing.
+                LOGGER.error("Profile dependency {} for profile {} is missing requirements.", profile, profileRequirement.getProfile());
+                return null;
+            }
+            checkProfileRequirements(profileRequirementsMap.get(profile), checkedProfileRequirements, profileRequirementsMap, profilePattern, inheritRequirements);
+        }
+        return checkedProfileRequirements;
+    }
+
     private void autoScaleProfileAssignments(FabricService service, FabricRequirements requirements, List<ProfileRequirements> profileRequirements) {
         final Map<Container, ContainerJob> allContainerJobs = new HashMap<>();
-
         try {
             // Collect all applicable containers
             for (Container container : Arrays.asList(service.getContainers())) {
