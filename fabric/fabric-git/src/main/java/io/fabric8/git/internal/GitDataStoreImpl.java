@@ -64,8 +64,13 @@ import java.net.SocketAddress;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.file.FileSystems;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -1508,40 +1513,18 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
             }
         }
 
-        void exportProfiles(final String versionId, final String outputFileName, String wildcard) {
+        void exportProfiles(final String versionId, final String outputFileName, final String wildcard) {
             LockHandle readLock = aquireReadLock();
             try {
                 assertValid();
                 
                 final File outputFile = new File(outputFileName);
                 outputFile.getParentFile().mkdirs();
-                
-                // Setup the file filter
-                final FileFilter filter;
-                if (Strings.isNotBlank(wildcard)) {
-                    final WildcardFileFilter matcher = new WildcardFileFilter(wildcard);
-                    filter = new FileFilter() {
-                        @Override
-                        public boolean accept(File file) {
-                            // match either the file or parent folder
-                            boolean answer = matcher.accept(file);
-                            if (!answer) {
-                                File parentFile = file.getParentFile();
-                                if (parentFile != null) {
-                                    answer = accept(parentFile);
-                                }
-                            }
-                            return answer;
-                        }
-                    };
-                } else {
-                    filter = null;
-                }
-                
+
                 GitOperation<String> gitop = new GitOperation<String>() {
                     public String call(Git git, GitContext context) throws Exception {
                         checkoutRequiredProfileBranch(git, context, versionId, null);
-                        return exportProfiles(git, context, outputFile, filter);
+                        return exportProfiles(git, context, outputFile, wildcard);
                     }
                 };
                 executeRead(gitop);
@@ -1553,9 +1536,13 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         /**
          * exports one or more profile folders from the given version into the zip
          */
-        private String exportProfiles(Git git, GitContext context, File outputFile, FileFilter filter) throws IOException {
+        private String exportProfiles(Git git, GitContext context, File outputFile, String wildcard) throws IOException {
             File profilesDirectory = GitHelpers.getProfilesDirectory(git);
-            Zips.createZipFile(LOGGER, profilesDirectory, outputFile, filter);
+            ProfilesVisitor<Path> visitor = new ProfilesVisitor<>(profilesDirectory, wildcard);
+            java.nio.file.Files.walkFileTree(profilesDirectory.toPath(), visitor);
+            List<File> matchingProfiles = visitor.getProfiles();
+
+            Zips.createZipFile(LOGGER, profilesDirectory, matchingProfiles, outputFile);
             return null;
         }
         
@@ -1870,5 +1857,33 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
             }
             return null;
         }
+    }
+}
+
+
+/**
+ * Find all profile directories under rootDirectory that match the given pattern
+ * @param <T>
+ */
+class ProfilesVisitor<T> extends SimpleFileVisitor<T> {
+    private List<File> profiles = new ArrayList<>();
+    private PathMatcher pathMatcher;
+
+    public ProfilesVisitor(File rootDirectory, String pattern) {
+        pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + rootDirectory.toString() + "**" + pattern + "**.profile");
+    }
+
+    @Override
+    public FileVisitResult preVisitDirectory(T dir, BasicFileAttributes attrs) throws IOException {
+        Path p = (Path) dir;
+
+        if (pathMatcher.matches(p)) {
+            profiles.add(p.toFile());
+        }
+        return FileVisitResult.CONTINUE;
+    }
+
+    public List<File> getProfiles() {
+        return profiles;
     }
 }
