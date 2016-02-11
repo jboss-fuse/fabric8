@@ -16,6 +16,7 @@
 package io.fabric8.patch.management.impl;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.Date;
@@ -23,12 +24,15 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.fabric8.patch.management.EnvType;
 import io.fabric8.patch.management.ManagedPatch;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.eclipse.jgit.api.CheckoutCommand;
 import io.fabric8.patch.management.io.NtfsAwareCheckoutCommand;
 import org.eclipse.jgit.api.CommitCommand;
@@ -38,6 +42,7 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.errors.RepositoryNotFoundException;
 import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.RepositoryCache;
@@ -48,6 +53,8 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.TagOpt;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
+import org.eclipse.jgit.treewalk.TreeWalk;
+import org.eclipse.jgit.treewalk.filter.PathFilter;
 import org.osgi.framework.Version;
 
 /**
@@ -59,11 +66,14 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
 
     private static final Pattern BASELINE_TAG_PATTERN = Pattern.compile("^baseline-.*(\\d.+)$");
 
+    private final EnvType env;
     // what kind of env we're operating?
     private final boolean isFabric;
 
     // ${karaf.home}
     private File karafHome;
+    // ${karaf.base}
+    private File karafBase;
     // ${karaf.data}
     private File karafData;
 
@@ -96,15 +106,21 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
     // are we master repository? (doing further pushes to origin?)
     private boolean master;
 
+    // let's keep admin:create container's ID here
+    private String standaloneChildkarafName;
+
     /**
-     * @param fabric
+     * @param env
      * @param patchRepositoryLocation
      * @param karafHome
+     * @param karafBase
      * @param karafData
      * @param patchesDir
      */
-    public GitPatchRepositoryImpl(boolean fabric, File patchRepositoryLocation, File karafHome, File karafData, File patchesDir) {
-        this.isFabric = fabric;
+    public GitPatchRepositoryImpl(EnvType env, File patchRepositoryLocation,
+                                  File karafHome, File karafBase, File karafData, File patchesDir) {
+        this.env = env;
+        this.isFabric = env.isFabric();
 
         // private branch - don't pushed anywhere outside of patches/.management/history
         // in either env, each container tracks its own history - this branch's HEAD shows how ${karaf.base} looks
@@ -112,6 +128,22 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
         // and have custom changes on top. When fabric-agent detects the upgrade/downgrade, it rebuilds the
         // container history from another baseline
         this.mainPatchBranchName = GitPatchRepository.HISTORY_BRANCH;
+        if (env == EnvType.STANDALONE_CHILD) {
+            String suffix = "";
+            try {
+                Properties systemProperties = new Properties();
+                try (FileInputStream fis = new FileInputStream(new File(karafBase, "etc/system.properties"))) {
+                    systemProperties.load(fis);
+                    standaloneChildkarafName = systemProperties.getProperty("karaf.name");
+                    if (standaloneChildkarafName != null && !"".equals(standaloneChildkarafName)) {
+                        suffix = "-" + standaloneChildkarafName.replace(' ', '_');
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println(e.getMessage());
+            }
+            this.mainPatchBranchName = GitPatchRepository.ADMIN_HISTORY_BRANCH + suffix;
+        }
 
         // in fabric mode we track history of baselines for each kind of container
         if (isFabric) {
@@ -120,10 +152,13 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
             this.fabric8SSHContainerPatchBranchName = "patches-ssh-fabric8";
             this.fuseRootContainerPatchBranchName = "patches-root-fuse";
             this.amqRootContainerPatchBranchName = "patches-root-amq";
+        } else {
+            this.childContainerPatchBranchName = "patches-admin-child";
         }
 
         this.gitPatchManagement = patchRepositoryLocation;
         this.karafHome = karafHome;
+        this.karafBase = karafBase;
         this.karafData = karafData;
         this.patchesDir = patchesDir;
     }
@@ -186,6 +221,17 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
                 config.setString("remote", "origin", "url", origin.getCanonicalPath());
                 config.setString("remote", "origin", "fetch", "+refs/heads/*:refs/remotes/origin/*");
                 config.save();
+            }
+        }
+
+        if (env == EnvType.STANDALONE_CHILD) {
+            // let's "register" our private branch in root's patch management git repository
+            if (mainRepository.getRepository().getRef("refs/heads/" + getMainBranchName()) == null) {
+                String startPoint = "patch-management^{commit}";
+                mainRepository.branchCreate()
+                        .setName(getMainBranchName())
+                        .setStartPoint(startPoint)
+                        .call();
             }
         }
 
@@ -475,6 +521,27 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
             }
         }
         return result;
+    }
+
+    @Override
+    public String getFileContent(Git fork, String sha1, String fileName) throws IOException {
+        ObjectReader objectReader = fork.getRepository().newObjectReader();
+        RevCommit commit = new RevWalk(fork.getRepository())
+                .parseCommit(fork.getRepository().resolve(sha1));
+
+        TreeWalk tw = new TreeWalk(fork.getRepository());
+        tw.addTree(commit.getTree());
+        tw.setRecursive(false);
+        tw.setFilter(PathFilter.create(fileName));
+        if (tw.next()) {
+            ObjectId objectId = tw.getObjectId(0);
+            ObjectLoader loader = fork.getRepository().open(objectId);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            loader.copyTo(out);
+            return new String(out.toByteArray(), "UTF-8");
+        }
+
+        return null;
     }
 
     @Override

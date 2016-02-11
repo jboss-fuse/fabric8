@@ -55,7 +55,7 @@ public class GitPatchRepositoryTest {
         patchesHome = new File(karafHome, "patches");
         File patchRepositoryLocation = new File(patchesHome, GitPatchRepositoryImpl.MAIN_GIT_REPO_LOCATION);
 
-        repository = new GitPatchRepositoryImpl(false, patchRepositoryLocation, karafHome, karafData, patchesHome);
+        repository = new GitPatchRepositoryImpl(EnvType.STANDALONE, patchRepositoryLocation, karafHome, karafHome, karafData, patchesHome);
         repository.open();
     }
 

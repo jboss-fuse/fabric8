@@ -739,10 +739,12 @@ public class ServiceImpl implements Service {
                 String oldLocation = history.getLocation(bundle);
                 if ("org.ops4j.pax.url.mvn".equals(sn)) {
                     Artifact artifact = Utils.mvnurlToArtifact(newLocation, true);
-                    URL location = new File(repository,
-                            String.format("org/ops4j/pax/url/pax-url-aether/%1$s/pax-url-aether-%1$s.jar",
-                                    artifact.getVersion())).toURI().toURL();
-                    newLocation = location.toString();
+                    if (artifact != null) {
+                        URL location = new File(repository,
+                                String.format("org/ops4j/pax/url/pax-url-aether/%1$s/pax-url-aether-%1$s.jar",
+                                        artifact.getVersion())).toURI().toURL();
+                        newLocation = location.toString();
+                    }
                 }
 
                 int startLevel = bundle.adapt(BundleStartLevel.class).getStartLevel();
@@ -763,7 +765,7 @@ public class ServiceImpl implements Service {
                 if (oldUpdate != null) {
                     Version upv = null;
                     if (oldUpdate.getNewVersion() != null) {
-                        VersionTable.getVersion(oldUpdate.getNewVersion());
+                        upv = VersionTable.getVersion(oldUpdate.getNewVersion());
                     }
                     if (upv == null || upv.compareTo(newVersion) < 0) {
                         // other patch contains newer update for a bundle
@@ -1007,7 +1009,7 @@ public class ServiceImpl implements Service {
             throw new PatchException(e.getMessage(), e);
         } finally {
             // we'll add new feature repositories again later. here we've added them only to track the updates
-            if (addedRepositoryNames != null && after != null) {
+            if (after != null) {
                 for (String repo : addedRepositoryNames) {
                     if (after.get(repo) != null) {
                         featuresService.removeRepository(after.get(repo).getURI(), false);

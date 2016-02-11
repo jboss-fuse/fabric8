@@ -20,33 +20,33 @@ public enum EnvType {
     /**
      * No fabric
      */
-    STANDALONE(false, "baseline-%s", "baseline-%s", "fuse"),
-//    /**
-//     * Karaf child container (<code>admin:create</code>)
-//     */
-//    STANDALONE_CHILD(false, null, null),
+    STANDALONE(false, "baseline-%s", "fuse"),
+    /**
+     * Karaf child container (<code>admin:create</code>)
+     */
+    STANDALONE_CHILD(false, "baseline-child-%s", "karaf"),
 
     /**
      * Fabric container (SSH or root) based on Fuse distro
      */
-    FABRIC_FUSE(true, "foundation-root-fuse-%s", "baseline-root-fuse-%s", "fuse"),
+    FABRIC_FUSE(true, "baseline-root-fuse-%s", "fuse"),
     /**
      * SSH container based on fabric8-karaf distro
      */
-    FABRIC_FABRIC8(true, "foundation-ssh-fabric8-%s", "baseline-ssh-fabric8-%s", "fabric"),
+    FABRIC_FABRIC8(true, "baseline-ssh-fabric8-%s", "fabric"),
     /**
      * Fabric container (SSH or root) based on AMQ distro
      */
-    FABRIC_AMQ(true, "foundation-root-amq-%s", "baseline-root-amq-%s", "fuse"),
+    FABRIC_AMQ(true, "baseline-root-amq-%s", "fuse"),
     /**
      * Child container created in fabric env
      */
-    FABRIC_CHILD(true, "foundation-child-%s", "baseline-child-%s", "karaf"),
+    FABRIC_CHILD(true, "baseline-child-%s", "karaf"),
 
     /**
      * Openshift? JClouds?
      */
-    UNKNOWN(false, null, null, null);
+    UNKNOWN(false, null, null);
 
     private boolean fabric;
 
@@ -55,16 +55,11 @@ public enum EnvType {
      * private history branch starts from one of such baselines.
      */
     private String baselineTagFormat;
-    /**
-     * Fabric mode: Pattern for a tag that's placed on container's private history branch. If history branch doesn't
-     * contain such tag, it must be rebased (during fabric-agent provisioning)
-     */
-    private String historyTagFormat;
+
     private String productId;
 
-    EnvType(boolean fabric, String historyTagFormat, String baselineTagFormat, String productId) {
+    EnvType(boolean fabric, String baselineTagFormat, String productId) {
         this.fabric = fabric;
-        this.historyTagFormat = historyTagFormat;
         this.baselineTagFormat = baselineTagFormat;
         this.productId = productId;
     }
@@ -75,10 +70,6 @@ public enum EnvType {
 
     public String getBaselineTagFormat() {
         return baselineTagFormat;
-    }
-
-    public String getHistoryTagFormat() {
-        return historyTagFormat;
     }
 
     public String getProductId() {
