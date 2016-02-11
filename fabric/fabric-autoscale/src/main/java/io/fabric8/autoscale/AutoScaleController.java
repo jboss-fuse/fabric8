@@ -357,15 +357,28 @@ public final class AutoScaleController extends AbstractComponent implements Grou
                 // Profile dependency doesn't match profile pattern
                 LOGGER.error("Profile dependency {} for profile {} doesn't match profile pattern.", profile, profileRequirement.getProfile());
                 return checkedProfileRequirements;
-            } else if (profileRequirementsMap.get(profile) == null && !inheritRequirements) {
-                // Requirements missing.
-                LOGGER.error("Profile dependency {} for profile {} is missing requirements.", profile, profileRequirement.getProfile());
-                return checkedProfileRequirements;
-            } else if (profileRequirementsMap.get(profile) == null && inheritRequirements) {
-                // Requirements missing, inherit them from the parent
-                profileRequirementsMap.put(profile, new ProfileRequirements(profile, profileRequirement.getMinimumInstances(), profileRequirement.getMaximumInstances()));
             }
-            checkProfileRequirements(profileRequirementsMap.get(profile), checkedProfileRequirements, profileRequirementsMap, profilePattern, inheritRequirements);
+            ProfileRequirements dependency = profileRequirementsMap.get(profile);
+            if (inheritRequirements) {
+                if (dependency == null) {
+                    // Requirements missing, inherit them from the parent
+                    dependency = new ProfileRequirements(profile, profileRequirement.getMinimumInstances(), profileRequirement.getMaximumInstances());
+                } else if (!dependency.hasMinimumInstances()) {
+                    // No instances for the dependency, inherit them from the parent
+                    dependency.setMinimumInstances(profileRequirement.getMinimumInstances());
+                }
+            } else {
+                if (dependency == null) {
+                    // Requirements missing.
+                    LOGGER.error("Profile dependency {} for profile {} is missing requirements.", profile, profileRequirement.getProfile());
+                    return checkedProfileRequirements;
+                } else if (!dependency.hasMinimumInstances()) {
+                    // No instances for the dependency.
+                    LOGGER.error("Profile dependency {} for profile {} has no instances.", profile, profileRequirement.getProfile());
+                    return checkedProfileRequirements;
+                }
+            }
+            checkProfileRequirements(dependency, checkedProfileRequirements, profileRequirementsMap, profilePattern, inheritRequirements);
         }
         return checkedProfileRequirements;
     }
