@@ -25,6 +25,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -43,6 +44,14 @@ public class Zips {
         createZipFile(log, sourceDir, outputZipFile, filter);
     }
 
+    /**
+     * Creates a zip file from the given list of source directories
+     */
+    public static void createZipFile(Logger log, File baseDir, List<File> sourceDirs, File outputZipFile) throws IOException {
+        FileFilter filter = null;
+        createZipFile(log, baseDir, sourceDirs, outputZipFile, filter);
+    }
+
     public static void createZipFile(Logger log, File sourceDir, File outputZipFile, FileFilter filter) throws IOException {
         outputZipFile.getParentFile().mkdirs();
         OutputStream os = new FileOutputStream(outputZipFile);
@@ -52,6 +61,20 @@ public class Zips {
             //zos.setLevel(Deflater.NO_COMPRESSION);
             String path = "";
             zipDirectory(log, sourceDir, zos, path, filter);
+        } finally {
+            closeQuietly(zos);
+        }
+    }
+
+    public static void createZipFile(Logger log, File baseDir, List<File> sourceDirs, File outputZipFile, FileFilter filter) throws IOException {
+        outputZipFile.getParentFile().mkdirs();
+        OutputStream os = new FileOutputStream(outputZipFile);
+        ZipOutputStream zos = new ZipOutputStream(os);
+        try {
+            for (File profileDirectory : sourceDirs) {
+                String basePath = profileDirectory.getCanonicalPath().replace(baseDir.getCanonicalPath(), "") + "/";
+                zipDirectory(log, profileDirectory, zos, basePath, filter);
+            }
         } finally {
             closeQuietly(zos);
         }
