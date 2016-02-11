@@ -22,6 +22,10 @@ public class ContainerJob implements Runnable {
         this.container = container;
     }
 
+    public Container getContainer() {
+        return container;
+    }
+
     public int getProfileCount() {
         int count = 0;
         for (Boolean assigned : profiles.values()) {
