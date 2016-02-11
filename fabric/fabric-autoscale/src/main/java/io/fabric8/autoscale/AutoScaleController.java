@@ -335,29 +335,33 @@ public final class AutoScaleController extends AbstractComponent implements Grou
     }
 
     private static Map<String, ProfileRequirements> checkProfileRequirements(ProfileRequirements profileRequirement, Map<String, ProfileRequirements> checkedProfileRequirements, Map<String, ProfileRequirements> profileRequirementsMap, Matcher profilePattern, Boolean inheritRequirements) {
-        if (profileRequirement == null || profilePattern.reset(profileRequirement.getProfile()).matches()) {
-            return null;
+        if (profileRequirement == null || !profilePattern.reset(profileRequirement.getProfile()).matches()) {
+            // At the end or profile doesn't match the profile pattern
+            return checkedProfileRequirements;
         }
         // Add this profile requirement to the result
         checkedProfileRequirements.put(profileRequirement.getProfile(), profileRequirement);
-        // Check the profile dependencies
+        if (profileRequirement.getDependentProfiles() == null) {
+            // Profile doesn't have dependencies
+            return checkedProfileRequirements;
+        }
         if (!profileRequirement.hasMinimumInstances() && (profileRequirement.getMaximumInstances() == null || profileRequirement.getMaximumInstances() == 0)) {
             // Profile doesn't have instances, skip the dependencies
-            return null;
+            return checkedProfileRequirements;
         }
+        // Check the profile dependencies
         for (String profile : profileRequirement.getDependentProfiles()) {
             if (!profilePattern.reset(profile).matches()) {
                 // Profile dependency doesn't match profile pattern
                 LOGGER.error("Profile dependency {} for profile {} doesn't match profile pattern.", profile, profileRequirement.getProfile());
-                return null;
-            } else if (profileRequirementsMap.get(profile) == null && inheritRequirements) {
-                // Requirements missing, inherit them from the parent
-                LOGGER.info("Profile dependency {} inherited requirements from {}.", profile, profileRequirement.getProfile());
-                profileRequirementsMap.put(profile, new ProfileRequirements(profile, profileRequirement.getMinimumInstances(), profileRequirement.getMaximumInstances()));
-            } else if (profileRequirementsMap.get(profile) == null) {
+                return checkedProfileRequirements;
+            } else if (profileRequirementsMap.get(profile) == null && !inheritRequirements) {
                 // Requirements missing.
                 LOGGER.error("Profile dependency {} for profile {} is missing requirements.", profile, profileRequirement.getProfile());
-                return null;
+                return checkedProfileRequirements;
+            } else if (profileRequirementsMap.get(profile) == null && inheritRequirements) {
+                // Requirements missing, inherit them from the parent
+                profileRequirementsMap.put(profile, new ProfileRequirements(profile, profileRequirement.getMinimumInstances(), profileRequirement.getMaximumInstances()));
             }
             checkProfileRequirements(profileRequirementsMap.get(profile), checkedProfileRequirements, profileRequirementsMap, profilePattern, inheritRequirements);
         }
