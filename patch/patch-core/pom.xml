@@ -37,6 +37,15 @@
             io.fabric8.patch.impl;version="${project.version}"
         </fuse.osgi.export>
         <fuse.osgi.import>
+            io.fabric8.api;resolution:=optional,
+            io.fabric8.common.util;resolution:=optional,
+            io.fabric8.git;resolution:=optional,
+            io.fabric8.git.internal;resolution:=optional,
+            io.fabric8.zookeeper.utils;resolution:=optional,
+            org.apache.curator.framework;resolution:=optional,
+            org.eclipse.jgit.api;resolution:=optional,
+            org.eclipse.jgit.lib;resolution:=optional,
+            org.eclipse.jgit.transport;resolution:=optional,
             *
         </fuse.osgi.import>
         <fuse.osgi.private.pkg>
