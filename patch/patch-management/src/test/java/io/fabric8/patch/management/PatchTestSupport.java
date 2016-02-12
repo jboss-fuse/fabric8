@@ -18,6 +18,7 @@ package io.fabric8.patch.management;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.Properties;
@@ -42,6 +43,7 @@ import static org.mockito.Mockito.when;
 public abstract class PatchTestSupport {
 
     protected File karafHome;
+    protected File karafBase;
     protected File patchesHome;
 
     protected Properties properties;
@@ -51,15 +53,21 @@ public abstract class PatchTestSupport {
     protected BundleContext systemContext;
     protected Bundle system;
 
-    protected void init() throws IOException, GitAPIException {
-        karafHome = new File("target/karaf");
-        FileUtils.deleteQuietly(karafHome);
+    protected void init(boolean deleteDirs, boolean defaultDirs) throws IOException, GitAPIException {
+        if (defaultDirs) {
+            karafHome = new File("target/karaf");
+            karafBase = new File("target/karaf");
+        }
+        if (deleteDirs) {
+            FileUtils.deleteQuietly(karafHome);
+            FileUtils.deleteQuietly(karafBase);
+        }
         patchesHome = new File(karafHome, "patches");
 
         properties = new Properties();
         properties.setProperty("karaf.home", karafHome.getCanonicalPath());
-        properties.setProperty("karaf.base", karafHome.getCanonicalPath());
-        properties.setProperty("karaf.data", karafHome.getCanonicalPath() + File.separator + "data");
+        properties.setProperty("karaf.base", karafBase.getCanonicalPath());
+        properties.setProperty("karaf.data", karafBase.getCanonicalPath() + File.separator + "data");
         properties.setProperty("karaf.default.repository", "system");
         properties.setProperty("fuse.patch.location", new File(karafHome, "patches").getCanonicalPath());
 
@@ -79,6 +87,22 @@ public abstract class PatchTestSupport {
             }
         });
         when(systemContext.getBundles()).thenReturn(new Bundle[0]);
+    }
+
+    /**
+     * Create crucial Karaf files (like etc/startup.properties)
+     */
+    protected void freshKarafStandaloneDistro() throws IOException {
+        FileUtils.copyFile(new File("src/test/resources/karaf/etc/startup.properties"), new File(karafHome, "etc/startup.properties"));
+        FileUtils.copyFile(new File("src/test/resources/karaf/bin/admin"), new File(karafHome, "bin/admin"));
+        FileUtils.copyFile(new File("src/test/resources/karaf/bin/start"), new File(karafHome, "bin/start"));
+        FileUtils.copyFile(new File("src/test/resources/karaf/bin/stop"), new File(karafHome, "bin/stop"));
+        FileUtils.copyFile(new File("src/test/resources/karaf/bin/setenv"), new File(karafHome, "bin/setenv"));
+        FileUtils.copyFile(new File("src/test/resources/karaf/lib/karaf.jar"), new File(karafHome, "lib/karaf.jar"));
+        FileUtils.copyFile(new File("src/test/resources/karaf/fabric/import/fabric/profiles/default.profile/io.fabric8.version.properties"),
+                new File(karafHome, "fabric/import/fabric/profiles/default.profile/io.fabric8.version.properties"));
+        new File(karafHome, "licenses").mkdirs();
+        new File(karafHome, "metatype").mkdirs();
     }
 
     protected void preparePatchZip(String directoryToZip, String zipFile, final boolean includeParentDirectory) throws IOException {
@@ -110,4 +134,14 @@ public abstract class PatchTestSupport {
         zos1.close();
     }
 
+    protected Object getField(Object object, String fieldName) {
+        Field f = null;
+        try {
+            f = object.getClass().getDeclaredField(fieldName);
+            f.setAccessible(true);
+            return f.get(object);
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
+    }
 }

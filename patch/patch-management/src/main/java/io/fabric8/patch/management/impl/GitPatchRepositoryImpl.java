@@ -579,4 +579,9 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
         this.master = master;
     }
 
+    @Override
+    public String getStandaloneChildkarafName() {
+        return standaloneChildkarafName;
+    }
+
 }

@@ -823,6 +823,13 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                                 .setName(String.format(EnvType.STANDALONE.getBaselineTagFormat(), newFuseVersion))
                                 .setObjectId(c)
                                 .call();
+                    } else if (env == EnvType.STANDALONE_CHILD) {
+                        // tag the new rollup patch as a marked for easier rollback
+                        String newKarafVersion = determineVersion(fork.getRepository().getWorkTree(), "karaf");
+                        fork.tag()
+                                .setName(String.format(EnvType.STANDALONE_CHILD.getBaselineTagFormat(), newKarafVersion) + "-" + gitPatchRepository.getStandaloneChildkarafName())
+                                .setObjectId(c)
+                                .call();
                     }
 
                     // reapply those user changes that are not conflicting
@@ -905,8 +912,12 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     fork.reset().setMode(ResetCommand.ResetType.HARD).call();
 
                     // tag the installed patch (to easily rollback and to prevent another installation)
+                    String tagName = String.format("patch-%s", patch.getPatchData().getId().replace(' ', '-'));
+                    if (env == EnvType.STANDALONE_CHILD) {
+                        tagName += "-" + gitPatchRepository.getStandaloneChildkarafName();
+                    }
                     fork.tag()
-                            .setName(String.format("patch-%s", patch.getPatchData().getId().replace(' ', '-')))
+                            .setName(tagName)
                             .setObjectId(c)
                             .call();
 
@@ -925,7 +936,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * @param patchData
      */
     private void updateOverrides(File workTree, PatchData patchData) throws IOException {
-        List<String> currentOverrides = FileUtils.readLines(new File(workTree, "etc/overrides.properties"));
+        File overrides = new File(workTree, "etc/overrides.properties");
+        List<String> currentOverrides = overrides.isFile() ? FileUtils.readLines(overrides) : new LinkedList<String>();
 
         for (String bundle : patchData.getBundles()) {
             Artifact artifact = mvnurlToArtifact(bundle, true);
@@ -974,7 +986,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             }
         }
 
-        FileUtils.writeLines(new File(workTree, "etc/overrides.properties"), currentOverrides, IOUtils.LINE_SEPARATOR_UNIX);
+        FileUtils.writeLines(overrides, currentOverrides, IOUtils.LINE_SEPARATOR_UNIX);
     }
 
     /**
@@ -1209,11 +1221,12 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
                     // rolling back a non-rollup patch is a revert of the patch commit and removal of patch tag
 
-                    ObjectId oid = fork.getRepository().resolve(String.format("refs/tags/patch-%s^{commit}",
-                            patchData.getId()));
+                    String patchTagName = String.format("patch-%s",
+                            env == EnvType.STANDALONE ? patchData.getId() : patchData.getId() + "-" + gitPatchRepository.getStandaloneChildkarafName());
+                    ObjectId oid = fork.getRepository().resolve(patchTagName);
                     if (oid == null) {
-                        throw new PatchException(String.format("Can't find installed patch (tag patch-%s is missing)",
-                                patchData.getId()));
+                        throw new PatchException(String.format("Can't find installed patch (tag %s is missing)",
+                                patchTagName));
                     }
                     RevCommit commit = new RevWalk(fork.getRepository()).parseCommit(oid);
 
@@ -1255,7 +1268,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
                     // remove the tag
                     fork.tagDelete()
-                            .setTags(String.format("patch-%s", patchData.getId()))
+                            .setTags(patchTagName)
                             .call();
 
                     gitPatchRepository.push(fork);
@@ -1263,7 +1276,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     fork.push()
                             .setRefSpecs(new RefSpec()
                                     .setSource(null)
-                                    .setDestination(String.format("refs/tags/patch-%s", patchData.getId())))
+                                    .setDestination(String.format("refs/tags/%s", patchTagName)))
                             .call();
 
                     // HEAD of main patch branch after reset and cherry-picks
@@ -2784,7 +2797,10 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
         // Changes to the lib dir get done in the lib.next directory.  Lets copy
         // the lib dir just in case we do have modification to it.
-        FileUtils.copyDirectory(new File(karafBase, "lib"), new File(karafBase, "lib.next"));
+        File lib = new File(karafBase, "lib");
+        if (lib.isDirectory()) {
+            FileUtils.copyDirectory(lib, new File(karafBase, "lib.next"));
+        }
         boolean libDirectoryChanged = false;
 
         for (DiffEntry de : diff) {
