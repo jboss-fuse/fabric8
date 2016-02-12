@@ -36,7 +36,15 @@ public class Patch {
     }
 
     public boolean isInstalled() {
-        return result != null;
+        boolean inThisContainer = result != null && result.getVersions().size() == 0;
+        if (inThisContainer) {
+            boolean installed = false;
+            for (String kbt : result.getKarafBases()) {
+                installed |= kbt.startsWith(System.getProperty("karaf.name"));
+            }
+            inThisContainer = installed;
+        }
+        return result != null && inThisContainer;
     }
 
     public PatchData getPatchData() {

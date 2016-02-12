@@ -437,6 +437,11 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
 
     @Override
     public RevTag findCurrentBaseline(Git git) throws GitAPIException, IOException {
+        return findNthPreviousBaseline(git, 0);
+    }
+
+    @Override
+    public RevTag findNthPreviousBaseline(Git git, int n) throws GitAPIException, IOException {
         List<Ref> tags = git.tagList().call();
         RevWalk walk = new RevWalk(git.getRepository());
         Map<ObjectId, List<RevTag>> tagMap = new HashMap<>();
@@ -460,7 +465,7 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
 
         Iterable<RevCommit> log = git.log().add(git.getRepository().resolve(getMainBranchName())).call();
         for (RevCommit rc : log) {
-            if (tagMap.containsKey(rc.getId())) {
+            if (tagMap.containsKey(rc.getId()) && n-- == 0) {
                 if (tagMap.get(rc.getId()).size() == 1) {
                     return tagMap.get(rc.getId()).get(0);
                 } else {

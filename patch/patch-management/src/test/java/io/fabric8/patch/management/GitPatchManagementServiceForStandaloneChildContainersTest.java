@@ -125,10 +125,7 @@ public class GitPatchManagementServiceForStandaloneChildContainersTest extends P
         assertFalse(repository.containsTag(fork, "patch-my-patch-1-child"));
         // there's no such tag - we're not in STANDALONE container
         assertFalse(repository.containsTag(fork, "baseline-6.2.0.redhat-002"));
-        // each "special" patch for child containers is tagged. instaling it in child container creates
-        // another tag with ${karaf.name} appended to tag name
         assertTrue(repository.containsTag(fork, "baseline-child-2.4.0.redhat-621084"));
-        assertTrue(repository.containsTag(fork, "baseline-child-2.4.0.redhat-621084-child"));
 
         repository.closeRepository(fork, true);
     }
@@ -180,7 +177,7 @@ public class GitPatchManagementServiceForStandaloneChildContainersTest extends P
                 "[PATCH] Apply user changes",
                 "[PATCH] Apply user changes",
                 "[PATCH] Rollup patch patch-7 - resetting etc/overrides.properties",
-                "[PATCH] Installing rollup patch patch-7");
+                "[PATCH/baseline] Installing baseline-child-2.4.0.redhat-621084");
 
         int n = 0;
         for (RevCommit c : commits) {
@@ -190,14 +187,12 @@ public class GitPatchManagementServiceForStandaloneChildContainersTest extends P
 
         assertThat(n, equalTo(commitList.size()));
 
-        assertThat(fork.tagList().call().size(), equalTo(5));
+        assertThat(fork.tagList().call().size(), equalTo(4));
         assertTrue(repository.containsTag(fork, "patch-management"));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0"));
         assertFalse(repository.containsTag(fork, "baseline-6.2.0.redhat-002"));
         assertTrue(repository.containsTag(fork, "baseline-child-2.4.0.redhat-620133"));
         assertTrue(repository.containsTag(fork, "baseline-child-2.4.0.redhat-621084"));
-        assertFalse(repository.containsTag(fork, "baseline-child-2.4.0.redhat-620133-child"));
-        assertTrue(repository.containsTag(fork, "baseline-child-2.4.0.redhat-621084-child"));
     }
 
     @Test
@@ -232,8 +227,6 @@ public class GitPatchManagementServiceForStandaloneChildContainersTest extends P
         assertTrue(repository.containsTag(fork, "patch-my-patch-1-child"));
         assertTrue(repository.containsTag(fork, "baseline-child-2.4.0.redhat-620133"));
         assertTrue(repository.containsTag(fork, "baseline-child-2.4.0.redhat-621084"));
-        assertFalse(repository.containsTag(fork, "baseline-child-2.4.0.redhat-620133-child"));
-        assertTrue(repository.containsTag(fork, "baseline-child-2.4.0.redhat-621084-child"));
 
         management.rollback(patch7.getPatchData());
 

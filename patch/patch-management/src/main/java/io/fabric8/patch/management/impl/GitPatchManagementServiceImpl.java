@@ -85,6 +85,7 @@ import org.eclipse.jgit.api.CherryPickResult;
 import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.MergeCommand;
+import org.eclipse.jgit.api.RebaseCommand;
 import org.eclipse.jgit.api.ResetCommand;
 import org.eclipse.jgit.api.RevertCommand;
 import org.eclipse.jgit.api.Status;
@@ -771,14 +772,14 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         }
                     }
 
-                    String patchSha1 = patch.getManagedPatch().getCommitId();
+                    String patchRef = patch.getManagedPatch().getCommitId();
                     if (env == EnvType.STANDALONE_CHILD) {
                         // we're in a slightly different situation:
                         //  - patch was patch:added in root container
                         //  - its main commit should be used when patching full Fuse/AMQ container
                         //  - it created "side" commits (with tags) for this case of patching admin:create based containers
                         //  - those tags are stored in special patch-info.txt file within patch' commit
-                        String patchInfo = gitPatchRepository.getFileContent(fork, patchSha1, "patch-info.txt");
+                        String patchInfo = gitPatchRepository.getFileContent(fork, patchRef, "patch-info.txt");
                         if (patchInfo != null) {
                             BufferedReader reader = new BufferedReader(new StringReader(patchInfo));
                             String line = null;
@@ -790,7 +791,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                                 if (p.matcher(line).matches()) {
                                     // this means we have another commit/tag that we should chery-pick as a patch
                                     // for this standalone child container
-                                    patchSha1 = line.trim();
+                                    patchRef = line.trim();
                                 }
                             }
                         } else {
@@ -799,14 +800,23 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             return;
                         }
                     }
-                    // pick the rollup patch
-                    fork.cherryPick()
-                            .include(fork.getRepository().resolve(patchSha1))
-                            .setNoCommit(true)
-                            .call();
 
-                    gitPatchRepository.prepareCommit(fork,
-                            String.format(MARKER_R_PATCH_INSTALLATION_PATTERN, patch.getPatchData().getId())).call();
+                    if (env == EnvType.STANDALONE) {
+                        // pick the rollup patch
+                        fork.cherryPick()
+                                .include(fork.getRepository().resolve(patchRef))
+                                .setNoCommit(true)
+                                .call();
+
+                        gitPatchRepository.prepareCommit(fork,
+                                String.format(MARKER_R_PATCH_INSTALLATION_PATTERN, patch.getPatchData().getId())).call();
+                    } else if (env == EnvType.STANDALONE_CHILD) {
+                        // rebase on top of rollup patch
+                        fork.reset()
+                                .setMode(ResetCommand.ResetType.HARD)
+                                .setRef("refs/tags/" + patchRef + "^{commit}")
+                                .call();
+                    }
 
                     // next commit - reset overrides.properties - this is 2nd step of installing rollup patch
                     // we are doing it even if the commit is going to be empty - this is the same step as after
@@ -821,13 +831,6 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         String newFuseVersion = determineVersion(fork.getRepository().getWorkTree(), "fuse");
                         fork.tag()
                                 .setName(String.format(EnvType.STANDALONE.getBaselineTagFormat(), newFuseVersion))
-                                .setObjectId(c)
-                                .call();
-                    } else if (env == EnvType.STANDALONE_CHILD) {
-                        // tag the new rollup patch as a marked for easier rollback
-                        String newKarafVersion = determineVersion(fork.getRepository().getWorkTree(), "karaf");
-                        fork.tag()
-                                .setName(String.format(EnvType.STANDALONE_CHILD.getBaselineTagFormat(), newKarafVersion) + "-" + gitPatchRepository.getStandaloneChildkarafName())
                                 .setObjectId(c)
                                 .call();
                     }
@@ -1127,13 +1130,15 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         }
                     }
 
-                    // remove the tag
-                    fork.tagDelete()
-                            .setTags(currentBaseline.getTagName())
-                            .call();
+                    if (env == EnvType.STANDALONE) {
+                        // remove the tag
+                        fork.tagDelete()
+                                .setTags(currentBaseline.getTagName())
+                                .call();
+                    }
 
                     // baselines are stacked on each other
-                    RevTag previousBaseline = gitPatchRepository.findCurrentBaseline(fork);
+                    RevTag previousBaseline = gitPatchRepository.findNthPreviousBaseline(fork, env == EnvType.STANDALONE ? 0 : 1);
                     c1 = new RevWalk(fork.getRepository())
                             .parseCommit(fork.getRepository().resolve(previousBaseline.getTagName() + "^{commit}"));
 
@@ -1185,12 +1190,14 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     }
 
                     gitPatchRepository.push(fork);
-                    // remove remote tag
-                    fork.push()
-                            .setRefSpecs(new RefSpec()
-                                    .setSource(null)
-                                    .setDestination("refs/tags/" + currentBaseline.getTagName()))
-                            .call();
+                    if (env == EnvType.STANDALONE) {
+                        // remove remote tag
+                        fork.push()
+                                .setRefSpecs(new RefSpec()
+                                        .setSource(null)
+                                        .setDestination("refs/tags/" + currentBaseline.getTagName()))
+                                .call();
+                    }
 
                     // remove tags related to non-rollup patches installed between
                     // rolled back baseline and previous HEAD, because rolling back to previous rollup patch
@@ -2433,7 +2440,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
                 // let's assume that user didn't change this file and replace it with our version
                 FileUtils.copyFile(featuresCfg,
-                        new File(karafHome, "etc/org.apache.karaf.features.cfg"));
+                        new File(karafBase, "etc/org.apache.karaf.features.cfg"));
             }
         }
 
@@ -2985,6 +2992,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 gitPatchRepository.closeRepository(git, false);
             }
         }
+    }
+
+    @Override
+    public boolean isStandaloneChild() {
+        return env == EnvType.STANDALONE_CHILD;
     }
 
     @Override

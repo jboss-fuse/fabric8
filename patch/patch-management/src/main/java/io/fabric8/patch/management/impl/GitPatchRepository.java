@@ -167,6 +167,13 @@ public interface GitPatchRepository {
     RevTag findCurrentBaseline(Git repo) throws GitAPIException, IOException;
 
     /**
+     * <p>Finds one of the previous baselines. <code>n=0</code> means current</p>
+     * @param repo
+     * @return
+     */
+    RevTag findNthPreviousBaseline(Git repo, int n) throws GitAPIException, IOException;
+
+    /**
      * Queries git repository for basic {@link ManagedPatch} information (details may be fetched later)
      * @param id
      * @return

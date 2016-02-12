@@ -135,9 +135,15 @@ public interface PatchManagement {
     boolean alignTo(Map<String, String> versions, List<String> urls, File localMavenRepository, Runnable callback) throws PatchException;
 
     /**
+     * Checks whether we're in <code>admin:create</code> based child container
+     * @return
+     */
+    boolean isStandaloneChild();
+
+    /**
      * Callback to be passed to method that uploads content of retrieved patches to remote repository.
      */
-    public interface UploadCallback {
+    interface UploadCallback {
 
         void doWithUrlConnection(URLConnection connection) throws ProtocolException;
 
