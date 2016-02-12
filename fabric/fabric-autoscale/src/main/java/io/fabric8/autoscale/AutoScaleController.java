@@ -317,7 +317,7 @@ public final class AutoScaleController extends AbstractComponent implements Grou
         }
     }
 
-    // Return the preferred maximum assignment count for a single container
+    // Return the preferred maximum profile assignment count for a single container
     private static int getMaxAssignmentsPerContainer(int containerCount, int profileCount, double factor) {
         int profilesPerContainerAverage = (int)Math.ceil(Math.abs(profileCount) / Math.abs(containerCount));
         return profilesPerContainerAverage + (int)Math.round(Math.abs(factor) * profilesPerContainerAverage);
@@ -336,46 +336,49 @@ public final class AutoScaleController extends AbstractComponent implements Grou
         return new ArrayList<>(checkedProfileRequirements.values());
     }
 
-    private static Map<String, ProfileRequirements> checkProfileRequirements(ProfileRequirements profileRequirement, Map<String, ProfileRequirements> checkedProfileRequirements, Map<String, ProfileRequirements> profileRequirementsMap, Matcher profilePattern, Boolean inheritRequirements) {
-        if (profileRequirement == null || !profilePattern.reset(profileRequirement.getProfile()).matches()) {
+    private static Map<String, ProfileRequirements> checkProfileRequirements(ProfileRequirements parent, Map<String, ProfileRequirements> checkedProfileRequirements, Map<String, ProfileRequirements> profileRequirementsMap, Matcher profilePattern, Boolean inheritRequirements) {
+        if (parent == null || !profilePattern.reset(parent.getProfile()).matches()) {
             // At the end or profile doesn't match the profile pattern
             return checkedProfileRequirements;
         }
         // Add this profile requirement to the result
-        checkedProfileRequirements.put(profileRequirement.getProfile(), profileRequirement);
-        if (profileRequirement.getDependentProfiles() == null) {
+        checkedProfileRequirements.put(parent.getProfile(), parent);
+        if (parent.getDependentProfiles() == null) {
             // Profile doesn't have dependencies
             return checkedProfileRequirements;
         }
-        if (!profileRequirement.hasMinimumInstances() && (profileRequirement.getMaximumInstances() == null || profileRequirement.getMaximumInstances() == 0)) {
+        if (!parent.hasMinimumInstances()) {
             // Profile doesn't have instances, skip the dependencies
             return checkedProfileRequirements;
         }
         // Check the profile dependencies
-        for (String profile : profileRequirement.getDependentProfiles()) {
+        for (String profile : parent.getDependentProfiles()) {
             if (!profilePattern.reset(profile).matches()) {
                 // Profile dependency doesn't match profile pattern
-                LOGGER.error("Profile dependency {} for profile {} doesn't match profile pattern.", profile, profileRequirement.getProfile());
-                return checkedProfileRequirements;
+                LOGGER.error("Profile dependency {} for profile {} doesn't match profile pattern.", profile, parent.getProfile());
+                continue;
             }
             ProfileRequirements dependency = profileRequirementsMap.get(profile);
             if (inheritRequirements) {
                 if (dependency == null) {
                     // Requirements missing, inherit them from the parent
-                    dependency = new ProfileRequirements(profile, profileRequirement.getMinimumInstances(), profileRequirement.getMaximumInstances());
+                    dependency = new ProfileRequirements(profile, parent.getMinimumInstances(), parent.getMaximumInstances());
                 } else if (!dependency.hasMinimumInstances()) {
                     // No instances for the dependency, inherit them from the parent
-                    dependency.setMinimumInstances(profileRequirement.getMinimumInstances());
+                    dependency.setMinimumInstances(parent.getMinimumInstances());
+                    if (dependency.getMaximumInstances() != null && dependency.getMaximumInstances() < dependency.getMinimumInstances()) {
+                        dependency.setMaximumInstances(parent.getMaximumInstances());
+                    }
                 }
             } else {
                 if (dependency == null) {
                     // Requirements missing.
-                    LOGGER.error("Profile dependency {} for profile {} is missing requirements.", profile, profileRequirement.getProfile());
-                    return checkedProfileRequirements;
+                    LOGGER.error("Profile dependency {} for profile {} is missing requirements.", profile, parent.getProfile());
+                    continue;
                 } else if (!dependency.hasMinimumInstances()) {
                     // No instances for the dependency.
-                    LOGGER.error("Profile dependency {} for profile {} has no instances.", profile, profileRequirement.getProfile());
-                    return checkedProfileRequirements;
+                    LOGGER.error("Profile dependency {} for profile {} has no instances.", profile, parent.getProfile());
+                    continue;
                 }
             }
             checkProfileRequirements(dependency, checkedProfileRequirements, profileRequirementsMap, profilePattern, inheritRequirements);
