@@ -237,4 +237,10 @@ public interface GitPatchRepository {
      */
     String getFileContent(Git fork, String sha1, String fileName) throws IOException;
 
+    /**
+     * Helper method used when env is {@link io.fabric8.patch.management.EnvType#STANDALONE_CHILD}
+     * @return
+     */
+    String getStandaloneChildkarafName();
+
 }
