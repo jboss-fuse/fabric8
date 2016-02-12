@@ -37,7 +37,6 @@ import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.osgi.framework.startlevel.BundleStartLevel;
 
@@ -53,7 +52,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
     @Before
     public void init() throws IOException, GitAPIException {
-        super.init();
+        super.init(true, true);
 
         bsl = mock(BundleStartLevel.class);
         when(bundle.adapt(BundleStartLevel.class)).thenReturn(bsl);
@@ -91,7 +90,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
     @Test
     public void initializationPerformedNoBaselineDistribution() throws IOException, GitAPIException {
-        freshKarafDistro();
+        freshKarafStandaloneDistro();
         pm = new GitPatchManagementServiceImpl(bundleContext);
         pm.start();
         try {
@@ -104,7 +103,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
     @Test
     public void initializationPerformedBaselineDistributionFoundInPatches() throws IOException, GitAPIException {
-        freshKarafDistro();
+        freshKarafStandaloneDistro();
         preparePatchZip("src/test/resources/baselines/baseline1", "target/karaf/patches/jboss-fuse-full-6.2.0-baseline.zip", true);
         validateInitialGitRepository();
         // check one more time - should not do anything harmful
@@ -113,7 +112,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
     @Test
     public void initializationPerformedBaselineDistributionFoundInSystem() throws IOException, GitAPIException {
-        freshKarafDistro();
+        freshKarafStandaloneDistro();
         preparePatchZip("src/test/resources/baselines/baseline1", "target/karaf/system/org/jboss/fuse/jboss-fuse-full/6.2.0/jboss-fuse-full-6.2.0-baseline.zip", true);
         validateInitialGitRepository();
     }
@@ -129,7 +128,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     }
 
     private void testWithAlreadyInstalledPatchManagementBundle(String version) throws IOException, GitAPIException {
-        freshKarafDistro();
+        freshKarafStandaloneDistro();
         String line = String.format("io/fabric8/patch/patch-management/%s/patch-management-%s.jar=2\n", version, version);
         FileUtils.write(new File(karafHome, "etc/startup.properties"), line, true);
         preparePatchZip("src/test/resources/baselines/baseline1", "target/karaf/system/org/jboss/fuse/jboss-fuse-full/6.2.0/jboss-fuse-full-6.2.0-baseline.zip", true);
@@ -360,7 +359,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         assertThat(baselineCommit.getId(), equalTo(baselineCommitFromTag.getId()));
 
         List<DiffEntry> patchDiff = repository.diff(fork, baselineCommit, patchCommit);
-        assertThat("patch-4 should lead to 8 changes", patchDiff.size(), equalTo(8));
+        assertThat("patch-4 should lead to 8 changes", patchDiff.size(), equalTo(9));
         for (Iterator<DiffEntry> iterator = patchDiff.iterator(); iterator.hasNext(); ) {
             DiffEntry de = iterator.next();
             if ("bin/start".equals(de.getNewPath()) && de.getChangeType() == DiffEntry.ChangeType.MODIFY) {
@@ -387,6 +386,9 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
             if ("fabric/import/fabric/profiles/default.profile/io.fabric8.version.properties".equals(de.getNewPath()) && de.getChangeType() == DiffEntry.ChangeType.MODIFY) {
                 iterator.remove();
             }
+            if ("patch-info.txt".equals(de.getNewPath()) && de.getChangeType() == DiffEntry.ChangeType.ADD) {
+                iterator.remove();
+            }
         }
 
         assertThat("Unknown changes in patch-4", patchDiff.size(), equalTo(0));
@@ -405,7 +407,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
     @Test
     public void listNoPatchesAvailable() throws IOException, GitAPIException {
-        freshKarafDistro();
+        freshKarafStandaloneDistro();
         GitPatchRepository repository = patchManagement();
         PatchManagement management = (PatchManagement) pm;
         assertThat(management.listPatches(false).size(), equalTo(0));
@@ -413,7 +415,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
     @Test
     public void listSingleUntrackedPatch() throws IOException, GitAPIException {
-        freshKarafDistro();
+        freshKarafStandaloneDistro();
         GitPatchRepository repository = patchManagement();
         PatchManagement management = (PatchManagement) pm;
         preparePatchZip("src/test/resources/content/patch1", "target/karaf/patches/source/patch-1.zip", false);
@@ -434,7 +436,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
     @Test
     public void listSingleTrackedPatch() throws IOException, GitAPIException {
-        freshKarafDistro();
+        freshKarafStandaloneDistro();
         GitPatchRepository repository = patchManagement();
         PatchManagement management = (PatchManagement) pm;
         preparePatchZip("src/test/resources/content/patch1", "target/karaf/patches/source/patch-1.zip", false);
@@ -467,7 +469,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
     @Test
     public void listPatches() throws IOException, GitAPIException {
-        freshKarafDistro();
+        freshKarafStandaloneDistro();
         GitPatchRepository repository = patchManagement();
         PatchManagement management = (PatchManagement) pm;
 
@@ -493,7 +495,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
     @Test
     public void beginRollupPatchInstallation() throws IOException, GitAPIException {
-        freshKarafDistro();
+        freshKarafStandaloneDistro();
         GitPatchRepository repository = patchManagement();
         PatchManagement management = (PatchManagement) pm;
         String tx = management.beginInstallation(PatchKind.ROLLUP);
@@ -514,7 +516,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
     @Test
     public void beginNonRollupPatchInstallation() throws IOException, GitAPIException {
-        freshKarafDistro();
+        freshKarafStandaloneDistro();
         GitPatchRepository repository = patchManagement();
         PatchManagement management = (PatchManagement) pm;
         String tx = management.beginInstallation(PatchKind.NON_ROLLUP);
@@ -535,7 +537,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
     @Test
     public void installRollupPatch() throws IOException, GitAPIException {
-        freshKarafDistro();
+        freshKarafStandaloneDistro();
         GitPatchRepository repository = patchManagement();
         PatchManagement management = (PatchManagement) pm;
 
@@ -597,7 +599,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
     @Test
     public void rollbackRollupPatchInstallation() throws IOException, GitAPIException {
-        freshKarafDistro();
+        freshKarafStandaloneDistro();
         GitPatchRepository repository = patchManagement();
         PatchManagement management = (PatchManagement) pm;
 
@@ -623,7 +625,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
     @Test
     public void commitRollupPatch() throws IOException, GitAPIException {
-        freshKarafDistro();
+        freshKarafStandaloneDistro();
         GitPatchRepository repository = patchManagement();
         PatchManagement management = (PatchManagement) pm;
 
@@ -666,7 +668,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
     @Test
     public void rollbackInstalledRollupPatch() throws IOException, GitAPIException {
-        freshKarafDistro();
+        freshKarafStandaloneDistro();
         GitPatchRepository repository = patchManagement();
         PatchManagement management = (PatchManagement) pm;
 
@@ -716,7 +718,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
     @Test
     public void installNonRollupPatch() throws IOException, GitAPIException {
-        freshKarafDistro();
+        freshKarafStandaloneDistro();
         GitPatchRepository repository = patchManagement();
         PatchManagement management = (PatchManagement) pm;
 
@@ -768,7 +770,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
     @Test
     public void rollbackNonRollupPatchInstallation() throws IOException, GitAPIException {
-        freshKarafDistro();
+        freshKarafStandaloneDistro();
         GitPatchRepository repository = patchManagement();
         PatchManagement management = (PatchManagement) pm;
 
@@ -794,7 +796,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
     @Test
     public void commitNonRollupPatch() throws IOException, GitAPIException {
-        freshKarafDistro();
+        freshKarafStandaloneDistro();
         GitPatchRepository repository = patchManagement();
         PatchManagement management = (PatchManagement) pm;
 
@@ -831,7 +833,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
 
     @Test
     public void rollbackInstalledNonRollupPatch() throws IOException, GitAPIException {
-        freshKarafDistro();
+        freshKarafStandaloneDistro();
         GitPatchRepository repository = patchManagement();
         PatchManagement management = (PatchManagement) pm;
 
@@ -900,22 +902,6 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     }
 
     /**
-     * Create crucial Karaf files (like etc/startup.properties)
-     */
-    private void freshKarafDistro() throws IOException {
-        FileUtils.copyFile(new File("src/test/resources/karaf/etc/startup.properties"), new File(karafHome, "etc/startup.properties"));
-        FileUtils.copyFile(new File("src/test/resources/karaf/bin/admin"), new File(karafHome, "bin/admin"));
-        FileUtils.copyFile(new File("src/test/resources/karaf/bin/start"), new File(karafHome, "bin/start"));
-        FileUtils.copyFile(new File("src/test/resources/karaf/bin/stop"), new File(karafHome, "bin/stop"));
-        FileUtils.copyFile(new File("src/test/resources/karaf/bin/setenv"), new File(karafHome, "bin/setenv"));
-        FileUtils.copyFile(new File("src/test/resources/karaf/lib/karaf.jar"), new File(karafHome, "lib/karaf.jar"));
-        FileUtils.copyFile(new File("src/test/resources/karaf/fabric/import/fabric/profiles/default.profile/io.fabric8.version.properties"),
-                new File(karafHome, "fabric/import/fabric/profiles/default.profile/io.fabric8.version.properties"));
-        new File(karafHome, "licenses").mkdirs();
-        new File(karafHome, "metatype").mkdirs();
-    }
-
-    /**
      * Install patch management inside fresh karaf distro. No validation is performed.
      * @return
      * @throws IOException
@@ -926,17 +912,6 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         pm.start();
         pm.ensurePatchManagementInitialized();
         return ((GitPatchManagementServiceImpl) pm).getGitPatchRepository();
-    }
-
-    private Object getField(Object object, String fieldName) {
-        Field f = null;
-        try {
-            f = object.getClass().getDeclaredField(fieldName);
-            f.setAccessible(true);
-            return f.get(object);
-        } catch (Exception e) {
-            throw new RuntimeException(e.getMessage(), e);
-        }
     }
 
 }

@@ -19,6 +19,7 @@
 <features name="patch-${project.version}" xmlns="http://karaf.apache.org/xmlns/features/v1.2.0">
 
     <feature name="patch-core" version="${project.version}" resolver="(obr)">
+        <feature>scr</feature>
         <bundle start-level="2">mvn:io.fabric8.patch/patch-management/${project.version}</bundle>
         <bundle>mvn:io.fabric8.patch/patch-core/${project.version}</bundle>
     </feature>

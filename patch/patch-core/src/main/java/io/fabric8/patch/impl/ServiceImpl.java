@@ -135,8 +135,13 @@ public class ServiceImpl implements Service {
             if (dir != null) {
                 patchDir = new File(dir);
             } else {
-                // only now fallback to datafile of system bundle
-                patchDir = this.bundleContext.getDataFile("patches");
+                if (patchManagement.isStandaloneChild()) {
+                    patchDir = new File(System.getProperty("karaf.home"), "patches");
+                }
+                if (patchDir == null) {
+                    // only now fallback to datafile of system bundle
+                    patchDir = this.bundleContext.getDataFile("patches");
+                }
             }
         }
         if (!patchDir.isDirectory()) {
@@ -273,8 +278,19 @@ public class ServiceImpl implements Service {
                     patchData.getId(),
                     what == Pending.ROLLUP_INSTALLATION ? "installed" : "rolled back");
             if (what == Pending.ROLLUP_ROLLBACK) {
-                File file = new File(patchDir, patchData.getId() + ".patch.result");
-                file.delete();
+                List<String> bases = patch.getResult().getKarafBases();
+                for (Iterator<String> iterator = bases.iterator(); iterator.hasNext(); ) {
+                    String s = iterator.next();
+                    if (s.startsWith(System.getProperty("karaf.name"))) {
+                        iterator.remove();
+                    }
+                }
+                patch.getResult().setPending(null);
+                patch.getResult().store();
+                if (patch.getResult().getKarafBases().size() == 0) {
+                    File file = new File(patchDir, patchData.getId() + ".patch.result");
+                    file.delete();
+                }
             }
         }
     }
@@ -420,8 +436,15 @@ public class ServiceImpl implements Service {
                 }
 
                 // prepare patch result before doing runtime changes
-                PatchResult result = new PatchResult(patch.getPatchData(), simulate, System.currentTimeMillis(),
-                        bundleUpdatesInThisPatch, featureUpdatesInThisPatch);
+                PatchResult result = null;
+                if (patch.getResult() != null) {
+                    result = patch.getResult();
+                } else {
+                    result = new PatchResult(patch.getPatchData(), simulate, System.currentTimeMillis(),
+                            bundleUpdatesInThisPatch, featureUpdatesInThisPatch);
+                }
+                result.getKarafBases().add(String.format("%s | %s",
+                        System.getProperty("karaf.name"), System.getProperty("karaf.base")));
                 results.put(patch.getPatchData().getId(), result);
             }
 
@@ -731,10 +754,12 @@ public class ServiceImpl implements Service {
                 String oldLocation = history.getLocation(bundle);
                 if ("org.ops4j.pax.url.mvn".equals(sn)) {
                     Artifact artifact = Utils.mvnurlToArtifact(newLocation, true);
-                    URL location = new File(repository,
-                            String.format("org/ops4j/pax/url/pax-url-aether/%1$s/pax-url-aether-%1$s.jar",
-                                    artifact.getVersion())).toURI().toURL();
-                    newLocation = location.toString();
+                    if (artifact != null) {
+                        URL location = new File(repository,
+                                String.format("org/ops4j/pax/url/pax-url-aether/%1$s/pax-url-aether-%1$s.jar",
+                                        artifact.getVersion())).toURI().toURL();
+                        newLocation = location.toString();
+                    }
                 }
 
                 int startLevel = bundle.adapt(BundleStartLevel.class).getStartLevel();
@@ -755,7 +780,7 @@ public class ServiceImpl implements Service {
                 if (oldUpdate != null) {
                     Version upv = null;
                     if (oldUpdate.getNewVersion() != null) {
-                        VersionTable.getVersion(oldUpdate.getNewVersion());
+                        upv = VersionTable.getVersion(oldUpdate.getNewVersion());
                     }
                     if (upv == null || upv.compareTo(newVersion) < 0) {
                         // other patch contains newer update for a bundle
@@ -999,7 +1024,7 @@ public class ServiceImpl implements Service {
             throw new PatchException(e.getMessage(), e);
         } finally {
             // we'll add new feature repositories again later. here we've added them only to track the updates
-            if (addedRepositoryNames != null && after != null) {
+            if (after != null) {
                 for (String repo : addedRepositoryNames) {
                     if (after.get(repo) != null) {
                         featuresService.removeRepository(after.get(repo).getURI(), false);

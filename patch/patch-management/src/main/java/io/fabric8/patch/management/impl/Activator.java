@@ -70,7 +70,7 @@ public class Activator implements BundleActivator {
         activatedAt = sl.getStartLevel();
 
         if (!patchManagementService.isEnabled()) {
-            log(LogService.LOG_WARNING, "Not a Fuse/AMQ installation, patch management is disabled");
+            log(LogService.LOG_INFO, "\nPatch management is disabled");
             return;
         }
 

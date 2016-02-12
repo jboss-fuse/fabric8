@@ -37,10 +37,11 @@ import org.eclipse.jgit.revwalk.RevTag;
  */
 public interface GitPatchRepository {
 
-    public static final DateFormat TS = new SimpleDateFormat("yyyyMMdd-HHmmssSSS");
-    public static final DateFormat FULL_DATE = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    DateFormat TS = new SimpleDateFormat("yyyyMMdd-HHmmssSSS");
+    DateFormat FULL_DATE = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-    public static final String HISTORY_BRANCH = "container-history";
+    String HISTORY_BRANCH = "container-history";
+    String ADMIN_HISTORY_BRANCH = "admin-container-history";
 
     /**
      * Call if needed - when patch manager finds that it should use the repository.
@@ -159,12 +160,18 @@ public interface GitPatchRepository {
 
     /**
      * <p>Finds the current baseline, which is the newest baseline tag when traversing down the
-     * <code><em>main patch branch</em></code>
-     * branch</p>
+     * <code><em>main patch branch</em></code></p>
      * @param repo
      * @return
      */
     RevTag findCurrentBaseline(Git repo) throws GitAPIException, IOException;
+
+    /**
+     * <p>Finds one of the previous baselines. <code>n=0</code> means current</p>
+     * @param repo
+     * @return
+     */
+    RevTag findNthPreviousBaseline(Git repo, int n) throws GitAPIException, IOException;
 
     /**
      * Queries git repository for basic {@link ManagedPatch} information (details may be fetched later)
@@ -227,4 +234,20 @@ public interface GitPatchRepository {
      * @param b
      */
     void setMaster(boolean b);
+
+    /**
+     * Retrieves content of File from particular commit (<code>sha1</code>) if exists
+     * @param fork
+     * @param sha1
+     * @param fileName
+     * @return
+     */
+    String getFileContent(Git fork, String sha1, String fileName) throws IOException;
+
+    /**
+     * Helper method used when env is {@link io.fabric8.patch.management.EnvType#STANDALONE_CHILD}
+     * @return
+     */
+    String getStandaloneChildkarafName();
+
 }

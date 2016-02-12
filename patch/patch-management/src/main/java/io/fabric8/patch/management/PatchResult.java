@@ -58,6 +58,8 @@ public class PatchResult {
 
     private static final String VERSIONS = "version";
 
+    private static final String KARAF_BASE = "base";
+
     private static final String COUNT = "count";
     private static final String RANGE = "range";
 
@@ -71,6 +73,7 @@ public class PatchResult {
     private List<BundleUpdate> bundleUpdates = new LinkedList<>();
     private List<FeatureUpdate> featureUpdates = new LinkedList<>();
     private List<String> versions = new LinkedList<>();
+    private List<String> karafBases = new LinkedList<>();
 
     public PatchResult(PatchData patchData) {
         this.patchData = patchData;
@@ -162,8 +165,16 @@ public class PatchResult {
             versions.add(props.getProperty(VERSIONS + "." + Integer.toString(i)));
         }
 
+        List<String> karafBases = new ArrayList<>();
+        count = Integer.parseInt(props.getProperty(KARAF_BASE + "." + COUNT, "0"));
+        for (int i = 0; i < count; i++) {
+            karafBases.add(props.getProperty(KARAF_BASE + "." + Integer.toString(i)));
+        }
+
         PatchResult result = new PatchResult(patchData, false, date, bupdates, fupdates);
         result.getVersions().addAll(versions);
+        result.getKarafBases().addAll(karafBases);
+
         return result;
     }
 
@@ -233,6 +244,13 @@ public class PatchResult {
             i++;
         }
 
+        pw.write(KARAF_BASE + "." + COUNT + " = " + Integer.toString(getKarafBases().size()) + "\n");
+        i = 0;
+        for (String base : getKarafBases()) {
+            pw.write(KARAF_BASE + "." + Integer.toString(i) + " = " + base + "\n");
+            i++;
+        }
+
         pw.close();
     }
 
@@ -266,6 +284,10 @@ public class PatchResult {
 
     public List<String> getVersions() {
         return versions;
+    }
+
+    public List<String> getKarafBases() {
+        return karafBases;
     }
 
 }

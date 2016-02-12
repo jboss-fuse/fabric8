@@ -36,7 +36,7 @@ public class PatchManagementTest extends PatchTestSupport {
 
     @Before
     public void init() throws IOException, GitAPIException {
-        super.init();
+        super.init(true, true);
 
         pm = new GitPatchManagementServiceImpl(bundleContext);
         ((GitPatchManagementServiceImpl)pm).start();
