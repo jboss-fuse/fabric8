@@ -15,13 +15,12 @@
  */
 package io.fabric8.patch.itests;
 
-import io.fabric8.api.InvalidComponentException;
+import java.io.File;
+
 import io.fabric8.common.util.IOHelpers;
 import io.fabric8.itests.support.CommandSupport;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.osgi.framework.BundleContext;
-
-import java.io.File;
 
 import static org.junit.Assert.fail;
 
@@ -68,14 +67,14 @@ public abstract class AbstractPatchCommandIntegrationTest {
         while (!done && System.currentTimeMillis() - start < TIMEOUT) {
             String result = null;
             try {
-                result = CommandSupport.executeCommand(String.format("patch:list", name));
+                result = CommandSupport.executeCommand("patch:list");
             } catch (Exception exception) {
                 // when we're updating patch-core, we may use stale patch:list service. Try again then before timeout.
                 continue;
             }
 
             for (String line : result.split("\\r?\\n")) {
-                if (line.contains(name) && line.contains(installed.toString())) {
+                if (line.contains(name) && line.contains(!installed ? "false" : "root")) {
                     done = true;
                     break;
                 }

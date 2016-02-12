@@ -1367,6 +1367,10 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             ObjectReader objectReader = fork.getRepository().newObjectReader();
 
             for (Map.Entry<String, ObjectId[]> entry : threeWayMerge.entrySet()) {
+                if (entry.getKey().equals("patch-info.txt")) {
+                    fork.rm().addFilepattern(entry.getKey()).call();
+                    continue;
+                }
                 Resolver resolver = conflictResolver.getResolver(entry.getKey());
                 // resolved version - either by custom resolved or using automatic algorithm
                 String resolved = null;

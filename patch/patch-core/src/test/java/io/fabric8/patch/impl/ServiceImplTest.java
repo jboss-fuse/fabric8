@@ -90,6 +90,7 @@ public class ServiceImplTest {
     File patch132;
     File patch140;
     File patch200;
+    private String oldName;
 
     @Before
     public void setUp() throws Exception {
@@ -97,6 +98,7 @@ public class ServiceImplTest {
 
         URL.setURLStreamHandlerFactory(new CustomBundleURLStreamHandlerFactory());
         generateData();
+        oldName = System.setProperty("karaf.name", "x");
     }
 
     @After
@@ -104,6 +106,9 @@ public class ServiceImplTest {
         Field field = URL.class.getDeclaredField("factory");
         field.setAccessible(true);
         field.set(null, null);
+        if (oldName != null) {
+            System.setProperty("karaf.name", oldName);
+        }
     }
 
     @Test
