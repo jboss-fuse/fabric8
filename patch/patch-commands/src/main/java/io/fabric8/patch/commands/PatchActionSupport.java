@@ -15,9 +15,7 @@
  */
 package io.fabric8.patch.commands;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
+import java.util.*;
 
 import io.fabric8.patch.Service;
 import io.fabric8.patch.management.BundleUpdate;
@@ -92,6 +90,16 @@ public abstract class PatchActionSupport extends AbstractAction {
                         }
                     }
                 }
+                java.util.List<String> karafBases = patch.getResult().getKarafBases();
+                if (karafBases.size() > 0) {
+                    // patch installed in standalone mode (root, admin:create)
+                    for (String kbt : karafBases) {
+                        String[] kb = kbt.split("\\s*\\|\\s*");
+                        if (kb[0].length() > l2) {
+                            l2 = kb[0].length();
+                        }
+                    }
+                }
             }
             String desc = patch.getPatchData().getDescription() != null ? patch.getPatchData().getDescription() : "";
             if (desc.length() > l3) {
@@ -103,15 +111,30 @@ public abstract class PatchActionSupport extends AbstractAction {
         for (Patch patch : patches) {
             String desc = patch.getPatchData().getDescription() != null ? patch.getPatchData().getDescription() : "";
             String installed = Boolean.toString(patch.isInstalled());
-            if (patch.getResult() != null && patch.getResult().getVersions().size() > 0) {
-                installed = "Version " + patch.getResult().getVersions().get(0);
+            boolean fabric = false;
+            if (patch.getResult() != null) {
+                if (patch.getResult().getVersions().size() > 0) {
+                    installed = "Version " + patch.getResult().getVersions().get(0);
+                    fabric = true;
+                } else if (patch.getResult().getKarafBases().size() > 0) {
+                    String kbt = patch.getResult().getKarafBases().get(0);
+                    String[] kb = kbt.split("\\s*\\|\\s*");
+                    installed = kb[0];
+                }
             }
             System.out.println(String.format("%-" + l1 + "s %-" + l2 + "s %-" + l3 + "s", patch.getPatchData().getId(),
                     installed, desc));
-            if (patch.getResult() != null && patch.getResult().getVersions().size() > 1) {
+            if (fabric && patch.getResult() != null && patch.getResult().getVersions().size() > 1) {
                 for (String v : patch.getResult().getVersions().subList(1, patch.getResult().getVersions().size())) {
                     System.out.println(String.format("%-" + l1 + "s %-" + l2 + "s %-" + l3 + "s", " ",
                             "Version " + v, " "));
+                }
+            }
+            if (!fabric && patch.getResult() != null && patch.getResult().getKarafBases().size() > 1) {
+                for (String kbt : patch.getResult().getKarafBases().subList(1, patch.getResult().getKarafBases().size())) {
+                    String[] kb = kbt.split("\\s*\\|\\s*");
+                    System.out.println(String.format("%-" + l1 + "s %-" + l2 + "s %-" + l3 + "s", " ",
+                            kb[0], " "));
                 }
             }
 
