@@ -51,6 +51,7 @@ import org.slf4j.LoggerFactory;
 public final class FabricConfigAdminBridge extends AbstractComponent implements Runnable {
 
     public static final String FABRIC_ZOOKEEPER_PID = "fabric.zookeeper.pid";
+    public static final String FELIX_FILE_INSTALL_FILE_NAME = "felix.fileinstall.filename";
     /**
      * Configuration property that indicates if old configuration should be preserved.
      * By default, previous configuration is discarded and new is used instead.
@@ -175,6 +176,7 @@ public final class FabricConfigAdminBridge extends AbstractComponent implements 
         configs.remove(config);
         Dictionary<String, Object> props = config.getProperties();
         Hashtable<String, Object> old = props != null ? new Hashtable<String, Object>() : null;
+        Object felix_file_install_name = null;
         if (old != null) {
             for (Enumeration<String> e = props.keys(); e.hasMoreElements();) {
                 String key = e.nextElement();
@@ -184,6 +186,8 @@ public final class FabricConfigAdminBridge extends AbstractComponent implements 
             old.remove(FABRIC_ZOOKEEPER_PID);
             old.remove(org.osgi.framework.Constants.SERVICE_PID);
             old.remove(ConfigurationAdmin.SERVICE_FACTORYPID);
+            // stash a property to avoid false positive updates related to RBAC config files, restores it at the end of the method
+            felix_file_install_name = old.remove(FELIX_FILE_INSTALL_FILE_NAME);
         }
         if (!c.equals(old)) {
             LOGGER.info("Updating configuration {}", config.getPid());
@@ -213,6 +217,10 @@ public final class FabricConfigAdminBridge extends AbstractComponent implements 
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("Ignoring configuration {} (no changes)", config.getPid());
             }
+        }
+
+        if(felix_file_install_name !=  null && !c.containsKey(FELIX_FILE_INSTALL_FILE_NAME)){
+            c.put(FELIX_FILE_INSTALL_FILE_NAME, felix_file_install_name);
         }
     }
 
