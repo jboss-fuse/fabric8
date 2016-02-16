@@ -57,11 +57,11 @@ public class HttpGatewayServer {
             server.websocketHandler(websocketHandler);
         }
         if (host != null) {
-            LOG.info("Listening on port " + port + " and host " + host);
             server = server.listen(port, host);
+            LOG.info("Listening on port " + port + " and host " + host);
         } else {
-            LOG.info("Listening on port " + port);
             server = server.listen(port);
+            LOG.info("Listening on port " + port);
         }
     }
 
