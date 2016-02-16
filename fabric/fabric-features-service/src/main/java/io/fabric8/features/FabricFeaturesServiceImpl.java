@@ -372,7 +372,7 @@ public final class FabricFeaturesServiceImpl extends AbstractComponent implement
             try {
                 populateRepositories(uri, repos);
             } catch (Exception ex) {
-                LOGGER.warn("Error while populating repositories from uri.", ex);
+                LOGGER.warn("Error while populating repositories from uri: {} ", uri, ex);
             }
         }
 
