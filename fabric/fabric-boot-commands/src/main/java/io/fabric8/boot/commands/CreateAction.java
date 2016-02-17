@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.felix.gogo.commands.Argument;
@@ -217,6 +218,16 @@ class CreateAction extends AbstractAction {
         }
         if (externalGitPassword != null) {
             builder.dataStoreProperty(GIT_REMOTE_PASSWORD, externalGitPassword);
+        }
+
+        if ((externalGitUrl != null) || (externalGitUser != null) || (externalGitPassword != null)) {
+            Configuration configuration = configAdmin.getConfiguration(Constants.DATASTORE_PID);
+            Dictionary<String, Object> existingProperties = configuration.getProperties();
+            Map<String, String> changedProperties = builder.getDataStoreProperties();
+            for (String key : changedProperties.keySet()) {
+                existingProperties.put(key, changedProperties.get(key));
+            }
+            configuration.update(existingProperties);
         }
 
         if (profiles != null && profiles.size() > 0) {
