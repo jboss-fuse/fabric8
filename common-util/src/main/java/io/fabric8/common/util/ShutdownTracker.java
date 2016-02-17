@@ -15,6 +15,9 @@
  */
 package io.fabric8.common.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.management.NotCompliantMBeanException;
 import javax.management.StandardMBean;
 import java.lang.reflect.InvocationHandler;
@@ -34,6 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Created by chirino on 6/23/14.
  */
 public class ShutdownTracker {
+    private static final transient Logger LOG = LoggerFactory.getLogger(ShutdownTracker.class);
 
     public static final boolean DISABLED = Boolean.getBoolean("io.fabric8.common.util.ShutdownTracker.DISABLED");
     public static class ShutdownException extends IllegalStateException {}
@@ -51,6 +55,8 @@ public class ShutdownTracker {
         if(!attemptRetain() ) {
             if( !DISABLED ) {
                 throw new ShutdownException(); // fail the attempt at retaining.
+            } else {
+                LOG.info("Ignoring: retain() failure, would have caused a ShutdownException");
             }
         }
     }
@@ -80,6 +86,8 @@ public class ShutdownTracker {
             if( !stopping.get() ) {
                 if( !DISABLED ) {
                     throw new IllegalStateException("Unbalanced calls to release detected.");
+                } else {
+                    LOG.info("Ignoring: release() failure, would have caused an IllegalStateException");
                 }
             } else {
                 if( onStopCallback!=null ) {
@@ -104,7 +112,7 @@ public class ShutdownTracker {
         try {
             return callable.call();
         } finally {
-            retained.decrementAndGet();
+            release();
         }
     }
 
@@ -123,6 +131,8 @@ public class ShutdownTracker {
         } else {
             if( !DISABLED ) {
                 throw new ShutdownException();
+            } else {
+                LOG.info("Ignoring: shutdown() failure, would have caused a ShutdownException");
             }
         }
     }
