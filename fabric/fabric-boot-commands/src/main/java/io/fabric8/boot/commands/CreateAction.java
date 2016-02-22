@@ -24,13 +24,19 @@ import io.fabric8.zookeeper.bootstrap.BootstrapConfiguration;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.security.AccessControlContext;
+import java.security.AccessController;
+import java.security.Principal;
 import java.util.Arrays;
 import java.util.Dictionary;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+
+import javax.security.auth.Subject;
 
 import org.apache.felix.gogo.commands.Argument;
 import org.apache.felix.gogo.commands.Command;
@@ -134,6 +140,11 @@ class CreateAction extends AbstractAction {
 
     protected Object doExecute() throws Exception {
 
+    	if (!hasRole("admin") && !hasRole("superuser")) {
+    		System.out.println("The fabric:create command can be executed only by admin user");
+    		return null;
+    	} 
+    	
         // prevent creating fabric if already created
         ServiceReference<FabricService> sref = bundleContext.getServiceReference(FabricService.class);
         FabricService fabricService = sref != null ? bundleContext.getService(sref) : null;
@@ -379,6 +390,28 @@ class CreateAction extends AbstractAction {
         response[0] = user;
         response[1] = password;
         return response;
+    }
+    
+    private boolean hasRole(String requestedRole) {
+    	AccessControlContext acc = AccessController.getContext();
+    	if (acc == null) {
+    	return false;
+    	}
+    	Subject subject = Subject.getSubject(acc);
+    	if (subject == null) {
+    	return false;
+    	}
+    	return currentUserHasRole(subject.getPrincipals(), requestedRole);
+    }
+    
+    private boolean currentUserHasRole(Set<Principal> principals, String requestedRole) {
+    	boolean hasRole = false;
+    	Iterator<Principal> it = principals.iterator();
+    	while (it.hasNext()) {
+			Principal principal = (Principal) it.next();
+			if (principal.getName().equalsIgnoreCase(requestedRole)) hasRole = true;
+		}
+    	return hasRole;
     }
 
     public String getBindAddress() {
