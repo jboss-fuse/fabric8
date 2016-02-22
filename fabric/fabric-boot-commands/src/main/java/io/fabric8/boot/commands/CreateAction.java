@@ -140,10 +140,21 @@ class CreateAction extends AbstractAction {
 
     protected Object doExecute() throws Exception {
 
-    	if (!hasRole("admin") && !hasRole("superuser")) {
+    	String adminRole = "admin";
+    	String superUserRole = "superuser";
+        boolean adminExists = hasRole(adminRole, superUserRole);
+    	if (!adminExists) {
     		System.out.println("The fabric:create command can be executed only by admin user");
     		return null;
-    	} 
+    	}
+    	
+        Path propsPath = runtimeProperties.getConfPath().resolve("users.properties");
+        Properties userProps = new Properties(propsPath.toFile());
+        
+    	if (!adminExists && !usersPropertiesFileContainsRole(userProps, adminRole, superUserRole)) {
+    		System.out.println("The etc/user.properties file must contain at least one admin user, if no other admin exists");
+    		return null;
+    	}
     	
         // prevent creating fabric if already created
         ServiceReference<FabricService> sref = bundleContext.getServiceReference(FabricService.class);
@@ -260,9 +271,6 @@ class CreateAction extends AbstractAction {
 
         newUser = newUser != null ? newUser : ShellUtils.retrieveFabricUser(session);
         newUserPassword = newUserPassword != null ? newUserPassword : ShellUtils.retrieveFabricUserPassword(session);
-
-        Path propsPath = runtimeProperties.getConfPath().resolve("users.properties");
-        Properties userProps = new Properties(propsPath.toFile());
 
         if (userProps.isEmpty()) {
             String[] credentials = promptForNewUser(newUser, newUserPassword);
@@ -392,26 +400,60 @@ class CreateAction extends AbstractAction {
         return response;
     }
     
-    private boolean hasRole(String requestedRole) {
+    private boolean hasRole(String... requestedRole) {
     	AccessControlContext acc = AccessController.getContext();
     	if (acc == null) {
-    	return false;
+    	    return false;
     	}
     	Subject subject = Subject.getSubject(acc);
     	if (subject == null) {
-    	return false;
+    	    return false;
     	}
     	return currentUserHasRole(subject.getPrincipals(), requestedRole);
     }
     
-    private boolean currentUserHasRole(Set<Principal> principals, String requestedRole) {
+    private boolean currentUserHasRole(Set<Principal> principals, String... requestedRole) {
     	boolean hasRole = false;
     	Iterator<Principal> it = principals.iterator();
     	while (it.hasNext()) {
 			Principal principal = (Principal) it.next();
-			if (principal.getName().equalsIgnoreCase(requestedRole)) hasRole = true;
+			for (int i = 0; i < requestedRole.length; i++) {
+			    if (principal.getName().equalsIgnoreCase(requestedRole[i])) hasRole = true;
+			}
 		}
     	return hasRole;
+    }
+    
+    private boolean usersPropertiesFileContainsRole(Properties userProps, String... requestedRole) {
+    	boolean adminExists = false;
+    	Iterator<String> usersIterator = userProps.keySet().iterator();
+    	while (usersIterator.hasNext()) {
+			String key = (String) usersIterator.next();
+			String passwordWithroles = userProps.get(key);
+			String[] infos = passwordWithroles.split(",");
+            for (int i = 1; i < infos.length; i++) {
+                if (infos[i].trim().startsWith(BackingEngine.GROUP_PREFIX)) {
+                    String groupInfo = (String) userProps.get(infos[i].trim());
+                    if (groupInfo != null) {
+                        String[] roles = groupInfo.split(",");
+                        for (int j = 1; j < roles.length; j++) {
+                        	for (int z = 0; z < requestedRole.length; i++) {
+                                if (roles[j].trim().equalsIgnoreCase(requestedRole[z])) {
+                                    adminExists = true;
+                                }
+                        	}
+                        }
+                    }
+                } else {
+                	for (int z = 0; z < requestedRole.length; i++) {
+                        if (infos[i].trim().equalsIgnoreCase(requestedRole[z])) {
+                            adminExists = true;
+                        }
+                	}
+                }                
+            }
+		}
+    	return adminExists;
     }
 
     public String getBindAddress() {
