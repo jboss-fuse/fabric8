@@ -1438,8 +1438,12 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                 StringTokenizer st = new StringTokenizer(nonProxy, "|", false);
                 while (st.hasMoreTokens()) {
                     String token = st.nextToken();
-                    if (host.matches(token)) {
-                        return noProxy;
+                    if (host != null) {
+                        if (host.matches(token)) {
+                            return noProxy;
+                        }
+                    } else {
+                    	LOGGER.debug("Error: Hostname is invalid");	
                     }
                 }
             }
