@@ -20,6 +20,7 @@ import io.fabric8.api.FabricService;
 import io.fabric8.internal.RequirementsJson;
 import org.apache.felix.gogo.commands.Argument;
 import org.apache.felix.gogo.commands.Command;
+import org.apache.felix.gogo.commands.Option;
 import org.apache.karaf.shell.console.AbstractAction;
 
 import java.io.File;
@@ -27,6 +28,8 @@ import java.io.FileOutputStream;
 
 @Command(name = RequirementsExport.FUNCTION_VALUE, scope = RequirementsExport.SCOPE_VALUE, description = RequirementsExport.DESCRIPTION)
 public class RequirementsExportAction extends AbstractAction {
+    @Option(name = "-i", aliases = {"--indent"}, multiValued = false, required = false, description = "Indent JSON output")
+    protected boolean indent = false;
     @Argument(index = 0, required = true, description = "Output file name")
     protected File outputFile;
 
@@ -45,7 +48,7 @@ public class RequirementsExportAction extends AbstractAction {
         outputFile.getParentFile().mkdirs();
 
         FabricRequirements requirements = getFabricService().getRequirements();
-        RequirementsJson.writeRequirements(new FileOutputStream(outputFile), requirements);
+        RequirementsJson.writeRequirements(new FileOutputStream(outputFile), requirements, indent);
         System.out.println("Exported the fabric requirements to " + outputFile.getCanonicalPath());
         return null;
     }
