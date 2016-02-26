@@ -344,6 +344,10 @@ public final class ChildContainerProvider extends AbstractComponent implements C
 
     private static StringBuilder buildJvmOpts(CreateChildContainerOptions options) {
         StringBuilder jvmOptsBuilder = new StringBuilder();
+        
+        String jvmVersion = System.getProperty("java.version");
+        boolean isJdk8 = false;
+        if (jvmVersion.startsWith("1.8")) isJdk8 = true;
 
         String zkPasswordEncode = System.getProperty("zookeeper.password.encode", "true");
         jvmOptsBuilder.append("-server -Dcom.sun.management.jmxremote -Dorg.jboss.gravia.repository.storage.dir=data/repository")
@@ -355,7 +359,7 @@ public final class ChildContainerProvider extends AbstractComponent implements C
         if (options.getJvmOpts() == null || !options.getJvmOpts().contains("-Xmx")) {
             jvmOptsBuilder.append(" -Xmx768m");
         }
-        if (options.getJvmOpts() == null || !options.getJvmOpts().contains("-XX:MaxPermSize=")) {
+        if ((options.getJvmOpts() == null || !options.getJvmOpts().contains("-XX:MaxPermSize=")) && !isJdk8)  {
             jvmOptsBuilder.append(" -XX:MaxPermSize=256m");
         }
         if (options.isEnsembleServer()) {
