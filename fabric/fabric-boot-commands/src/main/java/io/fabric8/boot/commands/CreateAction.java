@@ -116,7 +116,7 @@ class CreateAction extends AbstractAction {
     @Option(name = "--external-git-password", multiValued = false, description = "Specify an external git password.")
     private String externalGitPassword;
     @Option(name = "--new-user-role", multiValued = false, description = "The role of the new user. The option refers to karaf user (ssh, http, jmx).")
-    private String newUserRole = "_g_:admin";
+    private String newUserRole = "";
 
     @Argument(required = false, multiValued = true, description = "List of containers. Empty list assumes current container only.")
     private List<String> containers;
@@ -287,7 +287,11 @@ class CreateAction extends AbstractAction {
             String passwordWithroles = userProps.get(newUser);
             if (passwordWithroles != null && passwordWithroles.contains(ROLE_DELIMITER)) {
                 String[] infos = passwordWithroles.split(",");
-                String oldUserRole = newUserRole;
+                String oldUserRole = "";
+                if (newUserIsAdmin(infos)) {
+                    newUserRole = "_g_:admin";
+                    oldUserRole = newUserRole;
+                }
                 for (int i = 1; i < infos.length; i++) {
                     if (infos[i].trim().startsWith(BackingEngine.GROUP_PREFIX)) {
                         // it's a group reference
@@ -296,14 +300,22 @@ class CreateAction extends AbstractAction {
                             String[] roles = groupInfo.split(",");
                             for (int j = 1; j < roles.length; j++) {
                                 if (!roles[j].trim().equals(oldUserRole)) {
-                                    newUserRole = newUserRole + ROLE_DELIMITER + roles[j].trim();
+                                    if (!newUserRole.isEmpty()) {
+                                        newUserRole = newUserRole + ROLE_DELIMITER + roles[j].trim();
+                                    } else {
+                                        newUserRole = roles[j].trim();
+                                    }
                                 }
                             }
                         }
                     } else {
                         // it's an user reference
                         if (!infos[i].trim().equals(oldUserRole)) {
-                            newUserRole = newUserRole + ROLE_DELIMITER + infos[i].trim();
+                            if (!newUserRole.isEmpty()) {
+                                newUserRole = newUserRole + ROLE_DELIMITER + infos[i].trim();
+                            } else {
+                                newUserRole = infos[i].trim();
+                            }
                         }
                     }                
                 }
@@ -424,6 +436,14 @@ class CreateAction extends AbstractAction {
     	return hasRole;
     }
     
+    private boolean newUserIsAdmin(String... roles) {
+        boolean newUserIsAdmin = false;
+        for (int i = 0; i < roles.length; i++) {
+            if (roles[i].equalsIgnoreCase("admin")) newUserIsAdmin = true;
+        }
+        return newUserIsAdmin;
+    }
+    
     private boolean usersPropertiesFileContainsRole(Properties userProps, String... requestedRole) {
     	boolean adminExists = false;
     	Iterator<String> usersIterator = userProps.keySet().iterator();
@@ -437,7 +457,7 @@ class CreateAction extends AbstractAction {
                     if (groupInfo != null) {
                         String[] roles = groupInfo.split(",");
                         for (int j = 1; j < roles.length; j++) {
-                        	for (int z = 0; z < requestedRole.length; i++) {
+                        	for (int z = 0; z < requestedRole.length; z++) {
                                 if (roles[j].trim().equalsIgnoreCase(requestedRole[z])) {
                                     adminExists = true;
                                 }
@@ -445,7 +465,7 @@ class CreateAction extends AbstractAction {
                         }
                     }
                 } else {
-                	for (int z = 0; z < requestedRole.length; i++) {
+                	for (int z = 0; z < requestedRole.length; z++) {
                         if (infos[i].trim().equalsIgnoreCase(requestedRole[z])) {
                             adminExists = true;
                         }
