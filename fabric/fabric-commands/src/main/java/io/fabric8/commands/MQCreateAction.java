@@ -83,8 +83,8 @@ public class MQCreateAction extends AbstractAction {
     @Option(name = "--networks-password", description = "Broker networks Password")
     protected String networksPassword;
 
-    @Option(name = "--version", description = "The version id in the registry")
-    protected String version = ZkDefs.DEFAULT_VERSION;
+    @Option(name = "--version", description = "The version id in the registry. Defaults to current default version")
+    protected String version;
 
     @Option(name = "--create-container", multiValued = false, required = false, description = "Comma separated list of child containers to create with mq profile")
     protected String create;
@@ -214,6 +214,9 @@ public class MQCreateAction extends AbstractAction {
         dto.setNetworksUserName(networksUserName);
         dto.setParentProfile(parentProfile);
         dto.setProperties(properties);
+        if (version == null) {
+            version = fabricService.getDefaultVersionId();
+        }
         dto.setVersion(version);
         dto.setMinimumInstances(minimumInstances);
         dto.setReplicas(replicas);
