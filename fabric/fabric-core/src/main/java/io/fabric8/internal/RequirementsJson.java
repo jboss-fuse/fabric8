@@ -50,8 +50,17 @@ public final class RequirementsJson {
     }
 
     public static void writeRequirements(OutputStream out, FabricRequirements value) throws IOException {
+    	writeRequirements(out,value,false);
+    }
+
+    public static void writeRequirements(OutputStream out, FabricRequirements value,boolean indent) throws IOException {
     	//ENTESB-5041 : fabric:requirements-export" command to indent requirements-export json output
-    	mapper.enable(SerializationFeature.INDENT_OUTPUT);
+    	if(indent){
+    		mapper.enable(SerializationFeature.INDENT_OUTPUT);		
+    	}else{
+    		
+    		 mapper.disable(SerializationFeature.INDENT_OUTPUT);
+    	}
         mapper.writeValue(out, value);
     }
 
