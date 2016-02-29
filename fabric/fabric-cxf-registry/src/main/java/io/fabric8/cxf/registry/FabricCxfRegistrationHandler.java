@@ -43,12 +43,16 @@ import io.fabric8.api.Version;
 import io.fabric8.api.jcip.ThreadSafe;
 import io.fabric8.api.scr.AbstractComponent;
 import io.fabric8.api.scr.ValidatingReference;
+import io.fabric8.common.util.Closeables;
 import io.fabric8.common.util.PublicPortMapper;
 import io.fabric8.common.util.Strings;
 import io.fabric8.internal.JsonHelper;
 import io.fabric8.zookeeper.ZkPath;
 import io.fabric8.zookeeper.utils.ZooKeeperUtils;
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.cache.ChildData;
+import org.apache.curator.framework.recipes.cache.NodeCacheExtended;
+import org.apache.curator.framework.recipes.cache.NodeCacheExtendedListener;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.framework.state.ConnectionStateListener;
 import org.apache.felix.scr.annotations.Activate;
@@ -66,11 +70,12 @@ import org.slf4j.LoggerFactory;
 @ThreadSafe
 @Component(name = "io.fabric8.cxf.registry", label = "Fabric8 CXF Registration Handler", immediate = true, metatype = false)
 @Service({ ConnectionStateListener.class })
-public final class FabricCxfRegistrationHandler extends AbstractComponent implements ConnectionStateListener {
+public final class FabricCxfRegistrationHandler extends AbstractComponent implements ConnectionStateListener, NodeCacheExtendedListener {
 
     public static final String CXF_API_ENDPOINT_MBEAN_NAME = "io.fabric8.cxf:*";
     private static final ObjectName CXF_OBJECT_NAME =  objectNameFor(CXF_API_ENDPOINT_MBEAN_NAME);
 
+    private NodeCacheExtended versionNodeMonitor;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FabricCxfRegistrationHandler.class);
     private static final Object[] EMPTY_PARAMS = {};
@@ -137,6 +142,13 @@ public final class FabricCxfRegistrationHandler extends AbstractComponent implem
             mBeanServer.addNotificationListener(MBeanServerDelegate.DELEGATE_NAME, listener, filter, handback);
             this.registeredListener = true;
         }
+
+        String id = getCurrentContainer().getId();
+        String zkPath = ZkPath.CONFIG_CONTAINER.getPath(id);
+        versionNodeMonitor = new NodeCacheExtended(curator.get(), zkPath);
+        versionNodeMonitor.getListenable().addListener(this);
+        versionNodeMonitor.start();
+
         replay();
     }
 
@@ -152,6 +164,10 @@ public final class FabricCxfRegistrationHandler extends AbstractComponent implem
             removeZkPath(path);
         }
         deactivateComponent();
+
+        versionNodeMonitor.getListenable().removeListener(this);
+        Closeables.closeQuietly(versionNodeMonitor);
+        versionNodeMonitor = null;
     }
 
     @Override
@@ -174,17 +190,26 @@ public final class FabricCxfRegistrationHandler extends AbstractComponent implem
         if (mBeanServer != null) {
             Container container = getCurrentContainer();
             if (container != null) {
-                ObjectName objectName = createObjectName(CXF_API_ENDPOINT_MBEAN_NAME);
-                if (objectName != null && container != null) {
-                    Set<ObjectInstance> instances = mBeanServer.queryMBeans(objectName, isCxfServiceEndpointQuery);
-                    for (ObjectInstance instance : instances) {
-                        ObjectName oName = instance.getObjectName();
+                Set<ObjectName> objectNames = getObjectNames();
+                if (container != null) {
+                    for (ObjectName oName : objectNames) {
                         String type = null;
                         onMBeanEvent(container, oName, type);
                     }
                 }
             }
         }
+    }
+
+    protected Set<ObjectName> getObjectNames(){
+        Set<ObjectName> result = new HashSet<>();
+
+        ObjectName objectName = createObjectName(CXF_API_ENDPOINT_MBEAN_NAME);
+        Set<ObjectInstance> instances = mBeanServer.queryMBeans(objectName, isCxfServiceEndpointQuery);
+        for(ObjectInstance instance : instances){
+            result.add(instance.getObjectName());
+        }
+        return result;
     }
 
     protected Container getCurrentContainer() {
@@ -255,9 +280,11 @@ public final class FabricCxfRegistrationHandler extends AbstractComponent implem
 
     protected void registerApiEndpoint(Container container, ObjectName oName, String address, boolean started) {
         String actualEndpointUrl = null;
+
         try {
             String url;
             String id = container.getId();
+
             if (isFullAddress(address)) {
                 url = toPublicAddress(id, address);
             } else {
@@ -414,6 +441,9 @@ public final class FabricCxfRegistrationHandler extends AbstractComponent implem
     }
 
     protected String getPath(Container container, ObjectName oName, String address, boolean restApi) {
+        return getPath(container, oName, address, restApi, null);
+    }
+    protected String getPath(Container container, ObjectName oName, String address, boolean restApi, String specificVersion) {
         String containerId = container.getId();
 
         String name = oName.getKeyProperty("port");
@@ -425,6 +455,10 @@ public final class FabricCxfRegistrationHandler extends AbstractComponent implem
             name = name.substring(1, name.length() - 1);
         }
         String version = container.getVersion().getId();
+        if(specificVersion != null){
+            version = specificVersion;
+        }
+
         String endpointPath = address;
         if (isFullAddress(address)) {
             // lets remove the prefix "http://localhost:8181/cxf/"
@@ -489,5 +523,28 @@ public final class FabricCxfRegistrationHandler extends AbstractComponent implem
 
     ConfigurationAdmin getConfigAdmin() {
         return configAdmin;
+    }
+
+
+    @Override
+    public void nodeChanged(ChildData previousData, ChildData newData) throws Exception {
+        ChildData currentData = versionNodeMonitor.getCurrentData();
+        byte[] data = currentData.getData();
+        LOGGER.info("Container Version has been updated to version {}, republishing of APIs endpoints", new String(data));
+        String oldVersion = new String(previousData.getData());
+        // registered paths have this structure:
+        // /fabric/registry/clusters/apis/rest/CustomerService/crm/1.0/root
+        for(String path : registeredZkPaths){
+            if(path.endsWith(getCurrentContainer().getId())){
+                String[] split = path.split("/");
+                if(split.length >= 2){
+                    String version = split[split.length -2];
+                    if(oldVersion.equals(version)){
+                        removeZkPath(path);
+                    }
+                }
+            }
+        }
+        replay();
     }
 }
