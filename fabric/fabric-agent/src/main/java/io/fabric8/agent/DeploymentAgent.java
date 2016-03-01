@@ -61,8 +61,12 @@ import io.fabric8.maven.MavenResolvers;
 import io.fabric8.patch.FabricPatchService;
 import io.fabric8.patch.management.PatchManagement;
 import io.fabric8.utils.NamedThreadFactory;
+import io.fabric8.zookeeper.ZkPath;
+import io.fabric8.zookeeper.utils.ZooKeeperUtils;
+import org.apache.curator.framework.CuratorFramework;
 import org.apache.felix.utils.properties.Properties;
 import org.apache.felix.utils.version.VersionRange;
+import org.apache.zookeeper.data.Stat;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
@@ -81,6 +85,7 @@ import static io.fabric8.agent.service.Constants.DEFAULT_BUNDLE_UPDATE_RANGE;
 import static io.fabric8.agent.service.Constants.DEFAULT_FEATURE_RESOLUTION_RANGE;
 import static io.fabric8.agent.service.Constants.DEFAULT_UPDATE_SNAPSHOTS;
 import static io.fabric8.agent.utils.AgentUtils.addMavenProxies;
+import static io.fabric8.zookeeper.utils.ZooKeeperUtils.exists;
 
 public class DeploymentAgent implements ManagedService {
 
@@ -718,6 +723,11 @@ public class DeploymentAgent implements ManagedService {
                             restart.set(true);
                             return false;
                         }
+
+                        if (handleRestartJvmFlag(fs, profile, restart)) {
+                            return false;
+                        }
+
                     }
                 }
                 return true;
@@ -738,6 +748,77 @@ public class DeploymentAgent implements ManagedService {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Adds support for a directive to force a restart upon the first assignment of a specific profile to a container.
+     * It creates an entry in zk so that a subsequent modification to the same profile, will not trigger a jvm restart.
+     * The behavior is useful for situation when a profile provision .jars in lib/ folder, that are picked up only at
+     * jvm boot time.
+     *
+     * @param fs
+     * @param profile
+     * @param restart
+     * @return
+     */
+    protected boolean handleRestartJvmFlag(FabricService fs, Profile profile, AtomicBoolean restart) {
+        ServiceReference<CuratorFramework> curatorServiceReference = systemBundleContext.getServiceReference(CuratorFramework.class);
+        if (curatorServiceReference != null) {
+            CuratorFramework curator = systemBundleContext.getService(curatorServiceReference);
+
+            // check for jvm restart requests
+            Map<String, String> agentProperties = profile.getConfiguration("io.fabric8.agent");
+            Map<String, String> jvmRestartEntries = new HashMap<>();
+            for(String key : agentProperties.keySet()){
+                if(key.startsWith("io.fabric8.agent.forceOneTimeJVMRestart")){
+                    jvmRestartEntries.put(key, agentProperties.get(key));
+                    LOGGER.info("Found JVM restart request: {}", key);
+                }
+            }
+
+            // clean old entries
+            String basePath = ZkPath.CONTAINER_PROVISION_RESTART.getPath(fs.getCurrentContainerName());
+
+            try {
+                if(ZooKeeperUtils.exists(curator, basePath) != null ){
+                    List<String> zkPaths = ZooKeeperUtils.getAllChildren(curator, ZkPath.CONTAINER_PROVISION_RESTART.getPath(fs.getCurrentContainerName()));
+                    List<String> activeProfiles = fs.getCurrentContainer().getProfileIds();
+                    for(String zkPath : zkPaths){
+                        String[] split = zkPath.split("/");
+                        String prof = split[split.length -1];
+                        if(!activeProfiles.contains(prof)){
+                            LOGGER.info("Deleting old JVM restart request status: {}", zkPath);
+                            ZooKeeperUtils.delete(curator, zkPath);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                LOGGER.error("Unable to check ZK connection", e);
+            }
+
+            for(String key : jvmRestartEntries.keySet()){
+                String[] split = key.split("\\.");
+                String profileForcingRestart = split[split.length-1];
+
+                // check container-profile-znode
+                // if it was already in zk for the current container, do nothing
+
+                try {
+                    String zkPath = ZkPath.CONTAINER_PROVISION_RESTART_PROFILES.getPath(fs.getCurrentContainerName(), profileForcingRestart);
+                    Stat exists = exists(curator, zkPath);
+                    if(exists == null){
+                        ZooKeeperUtils.create(curator, zkPath);
+                        System.setProperty("karaf.restart.jvm", "true");
+                        restart.set(true);
+                        LOGGER.warn("Profile {} scheduled a JVM restart request. Automated JVM restart support is not universally available. If your jvm doesn't support it you are required to manually restart the container that has just been assigned the profile.", profileForcingRestart);
+                        bundleContext.getBundle(0).stop();
+                        return true;
+                    }
+                } catch (Exception e) {
+                    LOGGER.error("Unable to check ZK connection", e);
+                }
+            }
+        } return false;
     }
 
     public static Set<String> getPrefixedProperties(Map<String, String> properties, String prefix) {
