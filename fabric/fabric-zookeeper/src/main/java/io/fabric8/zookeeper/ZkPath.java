@@ -92,6 +92,8 @@ public enum ZkPath {
     CONTAINER_PROVISION_CHECKSUMS  ("/fabric/registry/containers/provision/{container}/checksums"),
     CONTAINER_PROVISION_RESULT     ("/fabric/registry/containers/provision/{container}/result"),
     CONTAINER_PROVISION_EXCEPTION  ("/fabric/registry/containers/provision/{container}/exception"),
+    CONTAINER_PROVISION_RESTART    ("/fabric/registry/containers/provision/{container}/restart"),
+    CONTAINER_PROVISION_RESTART_PROFILES    ("/fabric/registry/containers/provision/{container}/restart/{profile_demanding_restart}"),
     CONTAINER_STATUS               ("/fabric/registry/containers/status/{container}"),
     CONTAINER_EXTENDER             ("/fabric/registry/containers/provision/{container}/extender/{extender}"),
     CONTAINER_EXTENDER_BUNDLE      ("/fabric/registry/containers/provision/{container}/extender/{extender}/bundle/{bundle}"),
