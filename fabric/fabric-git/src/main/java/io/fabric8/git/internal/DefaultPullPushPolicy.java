@@ -141,8 +141,8 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
             }
             
             // Verify master branch and do a checkout of it when we have it locally (already)
-            IllegalStateAssertion.assertTrue(remoteBranches.containsKey(GitHelpers.MASTER_BRANCH), "Remote repository does not have a master branch");
             if (localBranches.containsKey(GitHelpers.MASTER_BRANCH)) {
+                IllegalStateAssertion.assertTrue(remoteBranches.containsKey(GitHelpers.MASTER_BRANCH), "Remote repository does not have a master branch");
                 git.checkout().setName(GitHelpers.MASTER_BRANCH).setForce(true).call();
             }
             
