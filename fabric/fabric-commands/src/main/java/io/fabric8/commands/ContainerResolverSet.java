@@ -49,6 +49,9 @@ public class ContainerResolverSet extends AbstractCommandComponent {
 
     @Reference(referenceInterface = FabricService.class)
     private final ValidatingReference<FabricService> fabricService = new ValidatingReference<FabricService>();
+    
+    @Reference(referenceInterface = CuratorFramework.class)
+    private final ValidatingReference<CuratorFramework> curator = new ValidatingReference<CuratorFramework>();
 
     // Completers
     @Reference(referenceInterface = ResolverCompleter.class, bind = "bindResolverCompleter", unbind = "unbindResolverCompleter")
@@ -70,8 +73,7 @@ public class ContainerResolverSet extends AbstractCommandComponent {
     @Override
     public Action createNewAction() {
         assertValid();
-        CuratorFramework curator = CuratorFrameworkLocator.getCuratorFramework();
-        return new ContainerResolverSetAction(fabricService.get(), curator);
+        return new ContainerResolverSetAction(fabricService.get(), curator.get());
     }
 
     void bindFabricService(FabricService fabricService) {
@@ -80,6 +82,14 @@ public class ContainerResolverSet extends AbstractCommandComponent {
 
     void unbindFabricService(FabricService fabricService) {
         this.fabricService.unbind(fabricService);
+    }
+    
+    void bindCurator(CuratorFramework curator) {
+        this.curator.bind(curator);
+    }
+
+    void unbindCurator(CuratorFramework curator) {
+        this.curator.unbind(curator);
     }
 
     void bindResolverCompleter(ResolverCompleter completer) {
