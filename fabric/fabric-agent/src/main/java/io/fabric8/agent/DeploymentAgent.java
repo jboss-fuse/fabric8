@@ -69,6 +69,7 @@ import org.apache.felix.utils.version.VersionRange;
 import org.apache.zookeeper.data.Stat;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.BundleException;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.wiring.BundleRevision;
 import org.osgi.resource.Resource;
@@ -762,6 +763,8 @@ public class DeploymentAgent implements ManagedService {
      * @return
      */
     protected boolean handleRestartJvmFlag(FabricService fs, Profile profile, AtomicBoolean restart) {
+        boolean result = false;
+        List<String> profilesRequiringRestart = new ArrayList<>();
         ServiceReference<CuratorFramework> curatorServiceReference = systemBundleContext.getServiceReference(CuratorFramework.class);
         if (curatorServiceReference != null) {
             CuratorFramework curator = systemBundleContext.getService(curatorServiceReference);
@@ -772,7 +775,7 @@ public class DeploymentAgent implements ManagedService {
             for(String key : agentProperties.keySet()){
                 if(key.startsWith("io.fabric8.agent.forceOneTimeJVMRestart")){
                     jvmRestartEntries.put(key, agentProperties.get(key));
-                    LOGGER.info("Found JVM restart request: {}", key);
+                    LOGGER.info("Found a profile carrying a one-time JVM restart request: {}", key);
                 }
             }
 
@@ -808,17 +811,25 @@ public class DeploymentAgent implements ManagedService {
                     Stat exists = exists(curator, zkPath);
                     if(exists == null){
                         ZooKeeperUtils.create(curator, zkPath);
-                        System.setProperty("karaf.restart.jvm", "true");
-                        restart.set(true);
-                        LOGGER.warn("Profile {} scheduled a JVM restart request. Automated JVM restart support is not universally available. If your jvm doesn't support it you are required to manually restart the container that has just been assigned the profile.", profileForcingRestart);
-                        bundleContext.getBundle(0).stop();
-                        return true;
+                        profilesRequiringRestart.add(profileForcingRestart);
+                        result = true;
                     }
                 } catch (Exception e) {
                     LOGGER.error("Unable to check ZK connection", e);
                 }
             }
-        } return false;
+        }
+        if(result){
+            System.setProperty("karaf.restart.jvm", "true");
+            restart.set(true);
+            LOGGER.warn("Profiles {} scheduled a JVM restart request. Automated JVM restart support is not universally available. If your jvm doesn't support it you are required to manually restart the container that has just been assigned the profile.", profilesRequiringRestart);
+            try {
+                bundleContext.getBundle(0).stop();
+            } catch (BundleException e) {
+                LOGGER.error("Error when forcing a JVM restart", e);
+            }
+        }
+        return result;
     }
 
     public static Set<String> getPrefixedProperties(Map<String, String> properties, String prefix) {
