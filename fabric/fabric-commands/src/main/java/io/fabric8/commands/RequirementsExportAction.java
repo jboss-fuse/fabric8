@@ -30,8 +30,8 @@ import org.apache.karaf.shell.console.AbstractAction;
 @Command(name = RequirementsExport.FUNCTION_VALUE, scope = RequirementsExport.SCOPE_VALUE, description = RequirementsExport.DESCRIPTION)
 public class RequirementsExportAction extends AbstractAction {
 	
-	@Option(name="--indent",aliases="--i",description="Indents the output file",required=false)
-	protected String indent;
+    @Option(name="--indent",aliases="--i",description="Indents the output file",required=false)
+    protected String indent;
 	
     @Argument(index = 0, required = true, description = "Output file name")
     protected File outputFile;
@@ -53,13 +53,12 @@ public class RequirementsExportAction extends AbstractAction {
         FabricRequirements requirements = getFabricService().getRequirements();
         if (Boolean.valueOf(this.indent)) {
     		
-			RequirementsJson.writeRequirements(
-					new FileOutputStream(outputFile), requirements,
-					true);
+            RequirementsJson.writeRequirements(
+                new FileOutputStream(outputFile), requirements,
+                true);
 		} else {
-			
-			RequirementsJson.writeRequirements(
-					new FileOutputStream(outputFile), requirements);
+            RequirementsJson.writeRequirements(
+                new FileOutputStream(outputFile), requirements);
 		}
         RequirementsJson.writeRequirements(new FileOutputStream(outputFile), requirements);
         System.out.println("Exported the fabric requirements to " + outputFile.getCanonicalPath());
