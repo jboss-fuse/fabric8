@@ -17,8 +17,11 @@ package io.fabric8.internal;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+
 import io.fabric8.api.AutoScaleStatus;
 import io.fabric8.api.FabricRequirements;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,6 +50,17 @@ public final class RequirementsJson {
     }
 
     public static void writeRequirements(OutputStream out, FabricRequirements value) throws IOException {
+    	writeRequirements(out,value,false);
+    }
+
+    public static void writeRequirements(OutputStream out, FabricRequirements value,boolean indent) throws IOException {
+    	//ENTESB-5041 : fabric:requirements-export" command to indent requirements-export json output
+    	if(indent){
+    		mapper.enable(SerializationFeature.INDENT_OUTPUT);		
+    	}else{
+    		
+    		 mapper.disable(SerializationFeature.INDENT_OUTPUT);
+    	}
         mapper.writeValue(out, value);
     }
 
