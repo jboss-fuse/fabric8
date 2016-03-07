@@ -141,8 +141,9 @@ class CreateAction extends AbstractAction {
     protected Object doExecute() throws Exception {
 
     	String adminRole = "admin";
+    	String administratorRole = "administrator";
     	String superUserRole = "superuser";
-        boolean adminExists = hasRole(adminRole, superUserRole);
+        boolean adminExists = hasRole(adminRole, superUserRole, administratorRole);
     	if (!adminExists) {
     		System.out.println("The fabric:create command can be executed only by admin user");
     		return null;
@@ -151,7 +152,7 @@ class CreateAction extends AbstractAction {
         Path propsPath = runtimeProperties.getConfPath().resolve("users.properties");
         Properties userProps = new Properties(propsPath.toFile());
         
-    	if (!adminExists && !usersPropertiesFileContainsRole(userProps, adminRole, superUserRole)) {
+    	if (!adminExists && !usersPropertiesFileContainsRole(userProps, adminRole, superUserRole, administratorRole)) {
     		System.out.println("The etc/user.properties file must contain at least one admin user, if no other admin exists");
     		return null;
     	}
