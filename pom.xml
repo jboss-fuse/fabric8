@@ -243,7 +243,7 @@
         <jasypt-smx-version>1.9.3.redhat_2</jasypt-smx-version>
         <jasypt-spring-smx-version>1.9.3.redhat_2</jasypt-spring-smx-version>
         <jasypt-version>1.9.3.redhat_2</jasypt-version>
-        <javassist-version>3.18.1-GA</javassist-version>
+        <javassist-version>3.19.0-GA</javassist-version>
         <javax.inject.bundle.version>1_2</javax.inject.bundle.version>
         <jaxb-api-version>2.1</jaxb-api-version>
         <jaxb-version>2.2.11</jaxb-version>
