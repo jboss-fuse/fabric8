@@ -19,7 +19,7 @@
 <component>
   <dependencySets>
   <dependencySet>
-      <outputDirectory>/lib</outputDirectory>
+      <outputDirectory>lib</outputDirectory>
       <outputFileNameMapping>fabric-version.jar</outputFileNameMapping>
       <fileMode>0644</fileMode>
       <includes>
@@ -28,7 +28,7 @@
       <useTransitiveDependencies>false</useTransitiveDependencies>
   </dependencySet>
   <dependencySet>
-      <outputDirectory>/lib/ext</outputDirectory>
+      <outputDirectory>lib/ext</outputDirectory>
       <outputFileNameMapping>bcprov-jdk15on.jar</outputFileNameMapping>
       <fileMode>0644</fileMode>
       <includes>
@@ -52,7 +52,7 @@
       <!-- Copy over the examples without filtering ... -->
       <fileSet>
           <directory>../../quickstarts</directory>
-          <outputDirectory>/quickstarts</outputDirectory>
+          <outputDirectory>quickstarts</outputDirectory>
           <excludes>
               <exclude>**/target/</exclude>
               <exclude>**/target/*</exclude>
@@ -64,7 +64,7 @@
       <!-- ... but use filtering on the README.md files to replace the ${project.version} -->
       <fileSet>
           <directory>../../quickstarts</directory>
-          <outputDirectory>/quickstarts</outputDirectory>
+          <outputDirectory>quickstarts</outputDirectory>
           <includes>
               <include>**/README.md</include>
           </includes>
@@ -75,7 +75,7 @@
       <!-- Copy over the examples without filtering ... -->
       <fileSet>
           <directory>${project.build.directory}/metatype</directory>
-          <outputDirectory>/metatype</outputDirectory>
+          <outputDirectory>metatype</outputDirectory>
           <lineEnding>unix</lineEnding>
           <filtered>false</filtered>
       </fileSet>
