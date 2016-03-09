@@ -15,6 +15,8 @@
  */
 package io.fabric8.gateway.handlers.http;
 
+import java.net.BindException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vertx.java.core.Handler;
@@ -58,10 +60,10 @@ public class HttpGatewayServer {
         }
         if (host != null) {
             server = server.listen(port, host);
-            LOG.info("Listening on port " + port + " and host " + host);
+            LOG.info("Attempt listening on port " + port + " and host " + host);
         } else {
-            server = server.listen(port);
-            LOG.info("Listening on port " + port);
+        	server = server.listen(port);
+            LOG.info("Attempt listening on port " + port);
         }
     }
 
