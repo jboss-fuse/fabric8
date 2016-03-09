@@ -29,9 +29,7 @@ import io.fabric8.api.FabricService;
 import io.fabric8.api.PatchException;
 import io.fabric8.api.Profile;
 import io.fabric8.api.Version;
-import junit.framework.Assert;
 import org.junit.Test;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 
 import static junit.framework.Assert.assertEquals;

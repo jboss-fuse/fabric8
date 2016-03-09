@@ -16,7 +16,7 @@
 package io.fabric8.internal;
 
 import io.fabric8.service.FreeGeoIpService;
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class FreeGeoIpServiceTest {

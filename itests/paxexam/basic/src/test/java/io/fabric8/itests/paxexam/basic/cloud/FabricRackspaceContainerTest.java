@@ -15,8 +15,8 @@
  */
 package io.fabric8.itests.paxexam.basic.cloud;
 
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import io.fabric8.itests.paxexam.support.FabricTestSupport;
 import io.fabric8.tooling.testing.pax.exam.karaf.ServiceLocator;
 
