@@ -346,8 +346,10 @@ class CreateAction extends AbstractAction {
 
         OsgiUtils.updateCmConfigurationAndWait(bundleContext, bootConfiguration, bootProperties, bootstrapTimeout, TimeUnit.MILLISECONDS);
 
+        String roleToAssign = newUserRole.isEmpty() ? "_g_:admin":newUserRole;
+        
         CreateEnsembleOptions options = builder.users(userProps)
-                                               .withUser(newUser, newUserPassword , newUserRole)
+                                               .withUser(newUser, newUserPassword , roleToAssign)
                                                .build();
 
         if (containers.size() == 1 && containers.contains(runtimeIdentity)) {
