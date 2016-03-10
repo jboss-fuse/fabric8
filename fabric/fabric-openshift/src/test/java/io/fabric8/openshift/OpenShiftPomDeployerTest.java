@@ -55,8 +55,8 @@ public class OpenShiftPomDeployerTest {
         "mvn:org.apache.camel/camel-core/2.12.0"
     };
     protected String[] repoUrls = {
-            "https://repo.fusesource.com/nexus/content/groups/ea@id=fuseearlyaccess",
-            "http://repository.jboss.org/nexus/content/groups/public@id=jboss-public"
+            "http://repo1.maven.org/maven2@id=maven.central.repo", 
+            "https://maven.repository.redhat.com/ga@id=redhat.ga.repo"
     };
 
 

@@ -350,12 +350,7 @@ public class Log4jLogQuery extends LogQuerySupport implements Log4jLogQueryMBean
         Properties defaultProperties = new Properties();
         defaultProperties.setProperty("org.ops4j.pax.url.mvn.repositories",
                 "http://repo1.maven.org/maven2@id=maven.central.repo, " +
-                "https://repo.fusesource.com/nexus/content/repositories/releases@id=fusesource.release.repo, " +
-                "https://repo.fusesource.com/nexus/content/groups/ea@id=fusesource.ea.repo, " +
-                "http://svn.apache.org/repos/asf/servicemix/m2-repo@id=servicemix.repo, " +
-                "http://repository.springsource.com/maven/bundles/release@id=springsource.release.repo, " +
-                "http://repository.springsource.com/maven/bundles/external@id=springsource.external.repo, " +
-                "https://oss.sonatype.org/content/groups/scala-tools@id=scala.repo");
+                "https://maven.repository.redhat.com/ga@id=redhat.ga.repo");
         return defaultProperties;
     }
 

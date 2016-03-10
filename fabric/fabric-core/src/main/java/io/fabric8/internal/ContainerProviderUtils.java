@@ -83,7 +83,7 @@ public final class ContainerProviderUtils {
 
     protected transient static Logger logger = LoggerFactory.getLogger(ContainerProviderUtils.class);
 
-    private static final String[] FALLBACK_REPOS = {"https://repo.fusesource.com/nexus/content/groups/public/", "https://repo.fusesource.com/nexus/content/groups/ea/", "https://repo.fusesource.com/nexus/content/repositories/snapshots/"};
+    private static final String[] FALLBACK_REPOS = {"https://maven.repository.redhat.com/ga"};
 
     private ContainerProviderUtils() {
         //Utility Class

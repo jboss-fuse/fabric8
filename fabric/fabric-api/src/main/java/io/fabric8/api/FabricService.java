@@ -23,7 +23,7 @@ import java.util.Set;
 
 public interface FabricService {
 
-    final String DEFAULT_REPO_URI = "https://repo.fusesource.com/nexus/content/groups/public/";
+    final String DEFAULT_REPO_URI = "https://maven.repository.redhat.com/ga";
 
     /**
      * Adapt the {@link FabricService} to another type

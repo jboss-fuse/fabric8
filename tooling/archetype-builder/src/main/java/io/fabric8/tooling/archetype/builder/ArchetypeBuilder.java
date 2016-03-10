@@ -616,7 +616,7 @@ public class ArchetypeBuilder {
             version = archetypeUtils.firstElementText(root, "version", "");
         }
 
-        String repo = "https://repo.fusesource.com/nexus/content/groups/public";
+        String repo = "http://maven.repository.redhat.com/ga";
 
         printWriter.println(String.format(indent + indent + "<archetype>\n" +
             indent + indent + indent + "<groupId>%s</groupId>\n" +

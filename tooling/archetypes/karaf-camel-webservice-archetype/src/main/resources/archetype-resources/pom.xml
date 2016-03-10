@@ -47,69 +47,31 @@
     <fabric8.features>camel-cxf camel-spring cxf-http-jetty</fabric8.features>
   </properties>
 
-  <repositories>
-    <repository>
-      <id>fusesource</id>
-      <name>FuseSource Release Repository</name>
-      <url>https://repo.fusesource.com/nexus/content/groups/public/</url>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-    </repository>
-    <repository>
-        <id>fusesource.ea</id>
-        <name>FuseSource Community Early Access Release Repository</name>
-        <url>https://repo.fusesource.com/nexus/content/groups/ea</url>
-        <snapshots>
-            <enabled>false</enabled>
-        </snapshots>
-        <releases>
-            <enabled>true</enabled>
-        </releases>
-    </repository>
-    <repository>
-      <id>jboss-public-repository-group</id>
-      <name>JBoss Public Repository Group</name>
-      <url>http://repository.jboss.org/nexus/content/groups/public/</url>
-      <layout>default</layout>
-      <releases>
-        <enabled>true</enabled>
-        <updatePolicy>never</updatePolicy>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-        <updatePolicy>daily</updatePolicy>
-      </snapshots>
-    </repository>
-  </repositories>
+    <repositories>
+​        <repository>
+​            <id>redhat-ga-repository</id>
+​            <url>http://maven.repository.redhat.com/ga</url>
+​            <releases>
+​                <enabled>true</enabled>
+​            </releases>
+​            <snapshots>
+​                <enabled>false</enabled>
+​            </snapshots>
+​        </repository>
+    </repositories>
 
-  <pluginRepositories>
-    <pluginRepository>
-      <id>fusesource</id>
-      <name>FuseSource Release Repository</name>
-      <url>https://repo.fusesource.com/nexus/content/groups/public/</url>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-    </pluginRepository>
-    <pluginRepository>
-        <id>fusesource.ea</id>
-        <name>FuseSource Community Early Access Release Repository</name>
-        <url>https://repo.fusesource.com/nexus/content/groups/ea</url>
-        <snapshots>
-            <enabled>false</enabled>
-        </snapshots>
-        <releases>
-            <enabled>true</enabled>
-        </releases>
-    </pluginRepository>
-  </pluginRepositories>
+    <pluginRepositories>
+​        <pluginRepository>
+​            <id>redhat-ga-repository</id>
+​            <url>http://maven.repository.redhat.com/ga</url>
+​            <releases>
+​                <enabled>true</enabled>
+​            </releases>
+​            <snapshots>
+​                <enabled>false</enabled>
+​            </snapshots>
+​        </pluginRepository>  
+    </pluginRepositories>
 
 
   <dependencyManagement>
