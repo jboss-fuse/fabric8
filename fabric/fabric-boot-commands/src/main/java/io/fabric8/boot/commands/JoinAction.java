@@ -117,6 +117,12 @@ final class JoinAction extends AbstractAction {
 
         FabricValidations.validateContainerName(containerName);
         Configuration bootConfiguration = configAdmin.getConfiguration(BootstrapConfiguration.COMPONENT_PID, null);
+        Configuration configZook = configAdmin.getConfiguration(Constants.ZOOKEEPER_CLIENT_PID, null);
+
+        if (configZook.getProperties().get("zookeeper.url") != null) {
+           System.err.println("This container is already connected to a fabric");
+           return null;
+        }
         Dictionary<String, Object> bootProperties = bootConfiguration.getProperties();
         if (bootProperties == null) {
             bootProperties = new Hashtable<>();
