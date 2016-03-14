@@ -31,7 +31,7 @@
     <broker xmlns="http://activemq.apache.org/schema/core"
             brokerName="amq"
             dataDirectory="${data}"
-            persistent="false"
+            persistent="true"
             start="false" restartAllowed="false">
 
         <managementContext>
@@ -39,7 +39,7 @@
         </managementContext>
 
         <persistenceAdapter>
-            <memoryPersistenceAdapter directory="${data}/mem"/>
+            <kahaDB directory="${data}/kahaDb" lockKeepAlivePeriod="500"/>
         </persistenceAdapter>
 
         <transportConnectors>
