@@ -113,7 +113,7 @@ public class ProfileEditAction extends AbstractAction {
     @Option(name = "--resource", description = "Selects a resource under the profile to edit. This option should only be used alone.", required = false, multiValued = false)
     private String resource;
 
-    @Option(name = "--set", description = "Set or create values (selected by default).")
+    @Option(name = "--set", description = "Set or create values.")
     private boolean set = true;
 
     @Option(name = "--delete", description = "Delete values. This option can be used to delete a feature, a bundle or a pid from the profile.")
