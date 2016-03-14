@@ -36,9 +36,11 @@ import java.util.jar.JarOutputStream;
 import java.util.regex.Matcher;
 
 import javax.servlet.AsyncContext;
+import javax.servlet.ReadListener;
 import javax.servlet.ServletException;
 import javax.servlet.ServletInputStream;
 import javax.servlet.ServletOutputStream;
+import javax.servlet.WriteListener;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
@@ -65,7 +67,6 @@ import org.easymock.Capture;
 import org.easymock.CaptureType;
 import org.easymock.EasyMock;
 import org.easymock.IAnswer;
-import org.easymock.internal.matchers.Captures;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
@@ -488,6 +489,13 @@ public class MavenProxyServletSupportTest {
                 public void write(byte[] b, int off, int len) throws IOException {
                     baos.write(b, off, len);
                 }
+                @Override
+                public boolean isReady() {
+                    return true;
+                }
+                @Override
+                public void setWriteListener(WriteListener writeListener) {
+                }
             }).anyTimes();
             response.flushBuffer();
             EasyMock.expectLastCall().anyTimes();
@@ -605,6 +613,13 @@ public class MavenProxyServletSupportTest {
                 @Override
                 public void write(byte[] b, int off, int len) throws IOException {
                     baos.write(b, off, len);
+                }
+                @Override
+                public boolean isReady() {
+                    return true;
+                }
+                @Override
+                public void setWriteListener(WriteListener writeListener) {
                 }
             };
 
@@ -803,6 +818,21 @@ public class MavenProxyServletSupportTest {
             public int read() throws IOException {
                 return pos >= multipartRequestBytes.length ? -1 : (multipartRequestBytes[pos++] & 0xFF);
             }
+
+            @Override
+            public boolean isFinished() {
+                return false;
+            }
+
+            @Override
+            public boolean isReady() {
+                return true;
+            }
+
+            @Override
+            public void setReadListener(ReadListener readListener) {
+
+            }
         });
 
         Capture<ProjectRequirements> requirementsCapture = EasyMock.newCapture(CaptureType.FIRST);
@@ -890,6 +920,21 @@ public class MavenProxyServletSupportTest {
                         return -1;
                     }
                     return (contents[i++] & 0xFF);
+                }
+
+                @Override
+                public boolean isReady() {
+                    return false;
+                }
+
+                @Override
+                public boolean isFinished() {
+                    return false;
+                }
+
+                @Override
+                public void setReadListener(ReadListener readListener) {
+
                 }
             });
             EasyMock.expect(request.getHeader("X-Location")).andReturn(location);
