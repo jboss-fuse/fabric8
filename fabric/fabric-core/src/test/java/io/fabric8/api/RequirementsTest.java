@@ -90,17 +90,17 @@ public class RequirementsTest {
     public void healthNumbers() throws Exception {
         ProfileRequirements requirements = new ProfileRequirements("mq", 2, 5);
 
-        assertEquals(0.0, requirements.getHealth(0));
-        assertEquals(0.5, requirements.getHealth(1));
-        assertEquals(1.0, requirements.getHealth(2));
-        assertEquals(1.5, requirements.getHealth(3));
+        assertEquals("0.0", Double.toString(requirements.getHealth(0)));
+        assertEquals("0.5", Double.toString(requirements.getHealth(1)));
+        assertEquals("1.0", Double.toString(requirements.getHealth(2)));
+        assertEquals("1.5", Double.toString(requirements.getHealth(3)));
     }
 
     @Test
     public void healthNumbersWithNoNumbers() throws Exception {
         ProfileRequirements requirements = new ProfileRequirements("mq");
 
-        assertEquals(0.0, requirements.getHealth(0));
-        assertEquals(1.0, requirements.getHealth(1));
+        assertEquals("0.0", Double.toString(requirements.getHealth(0)));
+        assertEquals("1.0", Double.toString(requirements.getHealth(1)));
     }
 }
