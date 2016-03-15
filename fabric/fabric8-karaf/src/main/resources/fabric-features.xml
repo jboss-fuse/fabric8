@@ -612,8 +612,10 @@
         <feature>http</feature>
         <feature version="${cxf-version-range}">cxf-specs</feature>
         <bundle dependency='true'>mvn:org.scala-lang/scala-library/${swagger-scala-version}</bundle>
+        <bundle dependency='true'>mvn:org.scala-lang/scala-reflect/${swagger-scala-version}</bundle>
+        <bundle dependency='true'>mvn:com.google.guava/guava/${swagger-scala-guava-version}</bundle>
+        <bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.javax-inject/${javax.inject.bundle.version}</bundle>
         <bundle>mvn:org.javassist/javassist/${javassist-version}</bundle>
-        <bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.jackson-module-scala/${jackson-module-scala-version}</bundle>
         <bundle>mvn:javax.validation/validation-api/${validation-api-version}</bundle>
         <bundle>mvn:com.fasterxml.jackson.core/jackson-core/${jackson2-version}</bundle>
         <bundle>mvn:com.fasterxml.jackson.core/jackson-annotations/${jackson2-version}</bundle>
@@ -621,9 +623,12 @@
         <bundle>mvn:com.fasterxml.jackson.jaxrs/jackson-jaxrs-base/${jackson2-version}</bundle>
         <bundle>mvn:com.fasterxml.jackson.jaxrs/jackson-jaxrs-json-provider/${jackson2-version}</bundle>
         <bundle>mvn:com.fasterxml.jackson.module/jackson-module-jaxb-annotations/${jackson2-version}</bundle>
+        <bundle>mvn:com.fasterxml.jackson.module/jackson-module-paranamer/${jackson2-version}</bundle>
+        <bundle>mvn:com.fasterxml.jackson.module/jackson-module-scala_2.10/${jackson2-version}</bundle>
         <bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.swagger-annotations/${swagger-version}</bundle>
         <bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.swagger-core/${swagger-core-version}</bundle>
         <bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.swagger-jaxrs/${swagger-jaxrs-version}</bundle>
+        <bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.paranamer/${paranamer-bundle-version}</bundle>
         <bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.reflections/${reflections-version}</bundle>
         <bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.json4s/${json4s-version}</bundle>
     </feature>
