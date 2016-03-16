@@ -23,6 +23,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -106,10 +107,13 @@ public final class ContainerProviderUtils {
             sb.append("export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }' ").append("\n");
         }
         //Export environmental variables
-        if (options.getEnvironmentalVariables() != null && !options.getEnvironmentalVariables().isEmpty()) {
-            for (Map.Entry<String, String> entry : options.getEnvironmentalVariables().entrySet()) {
-                sb.append("export ").append(entry.getKey()).append("=\"").append(entry.getValue()).append("\"").append("\n");
-            }
+        HashMap<String, String> environmentalVariables = new HashMap<>();
+        if( options.getEnvironmentalVariables() != null ) {
+            environmentalVariables.putAll(options.getEnvironmentalVariables());
+        }
+
+        for (Map.Entry<String, String> entry : environmentalVariables.entrySet()) {
+            sb.append("export ").append(entry.getKey()).append("=\"").append(entry.getValue()).append("\"").append("\n");
         }
 
         sb.append(RUN_FUNCTION).append("\n");
@@ -258,7 +262,15 @@ public final class ContainerProviderUtils {
         } else if (!jvmOptions.contains("-XX:+UnlockDiagnosticVMOptions -XX:+UnsyncloadClass")) {
             jvmOptions = jvmOptions +  " -XX:+UnlockDiagnosticVMOptions -XX:+UnsyncloadClass";
         }
-        sb.append("export JAVA_OPTS=\"" + jvmOptions).append("\"\n");
+
+        environmentalVariables.put("JAVA_OPTS", jvmOptions);
+
+        ArrayList<String> setenv = new ArrayList<String>();
+        for (Map.Entry<String, String> entry : environmentalVariables.entrySet()) {
+            setenv.add("export "+entry.getKey()+"=\""+entry.getValue()+"\"\n");
+        }
+        writeFile(sb, "bin/setenv", setenv);
+
         sb.append("nohup bin/start &").append("\n");
         sb.append("karaf_check `pwd`").append("\n");
         sb.append("wait_for_port $SSH_PORT").append("\n");
@@ -277,11 +289,14 @@ public final class ContainerProviderUtils {
         StringBuilder sb = new StringBuilder();
         sb.append("#!/bin/bash").append("\n");
         //Export environmental variables
-        if (options.getEnvironmentalVariables() != null && !options.getEnvironmentalVariables().isEmpty()) {
-            for (Map.Entry<String, String> entry : options.getEnvironmentalVariables().entrySet()) {
-                sb.append("export ").append(entry.getKey()).append("=\"").append(entry.getValue()).append("\"").append("\n");
-            }
+        HashMap<String, String> environmentalVariables = new HashMap<>();
+        if( options.getEnvironmentalVariables() != null ) {
+            environmentalVariables.putAll(options.getEnvironmentalVariables());
         }
+        for (Map.Entry<String, String> entry : environmentalVariables.entrySet()) {
+            sb.append("export "+entry.getKey()+"=\""+entry.getValue()+"\"\n");
+        }
+
         sb.append(RUN_FUNCTION).append("\n");
         sb.append(SUDO_N_FUNCTION).append("\n");
         sb.append(KARAF_CHECK).append("\n");
@@ -298,7 +313,13 @@ public final class ContainerProviderUtils {
         } else if (!jvmOptions.contains("-XX:+UnlockDiagnosticVMOptions -XX:+UnsyncloadClass")) {
             jvmOptions = jvmOptions +  " -XX:+UnlockDiagnosticVMOptions -XX:+UnsyncloadClass";
         }
-        sb.append("export JAVA_OPTS=\"" + jvmOptions).append("\"\n");
+        environmentalVariables.put("JAVA_OPTS", jvmOptions);
+
+        ArrayList<String> setenv = new ArrayList<String>();
+        for (Map.Entry<String, String> entry : environmentalVariables.entrySet()) {
+            setenv.add("export "+entry.getKey()+"=\""+entry.getValue()+"\"\n");
+        }
+        writeFile(sb, "bin/setenv", setenv);
 
         sb.append("nohup bin/start &").append("\n");
         sb.append("karaf_check `pwd`").append("\n");
@@ -318,7 +339,7 @@ public final class ContainerProviderUtils {
         //Export environmental variables
         if (options.getEnvironmentalVariables() != null && !options.getEnvironmentalVariables().isEmpty()) {
             for (Map.Entry<String, String> entry : options.getEnvironmentalVariables().entrySet()) {
-                sb.append("export ").append(entry.getKey()).append("=\"").append(entry.getValue()).append("\"").append("\n");
+                sb.append("export "+entry.getKey()+"=\""+entry.getValue()+"\"\n");
             }
         }
         sb.append(RUN_FUNCTION).append("\n");
@@ -345,7 +366,7 @@ public final class ContainerProviderUtils {
         //Export environmental variables
         if (options.getEnvironmentalVariables() != null && !options.getEnvironmentalVariables().isEmpty()) {
             for (Map.Entry<String, String> entry : options.getEnvironmentalVariables().entrySet()) {
-                sb.append("export ").append(entry.getKey()).append("=\"").append(entry.getValue()).append("\"").append("\n");
+                sb.append("export "+entry.getKey()+"=\""+entry.getValue()+"\"\n");
             }
         }
         sb.append(RUN_FUNCTION).append("\n");
@@ -385,6 +406,15 @@ public final class ContainerProviderUtils {
     private static void appendFile(StringBuilder sb, String path, Iterable<String> lines) {
         final String marker = "END_OF_FILE";
         sb.append("cat >> ").append(path).append(" <<'").append(marker).append("'\n");
+        for (String line : lines) {
+            sb.append(line).append("\n");
+        }
+        sb.append(marker).append("\n");
+    }
+
+    private static void writeFile(StringBuilder sb, String path, Iterable<String> lines) {
+        final String marker = "END_OF_FILE";
+        sb.append("cat > ").append(path).append(" <<'").append(marker).append("'\n");
         for (String line : lines) {
             sb.append(line).append("\n");
         }
