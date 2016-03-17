@@ -83,8 +83,6 @@ public final class ContainerProviderUtils {
 
     protected transient static Logger logger = LoggerFactory.getLogger(ContainerProviderUtils.class);
 
-    private static final String[] FALLBACK_REPOS = {"https://maven.repository.redhat.com/ga"};
-
     private ContainerProviderUtils() {
         //Utility Class
     }
@@ -154,7 +152,6 @@ public final class ContainerProviderUtils {
         if (optionsRepos != null) {
             fallbackRepositories.addAll(optionsRepos);
         }
-        fallbackRepositories.addAll(Arrays.asList(FALLBACK_REPOS));
         extractZipIntoDirectory(sb, options.getProxyUri(), "io.fabric8", "fabric8-karaf", FabricConstants.FABRIC_VERSION, fallbackRepositories);
         sb.append("run cd `").append(FIRST_FABRIC_DIRECTORY).append("`\n");
         sb.append("run mkdir -p ").append(systemDistPath).append("\n");
