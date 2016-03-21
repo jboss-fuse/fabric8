@@ -728,7 +728,7 @@ public class ServiceImplTest {
 
     private Bundle createMockBundle(String bsn, String version, String location) {
         Bundle result = createNiceMock(Bundle.class);
-        expect(result.getSymbolicName()).andReturn(bsn);
+        expect(result.getSymbolicName()).andReturn(bsn).anyTimes();
         expect(result.getVersion()).andReturn(Version.parseVersion(version));
         expect(result.getLocation()).andReturn(location);
         replay(result);

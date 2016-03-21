@@ -20,6 +20,7 @@ import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -291,6 +292,16 @@ public class ServiceImpl implements Service {
 
     @Override
     public Iterable<Patch> download(URL url) {
+        if ("file".equals(url.getProtocol())) {
+            // ENTESB-4992: prevent adding non existing files or directories
+            try {
+                if (!new File(url.toURI()).isFile()) {
+                    throw new PatchException("Path " + url.getPath() + " doesn't exist or is not a file");
+                }
+            } catch (URISyntaxException e) {
+                throw new PatchException(e.getMessage(), e);
+            }
+        }
         try {
             List<PatchData> patchesData = patchManagement.fetchPatches(url);
             List<Patch> patches = new ArrayList<>(patchesData.size());
