@@ -16,6 +16,7 @@
 package io.fabric8.zookeeper.bootstrap;
 
 import io.fabric8.api.Constants;
+import io.fabric8.api.CreateEnsembleOptions;
 import io.fabric8.api.RuntimeProperties;
 import io.fabric8.api.jcip.ThreadSafe;
 import io.fabric8.api.scr.AbstractComponent;
@@ -36,11 +37,7 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Modified;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
-import org.apache.zookeeper.server.NIOServerCnxnFactory;
-import org.apache.zookeeper.server.ServerConfig;
-import org.apache.zookeeper.server.ServerStats;
-import org.apache.zookeeper.server.ZKDatabase;
-import org.apache.zookeeper.server.ZooKeeperServer;
+import org.apache.zookeeper.server.*;
 import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
 import org.apache.zookeeper.server.quorum.QuorumPeer;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig;
@@ -59,7 +56,9 @@ import org.slf4j.LoggerFactory;
         @Property(name = "clientPort", label = "Client Port", description = "The port to listen for client connections"),
         @Property(name = "initLimit", label = "Init Limit", description = "The amount of time in ticks (see tickTime), to allow followers to connect and sync to a leader. Increased this value as needed, if the amount of data managed by ZooKeeper is large"),
         @Property(name = "syncLimit", label = "Sync Limit", description = "The amount of time, in ticks (see tickTime), to allow followers to sync with ZooKeeper. If followers fall too far behind a leader, they will be dropped"),
-        @Property(name = "dataLogDir", label = "Data Log Directory", description = "This option will direct the machine to write the transaction log to the dataLogDir rather than the dataDir. This allows a dedicated log device to be used, and helps avoid competition between logging and snaphots")
+        @Property(name = "dataLogDir", label = "Data Log Directory", description = "This option will direct the machine to write the transaction log to the dataLogDir rather than the dataDir. This allows a dedicated log device to be used, and helps avoid competition between logging and snapshots"),
+        @Property(name = "snapRetainCount", label = "Number of snapshots to be retained after purge", description = "This option specified the number of data snapshots that ZooKeeper will retain after a purge invocation."),
+        @Property(name = "purgeInterval", label = "Purge interval in hours", description = "The interval between automated purging of ZooKeeper snapshots on filesystem.")
 }
 )
 public class ZooKeeperServerFactory extends AbstractComponent {
@@ -73,6 +72,8 @@ public class ZooKeeperServerFactory extends AbstractComponent {
 
     private Destroyable destroyable;
     private ServiceRegistration<?> registration;
+
+    private DatadirCleanupManager cleanupManager;
 
     @Activate
     void activate(BundleContext context, Map<String, ?> configuration) throws Exception {
@@ -196,8 +197,31 @@ public class ZooKeeperServerFactory extends AbstractComponent {
             SimpleServer server = new SimpleServer(zkServer, cnxnFactory);
             registration = context.registerService(ServerStats.Provider.class, server, null);
 
+            startCleanupManager(serverConfig, props);
+
             return server;
         }
+    }
+
+    private void startCleanupManager(ServerConfig serverConfig, Properties props) {
+        String dataDir = serverConfig.getDataDir();
+        String dataLogDir = serverConfig.getDataLogDir();
+
+        int snapRetainCount = CreateEnsembleOptions.DEFAULT_SNAP_RETAIN_COUNT;
+        Object snapRetainCountObj = props.get("snapRetainCount");
+        if(snapRetainCountObj != null){
+            snapRetainCount = Integer.valueOf((String)props.get("snapRetainCount"));
+        }
+
+        int purgeInterval = CreateEnsembleOptions.DEFAULT_PURGE_INTERVAL_IN_HOURS;
+        Object purgeIntervalObj = props.get("purgeInterval");
+        if(snapRetainCountObj != null){
+            purgeInterval = Integer.valueOf((String)props.get("purgeInterval"));
+        }
+
+        LOGGER.info("Starting Zookeeper Cleanup Manager with params: snapRetainCount={}, purgeInterval={}, dataDir={}, dataLogDir={}", snapRetainCount, purgeInterval, dataDir, dataLogDir);
+        cleanupManager = new DatadirCleanupManager(dataDir, dataLogDir, snapRetainCount, purgeInterval);
+        cleanupManager.start();
     }
 
     private void deactivateInternal() throws Exception {
@@ -206,6 +230,7 @@ public class ZooKeeperServerFactory extends AbstractComponent {
             registration.unregister();
             registration = null;
         }
+        cleanupManager.shutdown();
         if (destroyable != null) {
             // let's destroy it in separate thread, to prevent blocking CM Event thread
             Thread t = new Thread(new Runnable() {
@@ -331,4 +356,6 @@ public class ZooKeeperServerFactory extends AbstractComponent {
             return peer.getServerState();
         }
     }
+
+
 }

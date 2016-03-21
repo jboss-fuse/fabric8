@@ -101,6 +101,10 @@ class CreateAction extends AbstractAction {
     private String zooKeeperDataDir = CreateEnsembleOptions.DEFAULT_DATA_DIR;
     @Option(name = "--zookeeper-password", multiValued = false, description = "The ensemble password to use (one will be generated if not given)")
     private String zookeeperPassword;
+    @Option(name = "--zookeeper-snap-retain-count", multiValued = false, description = "Number of snapshots to be retained after purge in Zookeeper")
+    private int zookeeperSnapRetainCount = CreateEnsembleOptions.DEFAULT_SNAP_RETAIN_COUNT;
+    @Option(name = "--zookeeper-purge-interval", multiValued = false, description = "Zookeeper snaphsots purge interval in hours")
+    private int zookeeperPurgeInterval = CreateEnsembleOptions.DEFAULT_PURGE_INTERVAL_IN_HOURS;
     @Option(name = "--zookeeper-server-port", multiValued = false, description = "The main port for ZooKeeper server")
     private int zooKeeperServerPort = -1;
     @Option(name = "--generate-zookeeper-password", multiValued = false, description = "Flag to enable automatic generation of password")
@@ -178,6 +182,8 @@ class CreateAction extends AbstractAction {
                 .zooKeeperServerInitLimit(zooKeeperInitLimit)
                 .zooKeeperServerSyncLimit(zooKeeperSyncLimit)
                 .zooKeeperServerDataDir(zooKeeperDataDir)
+                .zookeeperSnapRetainCount(zookeeperSnapRetainCount)
+                .zookeeperPurgeInterval(zookeeperPurgeInterval)
                 .fromRuntimeProperties(runtimeProperties)
                 .bootstrapTimeout(bootstrapTimeout)
                 .waitForProvision(waitForProvisioning)
