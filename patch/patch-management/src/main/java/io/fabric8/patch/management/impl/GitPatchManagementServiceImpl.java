@@ -2753,7 +2753,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     private void applyChanges(Git git, boolean restartFileInstall) throws IOException, GitAPIException {
         Bundle fileInstall = null;
         for (Bundle b : systemContext.getBundles()) {
-            if (Utils.stripSymbolicName(b.getSymbolicName()).equals("org.apache.felix.fileinstall")) {
+            if (b.getSymbolicName() != null
+                    && Utils.stripSymbolicName(b.getSymbolicName()).equals("org.apache.felix.fileinstall")) {
                 fileInstall = b;
                 break;
             }
@@ -2928,13 +2929,15 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 //    and none of them is ACTIVE now, because we (patch-management) are at SL=2
                 //    maybe one of those bundles has data directory to restore?
                 for (Bundle b : systemContext.getBundles()) {
-                    String key = String.format("%s$$%s", stripSymbolicName(b.getSymbolicName()), b.getVersion().toString());
-                    if (backupProperties.containsKey(key)) {
-                        String backupDirName = backupProperties.getProperty(key);
-                        File backupDir = new File(dataFilesBackupDir, prefix + "/" + backupDirName + "/data");
-                        restoreDataDirectory(dataCache, b, backupDir);
-                        // we no longer want to restore this dir
-                        backupProperties.remove(key);
+                    if (b.getSymbolicName() != null) {
+                        String key = String.format("%s$$%s", stripSymbolicName(b.getSymbolicName()), b.getVersion().toString());
+                        if (backupProperties.containsKey(key)) {
+                            String backupDirName = backupProperties.getProperty(key);
+                            File backupDir = new File(dataFilesBackupDir, prefix + "/" + backupDirName + "/data");
+                            restoreDataDirectory(dataCache, b, backupDir);
+                            // we no longer want to restore this dir
+                            backupProperties.remove(key);
+                        }
                     }
                 }
 
@@ -2944,7 +2947,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     @Override
                     public void bundleChanged(BundleEvent event) {
                         Bundle b = event.getBundle();
-                        if (event.getType() == BundleEvent.INSTALLED) {
+                        if (event.getType() == BundleEvent.INSTALLED && b.getSymbolicName() != null) {
                             String key = String.format("%s$$%s", stripSymbolicName(b.getSymbolicName()), b.getVersion().toString());
                             if (backupProperties.containsKey(key)) {
                                 String backupDirName = backupProperties.getProperty(key);
