@@ -32,7 +32,6 @@
         <bundle>mvn:io.fabric8.support/support-commands/${project.version}</bundle>
         <bundle>mvn:io.fabric8.support/support-karaf/${project.version}</bundle>
         <bundle>mvn:io.fabric8.support/support-webapp/${project.version}/war</bundle>
-        <bundle>mvn:io.hawt/hawtio-plugin-redhat-access/${hawtio-version}/war</bundle>
     </feature>
 
     <feature name="support" version="${project.version}" resolver="(obr)">
