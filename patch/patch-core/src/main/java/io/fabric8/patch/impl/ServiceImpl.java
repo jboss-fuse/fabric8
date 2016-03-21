@@ -473,7 +473,8 @@ public class ServiceImpl implements Service {
                 // for rollup patch, this bundle will be installed from scratch
                 for (Map.Entry<Bundle, String> entry : bundleUpdateLocations.entrySet()) {
                     Bundle bundle = entry.getKey();
-                    if ("org.ops4j.pax.url.mvn".equals(stripSymbolicName(bundle.getSymbolicName()))) {
+                    if (bundle.getSymbolicName() != null
+                            && "org.ops4j.pax.url.mvn".equals(stripSymbolicName(bundle.getSymbolicName()))) {
                         // handle this bundle specially - update it here
                         URL location = new URL(entry.getValue());
                         System.out.printf("Special update of bundle \"%s\" from \"%s\"%n",
@@ -510,7 +511,8 @@ public class ServiceImpl implements Service {
                         backupService.backupDataFiles(result, Pending.ROLLUP_INSTALLATION);
 
                         for (Bundle b : coreBundles.values()) {
-                            if (Utils.stripSymbolicName(b.getSymbolicName()).equals("org.apache.felix.fileinstall")) {
+                            if (b.getSymbolicName() != null
+                                    && Utils.stripSymbolicName(b.getSymbolicName()).equals("org.apache.felix.fileinstall")) {
                                 b.stop(Bundle.STOP_TRANSIENT);
                                 break;
                             }
@@ -710,7 +712,7 @@ public class ServiceImpl implements Service {
         for (String newLocation : patch.getPatchData().getBundles()) {
             // [symbolicName, version] of the new bundle
             String[] symbolicNameVersion = helper.getBundleIdentity(newLocation);
-            if (symbolicNameVersion == null) {
+            if (symbolicNameVersion == null || symbolicNameVersion[0] == null) {
                 continue;
             }
             String sn = stripSymbolicName(symbolicNameVersion[0]);
@@ -812,6 +814,9 @@ public class ServiceImpl implements Service {
             // those bundles are either bundles that don't need update or areuser bundles (which may be part of
             // user features) and we have (at least try) to install them after restart.
             for (Bundle b : updateNotRequired.values()) {
+                if (b.getSymbolicName() == null) {
+                    continue;
+                }
                 String symbolicName = stripSymbolicName(b.getSymbolicName());
                 Version v = b.getVersion();
                 Version updateableVersion = new Version(v.getMajor(), v.getMinor(), 0);
@@ -1113,7 +1118,8 @@ public class ServiceImpl implements Service {
                     backupService.backupDataFiles(result, Pending.ROLLUP_ROLLBACK);
 
                     for (Bundle b : this.bundleContext.getBundles()) {
-                        if (Utils.stripSymbolicName(b.getSymbolicName()).equals("org.apache.felix.fileinstall")) {
+                        if (b.getSymbolicName() != null
+                                && Utils.stripSymbolicName(b.getSymbolicName()).equals("org.apache.felix.fileinstall")) {
                             b.stop(Bundle.STOP_TRANSIENT);
                             break;
                         }
@@ -1164,6 +1170,9 @@ public class ServiceImpl implements Service {
             boolean found = false;
             Version v = Version.parseVersion(update.getNewVersion() == null ? update.getPreviousVersion() : update.getNewVersion());
             for (Bundle bundle : allBundles) {
+                if (bundle.getSymbolicName() == null || update.getSymbolicName() == null) {
+                    continue;
+                }
                 if (stripSymbolicName(bundle.getSymbolicName()).equals(stripSymbolicName(update.getSymbolicName()))
                         && bundle.getVersion().equals(v)) {
                     found = true;
@@ -1190,6 +1199,9 @@ public class ServiceImpl implements Service {
             for (BundleUpdate update : result.getBundleUpdates()) {
                 Version v = Version.parseVersion(update.getNewVersion() == null ? update.getPreviousVersion() : update.getNewVersion());
                 for (Bundle bundle : allBundles) {
+                    if (bundle.getSymbolicName() == null || update.getSymbolicName() == null) {
+                        continue;
+                    }
                     if (stripSymbolicName(bundle.getSymbolicName()).equals(stripSymbolicName(update.getSymbolicName()))
                             && bundle.getVersion().equals(v)) {
                         toUpdate.put(bundle, update.getPreviousLocation());
@@ -1540,7 +1552,7 @@ public class ServiceImpl implements Service {
                 PatchResult result = patch.getValue().getResult();
                 if (result != null) {
                     for (BundleUpdate update : result.getBundleUpdates()) {
-                        if (update.getNewVersion() != null) {
+                        if (update.getNewVersion() != null && update.getSymbolicName() != null) {
                             String symbolicName = stripSymbolicName(update.getSymbolicName());
                             Map<String, String> versions = bundleVersions.get(symbolicName);
                             if (versions == null) {
@@ -1562,7 +1574,7 @@ public class ServiceImpl implements Service {
          * @return the location for this bundle version
          */
         protected String getLocation(Bundle bundle) {
-            String symbolicName = stripSymbolicName(bundle.getSymbolicName());
+            String symbolicName = bundle.getSymbolicName() == null ? null : stripSymbolicName(bundle.getSymbolicName());
             Map<String, String> versions = bundleVersions.get(symbolicName);
             String location = null;
             if (versions != null) {

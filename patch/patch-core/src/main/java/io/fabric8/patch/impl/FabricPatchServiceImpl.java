@@ -23,8 +23,6 @@ import java.net.URLConnection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 import io.fabric8.api.FabricService;
 import io.fabric8.api.GitContext;
@@ -84,17 +82,14 @@ public class FabricPatchServiceImpl implements FabricPatchService {
     @Reference(referenceInterface = RuntimeProperties.class, cardinality = ReferenceCardinality.MANDATORY_UNARY, policy = ReferencePolicy.DYNAMIC)
     private RuntimeProperties runtimeProperties;
 
-    private BundleContext bundleContext;
-    private File karafHome;
-
     private OSGiPatchHelper helper;
 
     @Activate
     void activate(ComponentContext componentContext) throws IOException, BundleException {
         // Use system bundle' bundle context to avoid running into
         // "Invalid BundleContext" exceptions when updating bundles
-        this.bundleContext = componentContext.getBundleContext().getBundle(0).getBundleContext();
-        this.karafHome = new File(bundleContext.getProperty("karaf.home"));
+        BundleContext bundleContext = componentContext.getBundleContext().getBundle(0).getBundleContext();
+        File karafHome = new File(bundleContext.getProperty("karaf.home"));
         helper = new OSGiPatchHelper(karafHome, bundleContext);
     }
 
@@ -195,15 +190,12 @@ public class FabricPatchServiceImpl implements FabricPatchService {
         for (String newLocation : patch.getPatchData().getBundles()) {
             // [symbolicName, version] of the new bundle
             String[] symbolicNameVersion = helper.getBundleIdentity(newLocation);
-            if (symbolicNameVersion == null) {
+            if (symbolicNameVersion == null || symbolicNameVersion[0] == null) {
                 continue;
             }
             String sn = stripSymbolicName(symbolicNameVersion[0]);
             String vr = symbolicNameVersion[1];
             Version newVersion = VersionTable.getVersion(vr);
-            if (symbolicNameVersion == null) {
-                continue;
-            }
             BundleUpdate update = new BundleUpdate(sn, newVersion.toString(), newLocation, null, null);
             update.setIndependent(true);
             updatesInThisPatch.add(update);

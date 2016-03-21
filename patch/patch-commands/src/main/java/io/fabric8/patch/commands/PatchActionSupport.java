@@ -45,7 +45,7 @@ public abstract class PatchActionSupport extends AbstractAction {
     protected void display(PatchResult result) {
         int l1 = "[name]".length(), l2 = "[old]".length(), l3 = "[new]".length();
         for (BundleUpdate update : result.getBundleUpdates()) {
-            if (stripSymbolicName(update.getSymbolicName()).length() > l1) {
+            if (update.getSymbolicName() != null && stripSymbolicName(update.getSymbolicName()).length() > l1) {
                 l1 = stripSymbolicName(update.getSymbolicName()).length();
             }
             if (update.getPreviousVersion().length() > l2) {
@@ -64,7 +64,10 @@ public abstract class PatchActionSupport extends AbstractAction {
             }
         });
         for (BundleUpdate update : updates) {
-            System.out.println(String.format("%-" + l1 + "s | %-" + l2 + "s | %-" + l3 + "s", stripSymbolicName(update.getSymbolicName()), update.getPreviousVersion(), update.getNewVersion()));
+            System.out.println(String.format("%-" + l1 + "s | %-" + l2 + "s | %-" + l3 + "s",
+                    update.getSymbolicName() == null ? "" : stripSymbolicName(update.getSymbolicName()),
+                    update.getPreviousVersion(),
+                    update.getNewVersion()));
         }
     }
 

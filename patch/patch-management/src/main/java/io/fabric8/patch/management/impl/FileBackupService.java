@@ -67,17 +67,19 @@ public class FileBackupService implements BackupService {
         }
 
         for (Bundle b : systemContext.getBundles()) {
-            String sn = Utils.stripSymbolicName(b.getSymbolicName());
-            if ("org.apache.karaf.features.core".equals(sn)) {
-                // we don't want to preserve data directory of this bundle, because during rollup patch
-                // we start with fresh features service state
-                continue;
-            }
-            // a bit of knowledge of how Felix works below...
-            File dataDir = new File(cacheDir, "bundle" + b.getBundleId() + "/data");
-            if (dataDir.isDirectory()) {
-                String key = String.format("%s$$%s", sn, b.getVersion().toString());
-                bundlesWithData.put(key, b);
+            if (b.getSymbolicName() != null) {
+                String sn = Utils.stripSymbolicName(b.getSymbolicName());
+                if ("org.apache.karaf.features.core".equals(sn)) {
+                    // we don't want to preserve data directory of this bundle, because during rollup patch
+                    // we start with fresh features service state
+                    continue;
+                }
+                // a bit of knowledge of how Felix works below...
+                File dataDir = new File(cacheDir, "bundle" + b.getBundleId() + "/data");
+                if (dataDir.isDirectory()) {
+                    String key = String.format("%s$$%s", sn, b.getVersion().toString());
+                    bundlesWithData.put(key, b);
+                }
             }
         }
 

@@ -49,7 +49,7 @@ public abstract class Presentation {
         int tkf = 0; // reinstalls as part of features
         Map<String, BundleUpdate> map = new TreeMap<>();
         for (BundleUpdate be : updatesForBundleKeys) {
-            String sn = stripSymbolicName(be.getSymbolicName());
+            String sn = be.getSymbolicName() == null ? "" : stripSymbolicName(be.getSymbolicName());
             if (sn.length() > l1) {
                 l1 = sn.length();
             }
@@ -99,7 +99,7 @@ public abstract class Presentation {
                 BundleUpdate be = e.getValue();
                 if (be.isIndependent() && be.getNewLocation() != null) {
                     System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
-                            stripSymbolicName(be.getSymbolicName()),
+                            be.getSymbolicName() == null ? "" : stripSymbolicName(be.getSymbolicName()),
                             install ? (be.getPreviousVersion() == null ? "<update>" : be.getPreviousVersion()) : be.getNewVersion(),
                             install ? be.getNewLocation() : be.getPreviousLocation());
                 }
@@ -114,7 +114,7 @@ public abstract class Presentation {
                 BundleUpdate be = e.getValue();
                 if (!be.isIndependent() && be.getNewLocation() != null) {
                     System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
-                            stripSymbolicName(be.getSymbolicName()),
+                            be.getSymbolicName() == null ? "" : stripSymbolicName(be.getSymbolicName()),
                             install ? be.getPreviousVersion() : be.getNewVersion(),
                             install ? be.getNewLocation() : be.getPreviousLocation());
                 }
@@ -128,7 +128,7 @@ public abstract class Presentation {
                 BundleUpdate be = e.getValue();
                 if (be.isIndependent() && be.getNewLocation() == null) {
                     System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
-                            stripSymbolicName(be.getSymbolicName()),
+                            be.getSymbolicName() == null ? "" : stripSymbolicName(be.getSymbolicName()),
                             be.getPreviousVersion(),
                             be.getPreviousLocation());
                 }
@@ -142,7 +142,7 @@ public abstract class Presentation {
                 BundleUpdate be = e.getValue();
                 if (!be.isIndependent() && be.getNewLocation() == null) {
                     System.out.printf("%-" + l1 + "s   %-" + l2 + "s   %-" + l3 + "s%n",
-                            stripSymbolicName(be.getSymbolicName()),
+                            be.getSymbolicName() == null ? "" : stripSymbolicName(be.getSymbolicName()),
                             be.getPreviousVersion(),
                             be.getPreviousLocation());
                 }
