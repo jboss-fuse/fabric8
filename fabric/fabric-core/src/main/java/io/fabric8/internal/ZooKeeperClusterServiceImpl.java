@@ -248,6 +248,8 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
             ensembleProperties.put("tickTime", String.valueOf(options.getZooKeeperServerTickTime()));
             ensembleProperties.put("initLimit", String.valueOf(options.getZooKeeperServerInitLimit()));
             ensembleProperties.put("syncLimit", String.valueOf(options.getZooKeeperServerSyncLimit()));
+            ensembleProperties.put("snapRetainCount", String.valueOf(options.getZookeeperSnapRetainCount()));
+            ensembleProperties.put("purgeInterval", String.valueOf(options.getZookeeperPurgeInterval()));
             ensembleProperties.put("dataDir", options.getZooKeeperServerDataDir() + File.separator + newClusterId);
             
             // create new ensemble

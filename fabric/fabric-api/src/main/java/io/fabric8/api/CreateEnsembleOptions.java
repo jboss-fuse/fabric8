@@ -42,6 +42,8 @@ public class CreateEnsembleOptions extends ContainerOptions {
     public static final int DEFAULT_TICKTIME = 2000;
     public static final int DEFAULT_INIT_LIMIT = 10;
     public static final int DEFAULT_SYNC_LIMIT = 5;
+    public static final int DEFAULT_SNAP_RETAIN_COUNT = 3;
+    public static final int DEFAULT_PURGE_INTERVAL_IN_HOURS = 0;
     public static final String DEFAULT_DATA_DIR = "zookeeper";
 
     @JsonProperty
@@ -58,6 +60,10 @@ public class CreateEnsembleOptions extends ContainerOptions {
     final String zooKeeperServerDataDir;
     @JsonProperty
     final String zookeeperPassword;
+    @JsonProperty
+    final int zookeeperSnapRetainCount;
+    @JsonProperty
+    final int zookeeperPurgeInterval;
     @JsonProperty
     final boolean ensembleStart;
     @JsonProperty
@@ -82,11 +88,13 @@ public class CreateEnsembleOptions extends ContainerOptions {
         return new Builder();
     }
 
-    CreateEnsembleOptions(String bindAddress, String resolver, String globalResolver, String manualIp, int minimumPort, int maximumPort, Set<String> profiles, String version, Map<String, String> dataStoreProperties, int zooKeeperServerPort, int zooKeeperServerConnectionPort,  int zooKeeperServerTickTime, int zooKeeperServerInitLimit, int zooKeeperServerSyncLimit, String zooKeeperServerDataDir, String zookeeperPassword, boolean ensembleStart, boolean agentEnabled, boolean waitForProvision, long bootstrapTimeout, long migrationTimeout, boolean autoImportEnabled, String importPath, Map<String, String> users, boolean clean) {
+    CreateEnsembleOptions(String bindAddress, String resolver, String globalResolver, String manualIp, int minimumPort, int maximumPort, Set<String> profiles, String version, Map<String, String> dataStoreProperties, int zooKeeperServerPort, int zooKeeperServerConnectionPort,  int zooKeeperServerTickTime, int zooKeeperServerInitLimit, int zooKeeperServerSyncLimit, String zooKeeperServerDataDir, String zookeeperPassword, int zookeeperSnapRetainCount, int zookeeperPurgeInterval, boolean ensembleStart, boolean agentEnabled, boolean waitForProvision, long bootstrapTimeout, long migrationTimeout, boolean autoImportEnabled, String importPath, Map<String, String> users, boolean clean) {
         super(bindAddress, resolver, globalResolver, manualIp, minimumPort, maximumPort, profiles, version, dataStoreProperties);
         this.zooKeeperServerPort = zooKeeperServerPort;
         this.zooKeeperServerConnectionPort = zooKeeperServerConnectionPort;
         this.zookeeperPassword = zookeeperPassword;
+        this.zookeeperSnapRetainCount = zookeeperSnapRetainCount;
+        this.zookeeperPurgeInterval = zookeeperPurgeInterval;
         this.ensembleStart = ensembleStart;
         this.agentEnabled = agentEnabled;
         this.waitForProvision = waitForProvision;
@@ -128,6 +136,12 @@ public class CreateEnsembleOptions extends ContainerOptions {
 
     public String getZookeeperPassword() {
         return zookeeperPassword;
+    }
+    public int getZookeeperSnapRetainCount() {
+        return zookeeperSnapRetainCount;
+    }
+    public int getZookeeperPurgeInterval() {
+        return zookeeperPurgeInterval;
     }
 
     public boolean isEnsembleStart() {
@@ -194,6 +208,10 @@ public class CreateEnsembleOptions extends ContainerOptions {
         String zooKeeperServerDataDir = DEFAULT_DATA_DIR;
         @JsonProperty
         String zookeeperPassword = generatePassword();
+        @JsonProperty
+        int zookeeperSnapRetainCount = DEFAULT_SNAP_RETAIN_COUNT;
+        @JsonProperty
+        int zookeeperPurgeInterval = DEFAULT_PURGE_INTERVAL_IN_HOURS;
         @JsonProperty
         boolean ensembleStart = false;
         @JsonProperty
@@ -279,6 +297,16 @@ public class CreateEnsembleOptions extends ContainerOptions {
 
         public B zookeeperPassword(final String zookeeperPassword) {
             this.zookeeperPassword = zookeeperPassword;
+            return (B) this;
+        }
+
+        public B zookeeperSnapRetainCount(final int zookeeperSnapRetainCount) {
+            this.zookeeperSnapRetainCount = zookeeperSnapRetainCount;
+            return (B) this;
+        }
+
+        public B zookeeperPurgeInterval(final int zookeeperPurgeInterval) {
+            this.zookeeperPurgeInterval = zookeeperPurgeInterval;
             return (B) this;
         }
 
@@ -446,7 +474,7 @@ public class CreateEnsembleOptions extends ContainerOptions {
 
         @Override
         public CreateEnsembleOptions build() {
-            return new CreateEnsembleOptions(bindAddress, resolver, globalResolver, manualIp, minimumPort, maximumPort, profiles, version, dataStoreProperties, zooKeeperServerPort, zooKeeperServerConnectionPort, zooKeeperServerTickTime, zooKeeperServerInitLimit, zooKeeperServerSyncLimit, zooKeeperServerDataDir, zookeeperPassword, ensembleStart, agentEnabled, waitForProvision, bootstrapTimeout, migrationTimeout, autoImportEnabled, importPath, users, clean);
+            return new CreateEnsembleOptions(bindAddress, resolver, globalResolver, manualIp, minimumPort, maximumPort, profiles, version, dataStoreProperties, zooKeeperServerPort, zooKeeperServerConnectionPort, zooKeeperServerTickTime, zooKeeperServerInitLimit, zooKeeperServerSyncLimit, zooKeeperServerDataDir, zookeeperPassword, zookeeperSnapRetainCount, zookeeperPurgeInterval, ensembleStart, agentEnabled, waitForProvision, bootstrapTimeout, migrationTimeout, autoImportEnabled, importPath, users, clean);
         }
     }
 

@@ -146,6 +146,8 @@ public class DataStoreBootstrapTemplate implements DataStoreTemplate {
                 ensembleProps.put("tickTime", String.valueOf(options.getZooKeeperServerTickTime()));
                 ensembleProps.put("initLimit", String.valueOf(options.getZooKeeperServerInitLimit()));
                 ensembleProps.put("syncLimit", String.valueOf(options.getZooKeeperServerSyncLimit()));
+                ensembleProps.put("snapRetainCount", String.valueOf(options.getZookeeperSnapRetainCount()));
+                ensembleProps.put("purgeInterval", String.valueOf(options.getZookeeperPurgeInterval()));
                 ensembleProps.put("dataDir", options.getZooKeeperServerDataDir() + File.separator + "0000");
                 loadPropertiesFrom(ensembleProps, importPath + "/fabric/profiles/default.profile/io.fabric8.zookeeper.server.properties");
                 

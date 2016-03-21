@@ -296,6 +296,8 @@ public class BootstrapConfiguration extends AbstractComponent {
         properties.put("clientPort", Integer.toString(serverPort));
         properties.put("clientPortAddress", serverHost);
         properties.put("fabric.zookeeper.pid", "io.fabric8.zookeeper.server-0000");
+        properties.put("snapRetainCount", String.valueOf(options.getZookeeperSnapRetainCount()));
+        properties.put("purgeInterval", String.valueOf(options.getZookeeperPurgeInterval()));
         Configuration config = configAdmin.get().createFactoryConfiguration(Constants.ZOOKEEPER_SERVER_PID, null);
         return OsgiUtils.updateCmFactoryConfigurationAndWait(context, config, properties, 30, TimeUnit.SECONDS);
     }
