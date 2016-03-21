@@ -29,7 +29,7 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
 
-@Component(name = "io.fabric8.geolocation.freegoip", immediate = true)
+@Component(name = "io.fabric8.geolocation.freegoip", immediate = true, enabled = false) 
 @Service(GeoLocationService.class)
 public class FreeGeoIpService implements GeoLocationService{
 
