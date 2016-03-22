@@ -165,7 +165,7 @@
         <commons-httpclient-version>3.1</commons-httpclient-version>
         <commons-io2-version>2.4</commons-io2-version>
         <commons-lang-version>2.6</commons-lang-version>
-        <commons-lang3-version>3.3.2</commons-lang3-version>
+        <commons-lang3-version>3.4</commons-lang3-version>
         <commons-pool-version>1.6</commons-pool-version>
         <commons-jexl-version>2.1.1</commons-jexl-version>
         <commons-digester-version>1.8_4</commons-digester-version>
@@ -222,7 +222,7 @@
         <gson-version>2.4</gson-version>
         <groovy1-version>1.8.6</groovy1-version>
         <groovy-version>2.4.5</groovy-version>
-        <guava-version>17.0</guava-version>
+        <guava-version>18.0</guava-version>
         <guava.osgi.version.clean>17.0</guava.osgi.version.clean>
         <guice.version>3.0</guice.version>
         <hadoop-version>1.2.1</hadoop-version>

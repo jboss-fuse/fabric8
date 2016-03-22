@@ -633,4 +633,31 @@
         <bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.json4s/${json4s-version}</bundle>
     </feature>
 
+    <feature name="swagger-java" version="${project.version}" resolver="(obr)">
+        <feature>http</feature>
+        <bundle>mvn:org.codehaus.woodstox/stax2-api/${woodstox-stax2-api-version}</bundle>
+        <bundle>mvn:com.fasterxml.jackson.core/jackson-databind/${jackson2-version}</bundle>
+        <bundle>mvn:com.fasterxml.jackson.core/jackson-core/${jackson2-version}</bundle>
+        <bundle>mvn:com.fasterxml.jackson.module/jackson-module-jaxb-annotations/${jackson2-version}</bundle>
+        <bundle>mvn:com.fasterxml.jackson.dataformat/jackson-dataformat-xml/${jackson2-version}</bundle>
+        <bundle>mvn:com.fasterxml.jackson.dataformat/jackson-dataformat-yaml/${jackson2-version}</bundle>
+        <bundle>mvn:com.fasterxml.jackson.jaxrs/jackson-jaxrs-json-provider/${jackson2-version}</bundle>
+        <bundle>mvn:com.fasterxml.jackson.jaxrs/jackson-jaxrs-base/${jackson2-version}</bundle>
+        <bundle>mvn:com.fasterxml.jackson.core/jackson-annotations/${jackson2-version}</bundle>
+        <bundle>mvn:com.google.guava/guava/18.0</bundle>
+        <bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.reflections/${reflections-version}</bundle>
+        <bundle>mvn:io.swagger/swagger-core/1.5.4</bundle>
+        <bundle>mvn:io.swagger/swagger-annotations/1.5.4</bundle>
+        <bundle>mvn:io.swagger/swagger-models/1.5.4</bundle>
+        <bundle>mvn:io.swagger/swagger-jaxrs/1.5.4</bundle>
+        <!-- apiman -->
+        <bundle>mvn:com.fasterxml.jackson.datatype/jackson-datatype-joda/${jackson2-version}</bundle>
+        <bundle>mvn:joda-time/joda-time/${joda-time2-version}</bundle>
+        <bundle>mvn:com.google.code.findbugs/annotations/2.0.1</bundle>
+        <!-- camel-swagger-java -->
+        <bundle>mvn:org.apache.servicemix.specs/org.apache.servicemix.specs.jsr311-api-1.1.1/${servicemix-specs-version}</bundle>
+        <bundle>mvn:javax.validation/validation-api/1.1.0.Final</bundle>
+        <bundle>mvn:org.apache.commons/commons-lang3/${commons-lang3-version}</bundle>
+    </feature>
+
 </features>
