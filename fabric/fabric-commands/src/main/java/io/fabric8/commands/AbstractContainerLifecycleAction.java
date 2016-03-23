@@ -32,26 +32,26 @@ import org.apache.karaf.shell.console.AbstractAction;
 public abstract class AbstractContainerLifecycleAction extends AbstractAction {
 
     @Option(name = "--user", description = "The username to use.")
-    String user;
+    protected String user;
 
     @Option(name = "--password", description = "The password to use.")
-    String password;
+    protected String password;
 
     @Option(name = "-f", aliases = {"--force"}, multiValued = false, required = false, description = "Force the execution of the command regardless of the known state of the container")
-    boolean force = false;
+    protected boolean force = false;
 
     @Argument(index = 0, name = "container", description = "The container names", required = true, multiValued = true)
-    List<String> containers = null;
+    protected List<String> containers = null;
 
     protected final FabricService fabricService;
     protected final DataStore dataStore;
 
-    AbstractContainerLifecycleAction(FabricService fabricService) {
+    protected AbstractContainerLifecycleAction(FabricService fabricService) {
         this.fabricService = fabricService;
         this.dataStore = fabricService.adapt(DataStore.class);
     }
 
-    void applyUpdatedCredentials(Container container) {
+    protected void applyUpdatedCredentials(Container container) {
         if (user != null || password != null) {
             CreateContainerMetadata<?> metadata = container.getMetadata();
             if (metadata != null) {
