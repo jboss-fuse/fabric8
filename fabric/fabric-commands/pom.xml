@@ -31,7 +31,7 @@
 
     <properties>
         <fuse.osgi.export>
-            io.fabric8.commands.support*;version=${project.version};-noimport:=true,
+            io.fabric8.commands.support*;version=${project.version};-noimport:=true,io.fabric8.commands*;version=${project.version};-noimport:=true,
         </fuse.osgi.export>
         <fuse.osgi.import.additional>
             org.apache.karaf.features*;resolution:=optional,
