@@ -131,7 +131,13 @@ public final class FabricWebRegistrationHandler extends AbstractComponent implem
                     registerServlet(fabricService.get().getCurrentContainer(), servletEvent);
                     break;
                 default:
-                    unregisterServlet(fabricService.get().getCurrentContainer(), servletEvent);
+                    try {
+                        unregisterServlet(fabricService.get().getCurrentContainer(), servletEvent);
+                    } catch (IllegalStateException e){
+                        if ("Client is not started".equals(e.getMessage())){
+                            LOGGER.warn("Zookeeper connection not available. Servlet endpoint might have not been removed correctly from zookeeper registry: {}", servletEvent);
+                        }
+                    }
                     break;
                 }
             }

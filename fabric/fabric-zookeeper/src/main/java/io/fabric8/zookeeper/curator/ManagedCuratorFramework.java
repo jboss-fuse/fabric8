@@ -201,7 +201,9 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
                         }
                     }
                 }
-            }  else{
+            }  else if(e instanceof IllegalStateException && "Client is not started".equals(e.getMessage())){
+                LOGGER.debug("Recoverable error handled by Curator", e);
+            } else{
                 LOGGER.error("Unhandled error in Zookeeper layer", e);
             }
         }
