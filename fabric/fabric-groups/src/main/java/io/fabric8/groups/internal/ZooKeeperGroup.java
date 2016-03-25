@@ -404,7 +404,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
             });
             processChildren(children, mode);
         } catch (Exception e) {
-            LOG.error(e.getMessage(), e);
+            handleException(e);
         }
     }
 
