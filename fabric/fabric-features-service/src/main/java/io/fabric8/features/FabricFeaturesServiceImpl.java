@@ -30,14 +30,7 @@ import io.fabric8.api.scr.AbstractComponent;
 import io.fabric8.api.scr.ValidatingReference;
 
 import java.net.URI;
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -110,11 +103,23 @@ public final class FabricFeaturesServiceImpl extends AbstractComponent implement
     @Override
     public synchronized void run() {
         assertValid();
-        repositories.invalidateAll();
-        installedRepositories.clear();
-        installedRepositories.addAll(Arrays.asList(listInstalledRepositories()));
-        installedFeatures.clear();
-        installedFeatures.addAll(Arrays.asList(listInstalledFeatures()));
+
+        try {
+            List<Repository> listInstalledRepositories = Arrays.asList(listInstalledRepositories());
+            List<Feature> listInstalledFeatures = Arrays.asList(listInstalledFeatures());
+            repositories.invalidateAll();
+
+            installedRepositories.clear();
+            installedFeatures.clear();
+
+            installedRepositories.addAll(listInstalledRepositories);
+            installedFeatures.addAll(listInstalledFeatures);
+        } catch (IllegalStateException e){
+            if ("Client is not started".equals(e.getMessage())){
+                LOGGER.warn("Zookeeper connection not available. It's not yet possible to compute features.");
+            }
+        }
+
     }
 
     @Override
@@ -290,6 +295,10 @@ public final class FabricFeaturesServiceImpl extends AbstractComponent implement
                     } catch (Exception ex) {
                         LOGGER.debug("Error while adding {} to the features list");
                     }
+                }
+            } catch (IllegalStateException e){
+                if ("Client is not started".equals(e.getMessage())){
+                    LOGGER.warn("Zookeeper connection not available. It's not yet possible to compute features.");
                 }
             } catch (Exception e) {
                 LOGGER.error("Error retrieving features.", e);

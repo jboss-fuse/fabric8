@@ -392,15 +392,19 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     }
 
     void refresh(final RefreshMode mode) throws Exception {
-        ensurePath.ensure(client.getZookeeperClient());
-        List<String> children = client.getChildren().usingWatcher(childrenWatcher).forPath(path);
-        Collections.sort(children, new Comparator<String>() {
-            @Override
-            public int compare(String left, String right) {
-                return left.compareTo(right);
-            }
-        });
-        processChildren(children, mode);
+        try {
+            ensurePath.ensure(client.getZookeeperClient());
+            List<String> children = client.getChildren().usingWatcher(childrenWatcher).forPath(path);
+            Collections.sort(children, new Comparator<String>() {
+                @Override
+                public int compare(String left, String right) {
+                    return left.compareTo(right);
+                }
+            });
+            processChildren(children, mode);
+        } catch (Exception e) {
+            handleException(e);
+        }
     }
 
     void callListeners(final GroupListener.GroupEvent event) {

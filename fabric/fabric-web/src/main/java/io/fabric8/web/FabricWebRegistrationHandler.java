@@ -128,7 +128,13 @@ public final class FabricWebRegistrationHandler extends AbstractComponent implem
                 case ServletEvent.DEPLOYING:
                     break;
                 case ServletEvent.DEPLOYED:
-                    registerServlet(fabricService.get().getCurrentContainer(), servletEvent);
+                    try {
+                        registerServlet(fabricService.get().getCurrentContainer(), servletEvent);
+                    } catch (IllegalStateException e){
+                        if ("Client is not started".equals(e.getMessage())){
+                            LOGGER.warn("Zookeeper connection not available. Servlet endpoint might have not been registered correctly in zookeeper registry: {}", servletEvent);
+                        }
+                    }
                     break;
                 default:
                     try {
