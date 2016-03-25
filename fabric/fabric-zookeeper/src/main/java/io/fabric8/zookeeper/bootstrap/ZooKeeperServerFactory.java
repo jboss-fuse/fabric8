@@ -230,7 +230,9 @@ public class ZooKeeperServerFactory extends AbstractComponent {
             registration.unregister();
             registration = null;
         }
-        cleanupManager.shutdown();
+        if(cleanupManager != null) {
+            cleanupManager.shutdown();
+        }
         if (destroyable != null) {
             // let's destroy it in separate thread, to prevent blocking CM Event thread
             Thread t = new Thread(new Runnable() {
