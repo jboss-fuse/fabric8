@@ -15,6 +15,7 @@
  */
 package io.fabric8.commands;
 
+import io.fabric8.api.FabricService;
 import io.fabric8.api.ZooKeeperClusterService;
 import io.fabric8.api.scr.ValidatingReference;
 import io.fabric8.boot.commands.support.AbstractCommandComponent;
@@ -46,6 +47,8 @@ public class EnsembleAdd extends AbstractCommandComponent {
 
     @Reference(referenceInterface = ZooKeeperClusterService.class)
     private final ValidatingReference<ZooKeeperClusterService> clusterService = new ValidatingReference<ZooKeeperClusterService>();
+    @Reference(referenceInterface = FabricService.class)
+    private final ValidatingReference<FabricService> fabricService = new ValidatingReference<FabricService>();
 
     @Reference(referenceInterface = BootstrapConfiguration.class)
     private final ValidatingReference<BootstrapConfiguration> bootstrapConfiguration = new ValidatingReference<BootstrapConfiguration>();
@@ -71,7 +74,7 @@ public class EnsembleAdd extends AbstractCommandComponent {
     @Override
     public Action createNewAction() {
         assertValid();
-        return new EnsembleAddAction(bundleContext, clusterService.get(), bootstrapConfiguration.get());
+        return new EnsembleAddAction(bundleContext, clusterService.get(), bootstrapConfiguration.get(), fabricService.get());
     }
 
     void bindClusterService(ZooKeeperClusterService clusterService) {
@@ -80,6 +83,14 @@ public class EnsembleAdd extends AbstractCommandComponent {
 
     void unbindClusterService(ZooKeeperClusterService clusterService) {
         this.clusterService.unbind(clusterService);
+    }
+
+    void bindFabricService(FabricService fabricService) {
+        this.fabricService.bind(fabricService);
+    }
+
+    void unbindFabricService(FabricService fabricService) {
+        this.fabricService.unbind(fabricService);
     }
 
     void bindContainerCompleter(EnsembleAddCompleter completer) {
