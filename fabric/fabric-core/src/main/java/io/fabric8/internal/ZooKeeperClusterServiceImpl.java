@@ -16,6 +16,8 @@
 package io.fabric8.internal;
 
 import static io.fabric8.utils.Ports.mapPortToRange;
+
+import io.fabric8.api.*;
 import io.fabric8.zookeeper.utils.ZooKeeperUtils;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.copy;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.exists;
@@ -25,22 +27,7 @@ import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getSubstitutedPath;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.setData;
 
 import com.google.common.base.Charsets;
-import io.fabric8.api.Constants;
-import io.fabric8.api.Container;
-import io.fabric8.api.CreateEnsembleOptions;
 import io.fabric8.api.CreateEnsembleOptions.Builder;
-import io.fabric8.api.DataStore;
-import io.fabric8.api.DataStoreTemplate;
-import io.fabric8.api.EnsembleModificationFailed;
-import io.fabric8.api.FabricException;
-import io.fabric8.api.FabricService;
-import io.fabric8.api.LockHandle;
-import io.fabric8.api.Profile;
-import io.fabric8.api.ProfileBuilder;
-import io.fabric8.api.ProfileRegistry;
-import io.fabric8.api.RuntimeProperties;
-import io.fabric8.api.ZooKeeperClusterBootstrap;
-import io.fabric8.api.ZooKeeperClusterService;
 import io.fabric8.api.jcip.ThreadSafe;
 import io.fabric8.api.scr.AbstractComponent;
 import io.fabric8.api.scr.ValidatingReference;
@@ -71,11 +58,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.api.ACLProvider;
 import org.apache.curator.retry.RetryOneTime;
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.Service;
+import org.apache.felix.scr.annotations.*;
 import io.fabric8.api.gravia.IllegalStateAssertion;
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
@@ -93,7 +76,7 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
     private final ValidatingReference<ACLProvider> aclProvider = new ValidatingReference<ACLProvider>();
     @Reference(referenceInterface = ConfigurationAdmin.class)
     private final ValidatingReference<ConfigurationAdmin> configAdmin = new ValidatingReference<>();
-    @Reference(referenceInterface = CuratorFramework.class)
+    @Reference(referenceInterface = CuratorFramework.class, policy= ReferencePolicy.DYNAMIC)
     private final ValidatingReference<CuratorFramework> curator = new ValidatingReference<CuratorFramework>();
     @Reference(referenceInterface = DataStore.class)
     private final ValidatingReference<DataStore> dataStore = new ValidatingReference<DataStore>();
@@ -124,9 +107,9 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
                 return Collections.emptyList();
             }
             List<String> list = new ArrayList<String>();
-            if (exists(curator.get(), ZkPath.CONFIG_ENSEMBLES.getPath()) != null) {
-                String clusterId = getStringData(curator.get(), ZkPath.CONFIG_ENSEMBLES.getPath());
-                String containers = getStringData(curator.get(), ZkPath.CONFIG_ENSEMBLE.getPath(clusterId));
+            if (exists(obtainValid(curator), ZkPath.CONFIG_ENSEMBLES.getPath()) != null) {
+                String clusterId = getStringData(obtainValid(curator), ZkPath.CONFIG_ENSEMBLES.getPath());
+                String containers = getStringData(obtainValid(curator), ZkPath.CONFIG_ENSEMBLE.getPath(clusterId));
                 Collections.addAll(list, containers.split(","));
             }
             return list;
@@ -147,7 +130,7 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
 
     @Override
     public Map<String, String> getEnsembleConfiguration() throws Exception {
-        String clusterId = getStringData(curator.get(), ZkPath.CONFIG_ENSEMBLES.getPath());
+        String clusterId = getStringData(obtainValid(curator), ZkPath.CONFIG_ENSEMBLES.getPath());
         String versionId = dataStore.get().getDefaultVersion();
         String profileId = "fabric-ensemble-" + clusterId;
         String ensembleConfigName = "io.fabric8.zookeeper.server-" + clusterId + ".properties";
@@ -166,7 +149,7 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
         assertValid();
         try {
             List<String> oldContainers = getEnsembleContainers();
-            if (containers == null || containers.size() == 2) {
+            if ((containers == null || containers.size() == 2) && !options.isForce()) {
                 throw new EnsembleModificationFailed("One or at least 3 containers must be used to create a zookeeper ensemble", EnsembleModificationFailed.Reason.INVALID_ARGUMENTS);
             }
             Configuration config = configAdmin.get().getConfiguration(Constants.ZOOKEEPER_CLIENT_PID, null);
@@ -188,7 +171,7 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
                 }
             }
 
-            if (!notAliveOrOk.isEmpty()) {
+            if (!notAliveOrOk.isEmpty() && !options.isForce()) {
                 throw new EnsembleModificationFailed("Can not modify the zookeeper ensemble if all containers are not running. Containers not ready:" + notAliveOrOk, EnsembleModificationFailed.Reason.CONTAINERS_NOT_ALIVE);
             }
 
@@ -196,14 +179,14 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
 
             for (String container : containers) {
                 fabricService.get().getContainer(container);
-                if (exists(curator.get(), ZkPath.CONTAINER_ALIVE.getPath(container)) == null) {
+                if (exists(obtainValid(curator), ZkPath.CONTAINER_ALIVE.getPath(container)) == null) {
                     throw new EnsembleModificationFailed("The container " + container + " is not alive", EnsembleModificationFailed.Reason.CONTAINERS_NOT_ALIVE);
                 }
             }
 
             // Find used zookeeper ports
             Map<String, List<Integer>> usedPorts = new HashMap<String, List<Integer>>();
-            final String oldClusterId = getStringData(curator.get(), ZkPath.CONFIG_ENSEMBLES.getPath());
+            final String oldClusterId = getStringData(obtainValid(curator), ZkPath.CONFIG_ENSEMBLES.getPath());
             if (oldClusterId != null) {
                 String profileId = "fabric-ensemble-" + oldClusterId;
                 String pid = "io.fabric8.zookeeper.server-" + oldClusterId;
@@ -219,7 +202,7 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
                     String node = (String) n;
                     if (node.startsWith("server.")) {
                         Map<String, String> zkconfig = ensProfile.getConfiguration("io.fabric8.zookeeper.server-" + oldClusterId);
-                        String data = getSubstitutedData(curator.get(), zkconfig.get(node));
+                        String data = getSubstitutedData(obtainValid(curator), zkconfig.get(node));
                         addUsedPorts(usedPorts, data);
                     }
                 }
@@ -229,7 +212,7 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
                 if (zkConfig == null) {
                     throw new FabricException("Failed to find old zookeeper configuration in default profile");
                 }
-                String zkUrl = getSubstitutedData(curator.get(), zkConfig.get("zookeeper.url"));
+                String zkUrl = getSubstitutedData(obtainValid(curator), zkConfig.get("zookeeper.url"));
                 for (String data : zkUrl.split(",")) {
                     addUsedPorts(usedPorts, data);
                 }
@@ -264,22 +247,22 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
             String containerList = "";
             List<Profile> memberProfiles = new ArrayList<>();
             for (String container : containers) {
-                String ip = getSubstitutedPath(curator.get(), ZkPath.CONTAINER_IP.getPath(container));
+                String ip = getSubstitutedPath(obtainValid(curator), ZkPath.CONTAINER_IP.getPath(container));
 
                 String minimumPort = String.valueOf(Ports.MIN_PORT_NUMBER);
                 String maximumPort = String.valueOf(Ports.MAX_PORT_NUMBER);
                 String bindAddress = "0.0.0.0";
 
-                if (exists(curator.get(), ZkPath.CONTAINER_PORT_MIN.getPath(container)) != null) {
-                    minimumPort = getSubstitutedPath(curator.get(), ZkPath.CONTAINER_PORT_MIN.getPath(container));
+                if (exists(obtainValid(curator), ZkPath.CONTAINER_PORT_MIN.getPath(container)) != null) {
+                    minimumPort = getSubstitutedPath(obtainValid(curator), ZkPath.CONTAINER_PORT_MIN.getPath(container));
                 }
 
-                if (exists(curator.get(), ZkPath.CONTAINER_PORT_MAX.getPath(container)) != null) {
-                    maximumPort = getSubstitutedPath(curator.get(), ZkPath.CONTAINER_PORT_MAX.getPath(container));
+                if (exists(obtainValid(curator), ZkPath.CONTAINER_PORT_MAX.getPath(container)) != null) {
+                    maximumPort = getSubstitutedPath(obtainValid(curator), ZkPath.CONTAINER_PORT_MAX.getPath(container));
                 }
 
-                if (exists(curator.get(), ZkPath.CONTAINER_BINDADDRESS.getPath(container)) != null) {
-                    bindAddress = getSubstitutedPath(curator.get(), ZkPath.CONTAINER_BINDADDRESS.getPath(container));
+                if (exists(obtainValid(curator), ZkPath.CONTAINER_BINDADDRESS.getPath(container)) != null) {
+                    bindAddress = getSubstitutedPath(obtainValid(curator), ZkPath.CONTAINER_BINDADDRESS.getPath(container));
                 }
 
                 // Ensemble member properties
@@ -347,7 +330,7 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
             Map<String, String> zkConfig = defaultProfile.getConfiguration(Constants.ZOOKEEPER_CLIENT_PID);
             if (oldClusterId != null) {
                 Properties properties = DataStoreUtils.toProperties(zkConfig);
-                properties.put("zookeeper.url", getSubstitutedData(curator.get(), realConnectionUrl));
+                properties.put("zookeeper.url", getSubstitutedData(obtainValid(curator), realConnectionUrl));
                 properties.put("zookeeper.password", options.getZookeeperPassword());
                 CuratorFramework dst = CuratorFrameworkFactory.builder().connectString(realConnectionUrl).retryPolicy(new RetryOneTime(500))
                         .aclProvider(aclProvider.get()).authorization("digest", ("fabric:" + options.getZookeeperPassword()).getBytes()).sessionTimeoutMs(30000)
@@ -360,7 +343,7 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
                         throw new EnsembleModificationFailed("Timed out connecting to new ensemble.", EnsembleModificationFailed.Reason.TIMEOUT);
                     }
                     LOGGER.info("Copying data from the old ensemble to the new one");
-                    copy(curator.get(), dst, "/fabric");
+                    copy(obtainValid(curator), dst, "/fabric");
                     setData(dst, ZkPath.CONFIG_ENSEMBLES.getPath(), newClusterId);
                     setData(dst, ZkPath.CONFIG_ENSEMBLE.getPath(newClusterId), containerList);
 
@@ -379,7 +362,7 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
                     LOGGER.info("Migrating containers to the new ensemble using url {}.", connectionUrl);
                     setData(dst, ZkPath.CONFIG_ENSEMBLE_PASSWORD.getPath(), PasswordEncoder.encode(options.getZookeeperPassword()));
                     setData(dst, ZkPath.CONFIG_ENSEMBLE_URL.getPath(), connectionUrl);
-                    curator.get().inTransaction()
+                    obtainValid(curator).inTransaction()
                             .setData().forPath(ZkPath.CONFIG_ENSEMBLE_PASSWORD.getPath(),  PasswordEncoder.encode(options.getZookeeperPassword()).getBytes(Charsets.UTF_8))
                             .and()
                             .setData().forPath(ZkPath.CONFIG_ENSEMBLE_URL.getPath(), connectionUrl.getBytes(Charsets.UTF_8))
@@ -427,6 +410,24 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
         }
     }
 
+    private CuratorFramework obtainValid(ValidatingReference<CuratorFramework> curator) throws InterruptedException {
+        int counter = 1;
+        while(true){
+            if(counter > 18){
+                throw new IllegalStateException("Unable to obtain a valid reference of Curator after " + counter + " tries");
+            }
+            LOGGER.debug("Getting CuratorFramework reference. Attempt {}", counter);
+            CuratorFramework result = curator.getOptional();
+            if(result == null){
+                LOGGER.warn("Curator instance not ready");
+                counter++;
+                Thread.currentThread().sleep(5 * 1000);
+            }else {
+                return curator.get();
+            }
+        }
+    }
+
     private String publicPort(String containerName, final String port) {
         FabricService fabric = fabricService.get();
         Container container = fabric.getContainer(containerName);
@@ -434,7 +435,7 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
         String user = ZooKeeperUtils.getContainerLogin(runtimeProperties.get());
         String password = "";
         try {
-            Properties containerTokens = ZooKeeperUtils.getContainerTokens(curator.get());
+            Properties containerTokens = ZooKeeperUtils.getContainerTokens(obtainValid(curator));
             password = containerTokens.getProperty(user);
         } catch (Exception e) {
             LOGGER.error("Unable to get temp ZK user/pass for administrative purposes", e);

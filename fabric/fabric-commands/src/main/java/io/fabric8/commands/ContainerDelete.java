@@ -17,6 +17,7 @@ package io.fabric8.commands;
 
 import io.fabric8.api.FabricService;
 import io.fabric8.api.RuntimeProperties;
+import io.fabric8.api.ZooKeeperClusterService;
 import io.fabric8.api.scr.ValidatingReference;
 import io.fabric8.boot.commands.support.AbstractCommandComponent;
 import io.fabric8.boot.commands.support.ContainerCompleter;
@@ -45,6 +46,8 @@ public class ContainerDelete extends AbstractCommandComponent {
 
     @Reference(referenceInterface = FabricService.class)
     private final ValidatingReference<FabricService> fabricService = new ValidatingReference<FabricService>();
+    @Reference(referenceInterface = ZooKeeperClusterService.class)
+    private final ValidatingReference<ZooKeeperClusterService> clusterService = new ValidatingReference<ZooKeeperClusterService>();
     @Reference(referenceInterface = RuntimeProperties.class)
     private final ValidatingReference<RuntimeProperties> runtimeProperties = new ValidatingReference<RuntimeProperties>();
 
@@ -65,7 +68,7 @@ public class ContainerDelete extends AbstractCommandComponent {
     @Override
     public Action createNewAction() {
         assertValid();
-        return new ContainerDeleteAction(fabricService.get(), runtimeProperties.get());
+        return new ContainerDeleteAction(fabricService.get(), clusterService.get(), runtimeProperties.get());
     }
 
     void bindFabricService(FabricService fabricService) {
@@ -74,6 +77,14 @@ public class ContainerDelete extends AbstractCommandComponent {
 
     void unbindFabricService(FabricService fabricService) {
         this.fabricService.unbind(fabricService);
+    }
+
+    void bindClusterService(ZooKeeperClusterService clusterService) {
+        this.clusterService.bind(clusterService);
+    }
+
+    void unbindClusterService(ZooKeeperClusterService clusterService) {
+        this.clusterService.unbind(clusterService);
     }
 
     void bindContainerCompleter(ContainerCompleter completer) {

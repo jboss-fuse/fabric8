@@ -15,12 +15,11 @@
  */
 package io.fabric8.commands;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import io.fabric8.api.CreateEnsembleOptions;
-import io.fabric8.api.ServiceProxy;
-import io.fabric8.api.ZooKeeperClusterService;
+import io.fabric8.api.*;
 import io.fabric8.boot.commands.support.EnsembleCommandSupport;
 import io.fabric8.common.util.Strings;
 import io.fabric8.utils.FabricValidations;
@@ -63,11 +62,13 @@ public class EnsembleAddAction extends AbstractAction {
 
     private final BundleContext bundleContext;
     private final ZooKeeperClusterService clusterService;
+    private final FabricService fabricService;
     private final BootstrapConfiguration bootstrapConfiguration;
 
-    EnsembleAddAction(BundleContext bundleContext, ZooKeeperClusterService clusterService, BootstrapConfiguration bootstrapConfiguration) {
+    EnsembleAddAction(BundleContext bundleContext, ZooKeeperClusterService clusterService, BootstrapConfiguration bootstrapConfiguration, FabricService fabricService) {
         this.bundleContext = bundleContext;
         this.clusterService = clusterService;
+        this.fabricService = fabricService;
         this.bootstrapConfiguration = bootstrapConfiguration;
     }
 
@@ -102,7 +103,35 @@ public class EnsembleAddAction extends AbstractAction {
                     builder = builder.zookeeperPassword(zookeeperPassword);
                 }
 
-                clusterService.addToCluster(containers, builder.build());
+                if(force){
+                    List<String> current = clusterService.getEnsembleContainers();
+                    Container[] allExistingContainers = fabricService.getContainers();
+
+                    // filter out deleted containers from the ensemble list
+                    List<String> filtered = new ArrayList<>(current.size());
+                    for(String ensembleMember : current){
+                        for(Container existing : fabricService.getContainers()){
+                            if(existing.getId().equals(ensembleMember)){
+                                filtered.add(ensembleMember);
+                            }
+                        }
+                    }
+                    current = filtered;
+                    for (String c : this.containers) {
+                        if (!c.equals(c.toLowerCase())) {
+                            throw new EnsembleModificationFailed("Only lower case names are supported for containers. Current name: " + c , EnsembleModificationFailed.Reason.INVALID_ARGUMENTS);
+                        }  else {
+                            // let's add it only if it wasn't already there
+                            if (!current.contains(c))
+                                current.add(c);
+                        }
+                    }
+                    clusterService.createCluster(current, builder.build());
+                } else{
+                    // checks for presence of the container in the ensemble and prevents it addition
+                    clusterService.addToCluster(containers, builder.build());
+                }
+
                 ServiceProxy<ZooKeeperClusterService> serviceProxy = ServiceProxy.createServiceProxy(bundleContext, ZooKeeperClusterService.class);
                 try {
                     System.out.println("Updated Zookeeper connection string: " + serviceProxy.getService().getZooKeeperUrl());
