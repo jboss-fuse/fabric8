@@ -55,6 +55,15 @@ public class FabricGitServlet extends GitServlet {
             counter = new SharedCount(curator, ZkPath.GIT_TRIGGER.getPath(), 0);
             counter.start();
         } catch (Exception ex) {
+            handleException(ex);
+        }
+    }
+
+    protected void handleException(Exception ex) throws ServletException {
+        if(ex instanceof IllegalStateException && "Client is not started".equals(ex.getMessage())){
+            LOGGER.debug("", ex);
+            throw new ServletException("Error starting SharedCount. ZK Client is not Started");
+        }else{
             LOGGER.error("Error starting SharedCount", ex);
             throw new ServletException("Error starting SharedCount", ex);
         }
