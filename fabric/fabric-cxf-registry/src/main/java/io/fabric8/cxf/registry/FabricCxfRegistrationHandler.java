@@ -531,7 +531,8 @@ public final class FabricCxfRegistrationHandler extends AbstractComponent implem
         ChildData currentData = versionNodeMonitor.getCurrentData();
         byte[] data = currentData.getData();
         LOGGER.info("Container Version has been updated to version {}, republishing of APIs endpoints", new String(data));
-        String oldVersion = new String(previousData.getData());
+
+        String oldVersion = ((previousData != null) ? new String(previousData.getData()):"");
         // registered paths have this structure:
         // /fabric/registry/clusters/apis/rest/CustomerService/crm/1.0/root
         for(String path : registeredZkPaths){
