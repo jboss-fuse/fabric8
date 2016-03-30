@@ -234,7 +234,6 @@
               javax.ws.rs,
               javax.ws.rs.core,
               org.apache.karaf.jaas.boot.principal,
-              org.eclipse.jetty.plus.jaas,
               org.apache.cxf.interceptor.security,
               org.apache.cxf.jaxrs.security,
               org.osgi.service.blueprint,
