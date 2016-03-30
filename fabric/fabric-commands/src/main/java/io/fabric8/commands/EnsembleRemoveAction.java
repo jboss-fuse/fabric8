@@ -118,7 +118,9 @@ public class EnsembleRemoveAction extends AbstractAction {
         int currentInitLimit = Integer.parseInt(currentConfig.get("initLimit"));
         int currentSyncLimit = Integer.parseInt(currentConfig.get("syncLimit"));
         String currentDataDir = currentConfig.get("dataDir");
-        currentDataDir = currentDataDir.substring(0, currentDataDir.lastIndexOf("/"));
+        if (currentDataDir.contains("/")) {
+            currentDataDir = currentDataDir.substring(0, currentDataDir.lastIndexOf("/"));
+        }
         zooKeeperTickTime = zooKeeperTickTime != 0 ? zooKeeperTickTime : currentTickTime;
         zooKeeperInitLimit = zooKeeperInitLimit != 0 ? zooKeeperInitLimit : currentInitLimit;
         zooKeeperSyncLimit = zooKeeperSyncLimit != 0 ? zooKeeperSyncLimit : currentSyncLimit;
