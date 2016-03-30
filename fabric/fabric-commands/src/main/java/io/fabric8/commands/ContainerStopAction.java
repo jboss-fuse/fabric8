@@ -44,7 +44,12 @@ public final class ContainerStopAction extends AbstractContainerLifecycleAction 
             applyUpdatedCredentials(found);
             if (found.isAlive()) {
                 found.stop(force);
-                System.out.println("Container '" + found.getId() + "' stopped successfully.");
+                found = FabricCommand.getContainer(fabricService, containerName);
+                if (!found.isAlive()) {
+                    System.out.println("Container '" + found.getId() + "' stopped successfully.");
+                } else {
+                    System.out.println("Container '" + found.getId() + "' was not stopped successfully, something went wrong. Check Logs.");
+                }
             } else {
                 System.err.println("Container '" + found.getId() + "' already stopped.");
             }
