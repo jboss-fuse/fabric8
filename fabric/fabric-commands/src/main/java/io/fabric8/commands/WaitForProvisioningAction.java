@@ -25,63 +25,69 @@ import org.apache.karaf.shell.console.AbstractAction;
 
 @Command(name = WaitForProvisioning.FUNCTION_VALUE, scope = WaitForProvisioning.SCOPE_VALUE, description = WaitForProvisioning.DESCRIPTION)
 public class WaitForProvisioningAction extends AbstractAction {
-    
-    @Option(name = "-v", aliases = "--verbose", description = "Flag for verbose output", multiValued = false, required = false)
-    private boolean verbose;
-    
-    @Option(name = "--provision-timeout", multiValued = false, description = "How long to wait (milliseconds) for the containers to provision")
-    private long provisionTimeout = 120000L;
 
-    private final FabricService fabricService;
+	@Option(name = "-v", aliases = "--verbose", description = "Flag for verbose output", multiValued = false, required = false)
+	private boolean verbose;
 
-    WaitForProvisioningAction(FabricService fabricService) {
-        this.fabricService = fabricService;
-    }
+	@Option(name = "--provision-timeout", multiValued = false, description = "How long to wait (milliseconds) for the containers to provision")
+	private long provisionTimeout = 120000L;
 
-    public FabricService getFabricService() {
-        return fabricService;
-    }
+	private final FabricService fabricService;
 
-    @Override
-    protected Object doExecute() throws Exception {
-        return waitForSuccessfulDeploymentOf();
-    }
+	WaitForProvisioningAction(FabricService fabricService) {
+		this.fabricService = fabricService;
+	}
 
-    private String waitForSuccessfulDeploymentOf() {
-        long startedAt = System.currentTimeMillis();
+	public FabricService getFabricService() {
+		return fabricService;
+	}
 
-        while (!Thread.interrupted() && startedAt + provisionTimeout > System.currentTimeMillis()) {
-            try {
-                Container[] fabric = fabricService.getContainers();
-                if (isFabricProvisioned(fabric)){
-                	return "SUCCESS";
-               	}
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            } catch (Throwable t) {
-                throw FabricException.launderThrowable(t);
-            }
-        }
-        return "ERROR";
-    }
+	@Override
+	protected Object doExecute() throws Exception {
+		return waitForSuccessfulDeploymentOf();
+	}
+
+	private String waitForSuccessfulDeploymentOf() {
+		long startedAt = System.currentTimeMillis();
+
+		while (!Thread.interrupted() && startedAt + provisionTimeout > System.currentTimeMillis()) {
+			try {
+				Container[] fabric = fabricService.getContainers();
+				if (isFabricProvisioned(fabric)) {
+					return "SUCCESS";
+				}
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+			} catch (Throwable t) {
+				throw FabricException.launderThrowable(t);
+			}
+		}
+		return "ERROR";
+	}
 
 	private boolean isFabricProvisioned(Container[] fabric) {
-        if (fabric == null) {
-            return false;
+		if (fabric == null) {
+			return false;
 		}
 
-        for (Container container : fabric) {
-            if (container == null || !container.isAlive() || !Container.PROVISION_SUCCESS.equals(container.getProvisionStatus())) {
-				if (container != null) {
-                    if (verbose) {
-                        System.out.println(String.format("Waiting: Container %s is %s", container.getId(), container.getProvisionStatus()));
-                    }
-                    if (container.getProvisionStatus() != null && container.getProvisionStatus().startsWith(Container.PROVISION_ERROR)) {
-                        throw new FabricException("Error provisioning container " + container.getId() + " : " + container.getProvisionStatus());
-                    }
-                }
-				return false;
+		for (Container container : fabric) {
+			if (!Container.PROVISION_STOPPED.equals(container.getProvisionStatus())) {
+				if (container == null || !container.isAlive()
+						|| !Container.PROVISION_SUCCESS.equals(container.getProvisionStatus())) {
+					if (container != null) {
+						if (verbose) {
+							System.out.println(String.format("Waiting: Container %s is %s", container.getId(),
+									container.getProvisionStatus()));
+						}
+						if (container.getProvisionStatus() != null
+								&& container.getProvisionStatus().startsWith(Container.PROVISION_ERROR)) {
+							throw new FabricException("Error provisioning container " + container.getId() + " : "
+									+ container.getProvisionStatus());
+						}
+					}
+					return false;
+				}
 			}
 		}
 		return true;
