@@ -1260,13 +1260,12 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         Map<String, String> properties = getDataStoreProperties();
         String username;
         String password;
+        RuntimeProperties sysprops = runtimeProperties.get();
+        username = ZooKeeperUtils.getContainerLogin(sysprops);
+        password = ZooKeeperUtils.generateContainerToken(sysprops, curator.get());
         if (isExternalGitConfigured(properties)) {
             username = getExternalUser(properties);
             password = getExternalCredential(properties);
-        } else {
-            RuntimeProperties sysprops = runtimeProperties.get();
-            username = ZooKeeperUtils.getContainerLogin(sysprops);
-            password = ZooKeeperUtils.generateContainerToken(sysprops, curator.get());
         }
         return new UsernamePasswordCredentialsProvider(username, password);
     }
