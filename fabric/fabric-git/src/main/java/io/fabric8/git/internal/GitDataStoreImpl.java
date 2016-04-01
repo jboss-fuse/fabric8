@@ -1259,7 +1259,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     }
 
     private boolean isExternalGitConfigured(Map<String, String> properties) {
-        return properties != null && properties.containsKey(GIT_REMOTE_USER) && properties.containsKey(GIT_REMOTE_PASSWORD);
+        return properties != null && properties.containsKey(GIT_REMOTE_USER);
     }
 
     private String getExternalUser(Map<String, String> properties) {
@@ -1267,7 +1267,10 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     }
 
     private String getExternalCredential(Map<String, String> properties) {
-        return properties.get(GIT_REMOTE_PASSWORD);
+        if(properties.containsKey(GIT_REMOTE_PASSWORD))
+            return properties.get(GIT_REMOTE_PASSWORD);
+         else
+            return "";
     }
 
     private void cacheVersionId(String versionId) {
