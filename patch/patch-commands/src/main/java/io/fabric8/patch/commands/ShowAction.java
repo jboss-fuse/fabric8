@@ -19,6 +19,7 @@ import io.fabric8.patch.Service;
 import io.fabric8.patch.management.ManagedPatch;
 import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.management.PatchDetailsRequest;
+import io.fabric8.patch.management.PatchException;
 import io.fabric8.patch.management.PatchManagement;
 import org.apache.felix.gogo.commands.Argument;
 import org.apache.felix.gogo.commands.Command;
@@ -49,7 +50,10 @@ public class ShowAction extends PatchActionSupport {
     @Override
     protected void doExecute(Service service) throws Exception {
         Patch patch = patchManagement.loadPatch(new PatchDetailsRequest(patchId, bundles, files, diff));
-
+        
+        if (patch == null) {
+            throw new PatchException("Patch '" + patchId + "' not found");
+        }
         System.out.println(String.format("Patch ID: %s", patch.getPatchData().getId()));
         if (patch.getManagedPatch() != null) {
             System.out.println(String.format("Patch Commit ID: %s", patch.getManagedPatch().getCommitId()));
