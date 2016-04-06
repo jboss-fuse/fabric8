@@ -60,6 +60,8 @@
         <bundle dependency="true">mvn:org.bouncycastle/bcprov-jdk15on/${bouncycastle-version}</bundle>
         <bundle dependency="true">mvn:org.apache.sshd/sshd-core/${sshd-version}</bundle>
         <bundle dependency="true">mvn:org.apache.mina/mina-core/${mina-version}</bundle>
+        <!-- referenced from $KARAF_HOME/etc/org.apache.karaf.features.cfg -->
+        <feature>jsr-311</feature>
     </feature>
 
     <feature name="karaf" version="${karaf-version}" resolver="(obr)">
@@ -132,7 +134,7 @@
         </conditional>
     </feature>
 
-    <feature name="jsr-311" version="${project.version}">
+    <feature name="jsr-311" version="${project.version}" resolver="(obr)">
         <bundle dependency='true'>mvn:org.apache.servicemix.specs/org.apache.servicemix.specs.jsr311-api-1.1.1/${jsr311-api-smx-version}</bundle>
     </feature>
 

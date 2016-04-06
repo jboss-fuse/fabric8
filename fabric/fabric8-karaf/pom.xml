@@ -368,6 +368,12 @@
             </dependency>
 
             <dependency>
+                <groupId>org.apache.servicemix.specs</groupId>
+                <artifactId>org.apache.servicemix.specs.jsr311-api-1.1.1</artifactId>
+                <version>${jsr311-api-smx-version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>io.fabric8.patch</groupId>
                 <artifactId>patch-features</artifactId>
                 <version>${project.version}</version>
@@ -480,7 +486,8 @@
                                    <feature>karaf</feature>
                                    <feature>patch</feature>
                                    <feature>fabric</feature>
-                                   
+                                   <feature>fabric-startup</feature>
+
                                    <!-- Enable the web ui working -->
                                    <feature>fabric-web</feature>
                                    <feature>jolokia</feature>
