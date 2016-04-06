@@ -236,12 +236,11 @@
         <influxdb-version>1.2</influxdb-version>
         <jackson-version>1.9.12</jackson-version>
         <jackson2-version>2.4.3</jackson2-version>
-        <jackson-module-scala-version>2.1.5_3</jackson-module-scala-version>
         <jansi-version>1.11</jansi-version>
         <jasypt-smx-version>1.9.3.redhat_3</jasypt-smx-version>
         <jasypt-spring-smx-version>1.9.3.redhat_3</jasypt-spring-smx-version>
         <jasypt-version>1.9.3.redhat_3</jasypt-version>
-        <javassist-version>3.18.1-GA</javassist-version>
+        <javassist-version>3.19.0-GA</javassist-version>
         <javax.inject.bundle.version>1_2</javax.inject.bundle.version>
         <jaxb-api-version>2.1</jaxb-api-version>
         <jaxb-version>2.2.11</jaxb-version>
@@ -272,7 +271,7 @@
         <jgroups-version>3.4.4.Final</jgroups-version>
         <jsch-version>0.1.51</jsch-version>
         <jsch-smx-version>0.1.51_1</jsch-smx-version>
-        <json4s-version>3.2.4_1</json4s-version>
+        <json4s-version>3.2.8_1</json4s-version>
         <jsr311-api-smx-version>2.5.0</jsr311-api-smx-version>
         <junit-version>4.11</junit-version>
         <karaf-version>2.4.0.redhat-621099</karaf-version>
