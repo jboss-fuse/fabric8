@@ -559,8 +559,9 @@ public final class FabricManager implements FabricManagerMBean {
         if (properties == null) {
             properties = new HashMap<String, String>();
         }
-        String answer = properties.put(propertyName, value);
-        setProfileProperties(versionId, profileId, pid, properties);
+        Map<String, String> mutableProperties = new HashMap<>(properties);
+        String answer = mutableProperties.put(propertyName, value);
+        setProfileProperties(versionId, profileId, pid, mutableProperties);
         return answer;
     }
 
