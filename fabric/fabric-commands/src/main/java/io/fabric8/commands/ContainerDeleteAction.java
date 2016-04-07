@@ -68,10 +68,18 @@ public class ContainerDeleteAction extends AbstractContainerLifecycleAction {
                 }
                 if (recursive || force) {
                     for (Container child : found.getChildren()) {
-                        child.destroy(force);
+                        try{
+                            child.destroy(force);
+                        } catch (FabricException e){
+                            handleException(e, child);
+                        }
                     }
                 }
-                found.destroy(force);
+                try{
+                    found.destroy(force);
+                } catch (FabricException e){
+                    handleException(e, found);
+                }
 
             } else if (force) {
                 //We also want to try and delete any leftover entries
@@ -79,6 +87,17 @@ public class ContainerDeleteAction extends AbstractContainerLifecycleAction {
             }
         }
         return null;
+    }
+
+    protected void handleException(FabricException e, Container container) {
+        if(force && e.getMessage().contains("not managed")){
+            String message = "Container [" + container.getId() + "] has not be provisioned from within Fabric. " +
+                    "All the references to it have been deleted from the central registry but " +
+                    "you might still be required to manually stop and delete manually the remote process instance.";
+            throw new FabricException(message);
+        } else{
+            throw e;
+        }
     }
 
 }
