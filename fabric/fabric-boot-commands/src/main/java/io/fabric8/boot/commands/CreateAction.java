@@ -103,7 +103,7 @@ class CreateAction extends AbstractAction {
     private String zookeeperPassword;
     @Option(name = "--zookeeper-snap-retain-count", multiValued = false, description = "Number of snapshots to be retained after purge in Zookeeper")
     private int zookeeperSnapRetainCount = CreateEnsembleOptions.DEFAULT_SNAP_RETAIN_COUNT;
-    @Option(name = "--zookeeper-purge-interval", multiValued = false, description = "Zookeeper snaphsots purge interval in hours")
+    @Option(name = "--zookeeper-purge-interval", multiValued = false, description = "Zookeeper snapshots purge interval in hours")
     private int zookeeperPurgeInterval = CreateEnsembleOptions.DEFAULT_PURGE_INTERVAL_IN_HOURS;
     @Option(name = "--zookeeper-server-port", multiValued = false, description = "The main port for ZooKeeper server")
     private int zooKeeperServerPort = -1;
