@@ -37,7 +37,7 @@ public class ProfileExportAction extends AbstractAction {
     private File outputZipFileName;
 
     @Argument(index = 1, required = false, name = "wildcard", description = "The file wildcard used to match the profile folders. e.g. 'examples/*'. If no wildcard is specified all profiles will be exported")
-    private String wildcard;
+    private String wildcard = "";
 
     private final FabricService fabricService;
     private final ProfileService profileService;
