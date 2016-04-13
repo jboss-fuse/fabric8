@@ -29,8 +29,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.servlet.AsyncContext;
+import javax.servlet.AsyncEvent;
+import javax.servlet.AsyncListener;
+import javax.servlet.DispatcherType;
 import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -42,6 +44,12 @@ import io.fabric8.maven.MavenResolver;
 import io.fabric8.utils.ThreadFactory;
 
 public class MavenDownloadProxyServlet extends MavenProxyServletSupport {
+
+    private static final int ASYNC_STARTED = 0;
+    // flag set when async timeout is found
+    private static final int ASYNC_TIMEOUT = 1 << 0;
+    // flag set when we got the result from Aether artifact resolution
+    private static final int ASYNC_ARTIFACT_READY = 1 << 1;
 
     private final ConcurrentMap<String, ArtifactDownloadFuture> requestMap = new ConcurrentHashMap<>();
     private final int threadMaximumPoolSize;
@@ -102,11 +110,43 @@ public class MavenDownloadProxyServlet extends MavenProxyServletSupport {
         }
         final String path = tpath;
 
+        // state to help synchronize between async timeout handler and ArtifactDownloadFuture ready handler
+        final AtomicInteger timeoutOrReady = new AtomicInteger(ASYNC_STARTED);
+
         final AsyncContext asyncContext = req.startAsync();
-        asyncContext.setTimeout(TimeUnit.MINUTES.toMillis(5));
+        // timeout higher than the one set in:
+        // org.eclipse.aether.DefaultRepositorySystemSession.setConfigProperty("aether.connector.requestTimeout", N)
+        asyncContext.setTimeout(TimeUnit.MINUTES.toMillis(6));
+
+        asyncContext.addListener(new AsyncListener() {
+            @Override
+            public void onComplete(AsyncEvent event) throws IOException {
+            }
+
+            @Override
+            public void onTimeout(AsyncEvent event) throws IOException {
+                if (timeoutOrReady.compareAndSet(ASYNC_STARTED, ASYNC_TIMEOUT)) {
+                    LOGGER.warn("Timeout handling " + ((HttpServletRequest)event.getSuppliedRequest()).getRequestURI());
+                    event.getAsyncContext().complete();
+                    ((HttpServletResponse)event.getAsyncContext().getResponse())
+                            .sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Async timeout when downloading Maven artifact");
+                } else {
+                    LOGGER.debug("Timeout handling " + ((HttpServletRequest) event.getSuppliedRequest()).getRequestURI()
+                            + ", but download thread completed, continuing process of download.");
+                }
+            }
+
+            @Override
+            public void onError(AsyncEvent event) throws IOException {
+            }
+
+            @Override
+            public void onStartAsync(AsyncEvent event) throws IOException {
+            }
+        });
 
         final AsynchronousFileChannel channel = (AsynchronousFileChannel) req.getAttribute(AsynchronousFileChannel.class.getName());
-        if (channel != null) {
+        if (channel != null /*&& req.getDispatcherType() == DispatcherType.ASYNC*/) {
             long size = (Long) req.getAttribute(AsynchronousFileChannel.class.getName() + ".size");
             long pos = (Long) req.getAttribute(AsynchronousFileChannel.class.getName() + ".position");
             int read = (Integer) req.getAttribute(AsynchronousFileChannel.class.getName() + ".read");
@@ -122,6 +162,7 @@ public class MavenDownloadProxyServlet extends MavenProxyServletSupport {
                         @Override
                         public void completed(Integer result, AsyncContext attachment) {
                             req.setAttribute(AsynchronousFileChannel.class.getName() + ".read", result);
+                            // dispatch again, buffers are switched
                             attachment.dispatch();
                         }
 
@@ -175,51 +216,55 @@ public class MavenDownloadProxyServlet extends MavenProxyServletSupport {
                     LOGGER.warn("Error while downloading artifact: {}", ((Throwable) value).getMessage(), value);
                     resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 } else if (value instanceof File) {
-                    File artifactFile = (File) value;
-                    AsynchronousFileChannel channel = null;
-                    try {
-                        channel = AsynchronousFileChannel.open(artifactFile.toPath(), StandardOpenOption.READ);
-                        LOGGER.info("Writing response for file : {}", path);
-                        resp.setStatus(HttpServletResponse.SC_OK);
-                        resp.setContentType("application/octet-stream");
-                        resp.setDateHeader("Date", System.currentTimeMillis());
-                        resp.setHeader("Connection", "close");
-                        resp.setHeader("Server", "MavenProxy Proxy/" + FabricConstants.FABRIC_VERSION);
-                        long size = artifactFile.length();
-                        if (size < Integer.MAX_VALUE) {
-                            resp.setContentLength((int) size);
-                        }
-                        if ("GET".equals(req.getMethod())) {
-                            // Store attributes and start reading
-                            req.setAttribute(AsynchronousFileChannel.class.getName(), channel);
-                            ByteBuffer buffer = ByteBuffer.allocate(1024 * 64);
-                            ByteBuffer secondBuffer = ByteBuffer.allocate(1024 * 64);
-                            req.setAttribute(ByteBuffer.class.getName(), secondBuffer);
-                            req.setAttribute(ByteBuffer.class.getName() + ".second", buffer);
-                            req.setAttribute(AsynchronousFileChannel.class.getName() + ".position", 0l);
-                            req.setAttribute(AsynchronousFileChannel.class.getName() + ".size", size);
-                            channel.read(secondBuffer, 0, asyncContext, new CompletionHandler<Integer, AsyncContext>() {
-                                @Override
-                                public void completed(Integer result, AsyncContext attachment) {
-                                    req.setAttribute(AsynchronousFileChannel.class.getName() + ".read", result);
-                                    attachment.dispatch();
-                                }
+                    if (!timeoutOrReady.compareAndSet(ASYNC_STARTED, ASYNC_ARTIFACT_READY)) {
+                        LOGGER.warn("Download thread completed, but asynchronous timeout occurred. Downloading interrupted.");
+                    } else {
+                        File artifactFile = (File) value;
+                        AsynchronousFileChannel channel = null;
+                        try {
+                            channel = AsynchronousFileChannel.open(artifactFile.toPath(), StandardOpenOption.READ);
+                            LOGGER.info("Writing response for file : {}", path);
+                            resp.setStatus(HttpServletResponse.SC_OK);
+                            resp.setContentType("application/octet-stream");
+                            resp.setDateHeader("Date", System.currentTimeMillis());
+                            resp.setHeader("Connection", "close");
+                            resp.setHeader("Server", "MavenProxy Proxy/" + FabricConstants.FABRIC_VERSION);
+                            long size = artifactFile.length();
+                            if (size < Integer.MAX_VALUE) {
+                                resp.setContentLength((int) size);
+                            }
+                            if ("GET".equals(req.getMethod())) {
+                                // Store attributes and start reading
+                                req.setAttribute(AsynchronousFileChannel.class.getName(), channel);
+                                ByteBuffer buffer = ByteBuffer.allocate(1024 * 64);
+                                ByteBuffer secondBuffer = ByteBuffer.allocate(1024 * 64);
+                                req.setAttribute(ByteBuffer.class.getName(), secondBuffer);
+                                req.setAttribute(ByteBuffer.class.getName() + ".second", buffer);
+                                req.setAttribute(AsynchronousFileChannel.class.getName() + ".position", 0l);
+                                req.setAttribute(AsynchronousFileChannel.class.getName() + ".size", size);
+                                channel.read(secondBuffer, 0, asyncContext, new CompletionHandler<Integer, AsyncContext>() {
+                                    @Override
+                                    public void completed(Integer result, AsyncContext attachment) {
+                                        req.setAttribute(AsynchronousFileChannel.class.getName() + ".read", result);
+                                        attachment.dispatch();
+                                    }
 
-                                @Override
-                                public void failed(Throwable exc, AsyncContext attachment) {
-                                    resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                                    attachment.complete();
-                                }
-                            });
-                        } else if ("HEAD".equals(req.getMethod())) {
-                            asyncContext.complete();
+                                    @Override
+                                    public void failed(Throwable exc, AsyncContext attachment) {
+                                        resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                                        attachment.complete();
+                                    }
+                                });
+                            } else if ("HEAD".equals(req.getMethod())) {
+                                asyncContext.complete();
+                            }
+                            future.release();
+                            return;
+                        } catch (Exception e) {
+                            Closeables.closeQuietly(channel);
+                            LOGGER.warn("Error while sending artifact: {}", e.getMessage(), e);
+                            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                         }
-                        future.release();
-                        return;
-                    } catch (Exception e) {
-                        Closeables.closeQuietly(channel);
-                        LOGGER.warn("Error while sending artifact: {}", e.getMessage(), e);
-                        resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                     }
                 } else {
                     resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
