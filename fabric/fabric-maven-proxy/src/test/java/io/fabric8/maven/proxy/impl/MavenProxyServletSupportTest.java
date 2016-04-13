@@ -37,6 +37,7 @@ import java.util.regex.Matcher;
 
 import javax.servlet.AsyncContext;
 import javax.servlet.ReadListener;
+import javax.servlet.AsyncListener;
 import javax.servlet.ServletException;
 import javax.servlet.ServletInputStream;
 import javax.servlet.ServletOutputStream;
@@ -439,6 +440,8 @@ public class MavenProxyServletSupportTest {
             EasyMock.expect(request.startAsync()).andReturn(context);
             context.setTimeout(EasyMock.anyInt());
             EasyMock.expectLastCall();
+            context.addListener((AsyncListener) EasyMock.anyObject());
+            EasyMock.expectLastCall();
 
             HttpServletResponse response = EasyMock.createMock(HttpServletResponse.class);
             EasyMock.makeThreadSafe(response, true);
@@ -478,6 +481,8 @@ public class MavenProxyServletSupportTest {
             EasyMock.expect(request.getPathInfo()).andReturn("org/apache/camel/camel-core/maven-metadata.xml");
             EasyMock.expect(request.startAsync()).andReturn(context);
             context.setTimeout(EasyMock.anyInt());
+            EasyMock.expectLastCall();
+            context.addListener((AsyncListener) EasyMock.anyObject());
             EasyMock.expectLastCall();
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
             EasyMock.expect(response.getOutputStream()).andReturn(new ServletOutputStream() {
@@ -568,6 +573,8 @@ public class MavenProxyServletSupportTest {
             EasyMock.expect(request.startAsync()).andReturn(context);
             context.setTimeout(EasyMock.anyInt());
             EasyMock.expectLastCall();
+            context.addListener((AsyncListener) EasyMock.anyObject());
+            EasyMock.expectLastCall();
 
             HttpServletResponse response = EasyMock.createMock(HttpServletResponse.class);
             EasyMock.makeThreadSafe(response, true);
@@ -636,6 +643,8 @@ public class MavenProxyServletSupportTest {
                 EasyMock.expect(request.startAsync()).andReturn(context);
                 context.setTimeout(EasyMock.anyInt());
                 EasyMock.expectLastCall();
+                context.addListener((AsyncListener) EasyMock.anyObject());
+                EasyMock.expectLastCall();
                 final CountDownLatch latch = new CountDownLatch(1);
                 context.dispatch();
                 EasyMock.expectLastCall().andAnswer(new IAnswer<Object>() {
@@ -661,6 +670,8 @@ public class MavenProxyServletSupportTest {
             EasyMock.expect(request.getPathInfo()).andReturn("org.apache.camel/camel-core/2.13.0/camel-core-2.13.0-sources.jar");
             EasyMock.expect(request.startAsync()).andReturn(context);
             context.setTimeout(EasyMock.anyInt());
+            EasyMock.expectLastCall();
+            context.addListener((AsyncListener) EasyMock.anyObject());
             EasyMock.expectLastCall();
             final CountDownLatch latchComplete = new CountDownLatch(1);
             context.complete();
