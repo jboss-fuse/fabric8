@@ -60,7 +60,7 @@
       <plugin>
         <groupId>${jetty-plugin-groupId}</groupId>
         <artifactId>jetty-maven-plugin</artifactId>
-        <version>${jetty-version}</version>
+        <version>${jetty-plugin-version}</version>
         <configuration>
           <webAppConfig>
               <contextPath>/gateway</contextPath>
