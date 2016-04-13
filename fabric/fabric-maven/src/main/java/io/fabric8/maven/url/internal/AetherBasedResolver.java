@@ -84,6 +84,7 @@ import org.eclipse.aether.graph.DependencyFilter;
 import org.eclipse.aether.graph.DependencyNode;
 import org.eclipse.aether.impl.DefaultServiceLocator;
 import org.eclipse.aether.internal.impl.DefaultTransporterProvider;
+import org.eclipse.aether.internal.impl.slf4j.Slf4jLoggerFactory;
 import org.eclipse.aether.repository.Authentication;
 import org.eclipse.aether.repository.LocalRepository;
 import org.eclipse.aether.repository.MirrorSelector;
@@ -199,6 +200,7 @@ public class AetherBasedResolver implements MavenResolver {
         locator.addService( TransporterProvider.class, DefaultTransporterProvider.class );
         locator.addService( TransporterFactory.class, WagonTransporterFactory.class );
         locator.setServices( WagonProvider.class, new StaticWagonProvider(m_config.getTimeout()) );
+        locator.addService( org.eclipse.aether.spi.log.LoggerFactory.class, Slf4jLoggerFactory.class );
 
         decrypter = new MavenSettingsDecrypter( m_config.getSecuritySettings() );
         locator.setServices( SettingsDecrypter.class, decrypter );
