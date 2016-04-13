@@ -235,7 +235,7 @@
         <http-core-version>4.3.3</http-core-version>
         <influxdb-version>1.2</influxdb-version>
         <jackson-version>1.9.12</jackson-version>
-        <jackson2-version>2.4.3</jackson2-version>
+        <jackson2-version>2.6.3</jackson2-version>
         <jansi-version>1.11</jansi-version>
         <jasypt-smx-version>1.9.3.redhat_3</jasypt-smx-version>
         <jasypt-spring-smx-version>1.9.3.redhat_3</jasypt-spring-smx-version>

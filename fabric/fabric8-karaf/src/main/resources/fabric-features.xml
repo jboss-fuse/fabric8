@@ -612,7 +612,6 @@
         <feature version="${cxf-version-range}">cxf-specs</feature>
         <bundle dependency='true'>mvn:org.scala-lang/scala-library/${swagger-scala-version}</bundle>
         <bundle dependency='true'>mvn:org.scala-lang/scala-reflect/${swagger-scala-version}</bundle>
-        <bundle dependency='true'>mvn:com.google.guava/guava/${swagger-scala-guava-version}</bundle>
         <bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.javax-inject/${javax.inject.bundle.version}</bundle>
         <bundle>mvn:org.javassist/javassist/${javassist-version}</bundle>
         <bundle>mvn:javax.validation/validation-api/${validation-api-version}</bundle>
