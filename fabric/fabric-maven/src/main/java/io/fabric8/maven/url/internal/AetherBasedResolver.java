@@ -32,6 +32,7 @@ import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -701,6 +702,9 @@ public class AetherBasedResolver implements MavenResolver {
         Properties sysProps = (Properties) System.getProperties().clone();
         session.setSystemProperties( sysProps );
         session.setConfigProperties( sysProps );
+
+        // set timeout smaller than 30 minutes by default
+        session.setConfigProperty(ConfigurationProperties.REQUEST_TIMEOUT, TimeUnit.MINUTES.toMillis(5));
 
         return session;
     }
