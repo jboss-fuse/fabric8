@@ -151,7 +151,7 @@ public class OpenShiftPomDeployerTest {
         assertDependencyScope(dependencies, "org.drools", "drools-wb-distribution-wars", "provided");
         assertDependencyScope(dependencies, "io.hawt", "hawtio-web", expectedHawtioDependencyScope);
 
-        assertRepositoryUrl(repositories, "http://repository.jboss.org/nexus/content/groups/public/");
+        assertRepositoryUrl(repositories, "https://maven.repository.redhat.com/ga/");
         assertRepositoryUrl(repositories, "https://repo.fusesource.com/nexus/content/groups/ea/");
     }
 
