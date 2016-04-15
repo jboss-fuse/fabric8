@@ -16,7 +16,9 @@
 package io.fabric8.mq.fabric;
 
 import java.beans.PropertyEditorManager;
+import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Dictionary;
 import java.util.HashMap;
@@ -186,21 +188,27 @@ public class ActiveMQServiceFactory  {
                     LOG.info("Adding network connector " + name);
                     NetworkConnector nc = new DiscoveryNetworkConnector(new URI("fabric:" + name));
                     nc.setName("fabric-" + name);
-
-                    Map<String, Object> networkProperties = new HashMap<String, Object>();
-                    // use default credentials for network connector (if none was specified)
-                    networkProperties.put("network.userName", "admin");
-                    networkProperties.put("network.password", properties.getProperty("zookeeper.password"));
-                    for (String k : properties.stringPropertyNames()) {
-                        networkProperties.put(k, properties.getProperty(k));
-                    }
-                    IntrospectionSupport.setProperties(nc, networkProperties, "network.");
                     if (broker != null) {
                         // and if it's null, then exception was thrown already. It's just IDEA complaining
                         broker.addNetworkConnector(nc);
                     }
                 }
             }
+
+            //static network connectors
+            String staticNetworks = properties.getProperty("static-network", "");
+            networksTab = staticNetworks.split(",");
+            for (String name : networksTab) {
+                if (!name.isEmpty()) {
+                    LOG.info("Adding static network connector " + name);
+                    NetworkConnector nc = createNetworkConnector(new URI("static:(" + name + ")"),properties);
+                    nc.setName("static-"+ name);
+                    if (broker != null) {
+                        broker.addNetworkConnector(nc);
+                    }
+                }
+            }
+
             SpringBrokerContext brokerContext = new SpringBrokerContext();
             brokerContext.setConfigurationUrl(resource.getURL().toExternalForm());
             brokerContext.setApplicationContext(ctx);
@@ -288,6 +296,21 @@ public class ActiveMQServiceFactory  {
         for (String pid : configurations.keySet()) {
             deleted(pid);
         }
+    }
+
+    private NetworkConnector createNetworkConnector(URI uri,Properties properties) throws URISyntaxException, IOException {
+        NetworkConnector nc = new DiscoveryNetworkConnector(uri);
+        Map<String, Object> networkProperties = new HashMap<String, Object>();
+        // use default credentials for network connector (if none was specified)
+        networkProperties.put("network.userName", "admin");
+        networkProperties.put("network.password", properties.getProperty("zookeeper.password"));
+
+        for (String k : properties.stringPropertyNames()) {
+            networkProperties.put(k, properties.getProperty(k));
+        }
+
+        IntrospectionSupport.setProperties(nc, networkProperties, "network.");
+        return nc;
     }
 
     /**

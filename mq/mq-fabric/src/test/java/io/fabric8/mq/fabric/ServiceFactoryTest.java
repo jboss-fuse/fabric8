@@ -17,6 +17,7 @@ package io.fabric8.mq.fabric;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
@@ -26,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import javax.jms.JMSException;
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQConnectionFactory;
+import org.apache.activemq.broker.BrokerService;
 import org.apache.activemq.transport.TransportListener;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -33,6 +35,7 @@ import org.apache.curator.retry.RetryNTimes;
 import org.apache.zookeeper.server.ServerCnxnFactory;
 import org.apache.zookeeper.server.ZooKeeperServer;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -49,6 +52,7 @@ public class ServiceFactoryTest {
     CuratorFramework curator;
     ActiveMQServiceFactory underTest;
     Random random = new Random();
+    ZooKeeperServer server;
 
     @Before
     public void infraUp() throws Exception {
@@ -56,10 +60,11 @@ public class ServiceFactoryTest {
         int numConnections = 5000;
         File dir = new File("target", "zookeeper" + random.nextInt()).getAbsoluteFile();
 
-        ZooKeeperServer server = new ZooKeeperServer(dir, dir, tickTime);
+        server = new ZooKeeperServer(dir, dir, tickTime);
         standaloneServerFactory = createFactory(0, numConnections);
         int zkPort = standaloneServerFactory.getLocalPort();
 
+        System.setProperty("zookeeper.url","localhost:"+zkPort);
         standaloneServerFactory.startup(server);
 
         CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder()
@@ -74,6 +79,7 @@ public class ServiceFactoryTest {
 
     @After
     public void infraDown() throws Exception {
+        System.clearProperty("zookeeper.url");
         curator.close();
         standaloneServerFactory.shutdown();
     }
@@ -235,4 +241,98 @@ public class ServiceFactoryTest {
         underTest.destroy();
     }
 
+    @Test
+    public void testStaticNetworkConnectors() throws Exception {
+        final BrokerService brokerService = new BrokerService();
+        final CountDownLatch connected = new CountDownLatch(1);
+
+        brokerService.addConnector("tcp://localhost:55555");
+        brokerService.setPersistent(false);
+        brokerService.setBrokerName("temp-broker");
+        brokerService.start();
+        brokerService.waitUntilStarted();
+
+        underTest = new ActiveMQServiceFactory();
+        underTest.curator = curator;
+
+        curator.blockUntilConnected();
+        Properties props = new Properties();
+        props.put("config","amq.xml");
+        props.put("connectors","openwire");
+        props.put("standalone","true");
+        props.put("broker-name","network-broker");
+        props.put("openwire-port","44444");
+
+        props.put("static-network","tcp://localhost:55555");
+
+        final ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("failover:(tcp://localhost:44444)?useExponentialBackOff=false&timeout=10000");
+        final ActiveMQConnection connection = (ActiveMQConnection) cf.createConnection();
+
+        try {
+            underTest.updated("network-broker",props);
+            connection.start();
+            connected.countDown();
+            brokerService.start();
+            brokerService.waitUntilStarted();
+            for(int i=0;i<10;i++){
+                if(brokerService.getBroker().getClients().length==0)
+                    Thread.sleep(500);
+                else break;
+            }
+            Assert.assertTrue("No client",brokerService.getBroker().getClients().length>0);
+        } catch (Exception e){
+            throw  e;
+        }
+        finally {
+            connection.close();
+            underTest.destroy();
+            brokerService.stop();
+        }
+    }
+
+    @Test
+    public void tesFabricNetworkConnectors() throws Exception {
+        final CountDownLatch connected = new CountDownLatch(1);
+        ActiveMQServiceFactory underTest2 = new ActiveMQServiceFactory();
+        underTest = new ActiveMQServiceFactory();
+
+        curator.blockUntilConnected();
+
+        underTest.curator = curator;
+        underTest2.curator = curator;
+
+        Properties template = new Properties();
+        template.put("kind","StandAlone");
+        template.put("config","amq.xml");
+        template.put("connectors","openwire");
+
+        Properties b1Properties = new Properties(template);
+        b1Properties.put("group","group-a");
+        b1Properties.put("broker-name","a-broker");
+        b1Properties.put("openwire-port","44444");
+
+        Properties b2Properties = new Properties(template);
+        b2Properties.put("group","group-b");
+        b2Properties.put("broker-name","b-broker");
+        b2Properties.put("openwire-port","55555");
+        b2Properties.put("network","group-a");
+
+        final ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("failover:(tcp://localhost:55555)?useExponentialBackOff=false&timeout=10000");
+        final ActiveMQConnection connection = (ActiveMQConnection) cf.createConnection();
+
+        try {
+            underTest.updated("broker.a", b1Properties);
+            underTest2.updated("broker.b", b2Properties);
+            connection.start();
+            connected.countDown();
+            //TODO meaningful assert
+        } catch (Exception e){
+            throw  e;
+        }
+        finally {
+            connection.close();
+            underTest.destroy();
+            underTest2.destroy();
+        }
+    }
 }
