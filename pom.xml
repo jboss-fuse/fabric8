@@ -289,7 +289,7 @@
         <maven-dependency-analyzer-version>1.6</maven-dependency-analyzer-version>
         <maven-dependency-tree-version>2.2</maven-dependency-tree-version>
         <maven-dependency-plugin-version>2.8</maven-dependency-plugin-version>
-        <mina-version>2.0.9</mina-version>
+        <mina-version>2.0.13</mina-version>
         <mockserver-version>3.4</mockserver-version>
         <mongo-java-driver-version>2.12.3</mongo-java-driver-version>
         <mvel-version>2.2.7.Final</mvel-version>
