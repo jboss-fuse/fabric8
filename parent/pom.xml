@@ -246,8 +246,17 @@
                     <useSystemClassLoader>false</useSystemClassLoader>
                     <useManifestOnlyJar>false</useManifestOnlyJar>
                     <failIfNoTests>false</failIfNoTests>
-                    <!-- The number of times each failing test will be rerun. -->
-                    <rerunFailingTestsCount>2</rerunFailingTestsCount>
+                    <!--
+                     paxexam tests do not work well with rerunFailingTestsCount, so let's use new function of
+                     surefire - stopping the build after *first* failed test
+                     arquillian tests however run in the same container, so there's other reason *not* to rerun
+                     failed tests
+                     ...
+                     after checking, please don't set skipAfterFailureCount to value > 0 - it doesn't work with
+                     paxexam as well
+                    -->
+                    <rerunFailingTestsCount>0</rerunFailingTestsCount>
+                    <skipAfterFailureCount>0</skipAfterFailureCount>
                     <runOrder>alphabetical</runOrder>
                     <systemPropertyVariables>
                         <basedir>${basedir}</basedir>
