@@ -30,7 +30,7 @@ import org.apache.karaf.shell.console.AbstractAction;
 @Command(name = ProfileRename.FUNCTION_VALUE, scope = ProfileRename.SCOPE_VALUE, description = ProfileRename.DESCRIPTION)
 public class ProfileRenameAction extends AbstractAction {
 
-    @Option(name = "--version", description = "The profile version to rename. Defaults to the current default version.")
+    @Option(name = "--version", description = "The profile version to rename.")
     private String versionId;
 
     @Option(name = "-f", aliases = "--force", description = "Flag to allow replacing the target profile (if exists).")
@@ -79,8 +79,12 @@ public class ProfileRenameAction extends AbstractAction {
                 return null;
             }
         }
-
-        Profiles.renameProfile(fabricService, versionId, profileName, newName, force);
+        try {
+            Profiles.renameProfile(fabricService, versionId, profileName, newName, force);
+        } catch (Exception ex) {
+            System.err.println("Profile rename failed: " + ex.getMessage());
+            log.error("Profile rename failed: ", ex);
+        }
         return null;
     }
 
