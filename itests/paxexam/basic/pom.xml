@@ -244,6 +244,7 @@
             </plugin>
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
+                <!-- paxexam tests don't work with version 2.19.x -->
                 <version>2.17</version>
                 <configuration>
                     <forkMode>pertest</forkMode>
@@ -292,13 +293,6 @@
                         <classpathDependencyExclude>org.slf4j:slf4j-log4j12</classpathDependencyExclude>
                     </classpathDependencyExcludes>
                 </configuration>
-                <!--<dependencies>-->
-                    <!--<dependency>-->
-                        <!--<groupId>org.apache.maven.surefire</groupId>-->
-                        <!--<artifactId>surefire-junit47</artifactId>-->
-                        <!--<version>${maven-surefire-plugin-version}</version>-->
-                    <!--</dependency>-->
-                <!--</dependencies>-->
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
