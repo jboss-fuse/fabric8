@@ -662,9 +662,4 @@
         <bundle>mvn:org.apache.commons/commons-lang3/${commons-lang3-version}</bundle>
     </feature>
 
-    <feature name="qpid-jms-client" version="${project.version}" resolver="(obr)">
-        <feature version="1.1">jms-spec-dep</feature>
-        <bundle>mvn:io.fabric8/fabric-qpid-jms-client/${project.version}</bundle>
-    </feature>
-
 </features>

@@ -319,7 +319,6 @@
         <plexus-utils-version>3.0.17</plexus-utils-version>
         <plexus-classworlds-version>2.4</plexus-classworlds-version>
         <qpid-jms-version>0.28</qpid-jms-version>
-        <qpid-jms-client-version>0.8.0</qpid-jms-client-version>
         <reflections-version>0.9.10_3</reflections-version>
         <rhq-metrics-version>0.2.2.20140726-M3</rhq-metrics-version>
         <rrd4j-version>2.0.7</rrd4j-version>
@@ -1744,11 +1743,6 @@
                         <artifactId>netty</artifactId>
                     </exclusion>
                 </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.qpid</groupId>
-                <artifactId>qpid-jms-client</artifactId>
-                <version>${qpid-jms-client-version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.activemq</groupId>
