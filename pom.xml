@@ -2954,7 +2954,7 @@
             </dependency>
             <dependency>
                 <groupId>com.wordnik</groupId>
-                <artifactId>swagger-core</artifactId>
+                <artifactId>swagger-core_2.10</artifactId>
                 <version>${swagger-community-version}</version>
             </dependency>
             <dependency>
