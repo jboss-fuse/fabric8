@@ -287,7 +287,6 @@ public class ServiceFactoryTest {
 
     @Test
     public void tesFabricNetworkConnectors() throws Exception {
-        final CountDownLatch connected = new CountDownLatch(1);
         ActiveMQServiceFactory underTest2 = new ActiveMQServiceFactory();
         underTest = new ActiveMQServiceFactory();
 
@@ -314,9 +313,6 @@ public class ServiceFactoryTest {
         b2Properties.put("network","group-a");
         b2Properties.put("container.ip","localhost");
 
-        final ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("failover:(tcp://localhost:55555)?useExponentialBackOff=false&timeout=10000");
-        final ActiveMQConnection connection = (ActiveMQConnection) cf.createConnection();
-
         try {
             underTest.updated("broker.a", b1Properties);
             underTest2.updated("broker.b", b2Properties);
@@ -326,11 +322,9 @@ public class ServiceFactoryTest {
                 brokerA = underTest.getBrokerService("a-broker");
                 Thread.sleep(100);
             }
-
             waitForClientsToConnect(brokerA, 1);
+            Assert.assertTrue("No client",brokerA.getBroker().getClients().length>0);
 
-
-            //TODO meaningful assert
         } catch (Exception e){
             throw  e;
         }
