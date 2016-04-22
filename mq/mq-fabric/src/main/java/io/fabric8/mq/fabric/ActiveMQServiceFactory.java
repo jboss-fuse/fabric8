@@ -16,7 +16,9 @@
 package io.fabric8.mq.fabric;
 
 import java.beans.PropertyEditorManager;
+import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Dictionary;
 import java.util.HashMap;
@@ -186,21 +188,27 @@ public class ActiveMQServiceFactory  {
                     LOG.info("Adding network connector " + name);
                     NetworkConnector nc = new DiscoveryNetworkConnector(new URI("fabric:" + name));
                     nc.setName("fabric-" + name);
-
-                    Map<String, Object> networkProperties = new HashMap<String, Object>();
-                    // use default credentials for network connector (if none was specified)
-                    networkProperties.put("network.userName", "admin");
-                    networkProperties.put("network.password", properties.getProperty("zookeeper.password"));
-                    for (String k : properties.stringPropertyNames()) {
-                        networkProperties.put(k, properties.getProperty(k));
-                    }
-                    IntrospectionSupport.setProperties(nc, networkProperties, "network.");
                     if (broker != null) {
                         // and if it's null, then exception was thrown already. It's just IDEA complaining
                         broker.addNetworkConnector(nc);
                     }
                 }
             }
+
+            //static network connectors
+            String staticNetworks = properties.getProperty("static-network", "");
+            networksTab = staticNetworks.split(",");
+            for (String name : networksTab) {
+                if (!name.isEmpty()) {
+                    LOG.info("Adding static network connector " + name);
+                    NetworkConnector nc = createNetworkConnector(new URI("static:(" + name + ")"),properties);
+                    nc.setName("static-"+ name);
+                    if (broker != null) {
+                        broker.addNetworkConnector(nc);
+                    }
+                }
+            }
+
             SpringBrokerContext brokerContext = new SpringBrokerContext();
             brokerContext.setConfigurationUrl(resource.getURL().toExternalForm());
             brokerContext.setApplicationContext(ctx);
@@ -255,6 +263,20 @@ public class ActiveMQServiceFactory  {
         }).start();
     }
 
+    BrokerService getBrokerService(String name) {
+        synchronized (ActiveMQServiceFactory.this) {
+            for (ClusteredConfiguration c : configurations.values()) {
+                if( name.equals(c.name) ) {
+                    if( c.server == null ) {
+                        return null;
+                    }
+                    return c.server.getBroker();
+                }
+            }
+        }
+        return null;
+    }
+
     // ManagedServiceFactory implementation
 
     public synchronized void updated(String pid, Properties properties) throws ConfigurationException {
@@ -290,6 +312,21 @@ public class ActiveMQServiceFactory  {
         }
     }
 
+    private NetworkConnector createNetworkConnector(URI uri,Properties properties) throws URISyntaxException, IOException {
+        NetworkConnector nc = new DiscoveryNetworkConnector(uri);
+        Map<String, Object> networkProperties = new HashMap<String, Object>();
+        // use default credentials for network connector (if none was specified)
+        networkProperties.put("network.userName", "admin");
+        networkProperties.put("network.password", properties.getProperty("zookeeper.password"));
+
+        for (String k : properties.stringPropertyNames()) {
+            networkProperties.put(k, properties.getProperty(k));
+        }
+
+        IntrospectionSupport.setProperties(nc, networkProperties, "network.");
+        return nc;
+    }
+
     /**
      * 3 items that define Broker
      */
@@ -322,7 +359,7 @@ public class ActiveMQServiceFactory  {
     private class ClusteredConfiguration {
 
         private Properties properties;
-        private String name;
+        String name;
         private String data;
         private String config;
         private String group;
@@ -336,7 +373,7 @@ public class ActiveMQServiceFactory  {
         private boolean pool_enabled = false;
         private long lastModified = -1L;
 
-        private volatile ServerInfo server;
+        volatile ServerInfo server;
 
         private FabricDiscoveryAgent discoveryAgent = null;
 
@@ -560,7 +597,11 @@ public class ActiveMQServiceFactory  {
                 if (connector == null) {
                     LOG.warn("ActiveMQ broker '" + server.getBroker().getBrokerName() + "' does not have a connector called '" + name + "'");
                 } else {
-                    services.add(connector.getConnectUri().getScheme() + "://${zk:" + System.getProperty("runtime.id") + "/ip}:" + connector.getPublishableConnectURI().getPort());
+                    String ip = (String) properties.get("container.ip");
+                    if( ip==null ) {
+                        ip = "${zk:" + System.getProperty("runtime.id") + "/ip}";
+                    }
+                    services.add(connector.getConnectUri().getScheme() + "://" + ip + ":" + connector.getPublishableConnectURI().getPort());
                 }
             }
             discoveryAgent.setServices(services.toArray(new String[services.size()]));
