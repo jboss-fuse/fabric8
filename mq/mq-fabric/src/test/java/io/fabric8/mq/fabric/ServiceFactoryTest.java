@@ -17,7 +17,6 @@ package io.fabric8.mq.fabric;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
@@ -274,11 +273,7 @@ public class ServiceFactoryTest {
             connected.countDown();
             brokerService.start();
             brokerService.waitUntilStarted();
-            for(int i=0;i<10;i++){
-                if(brokerService.getBroker().getClients().length==0)
-                    Thread.sleep(500);
-                else break;
-            }
+            waitForClientsToConnect(brokerService, 1);
             Assert.assertTrue("No client",brokerService.getBroker().getClients().length>0);
         } catch (Exception e){
             throw  e;
@@ -310,12 +305,14 @@ public class ServiceFactoryTest {
         b1Properties.put("group","group-a");
         b1Properties.put("broker-name","a-broker");
         b1Properties.put("openwire-port","44444");
+        b1Properties.put("container.ip","localhost");
 
         Properties b2Properties = new Properties(template);
         b2Properties.put("group","group-b");
         b2Properties.put("broker-name","b-broker");
         b2Properties.put("openwire-port","55555");
         b2Properties.put("network","group-a");
+        b2Properties.put("container.ip","localhost");
 
         final ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("failover:(tcp://localhost:55555)?useExponentialBackOff=false&timeout=10000");
         final ActiveMQConnection connection = (ActiveMQConnection) cf.createConnection();
@@ -323,16 +320,32 @@ public class ServiceFactoryTest {
         try {
             underTest.updated("broker.a", b1Properties);
             underTest2.updated("broker.b", b2Properties);
-            connection.start();
-            connected.countDown();
+
+            BrokerService brokerA = null;
+            while( brokerA==null ) {
+                brokerA = underTest.getBrokerService("a-broker");
+                Thread.sleep(100);
+            }
+
+            waitForClientsToConnect(brokerA, 1);
+
+
             //TODO meaningful assert
         } catch (Exception e){
             throw  e;
         }
         finally {
-            connection.close();
             underTest.destroy();
             underTest2.destroy();
+        }
+    }
+
+    private void waitForClientsToConnect(BrokerService broker, int clientCount) throws Exception {
+        for(int i=0;i<10;i++){
+            if(broker.getBroker().getClients().length < clientCount)
+                Thread.sleep(500);
+            else
+                break;
         }
     }
 }

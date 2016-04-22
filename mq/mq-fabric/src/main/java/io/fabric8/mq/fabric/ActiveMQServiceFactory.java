@@ -263,6 +263,20 @@ public class ActiveMQServiceFactory  {
         }).start();
     }
 
+    BrokerService getBrokerService(String name) {
+        synchronized (ActiveMQServiceFactory.this) {
+            for (ClusteredConfiguration c : configurations.values()) {
+                if( name.equals(c.name) ) {
+                    if( c.server == null ) {
+                        return null;
+                    }
+                    return c.server.getBroker();
+                }
+            }
+        }
+        return null;
+    }
+
     // ManagedServiceFactory implementation
 
     public synchronized void updated(String pid, Properties properties) throws ConfigurationException {
@@ -345,7 +359,7 @@ public class ActiveMQServiceFactory  {
     private class ClusteredConfiguration {
 
         private Properties properties;
-        private String name;
+        String name;
         private String data;
         private String config;
         private String group;
@@ -359,7 +373,7 @@ public class ActiveMQServiceFactory  {
         private boolean pool_enabled = false;
         private long lastModified = -1L;
 
-        private volatile ServerInfo server;
+        volatile ServerInfo server;
 
         private FabricDiscoveryAgent discoveryAgent = null;
 
@@ -583,7 +597,11 @@ public class ActiveMQServiceFactory  {
                 if (connector == null) {
                     LOG.warn("ActiveMQ broker '" + server.getBroker().getBrokerName() + "' does not have a connector called '" + name + "'");
                 } else {
-                    services.add(connector.getConnectUri().getScheme() + "://${zk:" + System.getProperty("runtime.id") + "/ip}:" + connector.getPublishableConnectURI().getPort());
+                    String ip = (String) properties.get("container.ip");
+                    if( ip==null ) {
+                        ip = "${zk:" + System.getProperty("runtime.id") + "/ip}";
+                    }
+                    services.add(connector.getConnectUri().getScheme() + "://" + ip + ":" + connector.getPublishableConnectURI().getPort());
                 }
             }
             discoveryAgent.setServices(services.toArray(new String[services.size()]));
