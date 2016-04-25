@@ -67,7 +67,7 @@ public final class ContainerProviderUtils {
     private static final String REPLACE_IN_FILE = loadFunction("replace_in_file.sh");
     private static final String REPLACE_PROPERTY_VALUE = loadFunction("replace_property_value.sh");
     private static final String CONFIGURE_HOSTNAMES = loadFunction("configure_hostname.sh");
-	private static final String FIND_FREE_PORT = loadFunction("find_free_port.sh");
+    private static final String FIND_FREE_PORT = loadFunction("find_free_port.sh");
     private static final String WAIT_FOR_PORT = loadFunction("wait_for_port.sh");
     private static final String EXTRACT_ZIP = loadFunction("extract_zip.sh");
     private static final String GENERATE_SSH_KEYS = loadFunction("generate_ssh_keys.sh");
@@ -76,7 +76,7 @@ public final class ContainerProviderUtils {
     public static final int DEFAULT_RMI_SERVER_PORT = 44444;
     public static final int DEFAULT_RMI_REGISTRY_PORT = 1099;
     public static final String DEFAULT_JMX_SERVER_URL = "";
-	public static final int DEFAULT_HTTP_PORT = 8181;
+    public static final int DEFAULT_HTTP_PORT = 8181;
 
     private static final String DISTNAME_PATTERN = "fabric8-%s-%s.zip";
     private static final String SYSTEM_DIST = "system/io/fabric8/fabric8-%s/%s";
@@ -129,7 +129,7 @@ public final class ContainerProviderUtils {
         sb.append(REPLACE_IN_FILE).append("\n");
         sb.append(REPLACE_PROPERTY_VALUE).append("\n");
         sb.append(CONFIGURE_HOSTNAMES).append("\n");
-		sb.append(FIND_FREE_PORT).append("\n");
+        sb.append(FIND_FREE_PORT).append("\n");
         sb.append(WAIT_FOR_PORT).append("\n");
         sb.append(EXTRACT_ZIP).append("\n");
         sb.append(GENERATE_SSH_KEYS).append("\n");
@@ -177,10 +177,10 @@ public final class ContainerProviderUtils {
         //Apply port range
         sb.append("BIND_ADDRESS=").append(options.getBindAddress() != null && !options.getBindAddress().isEmpty() ? options.getBindAddress() : "0.0.0.0").append("\n");
         sb.append("SSH_PORT=").append("\"").append("`find_free_port ").append(Ports.mapPortToRange(DEFAULT_SSH_PORT, options.getMinimumPort(), options.getMaximumPort())).append(" ").append(options.getMaximumPort()).append("`\"").append("\n");
-		sb.append("RMI_REGISTRY_PORT=").append("\"").append("`find_free_port ").append(Ports.mapPortToRange(DEFAULT_RMI_REGISTRY_PORT, options.getMinimumPort(), options.getMaximumPort())).append(" ").append(options.getMaximumPort()).append("`\"").append("\n");
-		sb.append("RMI_SERVER_PORT=").append("\"").append("`find_free_port ").append(Ports.mapPortToRange(DEFAULT_RMI_SERVER_PORT, options.getMinimumPort(), options.getMaximumPort())).append(" ").append(options.getMaximumPort()).append("`\"").append("\n");
+        sb.append("RMI_REGISTRY_PORT=").append("\"").append("`find_free_port ").append(Ports.mapPortToRange(DEFAULT_RMI_REGISTRY_PORT, options.getMinimumPort(), options.getMaximumPort())).append(" ").append(options.getMaximumPort()).append("`\"").append("\n");
+        sb.append("RMI_SERVER_PORT=").append("\"").append("`find_free_port ").append(Ports.mapPortToRange(DEFAULT_RMI_SERVER_PORT, options.getMinimumPort(), options.getMaximumPort())).append(" ").append(options.getMaximumPort()).append("`\"").append("\n");
         sb.append("JMX_SERVER_URL=\"").append("service:jmx:rmi:\\/\\/${BIND_ADDRESS}:${RMI_SERVER_PORT}\\/jndi\\/rmi:\\/\\/${BIND_ADDRESS}:${RMI_REGISTRY_PORT}\\/karaf-").append(name).append("\"\n");
-		sb.append("HTTP_PORT=").append("\"").append("`find_free_port ").append(Ports.mapPortToRange(DEFAULT_HTTP_PORT, options.getMinimumPort(), options.getMaximumPort())).append(" ").append(options.getMaximumPort()).append("`\"").append("\n");
+        sb.append("HTTP_PORT=").append("\"").append("`find_free_port ").append(Ports.mapPortToRange(DEFAULT_HTTP_PORT, options.getMinimumPort(), options.getMaximumPort())).append(" ").append(options.getMaximumPort()).append("`\"").append("\n");
 
 
         replacePropertyValue(sb, "etc/org.apache.karaf.shell.cfg", "sshPort" , "$SSH_PORT" );
@@ -192,7 +192,7 @@ public final class ContainerProviderUtils {
         // ENTESB-2733: do not change serviceUrl, let's leave it with placeholders
         //replacePropertyValue(sb, "etc/org.apache.karaf.management.cfg", "serviceUrl", "$JMX_SERVER_URL");
         replacePropertyValue(sb, "etc/org.ops4j.pax.web.cfg", "org.osgi.service.http.port", "$HTTP_PORT");
-		replaceLineInFile(sb, "etc/jetty.xml", String.valueOf(DEFAULT_HTTP_PORT), "$HTTP_PORT");
+        replaceLineInFile(sb, "etc/jetty.xml", String.valueOf(DEFAULT_HTTP_PORT), "$HTTP_PORT");
         appendFile(sb, "etc/system.properties", Arrays.asList(ZkDefs.MINIMUM_PORT + "=" + options.getMinimumPort()));
         appendFile(sb, "etc/system.properties", Arrays.asList(ZkDefs.MAXIMUM_PORT + "=" + options.getMaximumPort()));
 
