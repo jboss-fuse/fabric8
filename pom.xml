@@ -149,7 +149,7 @@
         <asm.bundle.version>3.3.1_1</asm.bundle.version>
         <asm.version>5.0.4</asm.version>
         <blueprint-web-version>1.0.0</blueprint-web-version>
-        <bndlib-version>2.4.0</bndlib-version>
+        <bndlib-version>2.4.1</bndlib-version>
         <bouncycastle-version>1.54</bouncycastle-version>
         <camel-version-range>[2.14,3)</camel-version-range>
         <camel-version>2.17.0.redhat-630057</camel-version>
@@ -2759,7 +2759,7 @@
 
             <dependency>
                 <groupId>biz.aQute.bnd</groupId>
-                <artifactId>bndlib</artifactId>
+                <artifactId>biz.aQute.bndlib</artifactId>
                 <version>${bndlib-version}</version>
             </dependency>
 
