@@ -12,7 +12,7 @@ function maven_download {
   export ARTIFACT_BASE_URL=`echo $REPO$GROUP_ID_PATH/$ARTIFACT_ID/$VERSION/`
 
   if [[ "$VERSION" == *SNAPSHOT* ]];  then
-    export ARTIFACT_URL=`curl -C - --retry 10 --silent $ARTIFACT_BASE_URL | grep href | grep zip\" | sed 's/^.*<a href="//' | sed 's/".*$//'  | tail -1`
+    export ARTIFACT_URL=`curl --location -C - --retry 10 --silent $ARTIFACT_BASE_URL | grep href | grep zip\" | sed 's/^.*<a href="//' | sed 's/".*$//'  | tail -1`
   else
     export ARTIFACT_URL=`echo $REPO$GROUP_ID_PATH/$ARTIFACT_ID/$VERSION/$ARTIFACT_ID-$VERSION.$TYPE`
   fi
@@ -22,7 +22,7 @@ function maven_download {
   fi
 
   echo "Using URL: $ARTIFACT_URL"
-  ret=`curl --write-out %{http_code} --silent --output $TARGET_FILE $ARTIFACT_URL`
+  ret=`curl --location --write-out %{http_code} --silent --output $TARGET_FILE $ARTIFACT_URL`
   if [ "${ret}" -ne 200 ]; then
     echo "Download failed with code: ${ret}"
     rm $TARGET_FILE
