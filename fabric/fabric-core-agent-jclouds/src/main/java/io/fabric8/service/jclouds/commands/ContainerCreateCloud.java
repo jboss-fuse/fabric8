@@ -95,11 +95,11 @@ public class ContainerCreateCloud extends AbstractContainerCreateAction {
     @Option(name = "--max-port", multiValued = false, description = "The maximum port of the allowed port range")
     private int maximumPort = Ports.MAX_PORT_NUMBER;
 
-    @Option(name = "--new-user", multiValued = false, description = "The username of a new user. The option refers to karaf user (ssh, http, jmx).")
+    @Option(name = "--new-user", multiValued = false, description = "The username of a new user. The option refers to karaf user (ssh, http, jmx). It takes effect only when used in combination with the --ensemble-server option.")
     private String newUser="admin";
-    @Option(name = "--new-user-password", multiValued = false, description = "The password of the new user. The option refers to karaf user (ssh, http, jmx).")
+    @Option(name = "--new-user-password", multiValued = false, description = "The password of the new user. The option refers to karaf user (ssh, http, jmx). It takes effect only when used in combination with the --new-user and --ensemble-server options.")
     private String newUserPassword;
-    @Option(name = "--new-user-role", multiValued = false, description = "The role of the new user. The option refers to karaf user (ssh, http, jmx).")
+    @Option(name = "--new-user-role", multiValued = false, description = "The role of the new user. The option refers to karaf user (ssh, http, jmx). It takes effect only when used in combination with the --new-user and --ensemble-server options.")
     private String newUserRole = "admin";
     @Option(name = "--disable-distribution-upload", multiValued = false, description = "Flag to disable uploading the distribution. When used distribution will be downloaded via maven")
     private Boolean distributionUploadDisable = false;
