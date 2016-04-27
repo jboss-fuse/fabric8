@@ -161,6 +161,7 @@ public class SshContainerProvider implements ContainerProvider<CreateSshContaine
             try {
                 String script = buildStopScript(container.getId(), options);
                 session = createSession(options);
+                container.setProvisionResult(Container.PROVISION_STOPPING);
                 runScriptOnHost(session, script);
                 container.setProvisionResult(Container.PROVISION_STOPPED);
             } catch (Throwable t) {
@@ -182,9 +183,11 @@ public class SshContainerProvider implements ContainerProvider<CreateSshContaine
             CreateSshContainerMetadata sshContainerMetadata = (CreateSshContainerMetadata) metadata;
             CreateSshContainerOptions options = sshContainerMetadata.getCreateOptions();
             Session session = null;
+            String prevProvisionResult = container.getProvisionResult();
             try {
                 String script = buildUninstallScript(container.getId(), options);
                 session = createSession(options);
+                container.setProvisionResult(Container.PROVISION_DELETING);
                 runScriptOnHost(session, script);
             } catch (Throwable t) {
                 LOGGER.error("Failed to stop container: " + container.getId(), t);
