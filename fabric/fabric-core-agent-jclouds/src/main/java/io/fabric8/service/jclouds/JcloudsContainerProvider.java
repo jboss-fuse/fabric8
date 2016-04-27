@@ -212,6 +212,7 @@ public class JcloudsContainerProvider extends AbstractComponent implements Conta
                 String script = buildStopScript(container.getId(), options);
                 ExecResponse response;
 
+                container.setProvisionResult(Container.PROVISION_STOPPING);
                 if (runScriptOptions.isPresent()) {
                     response = computeService.runScriptOnNode(nodeId, script, runScriptOptions.get());
                 } else {
@@ -237,6 +238,7 @@ public class JcloudsContainerProvider extends AbstractComponent implements Conta
         if (!(metadata instanceof CreateJCloudsContainerMetadata)) {
             throw new IllegalStateException("Container doesn't have valid create container metadata type");
         } else {
+            container.setProvisionResult(Container.PROVISION_DELETING);
             CreateJCloudsContainerMetadata jCloudsContainerMetadata = (CreateJCloudsContainerMetadata) metadata;
             CreateJCloudsContainerOptions options = jCloudsContainerMetadata.getCreateOptions();
             String nodeId = jCloudsContainerMetadata.getNodeId();

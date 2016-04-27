@@ -271,8 +271,14 @@ public final class OpenshiftContainerProvider extends AbstractComponent implemen
     @Override
     public void stop(Container container) {
         assertValid();
-        getContainerApplication(container, true).stop();
-        container.setProvisionResult(Container.PROVISION_STOPPED);
+        container.setProvisionResult(Container.PROVISION_STOPPING);
+        try {
+            getContainerApplication(container, true).stop();
+            container.setProvisionResult(Container.PROVISION_STOPPED);
+        } catch (Throwable t){
+            LOG.error("Failed to stop container: " + container.getId(), t);
+            throw t;
+        }
     }
 
     @Override
@@ -281,6 +287,7 @@ public final class OpenshiftContainerProvider extends AbstractComponent implemen
         IApplication app = getContainerApplication(container, false);
         if (app != null) {
             try {
+                container.setProvisionResult(Container.PROVISION_DELETING);
                 app.destroy();
             } catch (NotFoundOpenShiftException e) {
                 LOG.debug("Ignoring '{} when destroying {} container", e.getMessage(), container.getId());
