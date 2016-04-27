@@ -220,12 +220,20 @@ public final class FabricMBeanRegistrationListener extends AbstractComponent imp
         String domainsNode = CONTAINER_DOMAINS.getPath(runtimeIdentity);
         Stat stat = exists(curator.get(), domainsNode);
         if (stat != null) {
-            deleteSafe(curator.get(), domainsNode);
+            try{
+                deleteSafe(curator.get(), domainsNode);
+             } catch (IllegalStateException e){
+                handleException(e);
+            }
         }
         synchronized (this) {
             domains.addAll(Arrays.asList(mbeanServer.get().getDomains()));
             for (String domain : domains) {
-                setData(curator.get(), CONTAINER_DOMAIN.getPath(runtimeIdentity, domain), "", CreateMode.EPHEMERAL);
+                try {
+                    setData(curator.get(), CONTAINER_DOMAIN.getPath(runtimeIdentity, domain), "", CreateMode.EPHEMERAL);
+                } catch (IllegalStateException e) {
+                    handleException(e);
+                }
             }
         }
     }
@@ -246,6 +254,15 @@ public final class FabricMBeanRegistrationListener extends AbstractComponent imp
         fileSystemMBean.unregisterMBeanServer(mbeanServer.get());
         managerMBean.unregisterMBeanServer(mbeanServer.get());
         healthCheck.unregisterMBeanServer(mbeanServer.get());
+    }
+
+    protected void handleException(Throwable e) {
+        if( e instanceof IllegalStateException && "Client is not started".equals(e.getMessage())) {
+            LOGGER.debug("", e);
+        }
+        else {
+            LOGGER.error("", e);
+        }
     }
 
     void bindRuntimeProperties(RuntimeProperties service) {
