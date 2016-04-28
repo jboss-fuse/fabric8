@@ -21,7 +21,6 @@ import io.fabric8.api.RuntimeProperties;
 import io.fabric8.api.jcip.ThreadSafe;
 import io.fabric8.api.scr.AbstractComponent;
 import io.fabric8.api.scr.ValidatingReference;
-import io.fabric8.common.util.Files;
 import io.fabric8.git.GitDataStore;
 import io.fabric8.git.GitHttpEndpoint;
 import io.fabric8.git.GitNode;
@@ -93,14 +92,14 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
     private Git git;
 
     private String realm;
-    private String role;
+    private String roles;
     private Path dataPath;
 
     @Activate
     void activate(Map<String, ?> configuration) throws Exception {
         RuntimeProperties sysprops = runtimeProperties.get();
         realm = getConfiguredRealm(sysprops, configuration);
-        role = getConfiguredRole(sysprops, configuration);
+        roles = getConfiguredRoles(sysprops, configuration);
         dataPath = sysprops.getDataPath();
         activateComponent();
 
@@ -148,7 +147,7 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
         return realm;
     }
 
-    private String getConfiguredRole(RuntimeProperties sysprops, Map<String, ?> configuration) {
+    private String getConfiguredRoles(RuntimeProperties sysprops, Map<String, ?> configuration) {
         return configuration.containsKey(ROLE_PROPERTY_NAME) ? (String)configuration.get(ROLE_PROPERTY_NAME) : DEFAULT_ROLE;
     }
 
@@ -157,7 +156,7 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
             if (group.isMaster()) {
                 LOGGER.debug("Git repo is the master");
                 if (!isMaster.getAndSet(true)) {
-                    registerServlet(dataPath, realm, role);
+                    registerServlet(dataPath, realm, roles);
                 }
             } else {
                 LOGGER.debug("Git repo is not the master");
