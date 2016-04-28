@@ -130,17 +130,24 @@ public final class FabricConfigAdminBridge extends AbstractComponent implements 
             LOGGER.warn("No current container yet so cannot update!");
             return;
         }
-        Profile overlayProfile = currentContainer.getOverlayProfile();
+        Profile overlayProfile = null;
+        try{
+            overlayProfile = currentContainer.getOverlayProfile();
+        } catch (RuntimeException e){
+            LOGGER.warn("No profile data yet so cannot update!");
+            return;
+        }
+
         Profile effectiveProfile = Profiles.getEffectiveProfile(fabricService.get(), overlayProfile);
-        
+
         Map<String, Map<String, String>> configurations = effectiveProfile.getConfigurations();
         List<Configuration> zkConfigs = asList(configAdmin.get().listConfigurations("(" + FABRIC_ZOOKEEPER_PID + "=*)"));
-        
+
         // FABRIC-803: the agent may use the configuration provided by features definition if not managed
         //   by fabric.  However, in order for this to work, we need to make sure managed configurations
         //   are all registered before the agent kicks in.  Hence, the agent configuration is updated
         //   after all other configurations.
-        
+
         // Process all configurations but agent
         for (String pid : configurations.keySet()) {
             if (!pid.equals(Constants.AGENT_PID)) {
