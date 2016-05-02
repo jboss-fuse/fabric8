@@ -23,7 +23,9 @@ import io.fabric8.api.ProfileService;
 import io.fabric8.api.Version;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import io.fabric8.utils.TablePrinter;
 import org.apache.felix.gogo.commands.Command;
@@ -34,6 +36,7 @@ public class VersionListAction extends AbstractAction {
 
     private final ProfileService profileService;
     private final FabricService fabricService;
+    private static final Pattern ALLOWED_PROFILE_NAMES_PATTERN = Pattern.compile("^[a-zA-Z0-9]+[\\.a-zA-Z0-9_-]*$");
 
     VersionListAction(FabricService fabricService) {
         this.profileService = fabricService.adapt(ProfileService.class);
@@ -51,16 +54,23 @@ public class VersionListAction extends AbstractAction {
     protected void printVersions(Container[] containers, List<String> versions, String defaultVersionId, PrintStream out) {
         TablePrinter table = new TablePrinter();
         table.columns("version", "default", "# containers", "description");
-
+        List<String> invalidVersion = new ArrayList<String>();
         // they are sorted in the correct order by default
         for (String versionId : versions) {
-            boolean isDefault = versionId.equals(defaultVersionId);
-            Version version = profileService.getRequiredVersion(versionId);
-            int active = countContainersByVersion(containers, version);
-            String description = version.getAttributes().get(Version.DESCRIPTION);
-            table.row(version.getId(), (isDefault ? "true" : ""), activeContainerCountText(active), description);
+            if (versionId != null && !versionId.isEmpty() && ALLOWED_PROFILE_NAMES_PATTERN.matcher(versionId).matches()) {
+                boolean isDefault = versionId.equals(defaultVersionId);
+                Version version = profileService.getRequiredVersion(versionId);
+                int active = countContainersByVersion(containers, version);
+                String description = version.getAttributes().get(Version.DESCRIPTION);
+                table.row(version.getId(), (isDefault ? "true" : ""), activeContainerCountText(active), description);
+            } else {
+                invalidVersion.add(versionId);
+            }
         }
         table.print();
+        if (!invalidVersion.isEmpty()) {
+            System.out.println("The following profile versions have been skipped since their names are not correct: " + invalidVersion.toString());
+        }
     }
 
 }
