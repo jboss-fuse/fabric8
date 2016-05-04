@@ -959,8 +959,10 @@ public final class FabricManager implements FabricManagerMBean {
     }
 
     Map<String, Object> doGetProfile(String versionId, String profileId, List<String> fields, boolean mandatory) {
-        Version version = profileService.getVersion(versionId);
+        return doGetProfile(profileService.getVersion(versionId), profileId, fields, mandatory);
+    }
 
+    Map<String, Object> doGetProfile(Version version, String profileId, List<String> fields, boolean mandatory) {
         Profile profile;
         if (mandatory) {
             profile = version.getRequiredProfile(profileId);
@@ -985,7 +987,7 @@ public final class FabricManager implements FabricManagerMBean {
                 } catch (MalformedURLException e) {
                     // Ignore
                 }
-                String icon = getIconURL(version, versionId, profile, profileId, restApi);
+                String icon = getIconURL(version, version.getId(), profile, profileId, restApi);
 
 
                 answer.put(iconURLField, icon);
@@ -1044,8 +1046,9 @@ public final class FabricManager implements FabricManagerMBean {
     public List<Map<String, Object>> getProfiles(String versionId, List<String> fields) {
         List<Map<String, Object>> answer = new ArrayList<Map<String, Object>>();
 
-        for (Profile p : profileService.getVersion(versionId).getProfiles()) {
-            answer.add(getProfile(versionId, p.getId(), fields));
+        Version version = profileService.getVersion(versionId);
+        for (Profile p : version.getProfiles()) {
+            answer.add(doGetProfile(version, p.getId(), fields, true));
         }
 
         return answer;
