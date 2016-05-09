@@ -40,7 +40,7 @@ public final class FabricValidations {
 
     public static void validateProfileName(String profileName) {
         if (!isValidProfileName(profileName)) {
-            throw new IllegalArgumentException("Version name '" + profileName + "' is invalid. Version name must be: letters, numbers, and . _ or - characters");
+            throw new IllegalArgumentException("Profile name '" + profileName + "' is invalid. Profile name must be: letters, numbers, and . _ or - characters");
         }
     }
 
