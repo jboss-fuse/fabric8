@@ -103,7 +103,7 @@ public final class ProfileServiceImpl extends AbstractProtectedComponent<Profile
     public Version createVersionFrom(String sourceId, String targetId, Map<String, String> attributes) {
         assertValid();
         LOGGER.info("createVersion: {} => {}", sourceId, targetId);
-        FabricValidations.validateProfileName(targetId);
+        FabricValidations.validateVersionName(targetId);
         profileRegistry.get().createVersion(sourceId, targetId, attributes);
         return getRequiredVersion(targetId);
     }
