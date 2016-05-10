@@ -76,9 +76,6 @@ public class SimpleDownloadTask extends AbstractRetryableDownloadTask {
 
             URL urlObj = new URL(s);
             File file = new File(basePath, getFileName(urlObj.getFile()));
-            if (file.exists()) {
-                return file;
-            }
 
             File dir = new File(System.getProperty("karaf.data"), "fabric-agent");
             dir.mkdirs();
