@@ -350,7 +350,21 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         // when the SharedCounter gets updated.
         //Also we cannot rely on the remote url change event, as it will only trigger when there is an actual change.
         //So we should be awesome and always attempt a pull when we are activating if we don't want to loose stuff.
-        doPullInternal();
+
+        // ENTESB-5253: there were problems with doPullInternal() in activation if there was remote url change
+        // event that lead to other thread invoking this operation. When it was slow, this activate() failed leaving
+        // GitDataStore in failed state (because of missing deactivateInternal())
+        // but in case other thread does the pull, let's not try to do it again if write lock is held - but without
+        // failing to activate the component
+        if (readWriteLock.isWriteLockedByCurrentThread() || readWriteLock.getWriteHoldCount() == 0) {
+            try {
+                doPullInternal();
+            } catch (IllegalStateException e) {
+                LOGGER.info("Another thread acquired write lock and GitDataStore can't pull from remote repository.");
+            }
+        } else {
+            LOGGER.info("Another thread is keeping git write lock. GitDataStore will continue activation.");
+        }
     }
 
     private void deactivateInternal() {
@@ -1334,6 +1348,8 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         @Override
         public void onRemoteUrlChanged(final String updatedUrl) {
             final String actualUrl = gitRemoteUrl != null ? gitRemoteUrl : updatedUrl;
+            LOGGER.debug("GitDataStoreListener detected remote url change to \"" + actualUrl + "\". Submitting task" +
+                    " that'll pull from new remote. Using thread pool " + threadPool);
             threadPool.submit(new Runnable() {
                 @Override
                 public void run() {
