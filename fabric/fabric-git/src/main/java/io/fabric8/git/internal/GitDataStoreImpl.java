@@ -206,6 +206,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
             activateInternal();
         } catch (Exception ex) {
             deactivateComponent();
+            deactivateInternal();
             throw ex;
         }
     }
