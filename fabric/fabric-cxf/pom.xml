@@ -39,6 +39,9 @@
             com.fasterxml.jackson.module.jaxb;resolution:=mandatory,
             *
         </fuse.osgi.import>
+        <fuse.osgi.private.pkg>
+            io.fabric8.utils;-split-package:=first
+        </fuse.osgi.private.pkg>
     </properties>
 
     <dependencies>
