@@ -81,4 +81,10 @@ public class CuratorConfig {
         result = 31 * result + (zookeeperUrl != null ? zookeeperUrl.hashCode() : 0);
         return result;
     }
+
+    @Override
+    public String toString() {
+        return "CuratorConfig: url=" + zookeeperUrl;
+    }
+
 }

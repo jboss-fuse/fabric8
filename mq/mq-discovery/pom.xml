@@ -33,6 +33,9 @@
 
     <properties>
         <fuse.osgi.fragment.host>org.apache.activemq.activemq-osgi</fuse.osgi.fragment.host>
+        <fuse.osgi.private.pkg>
+            io.fabric8.utils;-split-package:=first
+        </fuse.osgi.private.pkg>
     </properties>
 
     <dependencies>

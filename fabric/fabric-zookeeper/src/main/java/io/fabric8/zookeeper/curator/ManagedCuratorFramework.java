@@ -108,6 +108,11 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
             this.configuration = configuration;
         }
 
+        @Override
+        public String toString() {
+            return "State for " + configuration + " (closed=" + closed + ")";
+        }
+
         public void run() {
             try {
                 // ENTESB-2111: first unregister CuratorFramework service, as it might be used in @Deactivate
