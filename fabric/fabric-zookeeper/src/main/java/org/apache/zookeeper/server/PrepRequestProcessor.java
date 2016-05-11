@@ -595,10 +595,14 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements
                             }
                             request.hdr.setType(OpCode.error);
                             request.txn = new ErrorTxn(e.code().intValue());
-                            LOG.info("Got user-level KeeperException when processing "
-                            		+ request.toString() + " aborting remaining multi ops."
-                            		+ " Error Path:" + e.getPath()
-                            		+ " Error:" + e.getMessage());
+                            if (!(request.type == OpCode.exists)) {
+                                // INFO log only if we're not asking for existence of a node
+                                // as this is absolutely normal to ask if a node exists and it doesn't exist
+                                LOG.info("Got user-level KeeperException when processing "
+                                        + request.toString() + " aborting remaining multi ops."
+                                        + " Error Path:" + e.getPath()
+                                        + " Error:" + e.getMessage());
+                            }
 
                             request.setException(e);
 
