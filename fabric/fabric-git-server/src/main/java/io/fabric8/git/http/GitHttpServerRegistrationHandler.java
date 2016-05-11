@@ -288,25 +288,26 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
         GitNode state = new GitNode("fabric-repo", runtimeIdentity);
         if (group != null && group.isMaster()) {
             String externalGitUrl = readExternalGitUrl();
-            if( externalGitUrl!= null){
-                state.setUrl( externalGitUrl);
+            if (externalGitUrl != null) {
+                state.setUrl(externalGitUrl);
             } else {
-	        String fabricRepoUrl = "${zk:" + runtimeIdentity + "/http}/git/fabric/";
-        	state.setUrl(fabricRepoUrl);
+                String fabricRepoUrl = "${zk:" + runtimeIdentity + "/http}/git/fabric/";
+                state.setUrl(fabricRepoUrl);
             }
         }
         return state;
     }
 
-    private void zkCleanUp(Group<GitNode> group){
+    private void zkCleanUp(Group<GitNode> group) {
         try {
             RuntimeProperties sysprops = runtimeProperties.get();
             String runtimeIdentity = sysprops.getRuntimeIdentity();
 
+            curator.get().newNamespaceAwareEnsurePath(ZkPath.GIT.getPath()).ensure(curator.get().getZookeeperClient());
             List<String> allChildren = ZooKeeperUtils.getAllChildren(curator.get(), ZkPath.GIT.getPath());
-            for(String path : allChildren){
+            for (String path : allChildren) {
                 String stringData = ZooKeeperUtils.getStringData(curator.get(), path);
-                if(stringData.contains("\"container\":\"" + runtimeIdentity + "\"")){
+                if (stringData.contains("\"container\":\"" + runtimeIdentity + "\"")) {
                     LOGGER.info("Found older ZK \"/fabric/registry/clusters/git\" entry for node " + runtimeIdentity);
                     ZooKeeperUtils.delete(curator.get(), path);
                     LOGGER.info("Older ZK \"/fabric/registry/clusters/git\" entry for node " + runtimeIdentity + " has been removed");
