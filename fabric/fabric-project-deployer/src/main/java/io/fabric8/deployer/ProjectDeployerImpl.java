@@ -280,7 +280,7 @@ public final class ProjectDeployerImpl extends AbstractComponent implements Proj
             LOG.info("Using resolver to add extra features and bundles on " + bundleUrl);
 
             List<String> features = new ArrayList<String>();
-            List<String> bundles = new ArrayList<String>();
+            List<String> bundles = new ArrayList<String>(profile.getBundles());
             List<String> optionals = new ArrayList<String>();
 
             if (requirements.getFeatures() != null) {
