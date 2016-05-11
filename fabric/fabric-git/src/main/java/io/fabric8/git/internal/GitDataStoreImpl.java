@@ -369,22 +369,22 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
             Thread.currentThread().interrupt();
         } catch (Exception ex) {
             throw FabricException.launderThrowable(ex);
-        }
+        } finally {
+            LOGGER.debug("Restoring ProxySelector to original: {}", defaultProxySelector);
+            ProxySelector.setDefault(defaultProxySelector);
+            // authenticator disabled, until properly tested it does not affect others, as Authenticator is static in the JVM
+            // reset authenticator by setting it to null
+            // Authenticator.setDefault(null);
 
-        LOGGER.debug("Restoring ProxySelector to original: {}", defaultProxySelector);
-        ProxySelector.setDefault(defaultProxySelector);
-        // authenticator disabled, until properly tested it does not affect others, as Authenticator is static in the JVM
-        // reset authenticator by setting it to null
-        // Authenticator.setDefault(null);
-
-        // Closing the shared counter
-        try {
-            counter.close();
-        } catch (IOException ex) {
-            LOGGER.warn("Error closing SharedCount due " + ex.getMessage() + ". This exception is ignored.");
+            // Closing the shared counter
+            try {
+                counter.close();
+            } catch (IOException ex) {
+                LOGGER.warn("Error closing SharedCount due " + ex.getMessage() + ". This exception is ignored.");
+            }
         }
     }
-    
+
     @Override
     public Git getGit() {
         return gitService.get().getGit();
@@ -1115,7 +1115,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     }
     
     private PullPolicyResult doPullInternal(GitContext context, CredentialsProvider credentialsProvider, boolean allowVersionDelete) {
-        PullPolicyResult pullResult = pullPushPolicy.doPull(context, getCredentialsProvider(), allowVersionDelete);
+        PullPolicyResult pullResult = pullPushPolicy.doPull(context, credentialsProvider, allowVersionDelete);
         if (pullResult.getLastException() == null) {
             Set<String> updatedVersions = pullResult.localUpdateVersions();
             if (!updatedVersions.isEmpty()) {
@@ -1209,7 +1209,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     private void assertReadLock() {
         boolean locked = readWriteLock.getReadHoldCount() > 0 || readWriteLock.isWriteLockedByCurrentThread();
         IllegalStateAssertion.assertTrue(!strictLockAssert || locked, "No read lock obtained");
-        if (!locked) { 
+        if (!locked) {
             LOGGER.warn("No read lock obtained");
         }
     }
@@ -1230,7 +1230,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
     private String checkoutProfileBranch(Git git, GitContext context, String versionId, String profileId) throws GitAPIException {
         String branch = GitHelpers.getProfileBranch(versionId, profileId);
-        if( branch == GitHelpers.MASTER_BRANCH ) {
+        if (branch.equals(GitHelpers.MASTER_BRANCH)) {
             context.setCacheKey(null); // So we invalidate the entire cache.
         }
         return GitHelpers.checkoutBranch(git, branch) ? branch : null;
