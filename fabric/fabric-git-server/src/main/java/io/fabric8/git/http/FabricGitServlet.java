@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 public class FabricGitServlet extends GitServlet {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FabricGitServlet.class);
-    
+
     private final CuratorFramework curator;
     private SharedCount counter;
     private Git git;
@@ -72,35 +72,54 @@ public class FabricGitServlet extends GitServlet {
 
     @Override
     protected void service(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
+        /*
+         * `git push` uses two exchanges in smart http protocol:
+         * 1) preparing for push - this checks current state of branches on remote side
+         *   > GET /jgit/_test-repo/info/refs?service=git-receive-pack HTTP/1.1
+         *
+         *   < Content-Type: application/x-git-receive-pack-advertisement
+         * 2) actual push of crafted PACK file with changes to references being pushed
+         *   > POST /jgit/_test-repo/git-receive-pack HTTP/1.1
+         *   > Content-Type: application/x-git-receive-pack-request
+         *
+         *   < Content-Type: application/x-git-receive-pack-result
+         */
 
         LOGGER.debug("GitHttp service req={}", req);
         super.service(req, res);
         LOGGER.debug("GitHttp service res={}", res);
-        
+
         // Ignore unwanted service requests
         String resContentType = res.getContentType();
         if (resContentType.contains("x-git-receive-pack-result")) {
-            
             LOGGER.info("GitHttp service res={}", res);
-            
+
             int httpStatus = 0;
             try {
                 Method method = res.getClass().getMethod("getStatus");
-                httpStatus = (Integer) method.invoke(res, new Object[] {});
+                httpStatus = (Integer) method.invoke(res);
             } catch (Exception ex) {
                 LOGGER.error("Cannot obtain http response code: " + ex);
             }
-            
+
             if (httpStatus == HttpServletResponse.SC_OK) {
+                if (LOGGER.isDebugEnabled()) {
+                    try {
+                        List<Ref> refs = git.branchList().call();
+                        LOGGER.debug("Remote git content updated: {}", refs);
+                    } catch (Exception ignored) {
+                    }
+                }
                 try {
-                    List<Ref> refs = git.branchList().call();
-                    LOGGER.info("Remote git content updated: {}", refs);
-                    while (!counter.trySetCount(counter.getCount() + 1));
+                    while (!counter.trySetCount(counter.getCount() + 1)) ;
                 } catch (Exception ex) {
-                    LOGGER.debug("Error incrementing shared counter: " + ex + ". This exception is ignored.", ex);
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("Error incrementing shared counter: " + ex + ". This exception is ignored.", ex);
+                    }
                     LOGGER.warn("Error incrementing shared counter: " + ex + ". This exception is ignored.");
                 }
             }
-        } 
+        }
     }
+
 }
