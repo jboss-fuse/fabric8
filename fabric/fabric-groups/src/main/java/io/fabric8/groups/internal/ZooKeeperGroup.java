@@ -139,6 +139,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
      * @param executorService ExecutorService to use for the ZooKeeperGroup's background thread
      */
     public ZooKeeperGroup(CuratorFramework client, String path, Class<T> clazz, final ExecutorService executorService) {
+        LOG.info("Creating ZK Group for path \"" + path + "\"");
         this.client = client;
         this.path = path;
         this.clazz = clazz;
@@ -150,6 +151,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
      * Start the cache. The cache is not started automatically. You must call this method.
      */
     public void start() {
+        LOG.info("Starting ZK Group for path \"" + path + "\"");
         if (started.compareAndSet(false, true)) {
             connected.set(client.getZookeeperClient().isConnected());
 

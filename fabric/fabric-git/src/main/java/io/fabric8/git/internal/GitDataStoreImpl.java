@@ -1423,12 +1423,12 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
             List<Proxy> answer;
             if (path != null && path.startsWith(GIT_FABRIC_PATH)) {
                 answer = doSelect(host, proxyService.getNonProxyHosts(), proxyService.getProxyHost(), proxyService.getProxyPort());
+                LOGGER.debug("ProxySelector uri: {} -> {}", uri, answer);
             } else {
                 // use delegate
                 answer = delegate.select(uri);
             }
 
-            LOGGER.debug("ProxySelector uri: {} -> {}", uri, answer);
             return answer;
         }
 
