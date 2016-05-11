@@ -237,6 +237,12 @@ public abstract class AbstractProfileMojo extends AbstractMojo {
     @Parameter(property = "fabric8.replaceReadmeLinksPrefix")
     protected String replaceReadmeLinksPrefix;
 
+    /**
+     * Parameter used to ensure SNAPSHOT versioned artifacts are unique or not
+     */
+    @Parameter(property = "fabric8.uniqueVersion", defaultValue = "true")
+    private boolean uniqueVersion;
+
     protected static boolean isFile(File file) {
         return file != null && file.exists() && file.isFile();
     }
@@ -647,7 +653,11 @@ public abstract class AbstractProfileMojo extends AbstractMojo {
             DependencyDTO answer = new DependencyDTO();
             answer.setGroupId(artifact.getGroupId());
             answer.setArtifactId(artifact.getArtifactId());
-            answer.setVersion(artifact.getVersion());
+            if(artifact.isSnapshot() && !uniqueVersion){
+                answer.setVersion(artifact.getBaseVersion());
+            }else {
+                answer.setVersion(artifact.getVersion());
+            }
             answer.setClassifier(artifact.getClassifier());
             String scope = artifact.getScope();
             answer.setScope(scope);
