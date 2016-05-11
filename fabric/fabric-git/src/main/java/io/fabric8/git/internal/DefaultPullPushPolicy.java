@@ -142,10 +142,7 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
             
             // Verify master branch and do a checkout of it when we have it locally (already)
             IllegalStateAssertion.assertTrue(remoteBranches.containsKey(GitHelpers.MASTER_BRANCH), "Remote repository does not have a master branch");
-            if (localBranches.containsKey(GitHelpers.MASTER_BRANCH)) {
-                git.checkout().setName(GitHelpers.MASTER_BRANCH).setForce(true).call();
-            }
-            
+
             // Iterate over all local/remote branches
             for (String branch : allBranches) {
                 
@@ -178,7 +175,6 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                     String remoteCommit = remoteObjectId.getName();
                     if (!localCommit.equals(remoteCommit)) {
                         git.clean().setCleanDirectories(true).call();
-                        git.checkout().setName("HEAD").setForce(true).call();
                         git.checkout().setName(branch).setForce(true).call();
                         MergeResult mergeResult = git.merge().setFastForward(FastForwardMode.FF_ONLY).include(remoteObjectId).call();
                         MergeStatus mergeStatus = mergeResult.getMergeStatus();
