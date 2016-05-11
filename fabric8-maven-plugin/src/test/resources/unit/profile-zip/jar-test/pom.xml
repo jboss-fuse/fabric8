@@ -50,6 +50,7 @@
                 </executions>
                 <configuration>
                     <includeArtifact>true</includeArtifact>
+                    <uniqueVersion>true</uniqueVersion>
                     <profileConfigDir>${basedir}/src/main/fabric8</profileConfigDir>
                     <project implementation="io.fabric8.maven.stubs.CreateProfileZipJarProjectStub"/>
                 </configuration>
