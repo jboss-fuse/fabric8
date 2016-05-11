@@ -15,6 +15,8 @@
  */
 package io.fabric8.groups.internal;
 
+import java.util.concurrent.ThreadFactory;
+
 import org.apache.curator.framework.CuratorFramework;
 import io.fabric8.groups.Group;
 import io.fabric8.groups.GroupFactory;
@@ -36,7 +38,18 @@ public class ZooKeeperGroupFactory implements GroupFactory {
     }
 
     @Override
+    public <T extends NodeState> Group<T> createGroup(String path, Class<T> clazz, ThreadFactory threadFactory) {
+        return new ZooKeeperGroup<T>(curator, path, clazz, threadFactory);
+    }
+
+    @Override
     public <T extends NodeState> Group<T> createMultiGroup(String path, Class<T> clazz) {
         return new ZooKeeperMultiGroup<T>(curator, path, clazz);
     }
+
+    @Override
+    public <T extends NodeState> Group<T> createMultiGroup(String path, Class<T> clazz, ThreadFactory threadFactory) {
+        return new ZooKeeperMultiGroup<T>(curator, path, clazz, threadFactory);
+    }
+
 }

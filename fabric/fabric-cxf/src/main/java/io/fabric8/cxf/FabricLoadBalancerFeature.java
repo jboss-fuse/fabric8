@@ -15,6 +15,7 @@
  */
 package io.fabric8.cxf;
 
+import io.fabric8.utils.NamedThreadFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.curator.framework.CuratorFramework;
@@ -148,7 +149,7 @@ public class FabricLoadBalancerFeature extends AbstractFeature implements BusLif
     
     public synchronized Group getGroup() throws Exception {
          if (group == null) {
-             group = new ZooKeeperGroup<CxfNodeState>(getCurator(), zkRoot + fabricPath, CxfNodeState.class);
+             group = new ZooKeeperGroup<CxfNodeState>(getCurator(), zkRoot + fabricPath, CxfNodeState.class, new NamedThreadFactory("zkgroup-lb-feature"));
              group.start();
          }
         return group;

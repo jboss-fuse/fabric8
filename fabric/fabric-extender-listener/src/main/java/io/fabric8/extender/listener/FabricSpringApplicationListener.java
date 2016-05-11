@@ -21,7 +21,6 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.References;
 import io.fabric8.api.ModuleStatus;
@@ -75,6 +74,11 @@ public final class FabricSpringApplicationListener extends AbstractExtenderListe
     @Override
     protected String getExtenderType() {
         return EXTENDER_TYPE;
+    }
+
+    @Override
+    protected String getThreadNamePrefix() {
+        return "fabric-spring-listener";
     }
 
     private Object createListener(BundleContext bundleContext) {

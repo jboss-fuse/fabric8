@@ -23,6 +23,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import io.fabric8.api.RuntimeProperties;
+import io.fabric8.utils.NamedThreadFactory;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.zookeeper.CreateMode;
 import io.fabric8.api.ModuleStatus;
@@ -47,16 +48,23 @@ public abstract class AbstractExtenderListener extends AbstractComponent impleme
 
     @GuardedBy("ConcurrentMap")
     private final ConcurrentMap<Long, ModuleStatus> statusMap = new ConcurrentHashMap<Long, ModuleStatus>();
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private ExecutorService executor;
 
     private final ValidatingReference<CuratorFramework> curator = new ValidatingReference<CuratorFramework>();
     final ValidatingReference<RuntimeProperties> runtimeProperties = new ValidatingReference<RuntimeProperties>();
     String runtimeIdentity;
 
     void activate(BundleContext bundleContext) {
+        executor = Executors.newSingleThreadExecutor(new NamedThreadFactory(getThreadNamePrefix()));
         bundleContext.addBundleListener(this);
         activateComponent();
     }
+
+    /**
+     * Get prefix for names of threads used by executor
+     * @return
+     */
+    protected abstract String getThreadNamePrefix();
 
     void deactivate(BundleContext bundleContext) {
         deactivateComponent();

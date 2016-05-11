@@ -21,13 +21,13 @@ import io.fabric8.api.RuntimeProperties;
 import io.fabric8.api.jcip.ThreadSafe;
 import io.fabric8.api.scr.AbstractComponent;
 import io.fabric8.api.scr.ValidatingReference;
-import io.fabric8.common.util.Files;
 import io.fabric8.git.GitDataStore;
 import io.fabric8.git.GitHttpEndpoint;
 import io.fabric8.git.GitNode;
 import io.fabric8.groups.Group;
 import io.fabric8.groups.GroupListener;
 import io.fabric8.groups.internal.ZooKeeperGroup;
+import io.fabric8.utils.NamedThreadFactory;
 import io.fabric8.zookeeper.ZkPath;
 import io.fabric8.zookeeper.utils.ZooKeeperUtils;
 
@@ -103,7 +103,7 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
         dataPath = sysprops.getDataPath();
         activateComponent();
 
-        group = new ZooKeeperGroup<GitNode>(curator.get(), ZkPath.GIT.getPath(), GitNode.class);
+        group = new ZooKeeperGroup<GitNode>(curator.get(), ZkPath.GIT.getPath(), GitNode.class, new NamedThreadFactory("zkgroup-git-httpreg"));
         //if anything went wrong in a previous deactivation we still have to clean up the registry
         zkCleanUp(group);
 
@@ -210,7 +210,6 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
         }
     }
 
-
     /**
      * The complexity of this code is due to problems with jgit and Windows file system.
      * See https://bugs.eclipse.org/bugs/show_bug.cgi?id=300084
@@ -255,7 +254,6 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
             }
         }
     }
-
 
     private void recursiveDelete(File file) throws IOException{
         org.eclipse.jgit.util.FileUtils.delete(file,

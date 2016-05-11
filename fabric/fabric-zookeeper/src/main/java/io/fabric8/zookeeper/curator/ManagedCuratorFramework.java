@@ -25,8 +25,6 @@ import static io.fabric8.zookeeper.curator.Constants.ZOOKEEPER_PASSWORD;
 import static io.fabric8.zookeeper.curator.Constants.ZOOKEEPER_URL;
 
 import java.io.IOException;
-import java.sql.Time;
-import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -60,7 +58,6 @@ import io.fabric8.zookeeper.bootstrap.BootstrapConfiguration;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
-import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,6 +104,11 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
 
         State(CuratorConfig configuration) {
             this.configuration = configuration;
+        }
+
+        @Override
+        public String toString() {
+            return "State for " + configuration + " (closed=" + closed + ")";
         }
 
         public void run() {
@@ -191,7 +193,7 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
                         if(retryCount.getAndIncrement() < configuration.getZookeeperRetryMax()){
                             try {
                                 LOGGER.warn("Retry attempt " + (retryCount.get()) + " of " + configuration.getZookeeperRetryMax() + ", as per " + Constants.ZOOKEEPER_CLIENT_PID  + "/zookeeper.retry.max" , e);
-                                Thread.currentThread().sleep(configuration.getZookeeperRetryInterval());
+                                Thread.sleep(configuration.getZookeeperRetryInterval());
                             } catch (InterruptedException e1) {
                                 LOGGER.debug("Sleep call interrupted", e1);
                             }

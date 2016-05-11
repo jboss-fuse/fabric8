@@ -47,11 +47,11 @@ import io.fabric8.git.PullPushPolicy.PullPolicyResult;
 import io.fabric8.git.PullPushPolicy.PushPolicyResult;
 import io.fabric8.service.EnvPlaceholderResolver;
 import io.fabric8.utils.DataStoreUtils;
+import io.fabric8.utils.NamedThreadFactory;
 import io.fabric8.zookeeper.ZkPath;
 import io.fabric8.zookeeper.utils.ZooKeeperUtils;
 
 import java.io.File;
-import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
@@ -79,7 +79,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
-import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.shared.SharedCount;
 import org.apache.curator.framework.recipes.shared.SharedCountListener;
@@ -153,7 +152,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     @Reference
     private Configurer configurer;
     
-    private final ScheduledExecutorService threadPool = Executors.newSingleThreadScheduledExecutor();
+    private final ScheduledExecutorService threadPool = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("git-ds"));
 
     private final ImportExportHandler importExportHandler = new ImportExportHandler();
     private final GitDataStoreListener gitListener = new GitDataStoreListener();
@@ -354,7 +353,6 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     }
 
     private void deactivateInternal() {
-        
         // Remove the GitListener
         gitService.get().removeGitListener(gitListener);
         
@@ -1858,6 +1856,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
             return null;
         }
     }
+
 }
 
 

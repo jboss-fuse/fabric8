@@ -16,7 +16,6 @@
 package io.fabric8.git.internal;
 
 import java.io.IOException;
-import java.net.URL;
 
 import io.fabric8.api.jcip.ThreadSafe;
 import io.fabric8.api.scr.AbstractComponent;
@@ -28,6 +27,7 @@ import io.fabric8.git.GitService;
 import io.fabric8.groups.Group;
 import io.fabric8.groups.GroupListener;
 import io.fabric8.groups.internal.ZooKeeperGroup;
+import io.fabric8.utils.NamedThreadFactory;
 import io.fabric8.zookeeper.ZkPath;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.felix.scr.annotations.Activate;
@@ -56,7 +56,7 @@ public final class GitMasterListener extends AbstractComponent implements GroupL
     @Activate
     void activate() throws IOException {
         activateComponent();
-        group = new ZooKeeperGroup<GitNode>(curator.get(), ZkPath.GIT.getPath(), GitNode.class);
+        group = new ZooKeeperGroup<GitNode>(curator.get(), ZkPath.GIT.getPath(), GitNode.class, new NamedThreadFactory("zkgroup-gml"));
         group.add(this);
         group.start();
     }
