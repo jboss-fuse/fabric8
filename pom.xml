@@ -262,7 +262,7 @@
         <jetty-version>9.2.15.v20160210</jetty-version>
         <jgit-version>4.1.1.201511131810-r</jgit-version>
         <jledit.version>0.2.1</jledit.version>
-        <jline.version>2.12.1.redhat-001</jline.version>
+        <jline.version>2.12.1.redhat-002</jline.version>
         <jmdns-version>3.4.1</jmdns-version>
         <jms-1.1-version>1.1.1</jms-1.1-version>
         <jna-bundle-version>1.1</jna-bundle-version>
