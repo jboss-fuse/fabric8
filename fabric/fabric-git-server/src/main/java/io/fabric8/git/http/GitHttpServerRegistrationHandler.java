@@ -27,6 +27,7 @@ import io.fabric8.git.GitNode;
 import io.fabric8.groups.Group;
 import io.fabric8.groups.GroupListener;
 import io.fabric8.groups.internal.ZooKeeperGroup;
+import io.fabric8.utils.NamedThreadFactory;
 import io.fabric8.zookeeper.ZkPath;
 import io.fabric8.zookeeper.utils.ZooKeeperUtils;
 
@@ -103,7 +104,7 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
         dataPath = sysprops.getDataPath();
         activateComponent();
 
-        group = new ZooKeeperGroup<GitNode>(curator.get(), ZkPath.GIT.getPath(), GitNode.class);
+        group = new ZooKeeperGroup<GitNode>(curator.get(), ZkPath.GIT.getPath(), GitNode.class, new NamedThreadFactory("zkgroup-git-httpreg"));
         //if anything went wrong in a previous deactivation we still have to clean up the registry
         zkCleanUp(group);
 
@@ -210,7 +211,6 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
         }
     }
 
-
     /**
      * The complexity of this code is due to problems with jgit and Windows file system.
      * See https://bugs.eclipse.org/bugs/show_bug.cgi?id=300084
@@ -256,7 +256,6 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
         }
     }
 
-
     private void recursiveDelete(File file) throws IOException{
         org.eclipse.jgit.util.FileUtils.delete(file,
                 org.eclipse.jgit.util.FileUtils.RECURSIVE |org.eclipse.jgit.util.FileUtils.RETRY);
@@ -290,25 +289,26 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
         GitNode state = new GitNode("fabric-repo", runtimeIdentity);
         if (group != null && group.isMaster()) {
             String externalGitUrl = readExternalGitUrl();
-            if( externalGitUrl!= null){
-                state.setUrl( externalGitUrl);
+            if (externalGitUrl != null) {
+                state.setUrl(externalGitUrl);
             } else {
-	        String fabricRepoUrl = "${zk:" + runtimeIdentity + "/http}/git/fabric/";
-        	state.setUrl(fabricRepoUrl);
+                String fabricRepoUrl = "${zk:" + runtimeIdentity + "/http}/git/fabric/";
+                state.setUrl(fabricRepoUrl);
             }
         }
         return state;
     }
 
-    private void zkCleanUp(Group<GitNode> group){
+    private void zkCleanUp(Group<GitNode> group) {
         try {
             RuntimeProperties sysprops = runtimeProperties.get();
             String runtimeIdentity = sysprops.getRuntimeIdentity();
 
+            curator.get().newNamespaceAwareEnsurePath(ZkPath.GIT.getPath()).ensure(curator.get().getZookeeperClient());
             List<String> allChildren = ZooKeeperUtils.getAllChildren(curator.get(), ZkPath.GIT.getPath());
-            for(String path : allChildren){
+            for (String path : allChildren) {
                 String stringData = ZooKeeperUtils.getStringData(curator.get(), path);
-                if(stringData.contains("\"container\":\"" + runtimeIdentity + "\"")){
+                if (stringData.contains("\"container\":\"" + runtimeIdentity + "\"")) {
                     LOGGER.info("Found older ZK \"/fabric/registry/clusters/git\" entry for node " + runtimeIdentity);
                     ZooKeeperUtils.delete(curator.get(), path);
                     LOGGER.info("Older ZK \"/fabric/registry/clusters/git\" entry for node " + runtimeIdentity + " has been removed");

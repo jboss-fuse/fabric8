@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.fabric8.groups.internal.ManagedGroupFactory;
 import io.fabric8.groups.internal.ManagedGroupFactoryBuilder;
+import io.fabric8.utils.NamedThreadFactory;
 import org.apache.activemq.command.DiscoveryEvent;
 import org.apache.activemq.transport.discovery.DiscoveryAgent;
 import org.apache.activemq.transport.discovery.DiscoveryListener;
@@ -321,7 +322,7 @@ public class FabricDiscoveryAgent implements DiscoveryAgent, Callable {
     public MultiGroup<ActiveMQNode> getGroup() throws Exception {
         if (group == null) {
             factory = ManagedGroupFactoryBuilder.create(curator, getClass().getClassLoader(), this);
-            group = (MultiGroup)factory.createMultiGroup("/fabric/registry/clusters/amq/" + groupName, ActiveMQNode.class);
+            group = (MultiGroup)factory.createMultiGroup("/fabric/registry/clusters/amq/" + groupName, ActiveMQNode.class, new NamedThreadFactory("zkgroup-fabric-mq-discovery"));
             curator = factory.getCurator();
         }
 
