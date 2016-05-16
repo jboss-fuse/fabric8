@@ -26,6 +26,9 @@ import org.apache.felix.gogo.commands.Command;
 
 @Command(name = ContainerStop.FUNCTION_VALUE, scope = ContainerStop.SCOPE_VALUE, description = ContainerStop.DESCRIPTION, detailedDescription = "classpath:containerStop.txt")
 public final class ContainerStopAction extends AbstractContainerLifecycleAction {
+	
+	private long pollingInterval = 1000L;
+	private int attemptNumber = 3;
 
     ContainerStopAction(FabricService fabricService) {
         super(fabricService);
@@ -48,7 +51,22 @@ public final class ContainerStopAction extends AbstractContainerLifecycleAction 
                 if (!found.isAlive()) {
                     System.out.println("Container '" + found.getId() + "' stopped successfully.");
                 } else {
-                    System.out.println("Container '" + found.getId() + "' was not stopped successfully, something went wrong. Check Logs.");
+                	// In case of SSH container we can have timing issue with this command
+                	// so we will poll the status of container for a fixed number of times
+                	// if it's not stopped then we will output the message, otherwise we will continue normally
+                	int count = 0;
+                	boolean alive = true;
+                	for (count = 0; count < attemptNumber; count++) {
+                    found = FabricCommand.getContainer(fabricService, containerName);
+                        if (!found.isAlive()) {
+                        	alive = false;
+                        } else {
+                            Thread.sleep(pollingInterval);
+                        }
+                    }
+                    if (alive) {
+                        System.out.println("Container '" + found.getId() + "' was not stopped successfully, something went wrong. Check Logs.");
+                    }
                 }
             } else {
                 System.err.println("Container '" + found.getId() + "' already stopped.");
