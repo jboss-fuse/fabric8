@@ -863,6 +863,7 @@ public final class FabricServiceImpl extends AbstractComponent implements Fabric
                         if (mavenRepo != null && !mavenRepo.endsWith("/")) {
                             mavenRepo += "/";
                         }
+                        mavenRepo += "@snapshots@id=fabric_internal";
                         if(mavenRepo != null) {
                             uris.add(new URI(mavenRepo));
                         }
