@@ -399,32 +399,10 @@
 
     <repositories>
         <repository>
-            <id>redhat-ga-repository</id>
-            <url>http://maven.repository.redhat.com/ga</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <!-- Note: m2-snapshot is needed during CI builds -->
-        <repository>
-            <id>fusesource.m2-snapshot</id>
-            <name>FuseSource Community Snapshot Repository</name>
-            <url>https://repo.fusesource.com/nexus/content/groups/public-snapshots</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-        </repository>
-        <!-- Note: repo.fusesource.com is the correct repo for JBoss Fuse and it is not a mistake -->
-        <repository>
-            <id>fusesource.ea</id>
-            <name>JBoss Community Early Access Release Repository</name>
-            <url>https://repo.fusesource.com/nexus/content/groups/ea</url>
+            <id>fusesource.public</id>
+            <name>Fusesource Public Release Repositories</name>
+            <url>https://repository.jboss.org/nexus/content/groups/fs-public</url>
+            <layout>default</layout>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
@@ -434,6 +412,45 @@
             </releases>
         </repository>
         <repository>
+            <id>fusesource.ea</id>
+            <name>Fusesource Early Access Release Repository</name>
+            <url>https://repository.jboss.org/nexus/content/groups/ea</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>never</updatePolicy>
+            </releases>
+        </repository>
+        <repository>
+            <id>redhat-ga-repository</id>
+            <url>http://maven.repository.redhat.com/ga</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <!--repository>
+            <id>maven-restlet</id>
+            <name>Public online Restlet repository</name>
+            <url>http://maven.restlet.com</url>
+        </repository-->
+        <!-- Note: m2-snapshot is needed during CI builds -->
+        <!--repository>
+            <id>fusesource.m2-snapshot</id>
+            <name>FuseSource Community Snapshot Repository</name>
+            <url>https://repo.fusesource.com/nexus/content/groups/public-snapshots</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+        </repository-->
+        <!--repository>
             <id>fusesource.m2</id>
             <name>JBoss FS Public Repository Group</name>
             <url>https://repo.fusesource.com/nexus/content/groups/public</url>
@@ -445,21 +462,8 @@
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
-        </repository>
-        <repository>
-            <id>jboss.fs.public</id>
-            <name>JBoss FS Public Repository Group</name>
-            <url>http://repository.jboss.org/nexus/content/repositories/fs-public/</url>
-            <layout>default</layout>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <repository>
+        </repository-->
+        <!--repository>
             <id>jboss-thirdparty-uploads</id>
             <name>JBoss Thirdparty Uploads</name>
             <url>https://repository.jboss.org/nexus/content/repositories/thirdparty-uploads</url>
@@ -472,8 +476,8 @@
                 <enabled>false</enabled>
                 <updatePolicy>never</updatePolicy>
             </snapshots>
-        </repository>
-        <repository>
+        </repository-->
+        <!--repository>
             <id>jboss-public-repository-group</id>
             <name>JBoss Public Repository Group</name>
             <url>http://repository.jboss.org/nexus/content/groups/public/</url>
@@ -486,9 +490,9 @@
                 <enabled>true</enabled>
                 <updatePolicy>daily</updatePolicy>
             </snapshots>
-        </repository>
+        </repository-->
         <!-- Java.net Maven Repository, required by javax.mail -->
-        <repository>
+        <!--repository>
             <id>java.net</id>
             <name>Java.net Maven2 Repository</name>
             <url>http://download.java.net/maven/2</url>
@@ -498,9 +502,9 @@
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
-        </repository>
+        </repository-->
         <!-- Scriptengines Google Maven Repository, required by scriptengines -->
-        <repository>
+        <!--repository>
             <id>scriptengines</id>
             <name>Scriptengines Google Code Maven Repository</name>
             <url>http://scriptengines.googlecode.com/svn/m2-repo</url>
@@ -510,9 +514,9 @@
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
-        </repository>
+        </repository-->
         <!-- ServiceMix Maven 2 repository: jsmpp 2.0 is not in central repo -->
-        <repository>
+        <!--repository>
             <id>servicemix.m2-repo</id>
             <name>ServiceMix Maven 2 repository</name>
             <url>http://svn.apache.org/repos/asf/servicemix/m2-repo</url>
@@ -522,21 +526,16 @@
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
-        </repository>
-        <repository>
-            <id>maven-restlet</id>
-            <name>Public online Restlet repository</name>
-            <url>http://maven.restlet.org</url>
-        </repository>
-        <repository>
+        </repository-->
+        <!--repository>
             <id>apache.snapshots</id>
             <name>Apache Snapshot Repository</name>
             <url>http://repository.apache.org/snapshots</url>
             <releases>
                 <enabled>false</enabled>
             </releases>
-        </repository>
-        <repository>
+        </repository-->
+        <!--repository>
             <id>conjars</id>
             <name>Conjars Maven Repository</name>
             <url>http://conjars.org/repo</url>
@@ -546,13 +545,13 @@
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
-        </repository>
-        <repository>
+        </repository-->
+        <!--repository>
           <id>redhat-product</id>
           <name>Redhat Product Repository</name>
           <url>https://maven.repository.redhat.com/techpreview/all</url>
-        </repository>
-        <repository>
+        </repository-->
+        <!--repository>
             <id>brewroot</id>
             <name>Brew Repository</name>
             <url>http://download.eng.bos.redhat.com/brewroot/repos/jb-fuse-6.2-build/latest/maven</url>
@@ -563,25 +562,15 @@
                 <enabled>true</enabled>
                 <updatePolicy>never</updatePolicy>
             </releases>
-        </repository>
+        </repository-->
     </repositories>
 
-    <!-- Note: repo.fusesource.com is the correct repo for JBoss Fuse and it is not a mistake -->
     <pluginRepositories>
         <pluginRepository>
-            <id>redhat-ga-repository</id>
-            <url>http://maven.repository.redhat.com/ga</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </pluginRepository>        
-        <pluginRepository>
-            <id>fusesource.m2</id>
-            <name>FuseSource Community Release Repository</name>
-            <url>https://repo.fusesource.com/nexus/content/groups/public</url>
+            <id>fusesource.public</id>
+            <name>Fusesource Public Release Repositories</name>
+            <url>https://repository.jboss.org/nexus/content/groups/fs-public</url>
+            <layout>default</layout>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
@@ -592,8 +581,8 @@
         </pluginRepository>
         <pluginRepository>
             <id>fusesource.ea</id>
-            <name>FuseSource Community Early Access Release Repository</name>
-            <url>https://repo.fusesource.com/nexus/content/groups/ea</url>
+            <name>FuseSource Early Access Release Repository</name>
+            <url>https://repository.jboss.org/nexus/content/groups/ea</url>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
@@ -603,25 +592,14 @@
             </releases>
         </pluginRepository>
         <pluginRepository>
-            <id>jboss.fs.public</id>
-            <name>JBoss FS Public Repository Group</name>
-            <url>http://repository.jboss.org/nexus/content/repositories/fs-public/</url>
-            <layout>default</layout>
+            <id>redhat-ga-repository</id>
+            <url>http://maven.repository.redhat.com/ga</url>
             <releases>
                 <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
             </releases>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
-        </pluginRepository>
-        <pluginRepository>
-            <id>apache.snapshots</id>
-            <name>Apache Snapshot Repository</name>
-            <url>http://repository.apache.org/snapshots</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
         </pluginRepository>
     </pluginRepositories>
 
