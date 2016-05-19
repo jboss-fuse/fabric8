@@ -65,14 +65,6 @@
                 <type>pom</type>
             </dependency>
 
-            <dependency>
-                <groupId>io.fabric8.quickstarts</groupId>
-                <artifactId>fabric8-quickstarts-parent</artifactId>
-                <version>${project.version}</version>
-                <classifier>profile</classifier>
-                <type>zip</type>
-            </dependency>
-
             <!-- disable until we find a better solution, see #2280
             <dependency>
                 <groupId>io.fabric8.quickstarts</groupId>
@@ -617,12 +609,6 @@
                                   <copy todir="${dest.profiles}/docs/fabric">
                                     <fileset dir="${basedir}/../../docs"/>
                                   </copy>
-
-                                  <!-- quickstart zip to system -->
-                                  <echo message="Copying quickstarts"/>
-                                  <property name="quickstart.src" value="${basedir}/../../quickstarts"/>
-                                  <copy file="${quickstart.src}/target/profile.zip"
-                                    tofile="target/features-repo/io/fabric8/quickstarts/fabric8-quickstarts-parent/${project.version}/fabric8-quickstarts-parent-${project.version}-profile.zip"/>
 
                                   <!-- .gitattributes -->
                                   <echo message="Copying .gitattributes"/>
