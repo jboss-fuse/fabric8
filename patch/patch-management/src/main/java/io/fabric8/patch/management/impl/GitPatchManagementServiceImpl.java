@@ -849,6 +849,15 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                                 .include(userChange)
                                 .setNoCommit(true)
                                 .call();
+
+                        // ENTESB-5492: remove etc/overrides.properties if there is such file left from old patch
+                        // mechanism
+                        File overrides = new File(fork.getRepository().getWorkTree(), "etc/overrides.properties");
+                        if (overrides.isFile()) {
+                            overrides.delete();
+                            fork.rm().addFilepattern("etc/overrides.properties").call();
+                        }
+
                         // if there's conflict here, prefer patch version (which is "ours" (first) in this case)
                         handleCherryPickConflict(patch.getPatchData().getPatchDirectory(), fork, result, userChange,
                                 false, PatchKind.ROLLUP, prefix, true);
