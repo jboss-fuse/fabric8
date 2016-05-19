@@ -77,6 +77,7 @@ import io.fabric8.api.scr.AbstractComponent;
 import io.fabric8.api.scr.Configurer;
 import io.fabric8.api.scr.ValidatingReference;
 import io.fabric8.api.visibility.VisibleForTesting;
+import io.fabric8.groovy.GroovyPlaceholderResolver;
 import io.fabric8.internal.ContainerImpl;
 import io.fabric8.internal.ProfileDependencyConfig;
 import io.fabric8.internal.ProfileDependencyKind;
@@ -152,6 +153,8 @@ public final class FabricServiceImpl extends AbstractComponent implements Fabric
     private VersionPropertyPointerResolver versionPropertyPointerResolver;
     @Reference
     private ZookeeperPlaceholderResolver zookeeperPlaceholderResolver;
+    @Reference
+    private GroovyPlaceholderResolver groovyPlaceholderResolver;
     @Reference
     private ContainerRegistration containerRegistration;
     @Reference
