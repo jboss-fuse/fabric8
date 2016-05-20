@@ -396,7 +396,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     boolean skipRootDir = false;
                     for (Enumeration<ZipArchiveEntry> e = zf.getEntries(); e.hasMoreElements(); ) {
                         ZipArchiveEntry entry = e.nextElement();
-                        if (!skipRootDir && (entry.getName().startsWith("jboss-fuse-")
+                        if (!skipRootDir && entry.isDirectory()
+                                && (entry.getName().startsWith("jboss-fuse-")
                                 || entry.getName().startsWith("jboss-a-mq-"))) {
                             skipRootDir = true;
                         }
