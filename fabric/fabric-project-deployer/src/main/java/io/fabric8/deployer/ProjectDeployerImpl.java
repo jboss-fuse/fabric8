@@ -213,11 +213,7 @@ public final class ProjectDeployerImpl extends AbstractComponent implements Proj
         }
         String webContextPath = requirements.getWebContextPath();
         if (!Strings.isEmpty(webContextPath)) {
-            Map<String, String> contextPathConfig = new HashMap<>();
-            Map<String, String> oldValue = profile.getConfiguration(Constants.WEB_CONTEXT_PATHS_PID);
-            if (oldValue != null) {
-                contextPathConfig.putAll(oldValue);
-            }
+            Map<String, String> contextPathConfig = builder.getConfiguration(Constants.WEB_CONTEXT_PATHS_PID);
             String key = requirements.getGroupId() + "/" + requirements.getArtifactId();
             String current = contextPathConfig.get(key);
             if (!Objects.equal(current, webContextPath)) {

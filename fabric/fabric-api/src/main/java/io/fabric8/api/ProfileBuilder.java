@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-
 /**
  * A profile builder.
  *
@@ -29,25 +28,32 @@ import java.util.Set;
 public interface ProfileBuilder extends AttributableBuilder<ProfileBuilder> {
 
     ProfileBuilder from(Profile profile);
-    
+
     ProfileBuilder identity(String profileId);
 
     ProfileBuilder version(String versionId);
 
     List<String> getParents();
-    
+
     ProfileBuilder addParent(String parentId);
 
     ProfileBuilder addParents(List<String> parentIds);
 
     ProfileBuilder setParents(List<String> parentIds);
-    
+
     ProfileBuilder removeParent(String parentId);
 
     Set<String> getConfigurationKeys();
-    
+
+    /**
+     * <p>Returns properties for given <code>pid</code></p>
+     * <p>Properties are returned in the same order as they are stored in profile</p>
+     * <p>Each invocation returns new instance of {@link Map} ensuring immutability</p>
+     * @param pid
+     * @return
+     */
     Map<String, String> getConfiguration(String pid);
-    
+
     ProfileBuilder addConfiguration(String pid, Map<String, String> config);
 
     ProfileBuilder addConfiguration(String pid, String key, String value);
@@ -57,15 +63,15 @@ public interface ProfileBuilder extends AttributableBuilder<ProfileBuilder> {
     ProfileBuilder deleteConfiguration(String pid);
 
     Set<String> getFileConfigurationKeys();
-    
+
     byte[] getFileConfiguration(String key);
-    
+
     ProfileBuilder addFileConfiguration(String fileName, byte[] data);
-    
+
     ProfileBuilder setFileConfigurations(Map<String, byte[]> configs);
 
     ProfileBuilder deleteFileConfiguration(String fileName);
-    
+
     ProfileBuilder setBundles(List<String> values);
 
     ProfileBuilder setFabs(List<String> values);
@@ -75,17 +81,17 @@ public interface ProfileBuilder extends AttributableBuilder<ProfileBuilder> {
     ProfileBuilder setRepositories(List<String> values);
 
     ProfileBuilder setOverrides(List<String> values);
-    
+
     ProfileBuilder setOptionals(List<String> values);
-    
+
     ProfileBuilder setTags(List<String> values);
-    
+
     ProfileBuilder setOverlay(boolean overlay);
-    
+
     ProfileBuilder setLocked(boolean flag);
 
     ProfileBuilder setLastModified(String lastModified);
-    
+
     Profile getProfile();
 
     final class Factory {

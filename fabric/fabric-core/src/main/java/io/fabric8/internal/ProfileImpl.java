@@ -252,14 +252,13 @@ final class ProfileImpl implements Profile {
 
     @Override
     public String getIconRelativePath() {
-        String result = null;
         Set<String> fileNames = getConfigurationFileNames();
         for (String fileName : fileNames) {
             if (fileName.startsWith("icon.")) {
                 return fileName;
             }
         }
-        return result;
+        return null;
     }
 
     @Override

@@ -278,7 +278,8 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
                 memberProperties.put("clientPort", port1);
                 memberProperties.put("clientPortAddress", bindAddress);
 
-                // Create ensemble member profile
+                // Create ensemble member profile - this is not "official" profile, so we don't have to take
+                // care of "diffability" - using java.util.Properties is fine here
                 String memberProfileId = "fabric-ensemble-" + newClusterId + "-" + index;
                 IllegalStateAssertion.assertFalse(profileRegistry.get().hasProfile(versionId, memberProfileId), "Profile already exists: " + versionId + "/" + memberProfileId);
                 ProfileBuilder memberProfileBuilder = ProfileBuilder.Factory.create(versionId, memberProfileId);
@@ -327,11 +328,7 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
             }
 
             Profile defaultProfile = profileRegistry.get().getRequiredProfile(versionId, "default");
-            Map<String, String> zkConfig = defaultProfile.getConfiguration(Constants.ZOOKEEPER_CLIENT_PID);
             if (oldClusterId != null) {
-                Properties properties = DataStoreUtils.toProperties(zkConfig);
-                properties.put("zookeeper.url", getSubstitutedData(obtainValid(curator), realConnectionUrl));
-                properties.put("zookeeper.password", options.getZookeeperPassword());
                 CuratorFramework dst = CuratorFrameworkFactory.builder().connectString(realConnectionUrl).retryPolicy(new RetryOneTime(500))
                         .aclProvider(aclProvider.get()).authorization("digest", ("fabric:" + options.getZookeeperPassword()).getBytes()).sessionTimeoutMs(30000)
                         .connectionTimeoutMs((int) options.getMigrationTimeout()).build();
@@ -399,7 +396,7 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
                 }
             } else {
                 ProfileBuilder builder = ProfileBuilder.Factory.createFrom(defaultProfile);
-                zkConfig = new HashMap<>(zkConfig);
+                Map<String, String> zkConfig = builder.getConfiguration(Constants.ZOOKEEPER_CLIENT_PID);
                 zkConfig.put("zookeeper.password", "${zk:" + ZkPath.CONFIG_ENSEMBLE_PASSWORD.getPath() + "}");
                 zkConfig.put("zookeeper.url", "${zk:" + ZkPath.CONFIG_ENSEMBLE_URL.getPath() + "}");
                 builder.addConfiguration(Constants.ZOOKEEPER_CLIENT_PID, zkConfig);
@@ -421,7 +418,7 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
             if(result == null){
                 LOGGER.warn("Curator instance not ready");
                 counter++;
-                Thread.currentThread().sleep(5 * 1000);
+                Thread.sleep(5 * 1000);
             }else {
                 return curator.get();
             }

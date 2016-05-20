@@ -120,12 +120,14 @@ public interface Profile extends Comparable<Profile>, HasId {
     byte[] getFileConfiguration(String fileName);
 
     /**
-     * Get all configuration properties
+     * <p>Get all configuration properties</p>
+     * <p>This method returns map of unordered maps of properties - this should <strong>not</strong> be used to update profile</p>
      */
     Map<String, Map<String, String>> getConfigurations();
 
     /**
-     * Get the configuration properties for the given PID
+     * <p>Get the configuration properties for the given PID.</p>
+     * <p>This method returns unordered map of properties - this should <strong>not</strong> be used to update profile</p>
      * @return an empty map if the there is no configuration for the given pid
      */
     Map<String, String> getConfiguration(String pid);

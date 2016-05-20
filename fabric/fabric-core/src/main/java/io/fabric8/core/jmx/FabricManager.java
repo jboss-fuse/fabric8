@@ -80,7 +80,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
-import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getAllChildren;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getChildrenSafe;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getSubstitutedData;
 
@@ -229,7 +228,7 @@ public final class FabricManager implements FabricManagerMBean {
             throw new RuntimeException("Can't find valid provider of type: " + providerType);
         }
 
-        Class clazz = provider.getOptionsType();
+        Class<?> clazz = provider.getOptionsType();
         try {
             builder = (CreateContainerBasicOptions.Builder) clazz.getMethod("builder").invoke(null);
         } catch (Exception e) {
@@ -536,7 +535,15 @@ public final class FabricManager implements FabricManagerMBean {
         if (version != null) {
             Profile profile = profileService.getRequiredProfile(versionId, profileId);
             ProfileBuilder builder = ProfileBuilder.Factory.createFrom(profile);
-            builder.addConfiguration(pid, properties);
+            Map<String, String> existingConfiguration = builder.getConfiguration(pid);
+            for (Iterator<String> iterator = existingConfiguration.keySet().iterator(); iterator.hasNext(); ) {
+                String key = iterator.next();
+                if (!properties.containsKey(key)) {
+                    iterator.remove();
+                }
+            }
+            existingConfiguration.putAll(properties);
+            builder.addConfiguration(pid, existingConfiguration);
             profileService.updateProfile(builder.getProfile());
             answer = true;
         }
@@ -555,13 +562,14 @@ public final class FabricManager implements FabricManagerMBean {
 
     @Override
     public String setProfileProperty(String versionId, String profileId, String pid, String propertyName, String value) {
-        Map<String, String> properties = getProfileProperties(versionId, profileId, pid);
-        if (properties == null) {
-            properties = new HashMap<String, String>();
-        }
-        Map<String, String> mutableProperties = new HashMap<>(properties);
-        String answer = mutableProperties.put(propertyName, value);
-        setProfileProperties(versionId, profileId, pid, mutableProperties);
+        Version version = profileService.getVersion(versionId);
+        Profile profile = version.getRequiredProfile(profileId);
+        ProfileBuilder builder = ProfileBuilder.Factory.createFrom(profile);
+        Map<String, String> profileProperties = builder.getConfiguration(pid);
+
+        String answer = profileProperties.put(propertyName, value);
+        builder.addConfiguration(pid, profileProperties);
+        profileService.updateProfile(builder.getProfile());
         return answer;
     }
 
@@ -577,24 +585,26 @@ public final class FabricManager implements FabricManagerMBean {
     public void setProfileSystemProperties(String versionId, String profileId, Map<String, String> systemProperties) {
         Version version = profileService.getVersion(versionId);
         Profile profile = version.getRequiredProfile(profileId);
-        Map<String, String> profileProperties = getProfileProperties(versionId, profileId, Constants.AGENT_PID);
-        if (profileProperties == null) {
-            // is it necessary?
-            profileProperties = new HashMap<String, String>();
-        }
-        // remove existing
+        ProfileBuilder builder = ProfileBuilder.Factory.createFrom(profile);
+        Map<String, String> profileProperties = builder.getConfiguration(Constants.AGENT_PID);
+
+        // remove those that are not present in passed systemProperties
         for (Iterator<Map.Entry<String, String>> iterator = profileProperties.entrySet().iterator(); iterator.hasNext();) {
             Map.Entry<String, String> entry = iterator.next();
             if (entry.getKey().startsWith("system.")) {
-                iterator.remove();
+                String propertyName = entry.getKey().substring("system.".length());
+                if (!systemProperties.containsKey(propertyName)) {
+                    iterator.remove();
+                }
             }
         }
-        // add new
+        // add changed
         for (String k : systemProperties.keySet()) {
             profileProperties.put("system." + k, systemProperties.get(k));
         }
 
-        setProfileProperties(versionId, profileId, Constants.AGENT_PID, profileProperties);
+        builder.addConfiguration(Constants.AGENT_PID, profileProperties);
+        profileService.updateProfile(builder.getProfile());
     }
 
     @Override
