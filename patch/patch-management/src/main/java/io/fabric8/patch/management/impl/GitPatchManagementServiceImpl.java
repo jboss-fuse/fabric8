@@ -960,7 +960,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
             // Compute patch bundle version and range
             VersionRange range;
-            Version oVer = new Version(artifact.getVersion());
+            Version oVer = Utils.getOsgiVersion(artifact.getVersion());
             String vr = patchData.getVersionRange(bundle);
             String override;
             if (vr != null && !vr.isEmpty()) {
@@ -981,7 +981,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 if (!line.isEmpty() && !line.startsWith("#")) {
                     Artifact overrideArtifact = mvnurlToArtifact(line, true);
                     if (overrideArtifact != null) {
-                        Version ver = new Version(overrideArtifact.getVersion());
+                        Version ver = Utils.getOsgiVersion(overrideArtifact.getVersion());
                         if (isSameButVersion(artifact, overrideArtifact) && range.includes(ver)) {
                             matching = true;
                             if (ver.compareTo(oVer) < 0) {
@@ -1983,7 +1983,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         if (versionDirs != null) {
             for (File version : versionDirs) {
                 if (version.isDirectory()) {
-                    versions.add(new Version(version.getName()));
+                    versions.add(Utils.getOsgiVersion(version.getName()));
                 }
             }
         }
@@ -2123,7 +2123,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         if (versionDirs != null) {
             for (File version : versionDirs) {
                 if (version.isDirectory()) {
-                    versions.add(new Version(version.getName()));
+                    versions.add(Utils.getOsgiVersion(version.getName()));
                 }
             }
         }
@@ -2325,11 +2325,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 .call();
 
         // we'll look for Fuse/AMQ baseline in /patches dir too - it doesn't have to be present
-        versions.put(new Version(currentFuseVersion), patchesDir);
+        versions.put(Utils.getOsgiVersion(currentFuseVersion), patchesDir);
         if (versionDirs != null) {
             for (File version : versionDirs) {
                 if (version.isDirectory()) {
-                    versions.put(new Version(version.getName()), version);
+                    versions.put(Utils.getOsgiVersion(version.getName()), version);
                 }
             }
         }
@@ -2364,11 +2364,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 .call();
 
         // we'll look for Fuse/AMQ baseline in /patches dir too - it doesn't have to be present
-        versions.put(new Version(currentFuseVersion), patchesDir);
+        versions.put(Utils.getOsgiVersion(currentFuseVersion), patchesDir);
         if (versionDirs != null) {
             for (File version : versionDirs) {
                 if (version.isDirectory()) {
-                    versions.put(new Version(version.getName()), version);
+                    versions.put(Utils.getOsgiVersion(version.getName()), version);
                 }
             }
         }
@@ -2712,8 +2712,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 if (matcher.find()) {
                     // it should match
                     String alreadyInstalledVersion = matcher.group(1);
-                    Version v1 = new Version(alreadyInstalledVersion);
-                    Version v2 = new Version(bundleVersion);
+                    Version v1 = Utils.getOsgiVersion(alreadyInstalledVersion);
+                    Version v2 = Utils.getOsgiVersion(bundleVersion);
                     if (v1.equals(v2)) {
                         // already installed at correct version
                         installed = true;
@@ -2903,7 +2903,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 Matcher matcher = VERSION_PATTERN.matcher(anotherPatchManagementBundle.getName());
                 matcher.find();
                 String version = matcher.group(1);
-                Version deployedVersion = new Version(version);
+                Version deployedVersion = Utils.getOsgiVersion(version);
                 if (ourVersion.compareTo(deployedVersion) >= 0) {
                     Activator.log(LogService.LOG_INFO, "Deleting " + anotherPatchManagementBundle);
                     FileUtils.deleteQuietly(anotherPatchManagementBundle);

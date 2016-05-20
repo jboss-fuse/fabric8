@@ -31,6 +31,7 @@ import java.util.regex.Pattern;
 
 import io.fabric8.patch.management.EnvType;
 import io.fabric8.patch.management.ManagedPatch;
+import io.fabric8.patch.management.Utils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.eclipse.jgit.api.CheckoutCommand;
@@ -423,7 +424,7 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
             name = name.substring(name.lastIndexOf('/') + 1);
             Matcher matcher = BASELINE_TAG_PATTERN.matcher(name);
             if (matcher.matches()) {
-                versions.put(new Version(matcher.group(1)), tag);
+                versions.put(Utils.getOsgiVersion(matcher.group(1)), tag);
             }
         }
 

@@ -879,7 +879,7 @@ public class ServiceImpl implements Service {
 
             for (Repository existingRepository : before.values()) {
                 for (Feature feature : existingRepository.getFeatures()) {
-                    Version v = Utils.getFeatureVersion(feature.getVersion());
+                    Version v = Utils.getOsgiVersion(feature.getVersion());
                     Version lowestUpdateableVersion = new Version(v.getMajor(), v.getMinor(), 0);
                     // assume that we can update feature XXX-2.2.3 to XXX-2.2.142, but not to XXX-2.3.0.alpha-1
                     String key = String.format("%s|%s", feature.getName(), lowestUpdateableVersion.toString());
@@ -906,7 +906,7 @@ public class ServiceImpl implements Service {
             for (String addedRepositoryName : addedRepositoryNames) {
                 Repository added = after.get(addedRepositoryName);
                 for (Feature feature : added.getFeatures()) {
-                    Version v = Utils.getFeatureVersion(feature.getVersion());
+                    Version v = Utils.getOsgiVersion(feature.getVersion());
                     Version lowestUpdateableVersion = new Version(v.getMajor(), v.getMinor(), 0);
                     String key = String.format("%s|%s", feature.getName(), lowestUpdateableVersion.toString());
                     featuresInNewRepositories.put(key, addedRepositoryName);
@@ -934,7 +934,7 @@ public class ServiceImpl implements Service {
                 Repository repository = before.get(oldRepositoryName);
                 for (Feature feature : repository.getFeatures()) {
                     if (featuresService.isInstalled(feature)) {
-                        Version v = Utils.getFeatureVersion(feature.getVersion());
+                        Version v = Utils.getOsgiVersion(feature.getVersion());
                         Version lowestUpdateableVersion = new Version(v.getMajor(), v.getMinor(), 0);
                         String key = String.format("%s|%s", feature.getName(), lowestUpdateableVersion.toString());
                         String newRepositoryName = featuresInNewRepositories.get(key);
