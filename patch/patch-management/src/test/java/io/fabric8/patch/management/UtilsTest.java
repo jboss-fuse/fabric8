@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.felix.utils.version.VersionCleaner;
 import org.junit.Test;
 import org.osgi.framework.BundleContext;
 
@@ -95,20 +96,44 @@ public class UtilsTest {
     }
 
     @Test
+    public void canonicalVersionsFelix() {
+        assertEquals("1.1.1.1", VersionCleaner.clean("1.1.1.1"));
+        assertEquals("1.1.1", VersionCleaner.clean("1.1.1"));
+        assertEquals("1.1.0", VersionCleaner.clean("1.1"));
+        assertEquals("1.0.0", VersionCleaner.clean("1"));
+        assertEquals("0.0.0", VersionCleaner.clean(""));
+        assertEquals("0.0.0", VersionCleaner.clean(null));
+
+        assertEquals("1.1.1.redhat-1", VersionCleaner.clean("1.1.1.redhat-1"));
+        assertEquals("1.1.0.redhat-1", VersionCleaner.clean("1.1.redhat-1"));
+        assertEquals("1.0.0.redhat-1", VersionCleaner.clean("1.redhat-1"));
+
+        assertEquals("1.1.1.1_redhat-1", VersionCleaner.clean("1.1.1.1.redhat-1"));
+        assertEquals("1.1.1.1_1_redhat-1", VersionCleaner.clean("1.1.1.1.1.redhat-1"));
+
+        assertEquals("3.1.2.2", VersionCleaner.clean("3.1.2_2"));
+        assertEquals("3.1.2.2", VersionCleaner.clean("3.1.2-2"));
+        assertEquals("3.1.2.2", VersionCleaner.clean("3.1.2+2"));
+        assertEquals("3.1.2.a+2", VersionCleaner.clean("3.1.2.a+2"));
+    }
+
+    @Test
     public void canonicalVersions() {
-        assertEquals("1.1.1.1", Utils.getFeatureVersion("1.1.1.1").toString());
-        assertEquals("1.1.1", Utils.getFeatureVersion("1.1.1").toString());
-        assertEquals("1.1.0", Utils.getFeatureVersion("1.1").toString());
-        assertEquals("1.0.0", Utils.getFeatureVersion("1").toString());
-        assertEquals("0.0.0", Utils.getFeatureVersion("").toString());
-        assertEquals("0.0.0", Utils.getFeatureVersion(null).toString());
+        assertEquals("1.1.1.1", Utils.getOsgiVersion("1.1.1.1").toString());
+        assertEquals("1.1.1", Utils.getOsgiVersion("1.1.1").toString());
+        assertEquals("1.1.0", Utils.getOsgiVersion("1.1").toString());
+        assertEquals("1.0.0", Utils.getOsgiVersion("1").toString());
+        assertEquals("0.0.0", Utils.getOsgiVersion("").toString());
+        assertEquals("0.0.0", Utils.getOsgiVersion(null).toString());
 
-        assertEquals("1.1.1.redhat-1", Utils.getFeatureVersion("1.1.1.redhat-1").toString());
-        assertEquals("1.1.0.redhat-1", Utils.getFeatureVersion("1.1.redhat-1").toString());
-        assertEquals("1.0.0.redhat-1", Utils.getFeatureVersion("1.redhat-1").toString());
+        assertEquals("3.1.2.2", Utils.getOsgiVersion("3.1.2_2").toString());
 
-        assertEquals("1.1.1.redhat-1", Utils.getFeatureVersion("1.1.1.1.1.redhat-1").toString());
-        assertEquals("1.1.1.redhat-1", Utils.getFeatureVersion("1.1.1.1.redhat-1").toString());
+        assertEquals("1.1.1.redhat-1", Utils.getOsgiVersion("1.1.1.redhat-1").toString());
+        assertEquals("1.1.0.redhat-1", Utils.getOsgiVersion("1.1.redhat-1").toString());
+        assertEquals("1.0.0.redhat-1", Utils.getOsgiVersion("1.redhat-1").toString());
+
+        assertEquals("1.1.1.1_1_redhat-1", Utils.getOsgiVersion("1.1.1.1.1.redhat-1").toString());
+        assertEquals("1.1.1.1_redhat-1", Utils.getOsgiVersion("1.1.1.1.redhat-1").toString());
     }
 
     @Test

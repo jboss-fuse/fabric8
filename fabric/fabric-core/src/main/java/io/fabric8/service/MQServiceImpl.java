@@ -92,13 +92,14 @@ public class MQServiceImpl implements MQService {
         } else {
             Profile profile = version.getRequiredProfile(profileId);
             builder = ProfileBuilder.Factory.createFrom(profile);
-            config = new HashMap<>(builder.getConfiguration(pidName));
+            config = builder.getConfiguration(pidName);
             overlay = profileService.getOverlayProfile(profile);
         }
-        
-        Map<String, String> parentProfileConfig = overlay.getConfiguration(MQ_PID_TEMPLATE);
+
+        Map<String, String> parentProfileConfig = ProfileBuilder.Factory.createFrom(overlay)
+                .getConfiguration(MQ_PID_TEMPLATE);
         if (config == null) {
-            config = new HashMap<>(parentProfileConfig);
+            config = parentProfileConfig;
         }
 
         if (configs != null && "true".equals(configs.get("ssl"))) {
@@ -223,7 +224,8 @@ public class MQServiceImpl implements MQService {
                 }
             }
         }
-        
+
+        // config map is not from "official" profile, so it doesn't have to use felix' Properties class
         builder.addConfiguration(pidName, config);
         Profile profile = builder.getProfile();
         return create ? profileService.createProfile(profile) : profileService.updateProfile(profile);
@@ -311,7 +313,6 @@ public class MQServiceImpl implements MQService {
         }
 
         Map<String, String> config = builder.getConfiguration(MQ_CONNECTION_FACTORY_PID);
-        config = config != null ? new HashMap<>(config) : new HashMap<String, String>();
         config.put(GROUP, group);
         builder.addConfiguration(MQ_CONNECTION_FACTORY_PID, config);
         
