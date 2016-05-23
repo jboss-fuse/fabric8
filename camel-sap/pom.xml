@@ -596,18 +596,18 @@
 				<enabled>true</enabled>
 			</releases>
 		</repository>
-		<!--repository>
+		<repository>
 			<id>RH2</id>
 			<url>http://download.eng.bos.redhat.com/brewroot/repos/jb-fsw-6.2-build/latest/maven</url>
 			<layout>default</layout>
-		</repository-->
+		</repository>
 	</repositories>
 	<pluginRepositories>
-		<!--pluginRepository>
+		<pluginRepository>
 			<id>RH2</id>
 			<url>http://download.eng.bos.redhat.com/brewroot/repos/jb-fsw-6.2-build/latest/maven</url>
 			<layout>default</layout>
-		</pluginRepository-->
+		</pluginRepository>
 	</pluginRepositories>
 	<description>Provides SAP Camel Component</description>
 </project>
