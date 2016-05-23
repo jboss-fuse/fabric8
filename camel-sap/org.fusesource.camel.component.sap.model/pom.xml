@@ -43,7 +43,7 @@
   	<artifactId>camel-sap-parent</artifactId>
   	<version>6.3.0.redhat-SNAPSHOT</version>
   </parent>
-  <url>http://http://www.jboss.org/products/fuse/overview/</url>
+  <url>http://www.jboss.org/products/fuse/overview/</url>
   <name>JBoss Fuse :: SAP JCO :: SAP Data Layer :: Model Plugin</name>
   <description>Provides the Runtime Objects of the SAP Data Layer</description>
   <organization>

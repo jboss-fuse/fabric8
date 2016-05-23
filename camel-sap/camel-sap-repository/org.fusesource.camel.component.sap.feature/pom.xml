@@ -9,6 +9,6 @@
   	<relativePath>../pom.xml</relativePath>
   </parent>
   <name>JBoss Fuse :: SAP JCO :: SAP Data Layer ::  Feature</name>
-  <url>http://http://www.jboss.org/products/fuse/overview/</url>
+  <url>http://www.jboss.org/products/fuse/overview/</url>
   <description>Provides Feature for the SAP Data Layer</description>
 </project>

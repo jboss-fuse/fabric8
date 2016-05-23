@@ -11,7 +11,7 @@
 		<relativePath>../pom.xml</relativePath>
 	</parent>
 
-	<url>http://http://www.jboss.org/products/fuse/overview/</url>
+	<url>http://www.jboss.org/products/fuse/overview/</url>
 	<description>Provides Update Site for the SAP Data Layer</description>
 	<organization>
 		<url>http://www.redhat.com</url>

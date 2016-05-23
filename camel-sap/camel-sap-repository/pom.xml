@@ -9,7 +9,7 @@
 	<packaging>pom</packaging>
 
 	<name>JBoss Fuse :: SAP JCO :: SAP Data Layer :: Repository</name>
-	<url>http://http://www.jboss.org/products/fuse/overview/</url>
+	<url>http://www.jboss.org/products/fuse/overview/</url>
 	<description>Provides Repository for the SAP Data Layer</description>
 	<organization>
 		<name>Red Hat, Inc.</name>

@@ -24,7 +24,7 @@
 	<packaging>pom</packaging>
 
 	<name>JBoss Fuse :: Components :: SAP JCO</name>
-	<url>http://http://www.jboss.org/products/fuse/overview/</url>
+	<url>http://www.jboss.org/products/fuse/overview/</url>
 
 	<properties>
 		<tycho-version>0.21.0</tycho-version>

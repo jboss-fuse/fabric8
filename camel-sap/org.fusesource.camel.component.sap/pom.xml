@@ -66,5 +66,5 @@
 			<version>3.0.10.redhat_1</version>
 		</dependency>
 	</dependencies>
-	<url>http://http://www.jboss.org/products/fuse/overview/</url>
+	<url>http://www.jboss.org/products/fuse/overview/</url>
 </project>
