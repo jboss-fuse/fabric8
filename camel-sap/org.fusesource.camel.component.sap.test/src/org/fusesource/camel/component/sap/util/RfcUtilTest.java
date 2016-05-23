@@ -1,9 +1,17 @@
 package org.fusesource.camel.component.sap.util;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.NoSuchElementException;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EClass;
@@ -23,21 +31,22 @@ import org.fusesource.camel.component.sap.model.rfc.RfcPackage;
 import org.fusesource.camel.component.sap.model.rfc.Structure;
 import org.fusesource.camel.component.sap.model.rfc.Table;
 import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.mockito.runners.MockitoJUnitRunner;
 
 import com.sap.conn.jco.JCoDestination;
 import com.sap.conn.jco.JCoDestinationManager;
 import com.sap.conn.jco.JCoException;
 import com.sap.conn.jco.JCoRepository;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-
+@RunWith(MockitoJUnitRunner.class)
 public class RfcUtilTest {
 
 	protected DestinationDataStore destinationDataStore;
@@ -63,7 +72,8 @@ public class RfcUtilTest {
 	 * Creates and saves Test Registry for off-line tests
 	 * @throws Exception
 	 */
-	//@Test
+	@Test
+	@Ignore("This test requires some SAP setup")
 	public void createTestRfcRegistry() throws Exception {
 		JCoDestination jcoDestination = JCoDestinationManager.getDestination("TestDestination");
 		JCoRepository repository = jcoDestination.getRepository();
@@ -73,7 +83,8 @@ public class RfcUtilTest {
 		Util.saveRegistry(file);
 	}
 
-	//@Test
+	@Test
+	@Ignore("This test requires some SAP setup")
 	public void testPackage() throws Exception {
 		JCoDestination jcoDestination = JCoDestinationManager.getDestination("TestDestination");
 		EPackage ePackage = RfcUtil.getEPackage(jcoDestination.getRepository(), "http://sap.fusesource.org/rfc/NPL/BAPI_FLCONN_GETDETAIL");
@@ -391,7 +402,8 @@ public class RfcUtilTest {
 		assertEquals("New request field SYSTEM has incorrect value", "NPL", bapiRtn2.get("SYSTEM"));
 	}
 	
-	//@Test
+	@Test
+	@Ignore("This test requires some SAP setup")
 	public void testFunctionCall() throws JCoException {
 		JCoDestination jcoDestination = JCoDestinationManager.getDestination("TestDestination"); 
 		
@@ -407,7 +419,8 @@ public class RfcUtilTest {
 		System.out.println("RESPTEXT: " + respText);
 	}
 	
-	//@Test
+	@Test
+	@Ignore("This test requires some SAP setup")
 	public void testMashalling() throws Exception {
 		JCoDestination jcoDestination = JCoDestinationManager.getDestination("TestDestination");
 		
@@ -445,7 +458,8 @@ public class RfcUtilTest {
 		ETypeParameter typeParameter = tableClassTypeParameters.get(0);
 	}
 		
-	//@Test
+	@Test
+	@Ignore("This test requires some SAP setup")
 	public void testRequest() throws Exception {
 		JCoDestination jcoDestination = JCoDestinationManager.getDestination("TestDestination");
 		Structure request = RfcUtil.getRequest(jcoDestination.getRepository(), "BAPI_FLCONN_GETDETAIL");
@@ -458,7 +472,8 @@ public class RfcUtilTest {
         res.save(System.out, null);
 	}
 	
-	//@Test
+	@Test
+	@Ignore("This test requires some SAP setup")
 	public void testFlightConnectionGetListRequest() throws Exception {
 
 		JCoDestination jcoDestination = JCoDestinationManager.getDestination("TestDestination");
@@ -483,6 +498,24 @@ public class RfcUtilTest {
 		String requestString = RfcUtil.marshal(request);
 		
 		System.out.println(requestString);
+	}
+
+	@Rule
+	public ExpectedException thrown = ExpectedException.none();
+
+	@Test
+	public void testFunctionNotFoundAvailableThrowsComprehensiveError() throws Exception {
+		thrown.expect(NoSuchElementException.class);
+		JCoDestination jcoDestination = mock(JCoDestination.class);
+		JCoRepository jcoRepository = mock(JCoRepository.class);
+		doReturn("id").when(jcoDestination).getDestinationID();
+		doReturn(jcoRepository).when(jcoDestination).getRepository();
+		final String notExistingFunctionName = "notExistingFunction";
+		doReturn(null).when(jcoRepository).getFunction(notExistingFunctionName);
+
+		RfcUtil.executeFunction(jcoDestination, notExistingFunctionName, null);
+
+		thrown.expectMessage("The function " + notExistingFunctionName + " was not found in destination " + jcoDestination.getDestinationID() + ".");
 	}
 
 }

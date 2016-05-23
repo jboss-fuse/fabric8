@@ -16,8 +16,11 @@
  */
 package org.fusesource.camel.component.sap.util;
 
+import static org.fusesource.camel.component.sap.model.rfc.RfcPackage.eNS_URI;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EAttribute;
@@ -61,8 +64,6 @@ import com.sap.conn.jco.JCoRecord;
 import com.sap.conn.jco.JCoRecordMetaData;
 import com.sap.conn.jco.JCoRepository;
 import com.sap.conn.jco.JCoTable;
-
-import static org.fusesource.camel.component.sap.model.rfc.RfcPackage.eNS_URI;
 
 /**
  * Utility routines to create and manipulate Data Layer RFC Request and Response
@@ -404,7 +405,7 @@ public class RfcUtil extends Util {
 	 * @throws JCoException
 	 */
 	public static Structure executeFunction(JCoDestination destination, String functionName, Structure request) throws JCoException {
-		JCoFunction jcoFunction = destination.getRepository().getFunction(functionName);
+		JCoFunction jcoFunction = retrieveFunction(destination, functionName);
 		fillJCoParameterListsFromRequest(request, jcoFunction);
 
 		jcoFunction.execute(destination);
@@ -413,6 +414,20 @@ public class RfcUtil extends Util {
 		extractJCoParameterListsIntoResponse(jcoFunction, response);
 
 		return response;
+	}
+
+	/**
+	 * @param destination
+	 * @param functionName
+	 * @return
+	 * @throws JCoException
+	 */
+	private static JCoFunction retrieveFunction(JCoDestination destination, String functionName) throws JCoException {
+		final JCoFunction function = destination.getRepository().getFunction(functionName);
+		if (function == null) {
+			throw new NoSuchElementException("The function " + functionName + " was not found in destination " + destination.getDestinationID() + ".");
+		}
+		return function;
 	}
 
 	/**
@@ -431,7 +446,7 @@ public class RfcUtil extends Util {
 	 */
 	public static void executeFunction(JCoDestination destination, String functionName, Structure request, String tid) throws JCoException {
 
-		JCoFunction jcoFunction = destination.getRepository().getFunction(functionName);
+		JCoFunction jcoFunction = retrieveFunction(destination, functionName);
 		fillJCoParameterListsFromRequest(request, jcoFunction);
 
 		jcoFunction.execute(destination, tid);
@@ -454,7 +469,7 @@ public class RfcUtil extends Util {
 	 * @throws JCoException
 	 */
 	public static void executeFunction(JCoDestination destination, String functionName, Structure request, String tid, String queueName) throws JCoException {
-		JCoFunction jcoFunction = destination.getRepository().getFunction(functionName);
+		JCoFunction jcoFunction = retrieveFunction(destination, functionName);
 		fillJCoParameterListsFromRequest(request, jcoFunction);
 
 		jcoFunction.execute(destination, tid, queueName);
