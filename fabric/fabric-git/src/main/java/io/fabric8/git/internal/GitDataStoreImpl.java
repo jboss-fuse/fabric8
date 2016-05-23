@@ -849,19 +849,18 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
             // FileConfigurations
             Map<String, byte[]> fileConfigurations = profile.getFileConfigurations();
             setFileConfigurations(context, versionId, profileId, fileConfigurations);
-            
-            // A warning commit message if there has been none yet 
+            // A warning commit message if there has been none yet
             if (context.getCommitMessage().length() == 0) {
                 context.commitMessage("WARNING - Profile with no content: " + versionId + "/" + profileId);
             }
-            
+
             // Mark this profile as processed
             profiles.add(profileId);
         }
 
         return profileId;
     }
-    
+
     private String createProfileDirectoryAfterCheckout(GitContext context, final String versionId, final String profileId) throws IOException, GitAPIException {
         assertWriteLock();
         File profileDirectory = GitHelpers.getProfileDirectory(getGit(), profileId);
@@ -871,24 +870,25 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         }
         return null;
     }
-    
+
     private void setFileConfigurations(GitContext context, final String versionId, final String profileId, final Map<String, byte[]> fileConfigurations) throws IOException, GitAPIException {
         assertWriteLock();
 
         // Delete and remove stale file configurations
         File profileDir = GitHelpers.getProfileDirectory(getGit(), profileId);
 
-        HashSet<File> filesToDelete = new HashSet<File>();
+        final HashSet<File> filesToDelete = new HashSet<File>();
         if (profileDir.exists()) {
-            File[] files = profileDir.listFiles(new FilenameFilter() {
+            final List<File> filesList = new ArrayList<File>();
+            java.nio.file.Files.walkFileTree(profileDir.toPath(), new SimpleFileVisitor<Path>() {
                 @Override
-                public boolean accept(File dir, String name) {
-                    return !Constants.AGENT_PROPERTIES.equals(name);
+                public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) throws IOException {
+                    if(!Constants.AGENT_PROPERTIES.equals(path.getFileName().toString())) {
+                        filesToDelete.add(path.toFile());
+                    }
+                    return super.visitFile(path, attrs);
                 }
             });
-            for (File file : files) {
-                filesToDelete.add(file);
-            }
         }
 
         for (Map.Entry<String, byte[]> entry : fileConfigurations.entrySet()) {
