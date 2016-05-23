@@ -28,7 +28,7 @@
 			<plugin>
 				<groupId>org.eclipse.tycho</groupId>
 				<artifactId>tycho-maven-plugin</artifactId>
-				<version>0.21.0</version>
+				<version>0.24.0</version>
 				<extensions>true</extensions>
 			</plugin>
 			<plugin>
@@ -60,7 +60,7 @@
 			<plugin>
 				<groupId>org.eclipse.tycho</groupId>
 				<artifactId>tycho-p2-plugin</artifactId>
-				<version>0.21.0</version>
+				<version>0.24.0</version>
 				<executions>
 					<execution>
 						<id>attach-p2-metadata</id>
@@ -74,7 +74,7 @@
 		    <plugin>
 				<groupId>org.eclipse.tycho</groupId>
 				<artifactId>target-platform-configuration</artifactId>
-				<version>0.21.0</version>
+				<version>0.24.0</version>
 				<configuration>
 					<resolver>p2</resolver>
 					<pomDependencies>consider</pomDependencies>
@@ -175,8 +175,8 @@
 	
 	<repositories>
  		<repository>
-			<id>eclipse-luna</id>
-			<url>http://download.eclipse.org/releases/luna/</url>
+			<id>eclipse-mars</id>
+			<url>http://download.eclipse.org/releases/mars/</url>
 			<layout>p2</layout>
 		</repository>
 		<repository>

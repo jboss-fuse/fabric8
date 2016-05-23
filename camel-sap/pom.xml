@@ -27,7 +27,7 @@
 	<url>http://www.jboss.org/products/fuse/overview/</url>
 
 	<properties>
-		<tycho-version>0.21.0</tycho-version>
+		<tycho-version>0.24.0</tycho-version>
 		<maven.compiler.target>1.7</maven.compiler.target>
 		<maven.compiler.source>1.7</maven.compiler.source>
 		<maven-surefire-plugin-version>2.19</maven-surefire-plugin-version>
@@ -575,8 +575,8 @@
 	</modules>
 	<repositories>
 		<repository>
-			<id>eclipse-luna</id>
-			<url>http://download.eclipse.org/releases/luna/</url>
+			<id>eclipse-mars</id>
+			<url>http://download.eclipse.org/releases/mars/</url>
 			<layout>p2</layout>
 			<snapshots>
 				<enabled>true</enabled>
