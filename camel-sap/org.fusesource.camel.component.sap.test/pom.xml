@@ -23,12 +23,24 @@
 	</properties>
 	
 	<build>
-		<sourceDirectory>src</sourceDirectory>
 		<plugins>
 			<plugin>
 				<groupId>org.eclipse.tycho</groupId>
 				<artifactId>tycho-maven-plugin</artifactId>
 				<extensions>true</extensions>
+			</plugin>
+			<plugin>
+        		<groupId>org.apache.maven.plugins</groupId>
+        		<artifactId>maven-compiler-plugin</artifactId>
+					<executions>
+						<execution>
+							<id>compiletests</id>
+							<phase>test-compile</phase>
+							<goals>
+								<goal>testCompile</goal>
+							</goals>
+						</execution>
+					</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -89,6 +101,10 @@
 		</plugins>
 		<pluginManagement>
 			<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+			</plugin>
 				<!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
 				<plugin>
 					<groupId>org.eclipse.m2e</groupId>
@@ -123,6 +139,14 @@
 			</plugins>
 		</pluginManagement>
 	</build>
+	<dependencies>
+	    <dependency>
+     	 <groupId>junit</groupId>
+     	 <artifactId>junit</artifactId>
+     	 <scope>test</scope>
+    	</dependency>
+	</dependencies>
+	
 	<version>6.3.0-SNAPSHOT</version>
 	<url>http://www.jboss.org/products/fuse/overview/</url>
 </project>
