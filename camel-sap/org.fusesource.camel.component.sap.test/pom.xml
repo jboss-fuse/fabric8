@@ -53,6 +53,8 @@
 							<systemProperties>
 								<osgi.nls.warnings>ignore</osgi.nls.warnings>
 							</systemProperties>
+							<reuseForks>false</reuseForks><!-- Added to resolve issues with multiple loading of JCo native library -->
+							<argLine>-Djava.library.path="${native.lib.directory}"</argLine>
 						</configuration>
 						<goals>
 							<goal>test</goal>
