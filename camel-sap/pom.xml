@@ -265,10 +265,38 @@
 			</properties>
 		</profile>
 		<profile>
+			<id>win10-x86_64</id>
+			<activation>
+				<os>
+					<name>windows 10</name>
+					<arch>x86_64</arch>
+				</os>
+			</activation>
+			<properties>
+				<envClassifier>win-x86_64</envClassifier>
+				<envType>dll</envType>
+				<native.lib.filename>sapjco3</native.lib.filename>
+			</properties>
+		</profile>
+		<profile>
 			<id>win32-amd64</id>
 			<activation>
 				<os>
 					<name>windows</name>
+					<arch>amd64</arch>
+				</os>
+			</activation>
+			<properties>
+				<envClassifier>win-x86_64</envClassifier>
+				<envType>dll</envType>
+				<native.lib.filename>sapjco3</native.lib.filename>
+			</properties>
+		</profile>
+		<profile>
+			<id>win10-amd64</id>
+			<activation>
+				<os>
+					<name>windows 10</name>
 					<arch>amd64</arch>
 				</os>
 			</activation>
