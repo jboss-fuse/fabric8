@@ -1,16 +1,16 @@
 package org.fusesource.camel.component.sap.util;
 
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import org.fusesource.camel.component.sap.model.rfc.DestinationData;
 import org.fusesource.camel.component.sap.model.rfc.DestinationDataStore;
 import org.fusesource.camel.component.sap.model.rfc.RfcFactory;
 import org.fusesource.camel.component.sap.model.rfc.Structure;
-
-import static org.hamcrest.MatcherAssert.*;
-import static org.hamcrest.CoreMatchers.*;
-
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.sap.conn.jco.JCoContext;
@@ -48,6 +48,7 @@ public class TRFCTest {
 	}
 	
 	@Test
+	@Ignore("This test requires some SAP setup")
 	public void testTRFC() throws Exception {
 		Structure setMessageRequest;
 		Structure getMessageRequest;
