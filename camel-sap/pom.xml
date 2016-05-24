@@ -28,10 +28,13 @@
 
 	<properties>
 		<tycho-version>0.24.0</tycho-version>
+		<!-- JBoss Tools Integration Stack version -->
+    	<jbtis.version>4.3.1.Final</jbtis.version>
+		
 		<maven.compiler.target>1.7</maven.compiler.target>
 		<maven.compiler.source>1.7</maven.compiler.source>
 		<maven-surefire-plugin-version>2.19</maven-surefire-plugin-version>
-		<camel-version>2.17.0.redhat-630075</camel-version>
+		<camel-version>2.17.0.redhat-630069</camel-version>
 		<camel.sap.plugin.version>6.3.0-SNAPSHOT</camel.sap.plugin.version>
 
 		
@@ -417,6 +420,14 @@
 					<configuration>
 						<resolver>p2</resolver>
 						<pomDependencies>consider</pomDependencies>
+						<target>
+            				<artifact>
+ 		      					<groupId>org.jboss.tools.integration-stack</groupId>
+				      			<artifactId>target-platform</artifactId>
+         		     			<version>${jbtis.version}</version>
+         		     			<classifier>base-ea</classifier>
+         		   			</artifact>
+        		  		</target>
 						<environments>
 							<environment>
 								<os>linux</os>
@@ -455,6 +466,15 @@
 					<groupId>org.eclipse.tycho</groupId>
 					<artifactId>tycho-surefire-plugin</artifactId>
 					<version>${tycho-version}</version>
+					<configuration>
+						<useUIThread>true</useUIThread>
+						<useUIHarness>true</useUIHarness>
+						<includes>
+							<include>**/*IT.class</include>
+						</includes>
+						<argLine>${tycho.testArgLine} -XX:+HeapDumpOnOutOfMemoryError -Dusage_reporting_enabled=false -Djava.library.path="${native.lib.directory}"</argLine>
+						<osgiDataDirectory>${project.basedir}/target/work sp@cé</osgiDataDirectory>
+					</configuration>
 				</plugin>
 				<plugin>
 					<groupId>org.apache.camel</groupId>
@@ -570,6 +590,7 @@
 		<module>org.fusesource.camel.component.sap.model</module>
 		<module>org.fusesource.camel.component.sap.model.edit</module>
 		<module>org.fusesource.camel.component.sap</module>
+		<module>org.fusesource.camel.component.sap.test</module>
 		<module>camel-sap-component</module>
 		<!-- <module>camel-sap-repository</module> -->
 	</modules>
