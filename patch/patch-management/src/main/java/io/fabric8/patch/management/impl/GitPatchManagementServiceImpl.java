@@ -416,6 +416,13 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                                 File target = new File(patchesDir, name);
                                 extractZipEntry(zf, entry, target);
                                 patchData = loadPatchData(target);
+
+                                // ENTESB-4600: try checking the target version of the patch
+                                Version version = Utils.findVersionInName(patchData.getId());
+                                if (version.getMajor() == 6 && version.getMinor() == 1) {
+                                    throw new PatchException("Can't install patch \"" + patchData.getId() + "\", it is released for version 6.1 of the product");
+                                }
+
                                 patchData.setGenerated(false);
                                 File targetDirForPatchResources = new File(patchesDir, patchData.getId());
                                 patchData.setPatchDirectory(targetDirForPatchResources);

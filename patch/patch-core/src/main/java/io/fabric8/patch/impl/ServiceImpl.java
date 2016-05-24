@@ -326,6 +326,8 @@ public class ServiceImpl implements Service {
                 patches.add(patch);
             }
             return patches;
+        } catch (PatchException e) {
+            throw e;
         } catch (Exception e) {
             throw new PatchException("Unable to download patch from url " + url, e);
         }
