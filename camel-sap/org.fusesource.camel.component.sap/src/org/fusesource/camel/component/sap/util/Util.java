@@ -1,5 +1,7 @@
 package org.fusesource.camel.component.sap.util;
 
+import static org.fusesource.camel.component.sap.model.idoc.IdocPackage.eNS_URI;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -8,6 +10,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -50,8 +53,6 @@ import com.sap.conn.jco.JCoContext;
 import com.sap.conn.jco.JCoDestination;
 import com.sap.conn.jco.JCoException;
 import com.sap.conn.jco.JCoRequest;
-
-import static org.fusesource.camel.component.sap.model.idoc.IdocPackage.eNS_URI;
 
 /**
  * @author punkhorn
@@ -293,8 +294,7 @@ public class Util {
 	 */
 	public static InputStream toInputStream(EObject eObject) throws IOException {
 		String string = marshal(eObject);
-		ByteArrayInputStream in = new ByteArrayInputStream(string.getBytes());
-		return in;
+		return new ByteArrayInputStream(string.getBytes(StandardCharsets.UTF_8));
 	}
 
 	/**
@@ -411,7 +411,7 @@ public class Util {
 		URI fileURI = URI.createFileURI(file.getAbsolutePath());
 		Resource resource = resourceSet.createResource(fileURI);
 
-		Set<String> nsURIs = new HashSet<String>();
+		Set<String> nsURIs = new HashSet<>();
 		nsURIs.addAll(registry.keySet());
 		for (String nsURI : nsURIs) {
 			if (nsURI.startsWith(IdocPackage.eNS_URI) || nsURI.startsWith(RfcPackage.eNS_URI)) {
@@ -420,8 +420,8 @@ public class Util {
 			}
 		}
 
-		Map<String, Object> options = new HashMap<String, Object>();
-		List<Object> lookupTable = new ArrayList<Object>();
+		Map<String, Object> options = new HashMap<>();
+		List<Object> lookupTable = new ArrayList<>();
 		options.put(XMIResource.OPTION_CONFIGURATION_CACHE, Boolean.TRUE);
 		options.put(XMIResource.OPTION_USE_CACHED_LOOKUP_TABLE, lookupTable);
 		options.put(XMIResource.OPTION_USE_ENCODED_ATTRIBUTE_STYLE, Boolean.FALSE);
@@ -444,9 +444,9 @@ public class Util {
 		URI fileURI = URI.createFileURI(file.getAbsolutePath());
 		Resource resource = resourceSet.createResource(fileURI);
 
-		Map<String, Object> options = new HashMap<String, Object>();
+		Map<String, Object> options = new HashMap<>();
 		XMLParserPool parserPool = new XMLParserPoolImpl();
-		Map<Object, Object> nameToFeatureMap = new HashMap<Object, Object>();
+		Map<Object, Object> nameToFeatureMap = new HashMap<>();
 		options.put(XMIResource.OPTION_DEFER_ATTACHMENT, Boolean.TRUE);
 		options.put(XMIResource.OPTION_DEFER_IDREF_RESOLUTION, Boolean.TRUE);
 		options.put(XMIResource.OPTION_USE_DEPRECATED_METHODS, Boolean.TRUE);
