@@ -28,6 +28,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.felix.utils.version.VersionCleaner;
 import org.junit.Test;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.Version;
 
 import static io.fabric8.patch.management.Utils.*;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -208,6 +209,24 @@ public class UtilsTest {
 
         String newFile = FileUtils.readFileToString(configProperties);
         assertThat("etc/config.properties should be updated", newFile, equalTo(sw2.toString()));
+    }
+
+    @Test
+    public void detectVersions() {
+        assertThat(Utils.findVersionInName("ordinaryName"), equalTo(Version.emptyVersion));
+        assertThat(Utils.findVersionInName("ordinary-name"), equalTo(Version.emptyVersion));
+        assertThat(Utils.findVersionInName("ordinary-name-1"), equalTo(Version.parseVersion("1")));
+        assertThat(Utils.findVersionInName("ordinary-name-1"), equalTo(Version.parseVersion("1.0")));
+        assertThat(Utils.findVersionInName("ordinary-name-1"), equalTo(Version.parseVersion("1.0.0")));
+        assertThat(Utils.findVersionInName("ordinary-name-1"), equalTo(new Version(1, 0, 0)));
+
+        assertThat(Utils.findVersionInName("ordinary-name-1.2"), equalTo(new Version(1, 2, 0)));
+        assertThat(Utils.findVersionInName("ordinary-name-1.2.3"), equalTo(new Version(1, 2, 3)));
+        assertThat(Utils.findVersionInName("ordinary-name-1.2.3.4"), equalTo(new Version(1, 2, 3, "4")));
+        assertThat(Utils.findVersionInName("ordinary-name-1.2.3.4.5"), equalTo(Version.emptyVersion)); // IllegalArgumentException
+        assertThat(Utils.findVersionInName("ordinary-name-1.2.3.4-5"), equalTo(new Version(1, 2, 3, "4-5")));
+
+        assertThat(Utils.findVersionInName("jboss-fuse-6.1.1.redhat-459-hf26"), equalTo(new Version(6, 1, 1, "redhat-459-hf26")));
     }
 
 }

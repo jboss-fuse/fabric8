@@ -568,4 +568,47 @@ public class Utils {
         }
     }
 
+    /**
+     * <p>Tries to extract {@link Version} from a name like <code>some-name-version.extension</code>.</p>
+     * <p>This may be quite complicated, for example <code>jboss-fuse-6.1.1.redhat-459-hf26.patch</code>. In this case
+     * the version should be <code>new Version(6, 1, 1, "redhat-459-hf26")</code>.</p>
+     * @param name
+     * @return
+     */
+    public static Version findVersionInName(String name) {
+        Version result = Version.emptyVersion;
+
+        String[] segments = name.split("-");
+        if (segments.length < 2) {
+            return result;
+        }
+
+        int possibleVersionSegment = 0;
+        for (int i = 1; i < segments.length; i++) {
+            if (segments[i].length() > 0 && Character.isDigit(segments[i].charAt(0))) {
+                possibleVersionSegment = i;
+                break;
+            }
+        }
+        if (possibleVersionSegment > 0) {
+            StringBuilder sb = null;
+            for (int i = possibleVersionSegment; i < segments.length; i++) {
+                if (sb == null) {
+                    sb = new StringBuilder();
+                } else {
+                    sb.append('-');
+                }
+                sb.append(segments[i]);
+            }
+            if (sb != null) {
+                try {
+                    result = Version.parseVersion(sb.toString());
+                } catch (IllegalArgumentException ignore) {
+                }
+            }
+        }
+
+        return result;
+    }
+
 }
