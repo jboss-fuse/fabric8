@@ -116,51 +116,55 @@ public final class FabricConfigAdminBridge extends AbstractComponent implements 
     }
 
     private synchronized void updateInternal() throws Exception {
-        
-        Container currentContainer = fabricService.get().getCurrentContainer();
-        if (currentContainer == null) {
-            LOGGER.warn("No current container yet so cannot update!");
-            return;
-        }
-        Profile overlayProfile = null;
-        try{
-            overlayProfile = currentContainer.getOverlayProfile();
-        } catch (RuntimeException e){
-            LOGGER.warn("No profile data yet so cannot update!");
-            return;
-        }
+        try {
 
-        Profile effectiveProfile = Profiles.getEffectiveProfile(fabricService.get(), overlayProfile);
-
-        Map<String, Map<String, String>> configurations = effectiveProfile.getConfigurations();
-        List<Configuration> zkConfigs = asList(configAdmin.get().listConfigurations("(" + FABRIC_ZOOKEEPER_PID + "=*)"));
-
-        // FABRIC-803: the agent may use the configuration provided by features definition if not managed
-        //   by fabric.  However, in order for this to work, we need to make sure managed configurations
-        //   are all registered before the agent kicks in.  Hence, the agent configuration is updated
-        //   after all other configurations.
-
-        // Process all configurations but agent
-        for (String pid : configurations.keySet()) {
-            if (!pid.equals(Constants.AGENT_PID)) {
-                Hashtable<String, Object> c = new Hashtable<String, Object>();
-                c.putAll(configurations.get(pid));
-                updateConfig(zkConfigs, pid, c);
+            Container currentContainer = fabricService.get().getCurrentContainer();
+            if (currentContainer == null) {
+                LOGGER.warn("No current container yet so cannot update!");
+                return;
             }
-        }
-        // Process agent configuration last
-        for (String pid : configurations.keySet()) {
-            if (pid.equals(Constants.AGENT_PID)) {
-                Hashtable<String, Object> c = new Hashtable<String, Object>();
-                c.putAll(configurations.get(pid));
-                c.put(Profile.HASH, String.valueOf(effectiveProfile.getProfileHash()));
-                updateConfig(zkConfigs, pid, c);
+            Profile overlayProfile = null;
+            try {
+                overlayProfile = currentContainer.getOverlayProfile();
+            } catch (RuntimeException e) {
+                LOGGER.warn("No profile data yet so cannot update!");
+                return;
             }
-        }
-        for (Configuration config : zkConfigs) {
-            LOGGER.info("Deleting configuration {}", config.getPid());
-            fabricService.get().getPortService().unregisterPort(fabricService.get().getCurrentContainer(), config.getPid());
-            config.delete();
+
+            Profile effectiveProfile = Profiles.getEffectiveProfile(fabricService.get(), overlayProfile);
+
+            Map<String, Map<String, String>> configurations = effectiveProfile.getConfigurations();
+            List<Configuration> zkConfigs = asList(configAdmin.get().listConfigurations("(" + FABRIC_ZOOKEEPER_PID + "=*)"));
+
+            // FABRIC-803: the agent may use the configuration provided by features definition if not managed
+            //   by fabric.  However, in order for this to work, we need to make sure managed configurations
+            //   are all registered before the agent kicks in.  Hence, the agent configuration is updated
+            //   after all other configurations.
+
+            // Process all configurations but agent
+            for (String pid : configurations.keySet()) {
+                if (!pid.equals(Constants.AGENT_PID)) {
+                    Hashtable<String, Object> c = new Hashtable<String, Object>();
+                    c.putAll(configurations.get(pid));
+                    updateConfig(zkConfigs, pid, c);
+                }
+            }
+            // Process agent configuration last
+            for (String pid : configurations.keySet()) {
+                if (pid.equals(Constants.AGENT_PID)) {
+                    Hashtable<String, Object> c = new Hashtable<String, Object>();
+                    c.putAll(configurations.get(pid));
+                    c.put(Profile.HASH, String.valueOf(effectiveProfile.getProfileHash()));
+                    updateConfig(zkConfigs, pid, c);
+                }
+            }
+            for (Configuration config : zkConfigs) {
+                LOGGER.info("Deleting configuration {}", config.getPid());
+                fabricService.get().getPortService().unregisterPort(fabricService.get().getCurrentContainer(), config.getPid());
+                config.delete();
+            }
+        } catch (IllegalStateException e){
+            handleException(e);
         }
     }
 
@@ -251,6 +255,15 @@ public final class FabricConfigAdminBridge extends AbstractComponent implements 
                 newConfiguration = configAdmin.getConfiguration(pid, null);
             }
             return newConfiguration;
+        }
+    }
+
+    protected void handleException(Throwable e) {
+        if( e instanceof IllegalStateException && "Client is not started".equals(e.getMessage())) {
+            LOGGER.debug("", e);
+        }
+        else {
+            LOGGER.error("", e);
         }
     }
 
