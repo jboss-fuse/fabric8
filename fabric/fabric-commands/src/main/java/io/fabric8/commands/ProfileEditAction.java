@@ -110,7 +110,7 @@ public class ProfileEditAction extends AbstractAction {
     @Option(name = "-i", aliases = {"--import-pid"}, description = "Imports the pids that are edited, from local OSGi config admin", required = false, multiValued = false)
     private boolean importPid = false;
 
-    @Option(name = "--resource", description = "Selects a resource under the profile to edit. This option should only be used alone.", required = false, multiValued = false)
+    @Option(name = "--resource", description = "Selects a resource under the profile to edit.", required = false, multiValued = false)
     private String resource;
 
     @Option(name = "--set", description = "Set or create values.")
@@ -227,20 +227,23 @@ public class ProfileEditAction extends AbstractAction {
             editInLine = true;
             handleConfigProperties(builder, configProperties, profile);
         }
-        
+        if (resource != null && delete) {
+            editInLine = true;
+            builder.deleteFileConfiguration(resource);
+        }
+
         profileService.updateProfile(builder.getProfile());
+
 
         if (!editInLine) {
             resource = resource != null ? resource : "io.fabric8.agent.properties";
-            //If a single pid has been selected, but not a key value has been specified or import has been selected,
-            //then open the resource in the editor.
-            if (pidProperties != null && pidProperties.length == 1) {
-                resource = pidProperties[0] + ".properties";
-            }
-            openInEditor(profile, resource);
+                //If a single pid has been selected, but not a key value has been specified or import has been selected,
+                //then open the resource in the editor.
+                if (pidProperties != null && pidProperties.length == 1) {
+                    resource = pidProperties[0] + ".properties";
+                }
+                openInEditor(profile, resource);
         }
-        
-        
     }
 
     /**
