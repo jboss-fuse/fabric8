@@ -20,18 +20,22 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public final class MetricsJSON {
 
-    private static final SimpleDateFormat format;
-    private static final ObjectMapper mapper;
+    static final SimpleDateFormat format;
+    static final ObjectMapper mapper;
 
     static {
         format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX");
         mapper = new ObjectMapper();
         mapper.getDeserializationConfig().with(format);
         mapper.getSerializationConfig().with(format);
+        mapper.configure(JsonParser.Feature.ALLOW_NON_NUMERIC_NUMBERS, false);
+        mapper.configure(JsonGenerator.Feature.QUOTE_NON_NUMERIC_NUMBERS, true);
     }
 
     public static String toIso(Date d) {
