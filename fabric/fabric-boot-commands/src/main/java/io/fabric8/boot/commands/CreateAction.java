@@ -16,6 +16,7 @@
 package io.fabric8.boot.commands;
 
 import io.fabric8.api.*;
+import io.fabric8.boot.commands.support.ResolverPolicyEnum;
 import io.fabric8.utils.OsgiUtils;
 import io.fabric8.utils.PasswordEncoder;
 import io.fabric8.utils.Ports;
@@ -202,11 +203,19 @@ class CreateAction extends AbstractAction {
         }
 
         if (globalResolver != null) {
+            if (!isInEnum(globalResolver, ResolverPolicyEnum.class)) {
+                System.out.println("The globalResolver value must be one of the following: localip, localhostname, publicip, publichostname, manualip");
+                return null;
+            }
             builder.globalResolver(globalResolver);
             bootProperties.put(ZkDefs.GLOBAL_RESOLVER_PROPERTY, globalResolver);
         }
 
         if (resolver != null) {
+            if (!isInEnum(resolver, ResolverPolicyEnum.class)) {
+                System.out.println("The resolver value must be one of the following: localip, localhostname, publicip, publichostname, manualip");
+                return null;
+            }
             builder.resolver(resolver);
             bootProperties.put(ZkDefs.LOCAL_RESOLVER_PROPERTY, resolver);
         }
@@ -483,6 +492,15 @@ class CreateAction extends AbstractAction {
             }
 		}
     	return adminExists;
+    }
+    
+    private <E extends Enum<E>> boolean isInEnum(String value, Class<E> enumClass) {
+        for (E e : enumClass.getEnumConstants()) {
+            if(((ResolverPolicyEnum) e).getResolver().equals(value)) { 
+                return true; 
+            }
+        }
+       return false;
     }
 
     public String getBindAddress() {
