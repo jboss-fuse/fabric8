@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.felix.gogo.commands.basic.AbstractCommand;
 import org.apache.felix.service.command.CommandProcessor;
@@ -102,7 +103,7 @@ public final class CommandSupport {
             String[] header = tokens.get(0).split(":");
             Assert.assertTrue("Two tokens in: " + tokens.get(0), header.length == 2);
             String filter = "(&(osgi.command.scope=" + header[0] + ")(osgi.command.function=" + header[1] + "))";
-            AbstractCommand command = (AbstractCommand) ServiceLocator.awaitService(Function.class, filter);
+            AbstractCommand command = (AbstractCommand) ServiceLocator.awaitService(Function.class, filter, 30000, TimeUnit.MILLISECONDS);
             commandSession.put(AbstractCommand.class.getName(), command);
 
             Class<?> actionClass = command.getActionClass();

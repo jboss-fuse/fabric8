@@ -1,0 +1,247 @@
+[INFO] Scanning for projects...
+[INFO]                                                                         
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Fabric8 :: Integration Tests :: PaxExam (Deprecated) :: Basic 1.2.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- maven-clean-plugin:2.5:clean (default-clean) @ fabric-itests-paxexam-basic ---
+[INFO] Deleting /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/target
+[INFO] 
+[INFO] --- maven-enforcer-plugin:1.3.1:enforce (enforce-java-version) @ fabric-itests-paxexam-basic ---
+[INFO] 
+[INFO] --- maven-enforcer-plugin:1.3.1:enforce (enforce-maven-version) @ fabric-itests-paxexam-basic ---
+[INFO] 
+[INFO] --- buildnumber-maven-plugin:1.2:create-timestamp (get-build-timestamp) @ fabric-itests-paxexam-basic ---
+[INFO] 
+[INFO] --- buildnumber-maven-plugin:1.2:create (get-scm-revision) @ fabric-itests-paxexam-basic ---
+[INFO] Checking for local modifications: skipped.
+[INFO] Updating project files from SCM: skipped.
+[INFO] Executing: /bin/sh -c cd /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic && git rev-parse --verify HEAD
+[INFO] Working directory: /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic
+[INFO] Storing buildNumber: 7c0174b6b3d9758f20f392f7176bc9ac47f76261 at timestamp: 1437706955268
+[INFO] Executing: /bin/sh -c cd /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic && git rev-parse --verify HEAD
+[INFO] Working directory: /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic
+[INFO] Storing buildScmBranch: UNKNOWN
+[INFO] 
+[INFO] --- maven-bundle-plugin:2.5.0:cleanVersions (cleanVersions) @ fabric-itests-paxexam-basic ---
+[INFO] 
+[INFO] --- depends-maven-plugin:1.2:generate-depends-file (generate-depends-file) @ fabric-itests-paxexam-basic ---
+[INFO] Created: /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/target/classes/META-INF/maven/dependencies.properties
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ fabric-itests-paxexam-basic ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/main/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.1:compile (default-compile) @ fabric-itests-paxexam-basic ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ fabric-itests-paxexam-basic ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 2 resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.1:testCompile (default-testCompile) @ fabric-itests-paxexam-basic ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 16 source files to /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/target/test-classes
+[WARNING] /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/test/java/io/fabric8/itests/paxexam/basic/CreateSshContainerTest.java:[18,30] junit.framework.Assert in junit.framework has been deprecated
+[WARNING] /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/test/java/io/fabric8/itests/paxexam/basic/CreateSshContainerTest.java:[19,30] junit.framework.Assert in junit.framework has been deprecated
+[WARNING] /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/test/java/io/fabric8/itests/paxexam/basic/CreateSshContainerTest.java:[20,30] junit.framework.Assert in junit.framework has been deprecated
+[WARNING] /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/test/java/io/fabric8/itests/paxexam/basic/CreateSshContainerTest.java:[21,30] junit.framework.Assert in junit.framework has been deprecated
+[WARNING] /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/test/java/io/fabric8/itests/paxexam/basic/cloud/FabricRackspaceContainerTest.java:[18,30] junit.framework.Assert in junit.framework has been deprecated
+[WARNING] /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/test/java/io/fabric8/itests/paxexam/basic/cloud/FabricRackspaceContainerTest.java:[19,30] junit.framework.Assert in junit.framework has been deprecated
+[WARNING] /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/test/java/io/fabric8/itests/paxexam/basic/cloud/FabricAwsContainerTest.java:[18,30] junit.framework.Assert in junit.framework has been deprecated
+[WARNING] /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/test/java/io/fabric8/itests/paxexam/basic/cloud/FabricAwsContainerTest.java:[19,30] junit.framework.Assert in junit.framework has been deprecated
+[WARNING] /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/test/java/io/fabric8/itests/paxexam/basic/CreateSshContainerTest.java:[18,30] junit.framework.Assert in junit.framework has been deprecated
+[WARNING] /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/test/java/io/fabric8/itests/paxexam/basic/CreateSshContainerTest.java:[19,30] junit.framework.Assert in junit.framework has been deprecated
+[WARNING] /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/test/java/io/fabric8/itests/paxexam/basic/CreateSshContainerTest.java:[20,30] junit.framework.Assert in junit.framework has been deprecated
+[WARNING] /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/test/java/io/fabric8/itests/paxexam/basic/CreateSshContainerTest.java:[21,30] junit.framework.Assert in junit.framework has been deprecated
+[WARNING] /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/test/java/io/fabric8/itests/paxexam/basic/cloud/FabricRackspaceContainerTest.java:[18,30] junit.framework.Assert in junit.framework has been deprecated
+[WARNING] /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/test/java/io/fabric8/itests/paxexam/basic/cloud/FabricRackspaceContainerTest.java:[19,30] junit.framework.Assert in junit.framework has been deprecated
+[WARNING] /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/test/java/io/fabric8/itests/paxexam/basic/cloud/FabricAwsContainerTest.java:[18,30] junit.framework.Assert in junit.framework has been deprecated
+[WARNING] /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/test/java/io/fabric8/itests/paxexam/basic/cloud/FabricAwsContainerTest.java:[19,30] junit.framework.Assert in junit.framework has been deprecated
+[WARNING] /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/test/java/io/fabric8/itests/paxexam/basic/CreateSshContainerTest.java:[18,30] junit.framework.Assert in junit.framework has been deprecated
+[WARNING] /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/test/java/io/fabric8/itests/paxexam/basic/CreateSshContainerTest.java:[19,30] junit.framework.Assert in junit.framework has been deprecated
+[WARNING] /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/test/java/io/fabric8/itests/paxexam/basic/CreateSshContainerTest.java:[20,30] junit.framework.Assert in junit.framework has been deprecated
+[WARNING] /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/test/java/io/fabric8/itests/paxexam/basic/CreateSshContainerTest.java:[21,30] junit.framework.Assert in junit.framework has been deprecated
+[WARNING] /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/test/java/io/fabric8/itests/paxexam/basic/cloud/FabricRackspaceContainerTest.java:[18,30] junit.framework.Assert in junit.framework has been deprecated
+[WARNING] /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/test/java/io/fabric8/itests/paxexam/basic/cloud/FabricRackspaceContainerTest.java:[19,30] junit.framework.Assert in junit.framework has been deprecated
+[WARNING] /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/test/java/io/fabric8/itests/paxexam/basic/cloud/FabricAwsContainerTest.java:[18,30] junit.framework.Assert in junit.framework has been deprecated
+[WARNING] /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/test/java/io/fabric8/itests/paxexam/basic/cloud/FabricAwsContainerTest.java:[19,30] junit.framework.Assert in junit.framework has been deprecated
+[WARNING] /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/test/java/io/fabric8/itests/paxexam/basic/examples/ExampleCxfProfileLongTest.java: Some input files use unchecked or unsafe operations.
+[WARNING] /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/src/test/java/io/fabric8/itests/paxexam/basic/examples/ExampleCxfProfileLongTest.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.17:test (default-test) @ fabric-itests-paxexam-basic ---
+[WARNING] The parameter forkMode is deprecated since version 2.14. Use forkCount and reuseForks instead.
+[INFO] Surefire report directory: /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/target/surefire-reports
+
+-------------------------------------------------------
+ T E S T S
+-------------------------------------------------------
+
+-------------------------------------------------------
+ T E S T S
+-------------------------------------------------------
+Running io.fabric8.itests.paxexam.basic.examples.ExampleCamelCxfTest
+[org.ops4j.pax.exam.spi.DefaultExamSystem] : Pax Exam System (Version: 3.5.0) created.
+[org.ops4j.store.intern.TemporaryStore] : Storage Area is /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/target/1437706957674-0
+[org.ops4j.pax.exam.junit.impl.ProbeRunner] : creating PaxExam runner for class io.fabric8.itests.paxexam.basic.examples.ExampleCamelCxfTest
+[org.ops4j.pax.exam.karaf.container.internal.RMIRegistry] : Created Registry on 21413
+[org.ops4j.pax.exam.karaf.container.internal.RMIRegistry] : Currently 1 out of 98 ports are in use. Port range is from 21413 up to 21511
+[org.ops4j.pax.exam.karaf.container.internal.RMIRegistry] : Created Registry on 21414
+[org.ops4j.pax.exam.karaf.container.internal.RMIRegistry] : Currently 2 out of 98 ports are in use. Port range is from 21413 up to 21511
+[org.ops4j.pax.exam.spi.PaxExamRuntime] : Found TestContainerFactory: org.ops4j.pax.exam.karaf.container.internal.KarafTestContainerFactory
+*** Using Karaf version: 2.4.0 ***
+[org.ops4j.pax.exam.spi.DefaultExamSystem] : creating default probe
+[org.ops4j.pax.exam.spi.reactors.ReactorManager] : User defined probe hook found: probeConfiguration
+[org.ops4j.pax.exam.spi.intern.DefaultTestAddress] : NEW ADDRESS= PaxExam-0c825f89-117c-4b7a-8295-6fe844ae5af7 parent=null root=[TestAddress:PaxExam-0c825f89-117c-4b7a-8295-6fe844ae5af7 root:PaxExam-0c825f89-117c-4b7a-8295-6fe844ae5af7] args=[Ljava.lang.Object;@5ff8813b
+[org.ops4j.pax.exam.spi.DefaultExamReactor] : Staging reactor with probes: 1 using strategy: org.ops4j.pax.exam.spi.reactors.PerMethod@2896b40c
+[org.ops4j.store.intern.TemporaryStore] : Storage Area is /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/target/1437706957674-0
+[org.ops4j.pax.exam.spi.intern.DefaultTestAddress] : NEW ADDRESS= PaxExam-04fa96c3-ee57-453c-953a-1e9907c24d7e parent=[TestAddress:PaxExam-0c825f89-117c-4b7a-8295-6fe844ae5af7 root:PaxExam-0c825f89-117c-4b7a-8295-6fe844ae5af7] root=[TestAddress:PaxExam-0c825f89-117c-4b7a-8295-6fe844ae5af7 root:PaxExam-0c825f89-117c-4b7a-8295-6fe844ae5af7] args=[Ljava.lang.Object;@549470b7
+[org.ops4j.pax.exam.junit.impl.ProbeRunner] : running test class io.fabric8.itests.paxexam.basic.examples.ExampleCamelCxfTest
+[org.ops4j.pax.exam.junit.impl.ProbeRunner] : Invoke testExample @ [TestAddress:PaxExam-04fa96c3-ee57-453c-953a-1e9907c24d7e root:PaxExam-0c825f89-117c-4b7a-8295-6fe844ae5af7] Arguments: [Ljava.lang.Object;@5ff8813b
+[org.ops4j.store.intern.TemporaryStore] : Storage Area is /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/target/1437706957674-0
+[org.ops4j.pax.url.mvn.internal.Connection] : Resolving [mvn:io.fabric8/fabric8-karaf/1.2.0-SNAPSHOT/zip]
+[org.ops4j.pax.url.mvn.internal.AetherBasedResolver] : interval1: null, interval2: daily
+[org.ops4j.pax.url.mvn.internal.AetherBasedResolver] : interval1: null, interval2: daily
+[shaded.org.eclipse.aether.internal.impl.DefaultLocalRepositoryProvider] : Using manager SimpleLocalRepositoryManager with priority 0.0 for /Users/ffang/.m2/repository Ignored FQCN: shaded.org.eclipse.aether.internal.impl.slf4j.Slf4jLoggerFactory$Slf4jLoggerEx
+[org.ops4j.pax.url.mvn.internal.AetherBasedResolver] : Resolved (io.fabric8:fabric8-karaf:zip:1.2.0-SNAPSHOT) as /Users/ffang/.m2/repository/io/fabric8/fabric8-karaf/1.2.0-SNAPSHOT/fabric8-karaf-1.2.0-SNAPSHOT.zip
+[shaded.org.apache.http.impl.conn.PoolingHttpClientConnectionManager] : Connection manager is shutting down Ignored FQCN: shaded.org.apache.commons.logging.impl.SLF4JLocationAwareLog
+[shaded.org.apache.http.impl.conn.PoolingHttpClientConnectionManager] : Connection manager shut down Ignored FQCN: shaded.org.apache.commons.logging.impl.SLF4JLocationAwareLog
+[org.ops4j.pax.exam.karaf.container.internal.KarafTestContainer] : Log file should not be modified by the test framework
+[org.ops4j.pax.exam.karaf.container.internal.KarafTestContainer] : Test Container started in 4 millis
+[org.ops4j.pax.exam.karaf.container.internal.KarafTestContainer] : Wait for test container to finish its initialization [ RelativeTimeout value = 180000 ]
+[org.ops4j.pax.exam.rbc.client.RemoteBundleContextClient] : Waiting for remote bundle context.. on 21414 name: 59f2083b-dac1-4082-8b4b-38fba7f5d147 timout: [ RelativeTimeout value = 180000 ]
+Loading Fabric from: /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/target/paxexam/unpack/792c26ac-ea25-447d-ace1-709febf38b20
+  8% [=====>                                                                  ] 16% [===========>                                                            ] 25% [==================>                                                     ] 33% [=======================>                                                ] 41% [=============================>                                          ] 50% [====================================>                                   ] 58% [=========================================>                              ] 66% [===============================================>                        ] 67% [================================================>                       ] 68% [================================================>                       ] 69% [=================================================>                      ] 70% [==================================================>                     ] 71% [===================================================>                    ] 72% [===================================================>                    ] 73% [====================================================>                   ] 74% [=====================================================>                  ] 75% [======================================================>                 ] 76% [======================================================>                 ] 77% [=======================================================>                ] 78% [========================================================>               ] 79% [========================================================>               ] 80% [=========================================================>              ] 81% [==========================================================>             ] 82% [===========================================================>            ] 83% [===========================================================>            ] 84% [============================================================>           ] 85% [=============================================================>          ] 86% [=============================================================>          ] 87% [==============================================================>         ] 88% [===============================================================>        ] 89% [================================================================>       ] 90% [================================================================>       ] 91% [=================================================================>      ] 92% [==================================================================>     ] 93% [==================================================================>     ] 94% [===================================================================>    ] 95% [====================================================================>   ] 96% [=====================================================================>  ] 97% [=====================================================================>  ] 98% [======================================================================> ] 99% [=======================================================================>]100% [========================================================================]
+
+______    _          _      _____ 
+|  ___|  | |        (_)    |  _  |
+| |_ __ _| |__  _ __ _  ___ \ V / 
+|  _/ _` | '_ \| '__| |/ __|/ _ \ 
+| || (_| | |_) | |  | | (__| |_| |
+\_| \__,_|_.__/|_|  |_|\___\_____/
+  Fabric8 Container (1.2.0-SNAPSHOT)
+  http://fabric8.io/
+
+Type 'help fabric' for a list of fabric related commands.
+Hit '<tab>' for a list of all available commands
+and 'help [cmd]' for help on a specific command.
+Hit '<ctrl-d>' or type 'logout' to logout from this container.
+
+[org.ops4j.pax.exam.rbc.client.RemoteBundleContextClient] : Remote bundle context found after 9633 millis
+Fabric8:karaf@root> [org.ops4j.pax.tinybundles.core.intern.RawBuilder] : make()
+[org.ops4j.store.intern.TemporaryStore] : Enter store()
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Creating manifest from added headers.
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : PaxExam-0c825f89-117c-4b7a-8295-6fe844ae5af7 = io.fabric8.itests.paxexam.basic.examples.ExampleCamelCxfTest;testExample
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : DynamicImport-Package = *,org.apache.felix.service.*;status=provisional
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Ignore-Package = 
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : PaxExam-Executable = PaxExam-0c825f89-117c-4b7a-8295-6fe844ae5af7,
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Bundle-SymbolicName = PAXEXAM-PROBE-6e896bc3-a491-43c7-9b6d-833009ade261
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Bundle-ManifestVersion = 2
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/examples/ExampleCamelProfileTest$1.class
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/cloud/FabricAwsContainerTest.class
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/camel/CamelProfileScriptTest.class
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/camel/CamelProfileTest.class
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/examples/ExampleCamelProfileTest.class
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/mq/MQProfileTest$2.class
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/mq/MQProfileTest$1.class
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/examples/ExampleCamelClusterTest.class
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/ProfileScalingTest.class
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/FabricDosgiCamelTest.class
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource maven-settings.xml
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/cloud/FabricRackspaceContainerTest.class
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/mq/MQProfileTest$3.class
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/examples/ExampleCamelClusterTest$2.class
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/examples/ExampleCamelClusterTest$1.class
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/mq/MQProfileTest.class
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/examples/ExampleCxfProfileLongTest.class
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/examples/ExampleMQProfileTest.class
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/FabricMavenProxyTest.class
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/examples/ExampleCamelCxfTest$1.class
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/camel/CamelProfileLongTest.class
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/CreateSshContainerTest.class
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource test-features.xml
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/examples/ExampleCamelCxfTest.class
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/FabricDosgiCamelTest$1.class
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/cloud/FabricAwsContainerTest$1.class
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/XalanPerformanceTest.class
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/cloud/FabricRackspaceContainerTest$1.class
+[org.ops4j.pax.tinybundles.core.intern.RawBuilder] : Copying resource io/fabric8/itests/paxexam/basic/examples/ExampleMQProfileTest$1.class
+[org.ops4j.store.intern.TemporaryStore] : Exit store(): 3b091fbd596d7a464c9c91bf3e6363c604f29fb2
+[org.ops4j.pax.exam.container.remote.RBCRemoteTarget] : Preparing and Installing bundle (from stream )..
+[org.ops4j.pax.exam.rbc.client.RemoteBundleContextClient] : Packing probe into memory for true RMI. Hopefully things will fill in..
+[org.ops4j.pax.exam.container.remote.RBCRemoteTarget] : Installed bundle (from stream) as ID: 193
+[org.ops4j.pax.exam.container.remote.RBCRemoteTarget] : call [[TestAddress:PaxExam-04fa96c3-ee57-453c-953a-1e9907c24d7e root:PaxExam-0c825f89-117c-4b7a-8295-6fe844ae5af7]]
+fabric:create -n --wait-for-provisioning
+Waiting for container: root
+
+
+Creating new instance on SSH port 8102 and RMI ports 1100/44445 at: [1m/Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/target/paxexam/unpack/792c26ac-ea25-447d-ace1-709febf38b20/instances/child[m
+Waiting for containers: [ child ] to successfully provision
+Container: child Alive:false Status: SSH URL:null 
+Container: child Alive:false Status: SSH URL:null 
+Container: child Alive:false Status: SSH URL:null 
+Container: child Alive:false Status: SSH URL:null 
+Container: child Alive:false Status: SSH URL:null 
+Container: child Alive:false Status: SSH URL:null 
+Container: child Alive:true Status: SSH URL:null 
+Container: child Alive:true Status:analyzing SSH URL:Freemans-MacBook-Pro.local:8102 
+Container: child Alive:true Exception:java.lang.IllegalStateException: Duplicate feature found: xml-specs-api/2.5.0
+	at io.fabric8.agent.service.Agent.provision(Agent.java:189)
+	at io.fabric8.agent.DeploymentAgent.doUpdate(DeploymentAgent.java:643)
+	at io.fabric8.agent.DeploymentAgent$2.run(DeploymentAgent.java:257)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:471)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:262)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615)
+	at java.lang.Thread.run(Thread.java:745)
+ 
+fabric:container-connect -u admin -p admin child osgi:list -t 0
+fabric:container-connect -u admin -p admin child scr:list
+fabric:container-connect -u admin -p admin child dev:threads
+fabric:container-connect -u admin -p admin child log:display-exception
+[org.ops4j.pax.exam.karaf.container.internal.KarafTestContainer] : Shutting down the test container (Pax Runner)
+
+[org.ops4j.pax.exam.spi.reactors.ReactorManager] : suite finished
+Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 34.638 sec <<< FAILURE! - in io.fabric8.itests.paxexam.basic.examples.ExampleCamelCxfTest
+testExample(io.fabric8.itests.paxexam.basic.examples.ExampleCamelCxfTest)  Time elapsed: 33.965 sec  <<< ERROR!
+io.fabric8.itests.paxexam.support.ProvisionException: Container child failed to provision. Status:error - java.lang.IllegalStateException: Duplicate feature found: xml-specs-api/2.5.0 Exception:java.lang.IllegalStateException: Duplicate feature found: xml-specs-api/2.5.0
+	at io.fabric8.agent.service.Agent.provision(Agent.java:189)
+	at io.fabric8.agent.DeploymentAgent.doUpdate(DeploymentAgent.java:643)
+	at io.fabric8.agent.DeploymentAgent$2.run(DeploymentAgent.java:257)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:471)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:262)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615)
+	at java.lang.Thread.run(Thread.java:745)
+
+
+	at io.fabric8.itests.paxexam.support.Provision.provisioningSuccess(Provision.java:257)
+	at io.fabric8.itests.paxexam.support.ContainerBuilder.buildInternal(ContainerBuilder.java:229)
+	at io.fabric8.itests.paxexam.support.ContainerBuilder.build(ContainerBuilder.java:197)
+	at io.fabric8.itests.paxexam.basic.examples.ExampleCamelCxfTest.testExample(ExampleCamelCxfTest.java:55)
+
+
+Results :
+
+Tests in error: 
+  ExampleCamelCxfTest.testExample:55 » Provision Container child failed to provi...
+
+Tests run: 1, Failures: 0, Errors: 1, Skipped: 0
+
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 41.124 s
+[INFO] Finished at: 2015-07-24T11:03:12+08:00
+[INFO] Final Memory: 94M/716M
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:2.17:test (default-test) on project fabric-itests-paxexam-basic: There are test failures.
+[ERROR] 
+[ERROR] Please refer to /Users/ffang/project/fuse/fabric8-for-fuse-6.2-ffang-fork/fabric8/itests/paxexam/basic/target/surefire-reports for the individual test results.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
