@@ -72,7 +72,7 @@ public class AgentTest {
         String[] bundles = {
                 "mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.api/1.0.1",
                 "mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.cm/1.0.6",
-                "mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.core/1.4.4",
+                "mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.core/1.4.5",
                 "mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.core.compatibility/1.0.0",
                 "mvn:org.apache.aries.proxy/org.apache.aries.proxy.api/1.0.1",
                 "mvn:org.apache.aries.proxy/org.apache.aries.proxy.impl/1.0.4",
