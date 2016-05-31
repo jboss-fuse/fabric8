@@ -21,7 +21,6 @@ import io.fabric8.groups.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -44,7 +43,7 @@ public class ZooKeeperMultiGroup<T extends NodeState> extends ZooKeeperGroup<T> 
 
     @Override
     public boolean isMaster(String name) {
-        List<ChildData<T>> children = new ArrayList<ChildData<T>>(currentData.values());
+        List<ChildData<T>> children = getActiveChildren();
         Collections.sort(children, sequenceComparator);
         for (ChildData child : children) {
             NodeState node = (NodeState) child.getNode();
