@@ -115,6 +115,7 @@ public class SshContainerProvider implements ContainerProvider<CreateSshContaine
                 runScriptOnHost(session, script);
             } catch (Throwable ex) {
                 metadata.setFailure(ex);
+                throw new FabricException(ex);
             } finally {
                 if (session != null) {
                     session.disconnect();
@@ -141,6 +142,7 @@ public class SshContainerProvider implements ContainerProvider<CreateSshContaine
                 runScriptOnHost(session, script);
             } catch (Throwable t) {
                 LOGGER.error("Failed to start container: " + container.getId(), t);
+                throw new FabricException(t);
             } finally {
                 if (session != null) {
                     session.disconnect();
@@ -166,6 +168,7 @@ public class SshContainerProvider implements ContainerProvider<CreateSshContaine
                 container.setProvisionResult(Container.PROVISION_STOPPED);
             } catch (Throwable t) {
                 LOGGER.error("Failed to stop container: " + container.getId(), t);
+                throw new FabricException(t);
             } finally {
                 if (session != null) {
                     session.disconnect();
@@ -191,6 +194,7 @@ public class SshContainerProvider implements ContainerProvider<CreateSshContaine
                 runScriptOnHost(session, script);
             } catch (Throwable t) {
                 LOGGER.error("Failed to stop container: " + container.getId(), t);
+                throw new FabricException(t);
             } finally {
                 if (session != null) {
                     session.disconnect();
