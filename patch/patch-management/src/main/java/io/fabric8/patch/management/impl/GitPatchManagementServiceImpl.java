@@ -1935,8 +1935,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         } else {
             // do some guessing - first JBoss Fuse, then JBoss A-MQ
             String[] locations = new String[] {
-                    systemRepo.getCanonicalPath() + "/org/jboss/fuse/jboss-fuse-full/%1$s/jboss-fuse-full-%1$s-baseline.zip",
-                    patchesDir.getCanonicalPath() + "/jboss-fuse-full-%1$s-baseline.zip",
+                    systemRepo.getCanonicalPath() + "/org/jboss/fuse/jboss-fuse-karaf/%1$s/jboss-fuse-karaf-%1$s-baseline.zip",
+                    patchesDir.getCanonicalPath() + "/jboss-fuse-karaf-%1$s-baseline.zip",
                     systemRepo.getCanonicalPath() + "/org/jboss/amq/jboss-a-mq/%s/jboss-a-mq-%1$s-baseline.zip",
                     patchesDir.getCanonicalPath() + "/jboss-a-mq-%1$s-baseline.zip"
             };
@@ -2289,7 +2289,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     /**
-     * These baselines are created from org.jboss.fuse:jboss-fuse-full or org.jboss.amq:jboss-a-mq baseline distros.
+     * These baselines are created from org.jboss.fuse:jboss-fuse-karaf or org.jboss.amq:jboss-a-mq baseline distros.
      * @param fork
      */
     private void trackBaselinesForRootContainer(Git fork) throws IOException, GitAPIException {
@@ -2324,7 +2324,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         String currentFabricVersion = determineVersion("fabric");
 
         // Fuse distros first
-        File[] versionDirs = new File(systemRepo, "org/jboss/fuse/jboss-fuse-full").listFiles();
+        File[] versionDirs = new File(systemRepo, "org/jboss/fuse/jboss-fuse-karaf").listFiles();
         Map<Version, File> versions = new TreeMap<>();
 
         gitPatchRepository.checkout(fork)
@@ -2347,7 +2347,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             }
 
             File baselineDistribution = null;
-            File location = new File(entry.getValue(), String.format("jboss-fuse-full-%1$s-baseline.zip", version));
+            File location = new File(entry.getValue(), String.format("jboss-fuse-karaf-%1$s-baseline.zip", version));
             if (location.isFile()) {
                 baselineDistribution = location;
                 Activator.log(LogService.LOG_INFO, "Found Fuse baseline distribution: " + baselineDistribution.getCanonicalPath());
