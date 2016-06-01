@@ -20,8 +20,11 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -29,6 +32,8 @@ import java.util.List;
  */
 public class ZooKeeperFacade {
     private final CuratorFramework curator;
+
+    private static final transient Logger LOG = LoggerFactory.getLogger(ZooKeeperFacade.class);
 
     public ZooKeeperFacade(CuratorFramework curator) {
         this.curator = curator;
@@ -38,15 +43,28 @@ public class ZooKeeperFacade {
      * Returns the non-null String data for all the children matching the given path pattern
      */
     public List<String> matchingDescendantStringData(String pattern) throws Exception {
-        List<String> paths = matchingDescendants(pattern);
-        List<String> answer = new ArrayList<String>();
-        for (String path : paths) {
-            String text = getStringData(path);
-            if (Strings.isNotBlank(text)) {
-                answer.add(text);
+        return matchingDescendantStringData(pattern, false);
+    }
+
+    public List<String> matchingDescendantStringData(String pattern, boolean suppressExceptions) throws Exception {
+        try {
+            List<String> paths = matchingDescendants(pattern);
+            List<String> answer = new ArrayList<String>();
+            for (String path : paths) {
+                String text = getStringData(path);
+                if (Strings.isNotBlank(text)) {
+                    answer.add(text);
+                }
+            }
+            return answer;
+        } catch (Exception e){
+            if(suppressExceptions){
+                LOG.debug("", e);
+                return new ArrayList<String>(0);
+            } else{
+                throw e;
             }
         }
-        return answer;
     }
 
     /**

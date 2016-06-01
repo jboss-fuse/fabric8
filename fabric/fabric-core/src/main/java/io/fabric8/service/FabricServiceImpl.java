@@ -860,7 +860,13 @@ public final class FabricServiceImpl extends AbstractComponent implements Fabric
                 }
                 if (children != null) {
                     for (String child : children) {
-                        String mavenRepo = getSubstitutedPath(curator.get(), ZkPath.MAVEN_PROXY.getPath("download") + "/" + child);
+                        String mavenRepo = "";
+                        try {
+                            mavenRepo = getSubstitutedPath(curator.get(), ZkPath.MAVEN_PROXY.getPath("download") + "/" + child);
+                        } catch (Exception e){
+                            LOGGER.warn("No znodes found under path: [{}]", ZkPath.MAVEN_PROXY.getPath("download"), e);
+                            return new ArrayList<URI>(0);
+                        }
                         if (mavenRepo != null && !mavenRepo.endsWith("/")) {
                             mavenRepo += "/";
                         }
