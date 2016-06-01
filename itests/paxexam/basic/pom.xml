@@ -228,6 +228,44 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <version>${maven-dependency-plugin-version}</version>
+                <executions>
+                    <execution>
+                        <id>unpack-profiles</id>
+                        <phase>process-test-resources</phase>
+                        <goals>
+                            <goal>unpack</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>io.fabric8</groupId>
+                                    <artifactId>fabric8-karaf</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>zip</type>
+                                    <outputDirectory>${project.build.directory}</outputDirectory>
+                                </artifactItem>
+                            </artifactItems>
+                            <includes>*/fabric/import/fabric/profiles/acls.profile/org.apache.karaf.command.acl.*.properties</includes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <inherited>false</inherited>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <phase>process-test-resources</phase>
+                        <configuration>
+                            <target>
+                                <move file="${project.build.directory}/fabric8-karaf-${project.version}" tofile="${project.build.directory}/fabric8-profiles" overwrite="true" />
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.servicemix.tooling</groupId>
