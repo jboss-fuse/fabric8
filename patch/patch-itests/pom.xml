@@ -168,7 +168,7 @@
                                 <copy todir="${karaf.home}/patches/_baseline-root">
                                     <fileset dir="${karaf.home}"/>
                                 </copy>
-                                <zip destfile="${karaf.home}/patches/jboss-fuse-full-6.2.0-baseline.zip">
+                                <zip destfile="${karaf.home}/patches/jboss-fuse-karaf-6.2.0-baseline.zip">
                                     <fileset dir="${karaf.home}/patches" >
                                         <include name="_baseline-root/**" />
                                     </fileset>
