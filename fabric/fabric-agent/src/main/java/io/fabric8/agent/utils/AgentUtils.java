@@ -311,9 +311,9 @@ public class AgentUtils {
                 StringBuilder sb = new StringBuilder();
                 for (URI uri : mavenRepoUris) {
                     String mavenRepo = uri.toString();
-                    if (mavenRepo.startsWith(httpUrl)) {
-                        continue;
-                    }
+//                    if (mavenRepo.startsWith(httpUrl)) {
+//                        continue;
+//                    }
                     if (!mavenRepo.endsWith("/")) {
                         mavenRepo += "/";
                     }
