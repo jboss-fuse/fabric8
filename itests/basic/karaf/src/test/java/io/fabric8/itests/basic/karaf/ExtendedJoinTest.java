@@ -78,7 +78,7 @@ public class ExtendedJoinTest {
 	@Test
 	@Ignore
 	public void testJoinAndAddToEnsemble() throws Exception {
-        System.err.println(CommandSupport.executeCommand("fabric:create --force --clean -n"));
+        System.err.println(CommandSupport.executeCommand("fabric:create --force --clean -n --wait-for-provisioning"));
         //System.out.println(executeCommand("shell:info"));
         //System.out.println(executeCommand("fabric:info"));
         //System.out.println(executeCommand("fabric:profile-list"));

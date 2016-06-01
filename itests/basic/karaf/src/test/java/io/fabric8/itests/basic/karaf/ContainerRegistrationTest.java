@@ -77,7 +77,7 @@ public class ContainerRegistrationTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testContainerRegistration() throws Exception {
-        System.out.println(CommandSupport.executeCommand("fabric:create --force --clean -n"));
+        System.out.println(CommandSupport.executeCommand("fabric:create --force --clean -n --wait-for-provisioning"));
         //System.out.println(executeCommand("shell:info"));
         //System.out.println(executeCommand("fabric:info"));
         //System.out.println(executeCommand("fabric:profile-list"));

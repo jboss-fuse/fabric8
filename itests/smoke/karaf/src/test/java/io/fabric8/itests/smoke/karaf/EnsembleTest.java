@@ -80,7 +80,7 @@ public class EnsembleTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testAddAndRemove() throws Exception {
-        System.err.println(CommandSupport.executeCommand("fabric:create --force --clean -n"));
+        System.err.println(CommandSupport.executeCommand("fabric:create --force --clean -n --wait-for-provisioning"));
         BundleContext moduleContext = ServiceLocator.getSystemContext();
         ServiceProxy<FabricService> fabricProxy = ServiceProxy.createServiceProxy(moduleContext, FabricService.class);
         try {

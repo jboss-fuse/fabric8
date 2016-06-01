@@ -79,7 +79,7 @@ public class FabricCreateCommandTest {
     @Test
     public void testLocalFabricCluster() throws Exception {
 
-        CommandSupport.executeCommand("fabric:create --force --clean -n");
+        CommandSupport.executeCommand("fabric:create --force --clean -n --wait-for-provisioning");
 
         FabricService fabricService = ServiceLocator.getRequiredService(FabricService.class);
         Container[] containers = fabricService.getContainers();
