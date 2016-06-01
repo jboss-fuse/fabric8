@@ -161,6 +161,12 @@
                                 <concat destfile="${karaf.home}/fabric/import/fabric/profiles/default.profile/io.fabric8.maven.properties" append="true">
                                     <filelist dir="src/test/resources" files="io.fabric8.maven.properties" />
                                 </concat>
+                                <copy todir="${karaf.home}/etc" overwrite="true">
+                                    <fileset dir="${karaf.home}/fabric/import/fabric/profiles/acls.profile">
+                                        <include name="org.apache.karaf.command.acl.*.properties" />
+                                    </fileset>
+                                    <globmapper from="*.properties" to="*.cfg" />
+                                </copy>
                             </target>
                         </configuration>
                     </execution>
