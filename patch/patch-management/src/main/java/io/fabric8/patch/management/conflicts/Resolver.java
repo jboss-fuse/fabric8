@@ -27,9 +27,9 @@ public interface Resolver {
      * <p>Main resolution method that uses standard
      * <a href="https://en.wikipedia.org/wiki/Merge_%28version_control%29#Three-way_merge">3 way merge</a> terminology.</p>
      * <p>Instead of naming the versions <em>ours</em> and <em>theirs</em>, parameters to this method are:<ul>
-     *     <li>first - a change that we want to come <strong>first</strong> (less important in this case)</li>
+     *     <li>first - a change that we want to come <strong>first</strong> (may be overriden by "second")</li>
      *     <li>base - common base</li>
-     *     <li>second - a change that we want to come <strong>second</strong> (more important in this case)</li>
+     *     <li>second - a change that we want to come <strong>second</strong> (may override "first")</li>
      * </ul>
      * Generally, {@link io.fabric8.patch.management.PatchKind} determinates what version is more important, but
      * sometimes we want to change this - for example, in case of

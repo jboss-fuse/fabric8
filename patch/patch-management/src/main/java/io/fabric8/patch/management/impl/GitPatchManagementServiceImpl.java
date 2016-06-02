@@ -71,7 +71,9 @@ import io.fabric8.patch.management.Pending;
 import io.fabric8.patch.management.ProfileUpdateStrategy;
 import io.fabric8.patch.management.Utils;
 import io.fabric8.patch.management.conflicts.ConflictResolver;
+import io.fabric8.patch.management.conflicts.PropertiesFileResolver;
 import io.fabric8.patch.management.conflicts.Resolver;
+import io.fabric8.patch.management.conflicts.ResolverEx;
 import io.fabric8.patch.management.io.EOLFixingFileOutputStream;
 import io.fabric8.patch.management.io.EOLFixingFileUtils;
 import io.fabric8.patch.management.io.ProfileFileUtils;
@@ -85,7 +87,6 @@ import org.eclipse.jgit.api.CherryPickResult;
 import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.MergeCommand;
-import org.eclipse.jgit.api.RebaseCommand;
 import org.eclipse.jgit.api.ResetCommand;
 import org.eclipse.jgit.api.RevertCommand;
 import org.eclipse.jgit.api.Status;
@@ -105,8 +106,6 @@ import org.eclipse.jgit.revwalk.RevTag;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.TagOpt;
-import org.eclipse.jgit.treewalk.TreeWalk;
-import org.eclipse.jgit.treewalk.filter.PathFilter;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleEvent;
@@ -1322,7 +1321,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * @param result
      * @param commit conflicting commit
      * @param preferNew whether to use "theirs" change - the one from cherry-picked commit. for rollup patch, "theirs"
-     * is user change, for non-rollup change, "theirs" is custom change
+     * is user change (second, applied after patch), for non-rollup change, "theirs" is a change from patch (applied
+     * after user change)
      * @param kind
      * @param cpPrefix prefix for a cherry-pick to have nice backup directory names.
      * @param performBackup if <code>true</code>, we backup rejected version (should be false during rollback of patches)
@@ -1415,7 +1415,25 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         }
 
                         // resolvers treat patch change as less important - user lines overwrite patch lines
-                        resolved = resolver.resolve(first, base, second);
+                        if (resolver instanceof PropertiesFileResolver) {
+                            // TODO: use options from patch:install / patch:fabric-install command
+                            // by default we use a file that comes from patch and we may add property changes
+                            // from user
+                            // in R patch, preferNew == false, because patch comes first
+                            // in P patch, preferNew == true, because patch comes last
+                            // so we effectively use patch version as base
+                            boolean useFirstChangeAsBase = !preferNew;
+                            if (entry.getKey().startsWith("etc/")) {
+                                // files in etc/ directory are "for user", so we use them as base (possibly changed
+                                // by user - comments, layout, ...)
+                                // files in e.g., fabric/import/fabric/profiles  are "for Fuse", so we use patch version
+                                // as base
+                                useFirstChangeAsBase = preferNew;
+                            }
+                            resolved = ((ResolverEx)resolver).resolve(first, base, second, useFirstChangeAsBase);
+                        } else {
+                            resolved = resolver.resolve(first, base, second);
+                        }
 
                         if (resolved != null) {
                             FileUtils.write(new File(fork.getRepository().getWorkTree(), entry.getKey()), resolved);
