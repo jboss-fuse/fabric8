@@ -77,4 +77,45 @@ public class ConflictResolutionTest {
         assertThat(resolved, equalTo(expected));
     }
 
+    @Test
+    public void resolveProperties() throws Exception {
+        PropertiesFileResolver resolver = (PropertiesFileResolver) cr.getResolver("a.properties");
+
+        String resolved1 = resolver.resolve(
+                new File("src/test/resources/conflicts/example2/file.patched.properties"),
+                new File("src/test/resources/conflicts/example2/file.base.properties"),
+                new File("src/test/resources/conflicts/example2/file.custom.properties"),
+                true
+        );
+        String expected1 = FileUtils.readFileToString(new File("src/test/resources/conflicts/example2/file.expected-first.properties"));
+        assertThat(resolved1, equalTo(expected1));
+
+        String resolved2 = resolver.resolve(
+                new File("src/test/resources/conflicts/example2/file.patched.properties"),
+                new File("src/test/resources/conflicts/example2/file.base.properties"),
+                new File("src/test/resources/conflicts/example2/file.custom.properties"),
+                false
+        );
+        String expected2 = FileUtils.readFileToString(new File("src/test/resources/conflicts/example2/file.expected-second.properties"));
+        assertThat(resolved2, equalTo(expected2));
+
+        String resolved3 = resolver.resolve(
+                new File("src/test/resources/conflicts/example2/file.custom.properties"),
+                new File("src/test/resources/conflicts/example2/file.base.properties"),
+                new File("src/test/resources/conflicts/example2/file.patched.properties"),
+                true
+        );
+        String expected3 = FileUtils.readFileToString(new File("src/test/resources/conflicts/example2/file.expected2-first.properties"));
+        assertThat(resolved3, equalTo(expected3));
+
+        String resolved4 = resolver.resolve(
+                new File("src/test/resources/conflicts/example2/file.custom.properties"),
+                new File("src/test/resources/conflicts/example2/file.base.properties"),
+                new File("src/test/resources/conflicts/example2/file.patched.properties"),
+                false
+        );
+        String expected4 = FileUtils.readFileToString(new File("src/test/resources/conflicts/example2/file.expected2-second.properties"));
+        assertThat(resolved4, equalTo(expected4));
+    }
+
 }
