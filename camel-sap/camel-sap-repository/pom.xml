@@ -7,6 +7,8 @@
 	<artifactId>camel-sap-repository</artifactId>
 	<version>6.3.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
+	
+	<!-- Cannot use the parent pom, it fails the build -->
 
 	<name>JBoss Fuse :: SAP JCO :: SAP Data Layer :: Repository</name>
 	<url>http://www.jboss.org/products/fuse/overview/</url>
@@ -15,9 +17,11 @@
 		<name>Red Hat, Inc.</name>
 		<url>http://www.redhat.com</url>
 	</organization>
+	
 	<properties>
+		<tycho-version>0.24.0</tycho-version>
 	</properties>
-
+	
 	<modules>
 		<module>org.fusesource.camel.component.sap.feature</module>
 		<module>org.fusesource.camel.component.sap.updatesite</module>
@@ -28,13 +32,13 @@
 			<plugin>
 				<groupId>org.eclipse.tycho</groupId>
 				<artifactId>tycho-maven-plugin</artifactId>
-				<version>0.24.0</version>
+				<version>${tycho-version}</version>
 				<extensions>true</extensions>
 			</plugin>
 			<plugin>
 				<groupId>org.eclipse.tycho.extras</groupId>
 				<artifactId>tycho-source-feature-plugin</artifactId>
-				<version>0.21.0</version>
+				<version>${tycho-version}</version>
 				<configuration>
 					<excludes>
 						<plugin id="com.sap.conn.jco"/>
@@ -60,7 +64,6 @@
 			<plugin>
 				<groupId>org.eclipse.tycho</groupId>
 				<artifactId>tycho-p2-plugin</artifactId>
-				<version>0.24.0</version>
 				<executions>
 					<execution>
 						<id>attach-p2-metadata</id>
@@ -74,7 +77,6 @@
 		    <plugin>
 				<groupId>org.eclipse.tycho</groupId>
 				<artifactId>target-platform-configuration</artifactId>
-				<version>0.24.0</version>
 				<configuration>
 					<resolver>p2</resolver>
 					<pomDependencies>consider</pomDependencies>
@@ -191,5 +193,4 @@
 			</releases>
 		</repository>
 	</repositories>
-
 </project>
