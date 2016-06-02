@@ -620,7 +620,7 @@
 		<module>org.fusesource.camel.component.sap</module>
 		<module>org.fusesource.camel.component.sap.test</module>
 		<module>camel-sap-component</module>
-		<!-- <module>camel-sap-repository</module> -->
+		<module>camel-sap-repository</module>
 	</modules>
 	<repositories>
 		<repository>
