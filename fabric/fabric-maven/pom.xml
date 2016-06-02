@@ -155,6 +155,8 @@
                             javax.enterprise.inject.*;
                             resolution:=optional,
                             javax.*,
+			    org.ietf.jgss;
+			    resolution:=optional,
                             io.fabric8.common.util.*,
                             org.osgi.*,
                             org.slf4j.*,
