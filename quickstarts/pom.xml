@@ -99,6 +99,18 @@
 
     <pluginRepositories>
         <pluginRepository>
+            <id>fusesource.ea</id>
+            <name>Fusesource Early Access Release Repository</name>
+            <url>https://repository.jboss.org/nexus/content/groups/ea</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>never</updatePolicy>
+            </releases>
+        </pluginRepository>
+        <pluginRepository>
             <id>redhat-ga-repository</id>
             <url>http://maven.repository.redhat.com/ga</url>
             <releases>
