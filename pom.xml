@@ -551,7 +551,7 @@
           <name>Redhat Product Repository</name>
           <url>https://maven.repository.redhat.com/techpreview/all</url>
         </repository-->
-        <!--repository>
+        <repository>
             <id>brewroot</id>
             <name>Brew Repository</name>
             <url>http://download.eng.bos.redhat.com/brewroot/repos/jb-fuse-6.2-build/latest/maven</url>
@@ -562,7 +562,7 @@
                 <enabled>true</enabled>
                 <updatePolicy>never</updatePolicy>
             </releases>
-        </repository-->
+        </repository>
     </repositories>
 
     <pluginRepositories>
