@@ -29,6 +29,8 @@ import java.util.Set;
 @ThreadSafe
 public class CreateEnsembleOptions extends ContainerOptions {
 
+    static final long serialVersionUID = 2962922234582748491L;
+
     public static final String AGENT_AUTOSTART = "agent.auto.start";
     public static final String ENSEMBLE_AUTOSTART = "ensemble.auto.start";
     public static final String PROFILES_AUTOIMPORT = "profiles.auto.import";
