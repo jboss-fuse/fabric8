@@ -95,6 +95,19 @@
                 <updatePolicy>never</updatePolicy>
             </releases>
         </repository>
+        <!-- required for jline:jline -->
+        <repository>
+            <id>brewroot</id>
+            <name>Brew Repository</name>
+            <url>http://download.eng.bos.redhat.com/brewroot/repos/jb-fuse-6.2-build/latest/maven</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>never</updatePolicy>
+            </releases>
+        </repository>
     </repositories>
 
     <pluginRepositories>
@@ -120,6 +133,19 @@
                 <enabled>false</enabled>
             </snapshots>
         </pluginRepository>  
+        <!-- required for jline:jline -->
+        <pluginRepository>
+            <id>brewroot</id>
+            <name>Brew Repository</name>
+            <url>http://download.eng.bos.redhat.com/brewroot/repos/jb-fuse-6.2-build/latest/maven</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>never</updatePolicy>
+            </releases>
+        </pluginRepository>
     </pluginRepositories>
 
   <distributionManagement>
