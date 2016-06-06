@@ -601,6 +601,19 @@
                 <enabled>false</enabled>
             </snapshots>
         </pluginRepository>
+        <pluginRepository>
+            <!-- required for jline:jline:2.12.1.redhat-002 -->
+            <id>brewroot</id>
+            <name>Brew Repository</name>
+            <url>http://download.eng.bos.redhat.com/brewroot/repos/jb-fuse-6.2-build/latest/maven</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>never</updatePolicy>
+            </releases>
+        </pluginRepository>
     </pluginRepositories>
 
     <dependencyManagement>
