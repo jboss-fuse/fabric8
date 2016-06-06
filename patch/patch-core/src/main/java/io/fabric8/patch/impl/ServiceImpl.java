@@ -172,6 +172,9 @@ public class ServiceImpl implements Service {
                 return pathname.exists() && pathname.getName().endsWith(".pending");
             }
         });
+        if (pendingPatches == null) {
+            return;
+        }
         for (File pending : pendingPatches) {
             Pending what = Pending.valueOf(FileUtils.readFileToString(pending));
 
@@ -883,8 +886,8 @@ public class ServiceImpl implements Service {
                     Version lowestUpdateableVersion = new Version(v.getMajor(), v.getMinor(), 0);
                     // assume that we can update feature XXX-2.2.3 to XXX-2.2.142, but not to XXX-2.3.0.alpha-1
                     String key = String.format("%s|%s", feature.getName(), lowestUpdateableVersion.toString());
-                    featuresInOldRepositories.put(key, existingRepository.getName());
-                    singleFeaturesInOldRepositories.put(feature.getName(), existingRepository.getName());
+                    featuresInOldRepositories.put(key, existingRepository.getURI().toString());
+                    singleFeaturesInOldRepositories.put(feature.getName(), existingRepository.getURI().toString());
                     actualOldFeatureVersions.put(key, v);
                 }
             }
@@ -1092,7 +1095,7 @@ public class ServiceImpl implements Service {
         HashMap<String, Repository> before = new HashMap<String, Repository>();
         if (featuresService != null) {
             for (Repository repository : featuresService.listRepositories()) {
-                before.put(repository.getName(), repository);
+                before.put(repository.getURI().toString(), repository);
             }
         }
         return before;
@@ -1270,7 +1273,7 @@ public class ServiceImpl implements Service {
         while (!toStop.isEmpty()) {
             List<Bundle> bs = getBundlesToDestroy(toStop);
             for (Bundle bundle : bs) {
-                String hostHeader = (String) bundle.getHeaders().get(Constants.FRAGMENT_HOST);
+                String hostHeader = bundle.getHeaders().get(Constants.FRAGMENT_HOST);
                 if (hostHeader == null && (bundle.getState() == Bundle.ACTIVE || bundle.getState() == Bundle.STARTING)) {
                     if (!"org.ops4j.pax.url.mvn".equals(bundle.getSymbolicName())) {
                         bundle.stop();
@@ -1304,8 +1307,8 @@ public class ServiceImpl implements Service {
                     l.countDown();
                 }
             };
-            FrameworkWiring wiring = (FrameworkWiring) bundleContext.getBundle(0).adapt(FrameworkWiring.class);
-            wiring.refreshBundles((Collection<Bundle>) toRefresh, listener);
+            FrameworkWiring wiring = bundleContext.getBundle(0).adapt(FrameworkWiring.class);
+            wiring.refreshBundles(toRefresh, listener);
             try {
                 l.await();
             } catch (InterruptedException e) {
@@ -1313,7 +1316,7 @@ public class ServiceImpl implements Service {
             }
         }
         for (Bundle bundle : toStart) {
-            String hostHeader = (String) bundle.getHeaders().get(Constants.FRAGMENT_HOST);
+            String hostHeader = bundle.getHeaders().get(Constants.FRAGMENT_HOST);
             if (hostHeader == null) {
                 try {
                     bundle.start();
@@ -1380,7 +1383,7 @@ public class ServiceImpl implements Service {
     protected void findBundlesWithFragmentsToRefresh(Set<Bundle> toRefresh) {
         for (Bundle b : toRefresh) {
             if (b.getState() != Bundle.UNINSTALLED) {
-                String hostHeader = (String) b.getHeaders().get(Constants.FRAGMENT_HOST);
+                String hostHeader = b.getHeaders().get(Constants.FRAGMENT_HOST);
                 if (hostHeader != null) {
                     Clause[] clauses = Parser.parseHeader(hostHeader);
                     if (clauses != null && clauses.length > 0) {
@@ -1415,7 +1418,7 @@ public class ServiceImpl implements Service {
         Map<Bundle, List<Clause>> imports = new HashMap<Bundle, List<Clause>>();
         for (Iterator<Bundle> it = bundles.iterator(); it.hasNext();) {
             Bundle b = it.next();
-            String importsStr = (String) b.getHeaders().get(Constants.IMPORT_PACKAGE);
+            String importsStr = b.getHeaders().get(Constants.IMPORT_PACKAGE);
             List<Clause> importsList = getOptionalImports(importsStr);
             if (importsList.isEmpty()) {
                 it.remove();
@@ -1431,7 +1434,7 @@ public class ServiceImpl implements Service {
         List<Clause> exports = new ArrayList<Clause>();
         for (Bundle b : toRefresh) {
             if (b.getState() != Bundle.UNINSTALLED) {
-                String exportsStr = (String) b.getHeaders().get(Constants.EXPORT_PACKAGE);
+                String exportsStr = b.getHeaders().get(Constants.EXPORT_PACKAGE);
                 if (exportsStr != null) {
                     Clause[] exportsList = Parser.parseHeader(exportsStr);
                     exports.addAll(Arrays.asList(exportsList));
