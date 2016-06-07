@@ -19,12 +19,15 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import io.fabric8.patch.management.PatchTestSupport;
 import io.fabric8.patch.management.impl.GitPatchManagementService;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.CommitCommand;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.MergeCommand;
+import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffAlgorithm;
 import org.eclipse.jgit.diff.DiffEntry;
@@ -34,6 +37,7 @@ import org.eclipse.jgit.diff.EditList;
 import org.eclipse.jgit.diff.RawText;
 import org.eclipse.jgit.diff.RawTextComparator;
 import org.eclipse.jgit.lib.AbbreviatedObjectId;
+import org.eclipse.jgit.lib.IndexDiff;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
@@ -42,6 +46,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.osgi.framework.startlevel.BundleStartLevel;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -65,23 +71,26 @@ public class GitConflictResolutionTest extends PatchTestSupport {
     }
 
     @Test
+    public void mergeConflict() throws Exception {
+        prepareChanges();
+        RevWalk rw = new RevWalk(git.getRepository());
+
+        git.checkout().setName("custom").setCreateBranch(false).call();
+        MergeResult result = git.merge().setFastForward(MergeCommand.FastForwardMode.NO_FF)
+                .include(git.getRepository().resolve("patched"))
+                .call();
+
+        assertThat(result.getMergeStatus(), equalTo(MergeResult.MergeStatus.CONFLICTING));
+        assertThat(result.getConflicts().size(), equalTo(1));
+
+        Map<String, IndexDiff.StageState> conflicts = git.status().call().getConflictingStageState();
+        assertThat(conflicts.size(), equalTo(1));
+        assertThat(conflicts.get("etc/org.ops4j.pax.logging.cfg"), equalTo(IndexDiff.StageState.BOTH_MODIFIED));
+    }
+
+    @Test
     public void reportingDiffs() throws Exception {
-        FileUtils.copyFile(new File("src/test/resources/conflicts/example1/org.ops4j.pax.logging.base.cfg"),
-                new File(git.getRepository().getWorkTree(), "etc/org.ops4j.pax.logging.cfg"));
-        git.add().addFilepattern(".").call();
-        commit("original etc/org.ops4j.pax.logging.cfg").call();
-
-        git.checkout().setCreateBranch(true).setStartPoint("master").setName("custom").call();
-        FileUtils.copyFile(new File("src/test/resources/conflicts/example1/org.ops4j.pax.logging.custom.cfg"),
-                new File(git.getRepository().getWorkTree(), "etc/org.ops4j.pax.logging.cfg"));
-        git.add().addFilepattern(".").call();
-        commit("custom etc/org.ops4j.pax.logging.cfg").call();
-
-        git.checkout().setCreateBranch(true).setStartPoint("master").setName("patched").call();
-        FileUtils.copyFile(new File("src/test/resources/conflicts/example1/org.ops4j.pax.logging.patched.cfg"),
-                new File(git.getRepository().getWorkTree(), "etc/org.ops4j.pax.logging.cfg"));
-        git.add().addFilepattern(".").call();
-        commit("custom etc/org.ops4j.pax.logging.cfg").call();
+        prepareChanges();
 
         ObjectReader reader = git.getRepository().newObjectReader();
 
@@ -160,6 +169,25 @@ public class GitConflictResolutionTest extends PatchTestSupport {
         if (prolog) {
             System.out.print("</div>");
         }
+    }
+
+    private void prepareChanges() throws IOException, GitAPIException {
+        FileUtils.copyFile(new File("src/test/resources/conflicts/example1/org.ops4j.pax.logging.base.cfg"),
+                new File(git.getRepository().getWorkTree(), "etc/org.ops4j.pax.logging.cfg"));
+        git.add().addFilepattern(".").call();
+        commit("original etc/org.ops4j.pax.logging.cfg").call();
+
+        git.checkout().setCreateBranch(true).setStartPoint("master").setName("custom").call();
+        FileUtils.copyFile(new File("src/test/resources/conflicts/example1/org.ops4j.pax.logging.custom.cfg"),
+                new File(git.getRepository().getWorkTree(), "etc/org.ops4j.pax.logging.cfg"));
+        git.add().addFilepattern(".").call();
+        commit("custom etc/org.ops4j.pax.logging.cfg").call();
+
+        git.checkout().setCreateBranch(true).setStartPoint("master").setName("patched").call();
+        FileUtils.copyFile(new File("src/test/resources/conflicts/example1/org.ops4j.pax.logging.patched.cfg"),
+                new File(git.getRepository().getWorkTree(), "etc/org.ops4j.pax.logging.cfg"));
+        git.add().addFilepattern(".").call();
+        commit("custom etc/org.ops4j.pax.logging.cfg").call();
     }
 
     private CommitCommand commit(String message) {
