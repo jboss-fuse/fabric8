@@ -42,7 +42,9 @@ public class OpenShiftConstants {
     /**
      * Default maven repositories used to download deployed artifacts in Fabric managed Java cartridges
      */
-    public static final String DEFAULT_REPOSITORIES = "https://repo.fusesource.com/nexus/content/groups/ea@id=fuseearlyaccess, " + "https://maven.repository.redhat.com/ga@id=redhat.ga.repo";
+    public static final String DEFAULT_REPOSITORIES = "https://repo.fusesource.com/nexus/content/groups/ea@id=fuseearlyaccess, " 
+        + "https://maven.repository.redhat.com/ga@id=redhat.ga.repo, "
+        + "https://maven.repository.redhat.com/earlyaccess/all@id=redhat.ea.repo";
 
     /**
      * Specifies a relative directory into the git repository
