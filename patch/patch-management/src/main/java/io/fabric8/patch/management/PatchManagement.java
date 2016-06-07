@@ -113,6 +113,19 @@ public interface PatchManagement {
     void rollback(PatchData patchData);
 
     /**
+     * Fabric-mode operation - when patching profiles during {@link PatchKind#ROLLUP rollup patch} installation
+     * we have to find some common point between a series of user changes (<code>profile-edit</code>s) and changes
+     * related to product itself (and installed patches). Profiles from patch
+     * {@link #installProfiles(File, String, Patch, ProfileUpdateStrategy) will be installed} in <em>patch branch</em>
+     * and then this branch will be merged with <em>version branch</em> that contains user edits.
+     * @param gitRepository
+     * @param versionId
+     * @return temporary branch name that'll contain changes from patch. <code>versionId</code> branch is main
+     * version branch
+     */
+    String findLatestPatchRevision(File gitRepository, String versionId);
+
+    /**
      * Fabric-mode operation - takes external {@link Git} and updates a branch (version) with new profiles
      * shipped with new {@link PatchKind#ROLLUP rollup patch}.
      * @param gitRepository
@@ -121,6 +134,18 @@ public interface PatchManagement {
      * @param strategy
      */
     void installProfiles(File gitRepository, String versionId, Patch patch, ProfileUpdateStrategy strategy);
+
+    /**
+     * Fabric-mode operation - After copying changes from {@link PatchKind#ROLLUP R patch} to <em>patch branch</em>,
+     * we have to merge user changes in <em>version branch</em> (like <code>1.0</code>) with <em>patch branch</em>.
+     * There may be some conflicts, but we have several
+     * {@link io.fabric8.patch.management.conflicts.Resolver conflict resolvers} to choose from.
+     * @param patch
+     * @param gitRepository
+     * @param versionBranch
+     * @param patchBranch
+     */
+    void mergeProfileChanges(Patch patch, File gitRepository, String versionBranch, String patchBranch);
 
     /**
      * Patching services can be called from high level services. This method takes a map of versions
