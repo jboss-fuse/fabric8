@@ -1419,7 +1419,12 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 String message = String.format(" - %s (%s): %s", entry.getKey(), conflicts.get(entry.getKey()), "Using " + resolver.getClass().getName() + " to resolve the conflict");
                 Activator.log2(LogService.LOG_INFO, message);
 
-                // when doing custom resolution, we prefer user change
+                // when doing custom resolution of conflict, we know that both user and patch has changed the file
+                // in non-mergeable way.
+                // If there was no resolver, we simply check what to choose by "preferNew" flag
+                // But because we have custom resolver, we use "preferNew" flag to check which STAGE points to patch'
+                // version and we select this patch' version of conflicting file as less important file inside
+                // custom resolver
                 File base = null, first = null, second = null;
                 try {
                     ObjectLoader loader = null;
@@ -1431,13 +1436,15 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         }
                     }
 
-                    // if preferNew (P patch) then first will be change from patch
+                    // if preferNew == true (P patch) then "first" file (less important) will be file
+                    // provided by patch ("theirs", STAGE_3)
                     first = new File(fork.getRepository().getWorkTree(), entry.getKey() + ".2");
                     loader = objectReader.open(entry.getValue()[preferNew ? 2 : 0]);
                     try (FileOutputStream fos = new FileOutputStream(first)) {
                         loader.copyTo(fos);
                     }
 
+                    // "second", more important file will be user change
                     second = new File(fork.getRepository().getWorkTree(), entry.getKey() + ".3");
                     loader = objectReader.open(entry.getValue()[preferNew ? 0 : 2]);
                     try (FileOutputStream fos = new FileOutputStream(second)) {
@@ -1451,15 +1458,15 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         // from user
                         // in R patch, preferNew == false, because patch comes first
                         // in P patch, preferNew == true, because patch comes last
-                        // in R patch + fabric mode, preferNew == true, because we *merge* patch into version
-                        // so we effectively use patch version as base
-                        boolean useFirstChangeAsBase = !preferNew;
+                        // in R patch + fabric mode, preferNew == true, because we *merge* patch branch into version
+                        //    branch
+                        boolean useFirstChangeAsBase = true;
                         if (entry.getKey().startsWith("etc/")) {
                             // files in etc/ directory are "for user", so we use them as base (possibly changed
                             // by user - comments, layout, ...)
                             // files in e.g., fabric/import/fabric/profiles  are "for Fuse", so we use patch version
                             // as base
-                            useFirstChangeAsBase = preferNew;
+                            useFirstChangeAsBase = false;
                         }
                         resolved = ((ResolverEx)resolver).resolve(first, base, second, useFirstChangeAsBase);
                     } else {
