@@ -425,7 +425,7 @@
         </repository>
         <repository>
             <id>redhat-ga-repository</id>
-            <url>http://maven.repository.redhat.com/ga</url>
+            <url>https://maven.repository.redhat.com/ga</url>
             <releases>
                 <enabled>true</enabled>
             </releases>
@@ -433,124 +433,16 @@
                 <enabled>false</enabled>
             </snapshots>
         </repository>
-        <!--repository>
-            <id>maven-restlet</id>
-            <name>Public online Restlet repository</name>
-            <url>http://maven.restlet.com</url>
-        </repository-->
-        <!-- Note: m2-snapshot is needed during CI builds -->
-        <!--repository>
-            <id>fusesource.m2-snapshot</id>
-            <name>FuseSource Community Snapshot Repository</name>
-            <url>https://repo.fusesource.com/nexus/content/groups/public-snapshots</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-        </repository-->
-        <!--repository>
-            <id>fusesource.m2</id>
-            <name>JBoss FS Public Repository Group</name>
-            <url>https://repo.fusesource.com/nexus/content/groups/public</url>
-            <layout>default</layout>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository-->
-        <!--repository>
-            <id>jboss-thirdparty-uploads</id>
-            <name>JBoss Thirdparty Uploads</name>
-            <url>https://repository.jboss.org/nexus/content/repositories/thirdparty-uploads</url>
-            <layout>default</layout>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-                <updatePolicy>never</updatePolicy>
-            </snapshots>
-        </repository-->
-        <!--repository>
-            <id>jboss-public-repository-group</id>
-            <name>JBoss Public Repository Group</name>
-            <url>http://repository.jboss.org/nexus/content/groups/public/</url>
-            <layout>default</layout>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-                <updatePolicy>daily</updatePolicy>
-            </snapshots>
-        </repository-->
-        <!-- Java.net Maven Repository, required by javax.mail -->
-        <!--repository>
-            <id>java.net</id>
-            <name>Java.net Maven2 Repository</name>
-            <url>http://download.java.net/maven/2</url>
+        <repository>
+            <id>redhat-ea-repository</id>
+            <url>https://maven.repository.redhat.com/earlyaccess/all</url>
             <releases>
                 <enabled>true</enabled>
             </releases>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
-        </repository-->
-        <!-- Scriptengines Google Maven Repository, required by scriptengines -->
-        <!--repository>
-            <id>scriptengines</id>
-            <name>Scriptengines Google Code Maven Repository</name>
-            <url>http://scriptengines.googlecode.com/svn/m2-repo</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository-->
-        <!-- ServiceMix Maven 2 repository: jsmpp 2.0 is not in central repo -->
-        <!--repository>
-            <id>servicemix.m2-repo</id>
-            <name>ServiceMix Maven 2 repository</name>
-            <url>http://svn.apache.org/repos/asf/servicemix/m2-repo</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository-->
-        <!--repository>
-            <id>apache.snapshots</id>
-            <name>Apache Snapshot Repository</name>
-            <url>http://repository.apache.org/snapshots</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-        </repository-->
-        <!--repository>
-            <id>conjars</id>
-            <name>Conjars Maven Repository</name>
-            <url>http://conjars.org/repo</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository-->
-        <!--repository>
-          <id>redhat-product</id>
-          <name>Redhat Product Repository</name>
-          <url>https://maven.repository.redhat.com/techpreview/all</url>
-        </repository-->
+        </repository>
         <repository>
             <id>brewroot</id>
             <name>Brew Repository</name>
@@ -593,7 +485,17 @@
         </pluginRepository>
         <pluginRepository>
             <id>redhat-ga-repository</id>
-            <url>http://maven.repository.redhat.com/ga</url>
+            <url>https://maven.repository.redhat.com/ga</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </pluginRepository>
+        <pluginRepository>
+            <id>redhat-ea-repository</id>
+            <url>https://maven.repository.redhat.com/earlyaccess/all</url>
             <releases>
                 <enabled>true</enabled>
             </releases>

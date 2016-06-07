@@ -39,7 +39,27 @@
         </license>
     </licenses>
 
-    <repositories>
+    <repositories>	
+       <repository>
+            <id>redhat-ga-repository</id>
+            <url>https://maven.repository.redhat.com/ga</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>       
+        <repository>
+            <id>redhat-ea-repository</id>
+            <url>https://maven.repository.redhat.com/earlyaccess/all</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
         <!-- required for jline:jline -->
         <repository>
             <id>fusesource.public</id>
@@ -52,30 +72,30 @@
                 <enabled>true</enabled>
                 <updatePolicy>never</updatePolicy>
             </releases>
-        </repository>
-        <repository>
-            <id>redhat-ga-repository</id>
-            <url>http://maven.repository.redhat.com/ga</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
+        </repository>        
     </repositories>
 
     <pluginRepositories>
         <pluginRepository>
             <id>redhat-ga-repository</id>
-            <url>http://maven.repository.redhat.com/ga</url>
+            <url>https://maven.repository.redhat.com/ga</url>
             <releases>
                 <enabled>true</enabled>
             </releases>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
-        </pluginRepository>  
+        </pluginRepository>
+        <pluginRepository>
+            <id>redhat-ea-repository</id>
+            <url>https://maven.repository.redhat.com/earlyaccess/all</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </pluginRepository>
     </pluginRepositories>
 
     <properties>
