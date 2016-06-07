@@ -87,6 +87,7 @@ import org.eclipse.jgit.api.CherryPickResult;
 import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.MergeCommand;
+import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.api.ResetCommand;
 import org.eclipse.jgit.api.RevertCommand;
 import org.eclipse.jgit.api.Status;
@@ -1321,6 +1322,23 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     /**
+     * Resolve merge conflict for fabric-mode patching of profile data.
+     */
+    protected void handleMergeConflict(Git fork, MergeResult result, String versionBranch, String patchBranch)
+            throws GitAPIException, IOException {
+        if (result.getMergeStatus() == MergeResult.MergeStatus.CONFLICTING) {
+            Activator.log2(LogService.LOG_WARNING, "Problem with merging branch \"" + versionBranch +
+                    "\" and \"" + patchBranch + "\"");
+
+            // preferNew == true, because we prefer patch version.
+            // here we handle only R patch and we're merging patch branch into current version branch.
+            // that's why:
+            // patch branch == "theirs" == "3" in `git ls-files -u` == DirCacheEntry.STAGE_3 == threeWayMerge[2]
+            handleConflict(null, fork, true, null, false, "change from patch", null);
+        }
+    }
+
+    /**
      * Resolve cherry-pick conflict before committing. Always prefer the change from patch, backup custom change
      * @param patchDirectory the source directory of the applied patch - used as a reference for backing up
      * conflicting files.
@@ -1339,7 +1357,6 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             throws GitAPIException, IOException {
         if (result.getStatus() == CherryPickResult.CherryPickStatus.CONFLICTING) {
             Activator.log2(LogService.LOG_WARNING, "Problem with applying the change " + commit.getName() + ":");
-            Map<String, IndexDiff.StageState> conflicts = fork.status().call().getConflictingStageState();
 
             String choose = null, backup = null;
             switch (kind) {
@@ -1353,172 +1370,178 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     break;
             }
 
-            DirCache cache = fork.getRepository().readDirCache();
-            // path -> [oursObjectId, baseObjectId, theirsObjectId]
-            Map<String, ObjectId[]> threeWayMerge = new HashMap<>();
+            handleConflict(patchDirectory, fork, preferNew, cpPrefix, performBackup, choose, backup);
+        }
+    }
 
-            // collect conflicts info
-            for (int i = 0; i < cache.getEntryCount(); i++) {
-                DirCacheEntry entry = cache.getEntry(i);
-                if (entry.getStage() == DirCacheEntry.STAGE_0) {
-                    continue;
-                }
-                if (!threeWayMerge.containsKey(entry.getPathString())) {
-                    threeWayMerge.put(entry.getPathString(), new ObjectId[] { null, null, null });
-                }
-                if (entry.getStage() == DirCacheEntry.STAGE_1) {
-                    // base
-                    threeWayMerge.get(entry.getPathString())[1] = entry.getObjectId();
-                }
-                if (entry.getStage() == DirCacheEntry.STAGE_2) {
-                    // ours
-                    threeWayMerge.get(entry.getPathString())[0] = entry.getObjectId();
-                }
-                if (entry.getStage() == DirCacheEntry.STAGE_3) {
-                    // theirs
-                    threeWayMerge.get(entry.getPathString())[2] = entry.getObjectId();
+    private void handleConflict(File patchDirectory, Git fork, boolean preferNew, String cpPrefix, boolean performBackup, String choose, String backup) throws GitAPIException, IOException {
+        Map<String, IndexDiff.StageState> conflicts = fork.status().call().getConflictingStageState();
+        DirCache cache = fork.getRepository().readDirCache();
+        // path -> [oursObjectId, baseObjectId, theirsObjectId]
+        Map<String, ObjectId[]> threeWayMerge = new HashMap<>();
+
+        // collect conflicts info
+        for (int i = 0; i < cache.getEntryCount(); i++) {
+            DirCacheEntry entry = cache.getEntry(i);
+            if (entry.getStage() == DirCacheEntry.STAGE_0) {
+                continue;
+            }
+            if (!threeWayMerge.containsKey(entry.getPathString())) {
+                threeWayMerge.put(entry.getPathString(), new ObjectId[] { null, null, null });
+            }
+            if (entry.getStage() == DirCacheEntry.STAGE_1) {
+                // base
+                threeWayMerge.get(entry.getPathString())[1] = entry.getObjectId();
+            }
+            if (entry.getStage() == DirCacheEntry.STAGE_2) {
+                // ours
+                threeWayMerge.get(entry.getPathString())[0] = entry.getObjectId();
+            }
+            if (entry.getStage() == DirCacheEntry.STAGE_3) {
+                // theirs
+                threeWayMerge.get(entry.getPathString())[2] = entry.getObjectId();
+            }
+        }
+
+        // resolve conflicts
+        ObjectReader objectReader = fork.getRepository().newObjectReader();
+
+        for (Map.Entry<String, ObjectId[]> entry : threeWayMerge.entrySet()) {
+            if (entry.getKey().equals("patch-info.txt")) {
+                fork.rm().addFilepattern(entry.getKey()).call();
+                continue;
+            }
+            Resolver resolver = conflictResolver.getResolver(entry.getKey());
+            // resolved version - either by custom resolved or using automatic algorithm
+            String resolved = null;
+            if (resolver != null) {
+                // custom conflict resolution (don't expect DELETED_BY_X kind of conflict, only BOTH_MODIFIED)
+                String message = String.format(" - %s (%s): %s", entry.getKey(), conflicts.get(entry.getKey()), "Using " + resolver.getClass().getName() + " to resolve the conflict");
+                Activator.log2(LogService.LOG_INFO, message);
+
+                // when doing custom resolution, we prefer user change
+                File base = null, first = null, second = null;
+                try {
+                    ObjectLoader loader = null;
+                    if (entry.getValue()[1] != null) {
+                        base = new File(fork.getRepository().getWorkTree(), entry.getKey() + ".1");
+                        loader = objectReader.open(entry.getValue()[1]);
+                        try (FileOutputStream fos = new FileOutputStream(base)) {
+                            loader.copyTo(fos);
+                        }
+                    }
+
+                    // if preferNew (P patch) then first will be change from patch
+                    first = new File(fork.getRepository().getWorkTree(), entry.getKey() + ".2");
+                    loader = objectReader.open(entry.getValue()[preferNew ? 2 : 0]);
+                    try (FileOutputStream fos = new FileOutputStream(first)) {
+                        loader.copyTo(fos);
+                    }
+
+                    second = new File(fork.getRepository().getWorkTree(), entry.getKey() + ".3");
+                    loader = objectReader.open(entry.getValue()[preferNew ? 0 : 2]);
+                    try (FileOutputStream fos = new FileOutputStream(second)) {
+                        loader.copyTo(fos);
+                    }
+
+                    // resolvers treat patch change as less important - user lines overwrite patch lines
+                    if (resolver instanceof PropertiesFileResolver) {
+                        // TODO: use options from patch:install / patch:fabric-install command
+                        // by default we use a file that comes from patch and we may add property changes
+                        // from user
+                        // in R patch, preferNew == false, because patch comes first
+                        // in P patch, preferNew == true, because patch comes last
+                        // in R patch + fabric mode, preferNew == true, because we *merge* patch into version
+                        // so we effectively use patch version as base
+                        boolean useFirstChangeAsBase = !preferNew;
+                        if (entry.getKey().startsWith("etc/")) {
+                            // files in etc/ directory are "for user", so we use them as base (possibly changed
+                            // by user - comments, layout, ...)
+                            // files in e.g., fabric/import/fabric/profiles  are "for Fuse", so we use patch version
+                            // as base
+                            useFirstChangeAsBase = preferNew;
+                        }
+                        resolved = ((ResolverEx)resolver).resolve(first, base, second, useFirstChangeAsBase);
+                    } else {
+                        resolved = resolver.resolve(first, base, second);
+                    }
+
+                    if (resolved != null) {
+                        FileUtils.write(new File(fork.getRepository().getWorkTree(), entry.getKey()), resolved);
+                        fork.add().addFilepattern(entry.getKey()).call();
+                    }
+                } finally {
+                    if (base != null) {
+                        base.delete();
+                    }
+                    if (first != null) {
+                        first.delete();
+                    }
+                    if (second != null) {
+                        second.delete();
+                    }
                 }
             }
+            if (resolved == null) {
+                // automatic conflict resolution
+                String message = String.format(" - %s (%s): Choosing %s", entry.getKey(), conflicts.get(entry.getKey()), choose);
+                Activator.log2(LogService.LOG_INFO, message);
 
-            // resolve conflicts
-            ObjectReader objectReader = fork.getRepository().newObjectReader();
+                ObjectLoader loader = null;
+                ObjectLoader loaderForBackup = null;
+                // longer code, but more readable then series of elvis operators (?:)
+                if (preferNew) {
+                    switch (conflicts.get(entry.getKey())) {
+                        case BOTH_ADDED:
+                        case BOTH_MODIFIED:
+                            loader = objectReader.open(entry.getValue()[2]);
+                            loaderForBackup = objectReader.open(entry.getValue()[0]);
+                            break;
+                        case BOTH_DELETED:
+                        case DELETED_BY_THEM:
+                            break;
+                        case DELETED_BY_US:
+                            loader = objectReader.open(entry.getValue()[2]);
+                            break;
+                    }
+                } else {
+                    switch (conflicts.get(entry.getKey())) {
+                        case BOTH_ADDED:
+                        case BOTH_MODIFIED:
+                            loader = objectReader.open(entry.getValue()[0]);
+                            loaderForBackup = objectReader.open(entry.getValue()[2]);
+                            break;
+                        case DELETED_BY_THEM:
+                            loader = objectReader.open(entry.getValue()[0]);
+                            break;
+                        case BOTH_DELETED:
+                        case DELETED_BY_US:
+                            break;
+                    }
+                }
 
-            for (Map.Entry<String, ObjectId[]> entry : threeWayMerge.entrySet()) {
-                if (entry.getKey().equals("patch-info.txt")) {
+                if (loader != null) {
+                    try (FileOutputStream fos = new FileOutputStream(new File(fork.getRepository().getWorkTree(), entry.getKey()))) {
+                        loader.copyTo(fos);
+                    }
+                    fork.add().addFilepattern(entry.getKey()).call();
+                } else {
                     fork.rm().addFilepattern(entry.getKey()).call();
-                    continue;
                 }
-                Resolver resolver = conflictResolver.getResolver(entry.getKey());
-                // resolved version - either by custom resolved or using automatic algorithm
-                String resolved = null;
-                if (resolver != null) {
-                    // custom conflict resolution (don't expect DELETED_BY_X kind of conflict, only BOTH_MODIFIED)
-                    String message = String.format(" - %s (%s): %s", entry.getKey(), conflicts.get(entry.getKey()), "Using " + resolver.toString() + " to resolve the conflict");
-                    Activator.log2(LogService.LOG_INFO, message);
 
-                    // when doing custom resolution, we prefer user change
-                    File base = null, first = null, second = null;
-                    try {
-                        ObjectLoader loader = null;
-                        if (entry.getValue()[1] != null) {
-                            base = new File(fork.getRepository().getWorkTree(), entry.getKey() + ".1");
-                            loader = objectReader.open(entry.getValue()[1]);
-                            try (FileOutputStream fos = new FileOutputStream(base)) {
-                                loader.copyTo(fos);
-                            }
+                if (performBackup) {
+                    // the other entry should be backed up
+                    if (loaderForBackup != null) {
+                        File target = new File(patchDirectory.getParent(), patchDirectory.getName() + ".backup");
+                        if (cpPrefix != null) {
+                            target = new File(target, cpPrefix);
                         }
-
-                        // if preferNew (P patch) then first will be change from patch
-                        first = new File(fork.getRepository().getWorkTree(), entry.getKey() + ".2");
-                        loader = objectReader.open(entry.getValue()[preferNew ? 2 : 0]);
-                        try (FileOutputStream fos = new FileOutputStream(first)) {
-                            loader.copyTo(fos);
-                        }
-
-                        second = new File(fork.getRepository().getWorkTree(), entry.getKey() + ".3");
-                        loader = objectReader.open(entry.getValue()[preferNew ? 0 : 2]);
-                        try (FileOutputStream fos = new FileOutputStream(second)) {
-                            loader.copyTo(fos);
-                        }
-
-                        // resolvers treat patch change as less important - user lines overwrite patch lines
-                        if (resolver instanceof PropertiesFileResolver) {
-                            // TODO: use options from patch:install / patch:fabric-install command
-                            // by default we use a file that comes from patch and we may add property changes
-                            // from user
-                            // in R patch, preferNew == false, because patch comes first
-                            // in P patch, preferNew == true, because patch comes last
-                            // so we effectively use patch version as base
-                            boolean useFirstChangeAsBase = !preferNew;
-                            if (entry.getKey().startsWith("etc/")) {
-                                // files in etc/ directory are "for user", so we use them as base (possibly changed
-                                // by user - comments, layout, ...)
-                                // files in e.g., fabric/import/fabric/profiles  are "for Fuse", so we use patch version
-                                // as base
-                                useFirstChangeAsBase = preferNew;
-                            }
-                            resolved = ((ResolverEx)resolver).resolve(first, base, second, useFirstChangeAsBase);
-                        } else {
-                            resolved = resolver.resolve(first, base, second);
-                        }
-
-                        if (resolved != null) {
-                            FileUtils.write(new File(fork.getRepository().getWorkTree(), entry.getKey()), resolved);
-                            fork.add().addFilepattern(entry.getKey()).call();
-                        }
-                    } finally {
-                        if (base != null) {
-                            base.delete();
-                        }
-                        if (first != null) {
-                            first.delete();
-                        }
-                        if (second != null) {
-                            second.delete();
-                        }
-                    }
-                }
-                if (resolved == null) {
-                    // automatic conflict resolution
-                    String message = String.format(" - %s (%s): Choosing %s", entry.getKey(), conflicts.get(entry.getKey()), choose);
-                    Activator.log2(LogService.LOG_INFO, message);
-
-                    ObjectLoader loader = null;
-                    ObjectLoader loaderForBackup = null;
-                    // longer code, but more readable then series of elvis operators (?:)
-                    if (preferNew) {
-                        switch (conflicts.get(entry.getKey())) {
-                            case BOTH_ADDED:
-                            case BOTH_MODIFIED:
-                                loader = objectReader.open(entry.getValue()[2]);
-                                loaderForBackup = objectReader.open(entry.getValue()[0]);
-                                break;
-                            case BOTH_DELETED:
-                            case DELETED_BY_THEM:
-                                break;
-                            case DELETED_BY_US:
-                                loader = objectReader.open(entry.getValue()[2]);
-                                break;
-                        }
-                    } else {
-                        switch (conflicts.get(entry.getKey())) {
-                            case BOTH_ADDED:
-                            case BOTH_MODIFIED:
-                                loader = objectReader.open(entry.getValue()[0]);
-                                loaderForBackup = objectReader.open(entry.getValue()[2]);
-                                break;
-                            case DELETED_BY_THEM:
-                                loader = objectReader.open(entry.getValue()[0]);
-                                break;
-                            case BOTH_DELETED:
-                            case DELETED_BY_US:
-                                break;
-                        }
-                    }
-
-                    if (loader != null) {
-                        try (FileOutputStream fos = new FileOutputStream(new File(fork.getRepository().getWorkTree(), entry.getKey()))) {
-                            loader.copyTo(fos);
-                        }
-                        fork.add().addFilepattern(entry.getKey()).call();
-                    } else {
-                        fork.rm().addFilepattern(entry.getKey()).call();
-                    }
-
-                    if (performBackup) {
-                        // the other entry should be backed up
-                        if (loaderForBackup != null) {
-                            File target = new File(patchDirectory.getParent(), patchDirectory.getName() + ".backup");
-                            if (cpPrefix != null) {
-                                target = new File(target, cpPrefix);
-                            }
-                            File file = new File(target, entry.getKey());
-                            message = String.format("Backing up %s to \"%s\"", backup, file.getCanonicalPath());
-                            Activator.log2(LogService.LOG_DEBUG, message);
-                            file.getParentFile().mkdirs();
-                            try (FileOutputStream fos = new FileOutputStream(file)) {
-                                loaderForBackup.copyTo(fos);
-                            }
+                        File file = new File(target, entry.getKey());
+                        message = String.format("Backing up %s to \"%s\"", backup, file.getCanonicalPath());
+                        Activator.log2(LogService.LOG_DEBUG, message);
+                        file.getParentFile().mkdirs();
+                        try (FileOutputStream fos = new FileOutputStream(file)) {
+                            loaderForBackup.copyTo(fos);
                         }
                     }
                 }
@@ -2939,7 +2962,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 return pathname.exists() && pathname.getName().endsWith(".pending");
             }
         });
-        if (pendingPatches.length == 0) {
+        if (pendingPatches == null || pendingPatches.length == 0) {
             return;
         }
 
@@ -3001,9 +3024,62 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     @Override
+    public String findLatestPatchRevision(File gitRepository, String versionId) {
+        Git git = null;
+        try {
+            git = Git.open(gitRepository);
+
+            Iterable<RevCommit> log = git.log().add(git.getRepository().resolve(versionId)).call();
+            List<RevCommit> oldestToNewest = new LinkedList<>();
+            RevCommit patchBaseRevision = null;
+            for (RevCommit rc : log) {
+                // in case we don't find previous R patch, we'll have to find it the hard way
+                oldestToNewest.add(0, rc);
+                if (rc.getShortMessage().startsWith("Installing rollup patch ")) {
+                    patchBaseRevision = rc;
+                    break;
+                }
+            }
+            if (patchBaseRevision == null) {
+                // we still don't know where to start patch branch for fabric profiles
+                // normally, we start with "First Commit <user@fabric>", then, there's series of
+                // "Imported from ..." and "Added profile zip(s) ..."
+                // then there should be 2 (at least in 6.2.0+) commits that doesn't change anything (except
+                // the order of properties) commits for "default" and "fabric" profiles - we'll start patching
+                // from this change
+                for (RevCommit rc : oldestToNewest) {
+                    if (rc.getShortMessage().startsWith("Update configurations for profile: ")) {
+                        patchBaseRevision = rc;
+                        break;
+                    }
+                }
+            }
+            if (patchBaseRevision == null) {
+                // we didn't find good place to start... we'll start from HEAD then
+                return versionId;
+            }
+
+            String patchBranchName = String.format("__%s-%d", versionId, new Date().getTime());
+            Ref branch = git.checkout()
+                    .setCreateBranch(true)
+                    .setName(patchBranchName)
+                    .setStartPoint(patchBaseRevision)
+                    .call();
+
+            return patchBranchName;
+        } catch (Exception e) {
+            throw new PatchException(e.getMessage(), e);
+        } finally {
+            if (git != null) {
+                gitPatchRepository.closeRepository(git, false);
+            }
+        }
+    }
+
+    @Override
     public void installProfiles(File gitRepository, String versionId, Patch patch, ProfileUpdateStrategy strategy) {
         // remember - we operate on totally different git repository!
-        // we should have versionId branch already checked out.
+        // we should have version branch already checked out.
 
         // here we don't merge/cherry-pick anything - we're preparing new commit simply by copying
         // one set of profiles (from R patch) over another (current profile definitions from Fabric)
@@ -3018,7 +3094,10 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             ProfileFileUtils.copyDirectory(src, dst, strategy);
             git.add().addFilepattern(".").call();
 
-            // no commit - this will be performed in upper layer, where there's access to ZK credentials
+            // commit profile changes in patch branch - ultimate commit will be the merge commit
+            git.commit()
+                    .setMessage("Installing profiles from patch \"" + patch.getPatchData().getId() + "\"")
+                    .call();
 
             PatchResult result = patch.getResult();
             if (result == null) {
@@ -3031,6 +3110,57 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             throw new PatchException(e.getMessage(), e);
         } finally {
             if (git != null) {
+                gitPatchRepository.closeRepository(git, false);
+            }
+        }
+    }
+
+    @Override
+    public void mergeProfileChanges(Patch patch, File gitRepository, String versionBranch, String patchBranch) {
+        Git git = null;
+        try {
+            git = Git.open(gitRepository);
+
+            // merge version branch with patch branch - no fast forward, so we have nice named commit
+            git.checkout()
+                    .setCreateBranch(false)
+                    .setName(versionBranch)
+                    .call();
+
+            MergeResult result = git.merge()
+                    .setFastForward(MergeCommand.FastForwardMode.NO_FF)
+                    .include(git.getRepository().resolve(patchBranch))
+                    .setCommit(false)
+                    .call();
+
+            boolean commit = true;
+            if (result.getMergeStatus() == MergeResult.MergeStatus.CONFLICTING) {
+                handleMergeConflict(git, result, versionBranch, patchBranch);
+            } else if (result.getMergeStatus() != MergeResult.MergeStatus.MERGED_NOT_COMMITTED) {
+                commit = false;
+                Activator.log2(LogService.LOG_ERROR, "Can't merge version branch \"" + versionBranch + "\" with" +
+                        " patch branch \"" + patchBranch + "\". Resetting the branch.");
+                git.reset()
+                        .setMode(ResetCommand.ResetType.HARD)
+                        .call();
+            }
+//            if (commit) {
+//                git.commit()
+//                        .setMessage("Installing rollup patch \"" + patch.getPatchData().getId() + "\"")
+//                        .call();
+//            }
+        } catch (Exception e) {
+            throw new PatchException(e.getMessage(), e);
+        } finally {
+            if (git != null) {
+                try {
+                    git.branchDelete()
+                            .setBranchNames(patchBranch)
+                            .setForce(true)
+                            .call();
+                } catch (GitAPIException e) {
+                    Activator.log2(LogService.LOG_ERROR, e.getMessage());
+                }
                 gitPatchRepository.closeRepository(git, false);
             }
         }

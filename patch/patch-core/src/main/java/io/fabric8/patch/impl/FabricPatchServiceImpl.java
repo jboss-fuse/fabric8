@@ -143,7 +143,17 @@ public class FabricPatchServiceImpl implements FabricPatchService {
                     // because patch-management private-packages git library
                     // but we can leverage the write lock we have
                     GitHelpers.checkoutBranch(git, versionId);
+
+                    // let's get back in history to the point before user changes (profile-edits), but not earlier
+                    // than last R patch
+                    String patchBranch = patchManagement.findLatestPatchRevision(git.getRepository().getDirectory(), versionId);
+
+                    // now install profiles from patch just like there were no user changes
                     patchManagement.installProfiles(git.getRepository().getDirectory(), versionId, patch, strategy);
+
+                    // and finally we have to merge user and patch changes to profiles.
+                    patchManagement.mergeProfileChanges(patch, git.getRepository().getDirectory(), versionId, patchBranch);
+
                     context.commitMessage("Installing rollup patch \"" + patch.getPatchData().getId() + "\"");
                     return null;
                 }
