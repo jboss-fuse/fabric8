@@ -625,7 +625,7 @@
         <bundle>mvn:com.fasterxml.jackson.jaxrs/jackson-jaxrs-base/${jackson2-version}</bundle>
         <bundle>mvn:com.fasterxml.jackson.jaxrs/jackson-jaxrs-json-provider/${jackson2-version}</bundle>
         <bundle>mvn:com.fasterxml.jackson.module/jackson-module-jaxb-annotations/${jackson2-version}</bundle>
-        <bundle>mvn:com.fasterxml.jackson.module/jackson-module-paranamer/${jackson2-version}</bundle>
+        <bundle>mvn:com.fasterxml.jackson.module/jackson-module-paranamer/${jackson2-scala-version}</bundle>
         <bundle>mvn:com.fasterxml.jackson.module/jackson-module-scala_2.10/${jackson2-scala-version}</bundle>
         <bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.swagger-annotations/${swagger-version}</bundle>
         <bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.swagger-core/${swagger-core-version}</bundle>
