@@ -122,7 +122,7 @@
     <dependency>
       <groupId>com.fasterxml.jackson.module</groupId>
       <artifactId>jackson-module-scala_2.10</artifactId>
-      <version>${jackson2-scala-version}</version>
+      <version>${jackson2-community-version}</version>
     </dependency>
     <dependency>
       <groupId>org.scala-lang</groupId>
