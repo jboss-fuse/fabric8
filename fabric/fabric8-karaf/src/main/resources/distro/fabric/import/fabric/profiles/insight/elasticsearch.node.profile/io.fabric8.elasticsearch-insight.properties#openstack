@@ -27,7 +27,7 @@ node.data = false
 
 # Use the known IP as the host
 network.bind_host = ${container:ip}
-network.publish_host = ${env.OPENSTACK_FLOATING_IP}
+network.publish_host = ${env:OPENSTACK_FLOATING_IP}
 
 http.port = ${env:FABRIC8_ES_HTTP_PORT}
 transport.tcp.port  = ${env:FABRIC8_ES_TCP_PORT}
