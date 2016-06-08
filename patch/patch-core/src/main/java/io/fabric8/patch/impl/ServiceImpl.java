@@ -508,8 +508,6 @@ public class ServiceImpl implements Service {
                         Patch patch = patches.iterator().next();
                         PatchResult result = results.get(patch.getPatchData().getId());
                         patch.setResult(result);
-                        result.setPending(Pending.ROLLUP_INSTALLATION);
-                        result.store();
 
                         // backup all datafiles of all bundles - we we'll backup configadmin configurations in
                         // single shot
@@ -525,6 +523,9 @@ public class ServiceImpl implements Service {
 
                         // update KARAF_HOME
                         patchManagement.commitInstallation(transaction);
+
+                        result.setPending(Pending.ROLLUP_INSTALLATION);
+                        result.store();
 
                         // Some updates need a full JVM restart.
                         if( isJvmRestartNeeded(results) ) {
