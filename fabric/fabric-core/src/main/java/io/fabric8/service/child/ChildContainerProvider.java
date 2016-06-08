@@ -40,7 +40,11 @@ import org.slf4j.LoggerFactory;
 
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.TabularData;
+import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -344,11 +348,49 @@ public final class ChildContainerProvider extends AbstractComponent implements C
                     sshPort,
                     rmiRegistryPort,
                     rmiServerPort, null, jvmOptsBuilder.toString(), collectionAsString(features), featuresUrls);
+
+            // copy some properties from root to child before starting it
+            File rootBase = new File(System.getProperty("karaf.base"));
+            File childBase = new File(System.getProperty("karaf.instances"), containerName);
+            copyProperties(rootBase, childBase, "etc/org.apache.karaf.management.cfg",
+                    "rmiRegistryPort",
+                    "rmiRegistryHost",
+                    "rmiServerPort",
+                    "rmiServerHost",
+                    "serviceUrl");
+            copyProperties(rootBase, childBase, "etc/org.ops4j.pax.url.mvn.cfg");
+
             adminService.startInstance(containerName, null);
         } catch (Throwable t) {
             metadata.setFailure(t);
         }
         return metadata;
+    }
+
+    /**
+     * Copies all properties from <code>source</code> to <code>destination</code> except those specified in
+     * <code>preserve</code>
+     * @param source
+     * @param destination
+     * @param fileName
+     * @param preserve
+     */
+    private void copyProperties(File source, File destination, String fileName, String ... preserve) throws IOException {
+        org.apache.felix.utils.properties.Properties s = new org.apache.felix.utils.properties.Properties(false);
+        File sourceFile = new File(source, fileName);
+        s.load(sourceFile);
+        org.apache.felix.utils.properties.Properties d = new org.apache.felix.utils.properties.Properties(false);
+        File destFile = new File(destination, fileName);
+        d.load(destFile);
+        Set<String> except = new HashSet<>(Arrays.asList(preserve));
+
+        for (String key : s.keySet()) {
+            if (!except.contains(key)) {
+                d.setProperty(key, s.getProperty(key));
+            }
+        }
+
+        d.save(destFile);
     }
 
     private static StringBuilder buildJvmOpts(CreateChildContainerOptions options) {
