@@ -625,8 +625,8 @@
         <bundle>mvn:com.fasterxml.jackson.jaxrs/jackson-jaxrs-base/${jackson2-version}</bundle>
         <bundle>mvn:com.fasterxml.jackson.jaxrs/jackson-jaxrs-json-provider/${jackson2-version}</bundle>
         <bundle>mvn:com.fasterxml.jackson.module/jackson-module-jaxb-annotations/${jackson2-version}</bundle>
-        <bundle>mvn:com.fasterxml.jackson.module/jackson-module-paranamer/${jackson2-version}</bundle>
-        <bundle>mvn:com.fasterxml.jackson.module/jackson-module-scala_2.10/${jackson2-version}</bundle>
+        <bundle>mvn:com.fasterxml.jackson.module/jackson-module-paranamer/${jackson2-community-version}</bundle>
+        <bundle>mvn:com.fasterxml.jackson.module/jackson-module-scala_2.10/${jackson2-community-version}</bundle>
         <bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.swagger-annotations/${swagger-version}</bundle>
         <bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.swagger-core/${swagger-core-version}</bundle>
         <bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.swagger-jaxrs/${swagger-jaxrs-version}</bundle>
@@ -653,7 +653,7 @@
         <bundle>mvn:io.swagger/swagger-models/${swagger15-version}</bundle>
         <bundle>mvn:io.swagger/swagger-jaxrs/${swagger15-version}</bundle>
         <!-- apiman -->
-        <bundle>mvn:com.fasterxml.jackson.datatype/jackson-datatype-joda/${jackson2-version}</bundle>
+        <bundle>mvn:com.fasterxml.jackson.datatype/jackson-datatype-joda/${jackson2-community-version}</bundle>
         <bundle>mvn:joda-time/joda-time/${joda-time2-version}</bundle>
         <bundle>mvn:com.google.code.findbugs/annotations/2.0.1</bundle>
         <!-- camel-swagger-java -->
