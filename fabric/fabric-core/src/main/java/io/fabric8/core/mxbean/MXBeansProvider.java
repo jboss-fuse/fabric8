@@ -30,6 +30,7 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +46,7 @@ public final class MXBeansProvider extends AbstractComponent {
 
     @Reference(referenceInterface = MBeanServer.class)
     private final ValidatingReference<MBeanServer> mbeanServer = new ValidatingReference<>();
-    @Reference(referenceInterface = MBeanServer.class, bind = "bindGuardedMBeanServer", unbind = "unbindGuardedMBeanServer", target = "(guarded=true)")
+    @Reference(referenceInterface = MBeanServer.class, bind = "bindGuardedMBeanServer", unbind = "unbindGuardedMBeanServer", target = "(guarded=true)", policy = ReferencePolicy.DYNAMIC)
     private final ValidatingReference<MBeanServer> guardedMBeanServer = new ValidatingReference<>();
 
     @Activate
