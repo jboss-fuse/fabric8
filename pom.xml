@@ -369,8 +369,8 @@
         <weld-version>1.1.18.Final</weld-version>
         <weld2-version>2.3.0.Final</weld2-version>
         <wildfly-version>8.1.0.Final</wildfly-version>
-        <woodstox-stax2-api-version>3.1.4.redhat-1</woodstox-stax2-api-version>
-        <woodstox-version>4.4.1.redhat-1</woodstox-version>
+        <woodstox-stax2-api-version>3.1.4</woodstox-stax2-api-version>
+        <woodstox-version>4.4.1</woodstox-version>
         <xalan.version>2.7.1.redhat-8</xalan.version>
         <xbean-version>3.18</xbean-version>
         <xbean-reflect-version>3.18</xbean-reflect-version>
