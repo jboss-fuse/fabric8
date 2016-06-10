@@ -335,7 +335,7 @@
         <servicemix-tooling-plugin-version>1.2</servicemix-tooling-plugin-version>
         <servicemix-utils-version>1.6.0</servicemix-utils-version>
         <servlet-api-version>2.5</servlet-api-version>
-        <servlet31-api-version>3.1.0</servlet31-api-version>
+        <servlet31-api-version>3.1.0.redhat-1</servlet31-api-version>
         <!-- aligned to Maven 3.3.3 -->
         <sisu-guice-version>3.2.5</sisu-guice-version>
         <sisu-inject-plexus-version>0.3.0</sisu-inject-plexus-version>
