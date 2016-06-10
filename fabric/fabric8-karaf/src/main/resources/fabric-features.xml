@@ -658,7 +658,7 @@
         <bundle>mvn:com.google.code.findbugs/annotations/2.0.1</bundle>
         <!-- camel-swagger-java -->
         <bundle>mvn:org.apache.servicemix.specs/org.apache.servicemix.specs.jsr311-api-1.1.1/${servicemix-specs-version}</bundle>
-        <bundle>mvn:javax.validation/validation-api/1.1.0.Final</bundle>
+        <bundle>mvn:javax.validation/validation-api/${validation-api-version}</bundle>
         <bundle>mvn:org.apache.commons/commons-lang3/${commons-lang3-version}</bundle>
     </feature>
 
