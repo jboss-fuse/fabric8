@@ -238,7 +238,7 @@
         <influxdb-version>1.2</influxdb-version>
         <jackson-version>1.9.13</jackson-version>
         <jackson2-community-version>2.6.3</jackson2-community-version>
-        <jackson2-version>2.6.3.redhat-2</jackson2-version>
+        <jackson2-version>2.6.3</jackson2-version>
         <jackson-module-scala-version>2.1.5_3</jackson-module-scala-version>
         <jansi-version>1.11.redhat-1</jansi-version>
         <jasypt-smx-version>1.9.3.redhat_3</jasypt-smx-version>
