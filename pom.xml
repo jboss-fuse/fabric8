@@ -138,7 +138,7 @@
         <aries-jmx-blueprint-api-version>1.1.0</aries-jmx-blueprint-api-version>
         <aries-jmx-blueprint-core-version>1.1.0</aries-jmx-blueprint-core-version>
         <aries-proxy-api-version>1.0.1</aries-proxy-api-version>
-        <aries-proxy-impl-version>1.0.4</aries-proxy-impl-version>
+        <aries-proxy-impl-version>1.0.5</aries-proxy-impl-version>
         <aries-proxy-version>1.0.1</aries-proxy-version>
         <aries-util-version>1.1.0</aries-util-version>
         <arquillian-core-version>1.1.1.Final</arquillian-core-version>
