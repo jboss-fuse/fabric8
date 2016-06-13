@@ -186,7 +186,7 @@ public class ActiveMQServiceFactory  {
             for (String name : networksTab) {
                 if (!name.isEmpty()) {
                     LOG.info("Adding network connector " + name);
-                    NetworkConnector nc = new DiscoveryNetworkConnector(new URI("fabric:" + name));
+                    NetworkConnector nc = createNetworkConnector(new URI("fabric:" + name),properties);
                     nc.setName("fabric-" + name);
                     if (broker != null) {
                         // and if it's null, then exception was thrown already. It's just IDEA complaining
