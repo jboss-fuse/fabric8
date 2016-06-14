@@ -21,8 +21,8 @@ import java.util.regex.Pattern;
 
 public final class FabricValidations {
 
-    // container name must be lower case only, and without dots
-    private static final Pattern ALLOWED_CONTAINER_NAMES_PATTERN = Pattern.compile("^[a-z0-9]+[a-z0-9_-]*$");
+    // see https://tools.ietf.org/html/rfc952, we extend it to allow also UNDERSCORE symbol
+    private static final Pattern ALLOWED_CONTAINER_NAMES_PATTERN = Pattern.compile("^[a-zA-Z0-9]+[\\.a-zA-Z0-9_-]*$");
 
     // we allow using dot in profile names
     private static final Pattern ALLOWED_PROFILE_NAMES_PATTERN = Pattern.compile("^[a-zA-Z0-9]+[\\.a-zA-Z0-9_-]*$");
