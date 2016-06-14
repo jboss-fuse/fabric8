@@ -61,34 +61,6 @@
 					</execution>
 				</executions>
 			</plugin>
-			<plugin>
-				<groupId>org.fusesource.mvnplugins</groupId>
-				<artifactId>maven-updatesite-plugin</artifactId>
-				<version>1.15</version>
-				<configuration>
-					<inputDirectory>${project.build.directory}/repository</inputDirectory>
-					<remoteServerId>fuse-sap.mw.lab.eng.bos.redhat.com</remoteServerId>
-					<remoteServerUrl>scp://fuse-sap.mw.lab.eng.bos.redhat.com/var/www/html/repositories/fuse-sap-data-layer/updatesite</remoteServerUrl>
-					<moveOldDirectory>true</moveOldDirectory>
-					<mvOptions></mvOptions>
-				</configuration>
-				<executions>
-					<execution>
-						<id>deploy-on-install</id>
-						<phase>install</phase>
-						<goals>
-							<goal>deploy</goal>
-						</goals>
-					</execution>
-				</executions>
-				<dependencies>
-					<dependency>
-						<groupId>org.apache.maven.wagon</groupId>
-						<artifactId>wagon-ssh</artifactId>
-						<version>2.7</version>
-					</dependency>
-				</dependencies>
-			</plugin>
 		</plugins>
 	</build>
 
@@ -165,6 +137,41 @@
 				<update.site.description>Stable Release</update.site.description>
 			</properties>
 		</profile>
+	<profile>
+		<id>publish</id>
+		<build>
+			<plugins>
+				<plugin>
+					<groupId>org.fusesource.mvnplugins</groupId>
+					<artifactId>maven-updatesite-plugin</artifactId>
+					<version>1.15</version>
+					<configuration>
+						<inputDirectory>${project.build.directory}/repository</inputDirectory>
+						<remoteServerId>fuse-sap.mw.lab.eng.bos.redhat.com</remoteServerId>
+						<remoteServerUrl>scp://fuse-sap.mw.lab.eng.bos.redhat.com/var/www/html/repositories/fuse-sap-data-layer/updatesite</remoteServerUrl>
+						<moveOldDirectory>true</moveOldDirectory>
+						<mvOptions></mvOptions>
+					</configuration>
+					<executions>
+						<execution>
+							<id>deploy-on-install</id>
+							<phase>install</phase>
+							<goals>
+								<goal>deploy</goal>
+							</goals>
+						</execution>
+					</executions>
+					<dependencies>
+						<dependency>
+							<groupId>org.apache.maven.wagon</groupId>
+							<artifactId>wagon-ssh</artifactId>
+							<version>2.7</version>
+						</dependency>
+					</dependencies>
+				</plugin>
+			</plugins>
+		</build>
+	</profile>
 	</profiles>
 
 	<pluginRepositories>
