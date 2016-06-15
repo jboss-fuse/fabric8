@@ -58,12 +58,12 @@ public class FabricJolokia extends AbstractComponent {
         configurer.configure(properties, this);
         context = new JolokiaSecureHttpContext(realm, role);
         Hashtable<String,String> initProps = new Hashtable<>();
-        injectSystempProperties(initProps);
+        injectSystemProperties(initProps);
         httpService.get().registerServlet(getServletAlias(), new JolokiaServlet(bundleContext), initProps, context);
         activateComponent();
     }
 
-    protected void injectSystempProperties(Hashtable<String,String> initProps) {
+    protected void injectSystemProperties(Hashtable<String,String> initProps) {
         java.util.Properties properties = System.getProperties();
         for(String prop : properties.stringPropertyNames()){
             if(prop.startsWith("jolokia.")){
