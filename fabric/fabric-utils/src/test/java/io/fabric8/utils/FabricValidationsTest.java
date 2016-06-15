@@ -35,7 +35,6 @@ public class FabricValidationsTest {
         validateContainerName("_container");
     }
 
-    @Test(expected = IllegalArgumentException.class)
     public void testContainerWithUpperCase() {
         validateContainerName("MyContainer");
     }
