@@ -81,10 +81,6 @@
             <artifactId>fabric-zookeeper</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.fabric8</groupId>
-            <artifactId>fabric-groovy</artifactId>
-        </dependency>
-        <dependency>
             <groupId>io.fabric8.insight</groupId>
             <artifactId>insight-log</artifactId>
         </dependency>
