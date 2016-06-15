@@ -205,6 +205,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
             activateComponent();
             activateInternal();
         } catch (Exception ex) {
+            LOGGER.error(ex.getMessage(), ex);
             deactivateComponent();
             deactivateInternal();
             throw ex;
@@ -393,7 +394,9 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
             // Closing the shared counter
             try {
-                counter.close();
+                if (counter != null) {
+                    counter.close();
+                }
             } catch (IOException ex) {
                 LOGGER.warn("Error closing SharedCount due " + ex.getMessage() + ". This exception is ignored.");
             }
