@@ -758,6 +758,31 @@
                                </artifactItems>
                            </configuration>
                        </execution>
+                       <execution>
+                           <id>unpack-additional-dependencies</id>
+                           <phase>generate-resources</phase>
+                           <goals>
+                               <goal>copy</goal>
+                           </goals>
+                           <configuration>
+                               <artifactItems>
+                                   <artifactItem>
+                                       <groupId>org.fusesource.hawtbuf</groupId>
+                                       <artifactId>hawtbuf</artifactId>
+                                       <type>jar</type>
+                                       <version>${hawtbuf-version}</version>
+                                       <outputDirectory>target/features-repo/org/fusesource/hawtbuf/hawtbuf/${hawtbuf-version}</outputDirectory>
+                                   </artifactItem>
+                                   <artifactItem>
+                                       <groupId>commons-net</groupId>
+                                       <artifactId>commons-net</artifactId>
+                                       <type>jar</type>
+                                       <version>${commons-net-version}</version>
+                                       <outputDirectory>target/features-repo/commons-net/commons-net/${commons-net-version}</outputDirectory>
+                                   </artifactItem>
+                               </artifactItems>
+                           </configuration>
+                       </execution>
                    </executions>
                </plugin>
            </plugins>

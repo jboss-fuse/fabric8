@@ -166,6 +166,7 @@
         <commons-io2-version>2.4.0.redhat-1</commons-io2-version>
         <commons-lang-version>2.6.0.redhat-5</commons-lang-version>
         <commons-lang3-version>3.4</commons-lang3-version>
+        <commons-net-version>3.3.0.redhat-3</commons-net-version>
         <commons-pool-version>1.6.0.redhat-9</commons-pool-version>
         <commons-jexl-version>2.1.1</commons-jexl-version>
         <commons-digester-version>1.8_4</commons-digester-version>
