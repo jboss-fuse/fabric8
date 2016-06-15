@@ -211,7 +211,6 @@
     <feature name="fabric-core" version="${project.version}" resolver="(obr)">
         <feature>scr</feature>
         <feature>karaf</feature>
-        <feature version="${project.version}">fabric-groovy</feature>
 
         <bundle dependency="true">mvn:javax.annotation/javax.annotation-api/1.2</bundle>
         <bundle dependency="true">mvn:org.mvel/mvel2/${mvel-version}</bundle>
@@ -354,6 +353,7 @@
     </feature>
 
     <feature name="fabric-groovy" version="${project.version}" resolver="(obr)">
+        <feature version="${project.version}">fabric-zookeeper</feature>
         <bundle dependency="true">mvn:org.codehaus.groovy/groovy-all/${groovy-version}</bundle>
         <bundle>mvn:io.fabric8/fabric-groovy/${project.version}</bundle>
     </feature>
