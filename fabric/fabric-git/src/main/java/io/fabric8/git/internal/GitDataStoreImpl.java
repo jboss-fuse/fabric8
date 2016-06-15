@@ -1729,7 +1729,10 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                 // remove placeholder tokens which the EnvPlaceholderResolver do not expect
                 url = EnvPlaceholderResolver.removeTokens(url);
                 // resolve the url as it may point to a system environment to be used
-                url = EnvPlaceholderResolver.resolveExpression(url, null, true);
+                String resolved = EnvPlaceholderResolver.resolveExpression(url, null, false);
+                if (resolved != null) {
+                    url = resolved;
+                }
 
                 // maybe there is more in the same url so we split by comma
                 String[] urls = url.split(",");
