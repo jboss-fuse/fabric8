@@ -22,7 +22,6 @@ import io.fabric8.api.scr.ValidatingReference;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.JMException;
 import javax.management.MBeanServer;
-import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 import javax.management.StandardMBean;
 
@@ -53,7 +52,7 @@ public final class MXBeansProvider extends AbstractComponent {
     private final ValidatingReference<MBeanServer> mbeanServer = new ValidatingReference<>();
 
     private BundleContext context;
-    private ServiceTracker<MBeanServerConnection, MBeanServerConnection> tracker;
+    private ServiceTracker<MBeanServer, MBeanServer> tracker;
 
     @Activate
     void activate(BundleContext context) throws InvalidSyntaxException {
@@ -69,24 +68,24 @@ public final class MXBeansProvider extends AbstractComponent {
     }
 
     private void activateInternal() throws InvalidSyntaxException {
-        this.tracker = new ServiceTracker<>(context, context.createFilter("(&(objectClass=javax.management.MBeanServerConnection)(guarded=true))"),
-                new ServiceTrackerCustomizer<MBeanServerConnection, MBeanServerConnection>() {
+        this.tracker = new ServiceTracker<>(context, context.createFilter("(&(objectClass=javax.management.MBeanServer)(guarded=true))"),
+                new ServiceTrackerCustomizer<MBeanServer, MBeanServer>() {
             @Override
-            public MBeanServerConnection addingService(ServiceReference<MBeanServerConnection> reference) {
-                MBeanServerConnection server = MXBeansProvider.this.context.getService(reference);
+            public MBeanServer addingService(ServiceReference<MBeanServer> reference) {
+                MBeanServer server = MXBeansProvider.this.context.getService(reference);
                 registerGuardedMBeanServer(server);
                 return server;
             }
 
             @Override
-            public void modifiedService(ServiceReference<MBeanServerConnection> reference, MBeanServerConnection service) {
-                MBeanServerConnection server = MXBeansProvider.this.context.getService(reference);
+            public void modifiedService(ServiceReference<MBeanServer> reference, MBeanServer service) {
+                MBeanServer server = MXBeansProvider.this.context.getService(reference);
                 registerGuardedMBeanServer(null);
                 registerGuardedMBeanServer(server);
             }
 
             @Override
-            public void removedService(ServiceReference<MBeanServerConnection> reference, MBeanServerConnection service) {
+            public void removedService(ServiceReference<MBeanServer> reference, MBeanServer service) {
                 registerGuardedMBeanServer(null);
                 MXBeansProvider.this.context.ungetService(reference);
             }
@@ -118,12 +117,12 @@ public final class MXBeansProvider extends AbstractComponent {
      * (Un)Registers guarded {@link MBeanServer} in JMX to be used by Jolokia
      * @param server
      */
-    private void registerGuardedMBeanServer(MBeanServerConnection server) {
+    private void registerGuardedMBeanServer(MBeanServer server) {
         if (server != null) {
             try {
                 ObjectName jolokiaServerName = new ObjectName("jolokia:type=MBeanServer");
                 if (!mbeanServer.get().isRegistered(jolokiaServerName)) {
-                    mbeanServer.get().registerMBean(new JolokiaMBeanHolder((MBeanServer) server), jolokiaServerName);
+                    mbeanServer.get().registerMBean(new JolokiaMBeanHolder(server), jolokiaServerName);
                 }
             } catch (InstanceAlreadyExistsException e) {
                 if (LOGGER.isDebugEnabled()) {
