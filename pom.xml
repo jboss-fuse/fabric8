@@ -228,7 +228,7 @@
         <guice.version>3.0</guice.version>
         <hadoop-version>1.2.1</hadoop-version>
         <hawtbuf-version>1.11.0.redhat-1</hawtbuf-version>
-        <hawtdispatch-version>1.21</hawtdispatch-version>
+        <hawtdispatch-version>1.22</hawtdispatch-version>
         <hawtio-dockerui-version>1.0.4</hawtio-dockerui-version>
         <hawtio-eshead-version>1.0.2</hawtio-eshead-version>
         <hawtio-kibana-version>3.1.2_2</hawtio-kibana-version>
