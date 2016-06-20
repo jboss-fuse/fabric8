@@ -173,7 +173,7 @@
 		</build>
 	</profile>
 	<profile>
-		<id>release-update-site</id>
+		<id>release</id>
 		<properties>
 			<update.site.description>Stable Release</update.site.description>
 		</properties>
