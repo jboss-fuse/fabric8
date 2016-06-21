@@ -17,6 +17,30 @@
 		<name>Red Hat, Inc.</name>
 		<url>http://www.redhat.com</url>
 	</organization>
+
+        <licenses>
+            <license>
+                <name>The Apache Software License, Version 2.0</name>
+                <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+                <distribution>repo</distribution>
+            </license>
+        </licenses>
+
+        <!-- including A developer as it's required by the maven poms going into central -->
+        <developers>
+            <developer>
+                <id>geeks</id>
+                <name>Fuse Development Team</name>
+                <organization>Red Hat</organization>
+                <organizationUrl>http://www.redhat.com</organizationUrl>
+            </developer>
+        </developers>
+
+        <scm>
+            <connection>scm:git:git@github.com:jboss-fuse/fuse-components.git</connection>
+            <developerConnection>scm:git:git@github.com:jboss-fuse/fuse-components.git</developerConnection>
+            <url>https://github.com/jboss-fuse/fuse-components/tree/master</url>
+        </scm>
 	
 	<properties>
 		<tycho-version>0.24.0</tycho-version>
