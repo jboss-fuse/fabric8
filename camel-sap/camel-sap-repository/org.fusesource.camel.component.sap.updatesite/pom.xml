@@ -187,7 +187,7 @@
 						<inputDirectory>${project.build.directory}/repository</inputDirectory>
 						<remoteServerId>fuse-sap.mw.lab.eng.bos.redhat.com</remoteServerId>
 						<remoteServerUrl>scp://root@fuse-sap.mw.lab.eng.bos.redhat.com/var/www/html/repositories/fuse-sap-data-layer/updatesite</remoteServerUrl>
-						<moveOldDirectory>true</moveOldDirectory>
+						<moveOldDirectory>false</moveOldDirectory>
 						<mvOptions></mvOptions>
 					</configuration>
 					<executions>
