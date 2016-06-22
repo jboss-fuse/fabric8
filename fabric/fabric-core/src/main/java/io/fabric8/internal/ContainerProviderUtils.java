@@ -259,6 +259,10 @@ public final class ContainerProviderUtils {
         } else if (!jvmOptions.contains("-XX:+UnlockDiagnosticVMOptions -XX:+UnsyncloadClass")) {
             jvmOptions = jvmOptions +  " -XX:+UnlockDiagnosticVMOptions -XX:+UnsyncloadClass";
         }
+        
+        if (!jvmOptions.contains("-server")) {
+        	jvmOptions = jvmOptions +  " -server";
+        }
 
         environmentalVariables.put("JAVA_OPTS", jvmOptions);
 
