@@ -383,11 +383,6 @@
 
        <build>
            <resources>
-             <resource>
-                 <directory>${basedir}/../../etc</directory>
-                 <filtering>true</filtering>
-                 <targetPath>distro/etc</targetPath>
-             </resource>
                <resource>
                    <directory>src/main/resources</directory>
                    <filtering>true</filtering>
@@ -552,10 +547,11 @@
                                         <fileset file="src/main/append-resources/common/etc/custom.properties" />
                                    </concat>
 
-                                   <echo message="Updating etc/org.ops4j.pax.logging.cfg in unix assembly" />
-                                   <concat destfile="target/dependencies/unix/apache-karaf-${karaf-version}/etc/org.ops4j.pax.logging.cfg" append="true" eol="unix">
-                                       <fileset file="src/main/append-resources/common/etc/org.ops4j.pax.logging.cfg" />
-                                   </concat>
+                                   <!-- No need to do it - it's overwritten by target/classes/etc/org.ops4j.pax.logging.cfg -->
+                                   <!--<echo message="Updating etc/org.ops4j.pax.logging.cfg in unix assembly" />-->
+                                   <!--<concat destfile="target/dependencies/unix/apache-karaf-${karaf-version}/etc/org.ops4j.pax.logging.cfg" append="true" eol="unix">-->
+                                       <!--<fileset file="src/main/append-resources/common/etc/org.ops4j.pax.logging.cfg" />-->
+                                   <!--</concat>-->
 
                                    <echo message="Updating etc/system.properties in unix assembly" />
                                    <concat destfile="target/dependencies/unix/apache-karaf-${karaf-version}/etc/system.properties" append="true" eol="unix">
