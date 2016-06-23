@@ -206,7 +206,7 @@ public class MavenConfigurationImpl extends PropertyStore implements MavenConfig
                     defaultRepositoriesProperty.add(new MavenRepositoryURL(repositoryURL.trim()));
                 }
             }
-            LOGGER.trace("Using repositories [" + defaultRepositoriesProperty + "]");
+            LOGGER.trace("Using default repositories [" + defaultRepositoriesProperty + "]");
             return set(m_pid + ServiceConstants.PROPERTY_DEFAULT_REPOSITORIES,
                     defaultRepositoriesProperty);
         }
@@ -295,7 +295,7 @@ public class MavenConfigurationImpl extends PropertyStore implements MavenConfig
                     repositoriesProperty.add(new MavenRepositoryURL(repositoryURL.trim()));
                 }
             }
-            LOGGER.trace("Using repositories [" + repositoriesProperty + "]");
+            LOGGER.trace("Using remote repositories [" + repositoriesProperty + "]");
             return set(m_pid + ServiceConstants.PROPERTY_REPOSITORIES, repositoriesProperty);
         }
         return get(m_pid + ServiceConstants.PROPERTY_REPOSITORIES);
@@ -489,6 +489,12 @@ public class MavenConfigurationImpl extends PropertyStore implements MavenConfig
         return false;
     }
 
+    /**
+     * @deprecated
+     * @param protocols protocols to be recognized.
+     *
+     * @return
+     */
     public Map<String, Map<String, String>> getProxySettings(String... protocols) {
         Map<String, Map<String, String>> pr = new HashMap<String, Map<String, String>>();
 
@@ -507,6 +513,10 @@ public class MavenConfigurationImpl extends PropertyStore implements MavenConfig
         return pr;
     }
 
+    /**
+     * @deprecated
+     * @param pr
+     */
     private void parseSystemWideProxySettings(Map<String, Map<String, String>> pr) {
         String httpHost = m_propertyResolver.get("http.proxyHost");
         String httpPort = m_propertyResolver.get("http.proxyPort");
@@ -518,6 +528,11 @@ public class MavenConfigurationImpl extends PropertyStore implements MavenConfig
         }
     }
 
+    /**
+     * @deprecated
+     * @param proxySettings
+     * @param pr
+     */
     // example: http:host=foo,port=8080;https:host=bar,port=9090
     private void parseProxiesFromProperty(String proxySettings, Map<String, Map<String, String>> pr) {
         // TODO maybe make the parsing more clever via regex ;) Or not.
