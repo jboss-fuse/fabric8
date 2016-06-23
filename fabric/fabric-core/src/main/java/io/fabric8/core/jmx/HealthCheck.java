@@ -66,11 +66,11 @@ public class HealthCheck implements HealthCheckMBean {
     public void registerMBeanServer(ShutdownTracker shutdownTracker, MBeanServer mbeanServer) {
         try {
             ObjectName name = getObjectName();
-			if (!mbeanServer.isRegistered(name)) {
+            if (!mbeanServer.isRegistered(name)) {
                 StandardMBean mbean = new StandardMBean(this, HealthCheckMBean.class);
-				mbeanServer.registerMBean(mbean, name);
-			}
-		} catch (Exception e) {
+                mbeanServer.registerMBean(mbean, name);
+            }
+        } catch (Exception e) {
             LOG.warn("An error occurred during mbean server registration: " + e, e);
         }
     }
@@ -79,10 +79,10 @@ public class HealthCheck implements HealthCheckMBean {
         if (mbeanServer != null) {
             try {
                 ObjectName name = getObjectName();
-				if (mbeanServer.isRegistered(name)) {
-					mbeanServer.unregisterMBean(name);
-				}
-			} catch (Exception e) {
+                if (mbeanServer.isRegistered(name)) {
+                    mbeanServer.unregisterMBean(name);
+                }
+            } catch (Exception e) {
                 LOG.warn("An error occurred during mbean server registration: " + e, e);
             }
         }
