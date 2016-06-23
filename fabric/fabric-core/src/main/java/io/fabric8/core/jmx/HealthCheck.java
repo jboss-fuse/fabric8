@@ -44,6 +44,7 @@ public class HealthCheck implements HealthCheckMBean {
     private final FabricService fabricService;
     private NumberFormat percentInstance = NumberFormat.getPercentInstance();
     private ObjectName objectName;
+    private String currentStatus = "Good";
 
     public HealthCheck(FabricService fabricService) {
         this.fabricService = fabricService;
@@ -117,6 +118,24 @@ public class HealthCheck implements HealthCheckMBean {
             }
             answer.add(new HealthStatus("io.fabric8.profileHealth", id, level, message, instances, minimum, maximum, healthPercent));
         }
+
+        String worries = "";
+        for (HealthStatus hs : answer) {
+            if ("WARNING".equals(hs.getLevel()) || "ERROR".equals(hs.getLevel())) {
+                worries += hs + " , ";
+            }
+        }
+        if ("".equals(worries)) {
+            this.currentStatus = "Good";
+        } else {
+            this.currentStatus = "Getting Worried {" + worries + " }";
+        }
+
         return answer;
+    }
+
+    @Override
+    public String getCurrentStatus() {
+        return this.currentStatus;
     }
 }
