@@ -22,4 +22,5 @@ import java.util.List;
  */
 public interface HealthCheckMBean {
     List<HealthStatus> healthList();
+    String getCurrentStatus();
 }
