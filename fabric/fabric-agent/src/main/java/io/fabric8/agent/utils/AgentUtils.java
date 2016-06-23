@@ -314,14 +314,10 @@ public class AgentUtils {
 //                    if (mavenRepo.startsWith(httpUrl)) {
 //                        continue;
 //                    }
-                    if (!mavenRepo.endsWith("/")) {
-                        mavenRepo += "/";
-                    }
                     if (sb.length() > 0) {
                         sb.append(",");
                     }
                     sb.append(mavenRepo);
-                    sb.append("@snapshots@snapshotsUpdate=always");
                 }
                 String existingRepos = props.get("org.ops4j.pax.url.mvn.repositories");
                 if (existingRepos != null) {
