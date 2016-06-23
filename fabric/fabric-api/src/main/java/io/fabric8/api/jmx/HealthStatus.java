@@ -70,4 +70,8 @@ public class HealthStatus {
     public String getProfile() {
         return profile;
     }
+
+    public String toString() {
+        return healthId + ": " + profile + " " + level + " " + message;
+    }
 }
