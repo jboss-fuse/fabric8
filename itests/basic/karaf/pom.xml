@@ -167,6 +167,23 @@
                                 <concat destfile="${karaf.home}/etc/org.ops4j.pax.url.mvn.cfg" append="true">
                                     <filelist dir="src/test/resources" files="io.fabric8.agent.properties" />
                                 </concat>
+                                <propertyfile file="${karaf.home}/etc/org.ops4j.pax.url.mvn.cfg">
+                                    <entry key="org.ops4j.pax.url.mvn.defaultRepositories" operation="+"
+                                            value=",file:${user.home}/.m2/repository@snapshots@id=local"/>
+                                </propertyfile>
+                                <propertyfile file="${karaf.home}/fabric/import/fabric/profiles/default.profile/io.fabric8.agent.properties">
+                                    <entry key="org.ops4j.pax.url.mvn.defaultRepositories" operation="+"
+                                            value=",file:${user.home}/.m2/repository@snapshots@id=local"/>
+                                </propertyfile>
+                                <!-- ENTESB-5764: for SNAPSHOT, fabric-maven doesn't check defaultRepositories -->
+                                <propertyfile file="${karaf.home}/etc/org.ops4j.pax.url.mvn.cfg">
+                                    <entry key="org.ops4j.pax.url.mvn.repositories" operation="+"
+                                            value=",file:${user.home}/.m2/repository@snapshots@id=local"/>
+                                </propertyfile>
+                                <propertyfile file="${karaf.home}/fabric/import/fabric/profiles/default.profile/io.fabric8.agent.properties">
+                                    <entry key="org.ops4j.pax.url.mvn.repositories" operation="+"
+                                            value=",file:${user.home}/.m2/repository@snapshots@id=local"/>
+                                </propertyfile>
                                 <copy todir="${karaf.home}/etc" overwrite="true">
                                     <fileset dir="${karaf.home}/fabric/import/fabric/profiles/acls.profile">
                                         <include name="org.apache.karaf.command.acl.*.properties" />
