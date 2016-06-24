@@ -164,6 +164,10 @@
                                 <copy todir="${karaf.home}/fabric" overwrite="true">
                                         <fileset dir="${project.build.directory}/test-classes/fabric"/>
                                 </copy>
+                                <propertyfile file="${karaf.home}/etc/org.ops4j.pax.url.mvn.cfg">
+                                    <entry key="org.ops4j.pax.url.mvn.defaultRepositories" operation="+"
+                                            value=",file:${user.home}/.m2/repository@snapshots@id=local"/>
+                                </propertyfile>
                                 <mkdir dir="${karaf.home}/patches/_baseline-root" />
                                 <copy todir="${karaf.home}/patches/_baseline-root">
                                     <fileset dir="${karaf.home}"/>

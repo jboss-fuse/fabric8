@@ -228,6 +228,9 @@ public class FabricTestSupport extends FabricKarafTestSupport {
                 KarafDistributionOption.editConfigurationFilePut("fabric/import/fabric/profiles/default.profile/io.fabric8.agent.properties", "org.ops4j.pax.url.mvn.globalChecksumPolicy", "ignore"),
                 KarafDistributionOption.editConfigurationFilePut("etc/org.ops4j.pax.url.mvn.cfg", "org.ops4j.pax.url.mvn.globalUpdatePolicy", "never"),
                 KarafDistributionOption.editConfigurationFilePut("etc/org.ops4j.pax.url.mvn.cfg", "org.ops4j.pax.url.mvn.globalChecksumPolicy", "ignore"),
+                // we removed ~/.m2/repository from default configuration - add this repository for tests
+                KarafDistributionOption.editConfigurationFileExtend("fabric/import/fabric/profiles/default.profile/io.fabric8.agent.properties", "org.ops4j.pax.url.mvn.defaultRepositories", ",file:${user.home}/.m2/repository@snapshots@id=local"),
+                KarafDistributionOption.editConfigurationFileExtend("etc/org.ops4j.pax.url.mvn.cfg", "org.ops4j.pax.url.mvn.defaultRepositories", ",file:${user.home}/.m2/repository@snapshots@id=local"),
                 // synchronize org.apache.karaf.command.acl.* PIDs
                 KarafDistributionOption.replaceConfigurationFile("etc/org.apache.karaf.command.acl.activemq.cfg", new File("target/fabric8-profiles/fabric/import/fabric/profiles/acls.profile/org.apache.karaf.command.acl.activemq.properties")),
                 KarafDistributionOption.replaceConfigurationFile("etc/org.apache.karaf.command.acl.admin.cfg", new File("target/fabric8-profiles/fabric/import/fabric/profiles/acls.profile/org.apache.karaf.command.acl.admin.properties")),
