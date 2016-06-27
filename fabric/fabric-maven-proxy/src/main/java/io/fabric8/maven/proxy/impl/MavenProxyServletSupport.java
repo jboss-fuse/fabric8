@@ -26,7 +26,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
@@ -200,6 +199,10 @@ public class MavenProxyServletSupport extends HttpServlet implements MavenProxy 
             LOGGER.info("Received request for maven artifact : {}", path);
             Artifact artifact = convertPathToArtifact(path);
             try {
+                if (artifact.getExtension() != null &&
+                        (artifact.getExtension().endsWith(".sha1") || artifact.getExtension().endsWith(".md5"))) {
+                    return null;
+                }
                 File download = resolver.resolveFile(artifact);
                 File tmpFile = Files.createTempFile(runtimeProperties.getDataPath());
                 Files.copy(download, tmpFile);
