@@ -231,9 +231,6 @@ public class FabricTestSupport extends FabricKarafTestSupport {
                 // we removed ~/.m2/repository from default configuration - add this repository for tests
                 KarafDistributionOption.editConfigurationFileExtend("fabric/import/fabric/profiles/default.profile/io.fabric8.agent.properties", "org.ops4j.pax.url.mvn.defaultRepositories", ",file:${user.home}/.m2/repository@snapshots@id=local"),
                 KarafDistributionOption.editConfigurationFileExtend("etc/org.ops4j.pax.url.mvn.cfg", "org.ops4j.pax.url.mvn.defaultRepositories", ",file:${user.home}/.m2/repository@snapshots@id=local"),
-                // ENTESB-5764: for SNAPSHOT, fabric-maven doesn't check defaultRepositories
-                KarafDistributionOption.editConfigurationFileExtend("fabric/import/fabric/profiles/default.profile/io.fabric8.agent.properties", "org.ops4j.pax.url.mvn.repositories", ",file:${user.home}/.m2/repository@snapshots@id=local"),
-                KarafDistributionOption.editConfigurationFileExtend("etc/org.ops4j.pax.url.mvn.cfg", "org.ops4j.pax.url.mvn.repositories", ",file:${user.home}/.m2/repository@snapshots@id=local"),
                 // synchronize org.apache.karaf.command.acl.* PIDs
                 KarafDistributionOption.replaceConfigurationFile("etc/org.apache.karaf.command.acl.activemq.cfg", new File("target/fabric8-profiles/fabric/import/fabric/profiles/acls.profile/org.apache.karaf.command.acl.activemq.properties")),
                 KarafDistributionOption.replaceConfigurationFile("etc/org.apache.karaf.command.acl.admin.cfg", new File("target/fabric8-profiles/fabric/import/fabric/profiles/acls.profile/org.apache.karaf.command.acl.admin.properties")),
