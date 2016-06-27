@@ -26,9 +26,11 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentMap;
@@ -155,6 +157,8 @@ public class AetherBasedResolver implements MavenResolver {
     private LocalRepository localRepository;
     private final ConcurrentMap<LocalRepository, Deque<DefaultRepositorySystemSession>> sessions
             = new ConcurrentHashMap<LocalRepository, Deque<DefaultRepositorySystemSession>>();
+
+    private final Set<LocalRepository> localRepositoriesWithSnapshots = new HashSet<>();
 
     /**
      * Create a AetherBasedResolver
@@ -408,6 +412,9 @@ public class AetherBasedResolver implements MavenResolver {
         if (repo.getFile() != null) {
             LocalRepository local = new LocalRepository( repo.getFile(), "simple" );
             list.add( local );
+            if (repo.isSnapshotsEnabled()) {
+                localRepositoriesWithSnapshots.add(local);
+            }
         }
     }
 
@@ -494,8 +501,12 @@ public class AetherBasedResolver implements MavenResolver {
         // Try with default repositories
         try {
             VersionConstraint vc = new GenericVersionScheme().parseVersionConstraint(artifact.getVersion());
-            if (vc.getVersion() != null && !vc.getVersion().toString().endsWith("SNAPSHOT")) {
+            if (vc.getVersion() != null) {
                 for (LocalRepository repo : defaultRepos) {
+                    if (vc.getVersion().toString().endsWith("SNAPSHOT")
+                            && !localRepositoriesWithSnapshots.contains(repo)) {
+                        continue;
+                    }
                     DefaultRepositorySystemSession session = newSession( repo );
                     try {
                         return m_repoSystem
