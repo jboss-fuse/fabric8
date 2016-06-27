@@ -415,6 +415,9 @@
                            </goals>
                        </execution>
                    </executions>
+                   <configuration>
+                       <escapeString>\</escapeString>
+                   </configuration>
                </plugin>
                <plugin>
                    <groupId>io.fabric8</groupId>
