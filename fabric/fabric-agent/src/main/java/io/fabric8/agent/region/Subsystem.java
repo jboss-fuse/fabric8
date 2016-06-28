@@ -94,8 +94,8 @@ public class Subsystem extends ResourceImpl {
     private final List<Resource> installable = new ArrayList<>();
     private final Map<String, DependencyInfo> dependencies = new HashMap<>();
     private final List<Requirement> dependentFeatures = new ArrayList<>();
-
     private final List<String> bundles = new ArrayList<>();
+    private final List<FabricBundle> fabricBundles = new ArrayList<>();
 
     public Subsystem(String name) {
         super(name, TYPE_SUBSYSTEM, Version.emptyVersion);
@@ -227,7 +227,11 @@ public class Subsystem extends ResourceImpl {
             addRequirement(req);
             break;
         case "bundle":
-            bundles.add(req);
+            if (FabricBundle.isFabricBundle(req)) {
+                fabricBundles.add(new FabricBundle(req));
+            } else {
+                bundles.add(req);
+            }
             break;
         }
     }
@@ -348,6 +352,10 @@ public class Subsystem extends ResourceImpl {
             final String loc = bundle.getName();
             downloader.download(loc, callback);
         }
+        for (final FabricBundle fabricBundle : fabricBundles) {
+            final String loc = fabricBundle.getLocation();
+            downloader.download(loc,callback);
+        }
         for (String override : overrides) {
             final String loc = Overrides.extractUrl(override);
             downloader.download(loc, callback);
@@ -402,6 +410,23 @@ public class Subsystem extends ResourceImpl {
                 addIdentityRequirement(this, bundles.get(loc));
             }
         }
+        for (final FabricBundle fabricBundle : fabricBundles) {
+            final String loc = fabricBundle.getLocation();
+            boolean dependency = Boolean.parseBoolean(fabricBundle.getProperty("dependency"));
+            boolean start = fabricBundle.getProperty("start") == null || Boolean.parseBoolean(fabricBundle.getProperty("start"));
+            int startLevel = 0;
+            try {
+                startLevel = Integer.parseInt(fabricBundle.getProperty("start-level"));
+            } catch (NumberFormatException e) {
+                // Ignore
+            }
+            if (dependency) {
+                addDependency(bundles.get(loc), false, start, startLevel);
+            } else {
+                doAddDependency(bundles.get(loc), true, start, startLevel);
+                addIdentityRequirement(this, bundles.get(loc));
+            }
+        }
         // Compute dependencies
         for (DependencyInfo info : dependencies.values()) {
             installable.add(info.resource);
@@ -431,6 +456,10 @@ public class Subsystem extends ResourceImpl {
         } else {
             parent.addDependency(resource, mandatory, start, startLevel);
         }
+    }
+
+    List<FabricBundle> getFabricBundles() {
+        return Collections.unmodifiableList(fabricBundles);
     }
 
     private void doAddDependency(ResourceImpl resource, boolean mandatory, boolean start, int startLevel) {
@@ -474,6 +503,39 @@ public class Subsystem extends ResourceImpl {
         @Override
         public boolean isDependency() {
             return !mandatory;
+        }
+    }
+    
+    static class FabricBundle{
+        private final String location;
+        private final Map<String,String> properties = new HashMap<>();
+
+        
+        private FabricBundle(String fabricURI){
+            String removeProtocol = fabricURI.replaceFirst("fabric:","");
+            int idx = removeProtocol.indexOf(";;");
+            if (idx > 0) {
+                location = removeProtocol.substring(0,idx);
+                String fabricBundleProperties = removeProtocol.substring(idx + 2);
+                for (String keyValue : fabricBundleProperties.split(";")) {
+                    String[] split = keyValue.split("=");
+                    this.properties.put(split[0],split[1]);            
+                }
+            } else {
+                location = removeProtocol;
+            }
+        }
+        
+        String getLocation(){
+            return location;
+        }
+
+        String getProperty(String key){
+            return properties.get(key);
+        }
+        
+        static boolean isFabricBundle(String uri){
+            return uri != null && uri.startsWith("fabric:");
         }
     }
 
