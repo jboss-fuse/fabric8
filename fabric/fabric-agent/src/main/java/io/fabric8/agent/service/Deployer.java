@@ -914,6 +914,12 @@ public class Deployer {
             }
 
             if (!toRefresh.isEmpty()) {
+                if (LOGGER.isDebugEnabled()){
+                    LOGGER.debug("    Bundle refresh explanation:");
+                    for(Map.Entry entry : toRefresh.entrySet()){
+                        LOGGER.debug("{} is refreshed because of [{}]", entry.getKey(), entry.getValue());
+                    }
+                }
                 callback.phase("finalizing (refreshing bundles)");
                 print("Refreshing bundles:", display);
                 for (Map.Entry<Bundle, String> entry : toRefresh.entrySet()) {
