@@ -3061,6 +3061,17 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
                     RevTag tag = gitPatchRepository.findCurrentBaseline(fork);
                     if (tag != null && tagName.equals(tag.getTagName())) {
+                        if (master) {
+                            // in case of `fabric:create --clean`, we have to push references again
+                            // from patches/.management/history to data/git/local
+                            // and then to data/git/servlet
+                            try {
+                                mainRepository.push().setPushAll().setPushTags().call();
+                                callback.run();
+                            } catch (Exception e) {
+                                Activator.log(LogService.LOG_WARNING, null, e.getMessage(), e, false);
+                            }
+                        }
                         return false;
                     }
 
