@@ -620,7 +620,8 @@
 		<module>org.fusesource.camel.component.sap</module>
 		<module>org.fusesource.camel.component.sap.test</module>
 		<module>camel-sap-component</module>
-		<module>camel-sap-repository</module>
+<!-- ENTESB-5801 disable for now
+<module>camel-sap-repository</module> -->
 	</modules>
 	<repositories>
 		<repository>
