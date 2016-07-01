@@ -32,10 +32,7 @@
     <name>Fabric8 :: Patch :: Core</name>
 
     <properties>
-        <fuse.osgi.export>
-            io.fabric8.patch;version="${project.version}",
-            io.fabric8.patch.impl;version="${project.version}"
-        </fuse.osgi.export>
+        <fuse.osgi.export />
         <fuse.osgi.import>
             io.fabric8.api;resolution:=optional,
             io.fabric8.common.util;resolution:=optional,
@@ -66,6 +63,10 @@
         <dependency>
             <groupId>io.fabric8.patch</groupId>
             <artifactId>patch-management</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.fabric8.patch</groupId>
+            <artifactId>patch-core-api</artifactId>
         </dependency>
         <dependency>
             <groupId>io.fabric8</groupId>

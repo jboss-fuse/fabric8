@@ -743,6 +743,11 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
+                <groupId>io.fabric8.patch</groupId>
+                <artifactId>patch-core-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>io.fabric8.mq</groupId>
                 <artifactId>mq-client</artifactId>
                 <version>${project.version}</version>
