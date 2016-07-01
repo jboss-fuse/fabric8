@@ -37,6 +37,7 @@
 
     <modules>
         <module>patch-client</module>
+        <module>patch-core-api</module>
         <module>patch-core</module>
         <module>patch-commands</module>
         <module>patch-management</module>
