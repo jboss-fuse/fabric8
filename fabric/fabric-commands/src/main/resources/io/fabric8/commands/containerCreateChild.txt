@@ -12,8 +12,8 @@ karaf@root> fabric:container-create-child root child 3
 
 By default, the new child containers are associated with the profile, default. If you want to specify the profile explicitly, use the --profile option. For example, to specify the esb profile:
 
-fabric:container-create-child --profile esb root childESB
+fabric:container-create-child --profile esb root child-esb
 
 To associate multiple profiles with a new child container, specify the --profile option multiple times. For example:
 
-fabric:container-create-child --profile esb --profile myApp root childMyApp
+fabric:container-create-child --profile esb --profile myApp root child-myapp

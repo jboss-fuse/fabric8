@@ -18,6 +18,8 @@ package io.fabric8.patch.management.conflicts;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.io.FilenameUtils;
+
 /**
  * <p>Manager-style class that can be used to resolve conflicts during 3-way merge. This resolver can help with
  * resolving conflicts for files inside well-known base - which is <code>${karaf.home}</code></p>
@@ -32,15 +34,24 @@ public class ConflictResolver {
         builtInResolvers.put("etc/users.properties", new UsersPropertiesResolver());
         builtInResolvers.put("bin/setenv", new ChooseUserVersionResolver());
         builtInResolvers.put("bin/setenv.bat", new ChooseUserVersionResolver());
+        PropertiesFileResolver resolver = new PropertiesFileResolver();
+        builtInResolvers.put("*.properties", resolver);
+        builtInResolvers.put("*.cfg", resolver);
     }
 
     /**
-     * If there's dedicated resolver for a path relative to <code>${karaf.home}</code>, return it.
+     * If there's dedicated resolver for a path relative to <code>${karaf.home}</code>, return it. If there's no
+     * resolver for path, we try resolver by extension.
      * @param path
      * @return
      */
     public Resolver getResolver(String path) {
-        return builtInResolvers.get(path);
+        Resolver resolver = builtInResolvers.get(path);
+        if (resolver == null) {
+            String ext = FilenameUtils.getExtension(path);
+            resolver = builtInResolvers.get("*." + ext);
+        }
+        return resolver;
     }
 
 }

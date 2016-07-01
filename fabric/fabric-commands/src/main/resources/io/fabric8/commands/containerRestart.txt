@@ -1,9 +1,0 @@
-Container restart executes three phases:
-
-* Execute stop command on every container
-
-* Wait until the containers are stopped (waits up to 2 minutes for each restarted container)
-
-* Execute start command on every container
-
-If the current container should and can be restarted, the appropriate flag will be set and you need to shut down the container manually.

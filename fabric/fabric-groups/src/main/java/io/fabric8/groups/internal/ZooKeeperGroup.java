@@ -23,22 +23,25 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
 import io.fabric8.utils.NamedThreadFactory;
+
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.listen.ListenerContainer;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.framework.state.ConnectionStateListener;
 import org.apache.curator.utils.EnsurePath;
-import org.apache.curator.utils.ThreadUtils;
 import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
+
 import io.fabric8.groups.Group;
 import io.fabric8.groups.GroupListener;
 import io.fabric8.groups.NodeState;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -139,6 +142,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
      * @param executorService ExecutorService to use for the ZooKeeperGroup's background thread
      */
     public ZooKeeperGroup(CuratorFramework client, String path, Class<T> clazz, final ExecutorService executorService) {
+        LOG.info("Creating ZK Group for path \"" + path + "\"");
         this.client = client;
         this.path = path;
         this.clazz = clazz;
@@ -150,6 +154,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
      * Start the cache. The cache is not started automatically. You must call this method.
      */
     public void start() {
+        LOG.info("Starting ZK Group for path \"" + path + "\"");
         if (started.compareAndSet(false, true)) {
             connected.set(client.getZookeeperClient().isConnected());
 
@@ -241,11 +246,15 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
                 }
             }
         } else if (isConnected()) {
+            // We could have created the sequence, but then have crashed and our entry is already registered.
+            // However, we ignore old ephemeral nodes, and create new ones. We can have double nodes for a bit,
+            // but the old ones should be deleted by the server when session is invalidated.
+            // See: https://issues.jboss.org/browse/FABRIC-1238
             if (id == null) {
                 id = createEphemeralNode(state);
             } else {
                 try {
-                    client.setData().forPath(id, encode(state));
+                    updateEphemeralNode(state);
                 } catch (KeeperException.NoNodeException e) {
                     id = createEphemeralNode(state);
                 }
@@ -264,6 +273,12 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
         return pathId;
     }
 
+    private void updateEphemeralNode(T state) throws Exception {
+        state.uuid = uuid;
+        client.setData().forPath(id, encode(state));
+        state.uuid = null;
+    }
+
     // remove ephemeral sequential nodes created on server but not visible on client
     private void prunePartialState(final T ourState, final String pathId) throws Exception {
         if (ourState.uuid != null) {
@@ -280,7 +295,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
 
     @Override
     public Map<String, T> members() {
-        List<ChildData<T>> children = new ArrayList<ChildData<T>>(currentData.values());
+        List<ChildData<T>> children = getActiveChildren();
         Collections.sort(children, sequenceComparator);
         Map<String, T> members = new LinkedHashMap<String, T>();
         for (ChildData<T> child : children) {
@@ -291,14 +306,14 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
 
     @Override
     public boolean isMaster() {
-        List<ChildData<T>> children = new ArrayList<ChildData<T>>(currentData.values());
+        List<ChildData<T>> children = getActiveChildren();
         Collections.sort(children, sequenceComparator);
         return (!children.isEmpty() && children.get(0).getPath().equals(id));
     }
 
     @Override
     public T master() {
-        List<ChildData<T>> children = new ArrayList<ChildData<T>>(currentData.values());
+        List<ChildData<T>> children = getActiveChildren();
         Collections.sort(children, sequenceComparator);
         if (children.isEmpty()) {
             return null;
@@ -308,13 +323,30 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
 
     @Override
     public List<T> slaves() {
-        List<ChildData<T>> children = new ArrayList<ChildData<T>>(currentData.values());
+        List<ChildData<T>> children = getActiveChildren();
         Collections.sort(children, sequenceComparator);
         List<T> slaves = new ArrayList<T>();
         for (int i = 1; i < children.size(); i++) {
             slaves.add(children.get(i).getNode());
         }
         return slaves;
+    }
+
+    /**
+     * Filter stale nodes and return only active children from the current data.
+     *
+     * @return list of active children and data
+     */
+    protected List<ChildData<T>> getActiveChildren() {
+        Map<String, ChildData<T>> filtered = new HashMap<>();
+        for (ChildData<T> child : currentData.values()) {
+            T node = child.getNode();
+            if (!filtered.containsKey(node.getContainer())
+                    || filtered.get(node.getContainer()).getPath().compareTo(child.getPath()) < 0) {
+                filtered.put(node.getContainer(), child);
+            }
+        }
+        return new ArrayList<>(filtered.values());
     }
 
     @Override
@@ -576,5 +608,10 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
 
     public String getId() {
         return id;
+    }
+
+    @VisibleForTesting
+    void setId(String id) {
+        this.id = id;
     }
 }

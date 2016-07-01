@@ -82,7 +82,7 @@ public class ExtendedUpgradeAndRollbackTest  {
     @SuppressWarnings("unchecked")
     @Test
     public void testContainerAfterVersionUpgradeAndDowngrade() throws Exception {
-        System.out.println(CommandSupport.executeCommand("fabric:create --force --clean -n"));
+        System.out.println(CommandSupport.executeCommand("fabric:create --force --clean -n --wait-for-provisioning"));
         //System.out.println(executeCommand("shell:info"));
         //System.out.println(executeCommand("fabric:info"));
         //System.out.println(executeCommand("fabric:profile-list"));
@@ -135,7 +135,7 @@ public class ExtendedUpgradeAndRollbackTest  {
     @Test
     @SuppressWarnings("unchecked")
     public void testContainerAfterVersionDowngrade() throws Exception {
-        System.out.println(CommandSupport.executeCommand("fabric:create --force --clean -n"));
+        System.out.println(CommandSupport.executeCommand("fabric:create --force --clean -n --wait-for-provisioning"));
         //System.out.println(executeCommand("shell:info"));
         //System.out.println(executeCommand("fabric:info"));
         //System.out.println(executeCommand("fabric:profile-list"));

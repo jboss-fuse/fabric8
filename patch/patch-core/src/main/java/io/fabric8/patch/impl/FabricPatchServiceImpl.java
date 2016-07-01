@@ -91,30 +91,6 @@ public class FabricPatchServiceImpl implements FabricPatchService {
         BundleContext bundleContext = componentContext.getBundleContext().getBundle(0).getBundleContext();
         File karafHome = new File(bundleContext.getProperty("karaf.home"));
         helper = new OSGiPatchHelper(karafHome, bundleContext);
-
-        if (fabricService != null) {
-            Profile profile = fabricService.getCurrentContainer().getOverlayProfile();
-            Map<String, String> versions = profile.getConfiguration("io.fabric8.version");
-//            if (patchManagement.alignTo(versions)) {
-                // we need restart
-//                boolean handlesFullRestart = Boolean.getBoolean("karaf.restart.jvm.supported");
-//                if (handlesFullRestart) {
-//                    System.setProperty("karaf.restart.jvm", "true");
-//                }
-//                System.out.println("[PATCH] Restarting after updating container resources in 10 seconds...");
-//                System.out.println("[PATCH] Container has to be restarted. Please restart after agent finishes processing...");
-//                new ScheduledThreadPoolExecutor(1).schedule(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        try {
-//                            bundleContext.getBundle(0L).stop();
-//                        } catch (BundleException e) {
-//                            e.printStackTrace();
-//                        }
-//                    }
-//                }, 10, TimeUnit.SECONDS);
-//            }
-        }
     }
 
     @Override
@@ -167,7 +143,17 @@ public class FabricPatchServiceImpl implements FabricPatchService {
                     // because patch-management private-packages git library
                     // but we can leverage the write lock we have
                     GitHelpers.checkoutBranch(git, versionId);
+
+                    // let's get back in history to the point before user changes (profile-edits), but not earlier
+                    // than last R patch
+                    String patchBranch = patchManagement.findLatestPatchRevision(git.getRepository().getDirectory(), versionId);
+
+                    // now install profiles from patch just like there were no user changes
                     patchManagement.installProfiles(git.getRepository().getDirectory(), versionId, patch, strategy);
+
+                    // and finally we have to merge user and patch changes to profiles.
+                    patchManagement.mergeProfileChanges(patch, git.getRepository().getDirectory(), versionId, patchBranch);
+
                     context.commitMessage("Installing rollup patch \"" + patch.getPatchData().getId() + "\"");
                     return null;
                 }

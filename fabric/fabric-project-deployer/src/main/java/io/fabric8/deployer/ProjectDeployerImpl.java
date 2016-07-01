@@ -213,11 +213,7 @@ public final class ProjectDeployerImpl extends AbstractComponent implements Proj
         }
         String webContextPath = requirements.getWebContextPath();
         if (!Strings.isEmpty(webContextPath)) {
-            Map<String, String> contextPathConfig = new HashMap<>();
-            Map<String, String> oldValue = profile.getConfiguration(Constants.WEB_CONTEXT_PATHS_PID);
-            if (oldValue != null) {
-                contextPathConfig.putAll(oldValue);
-            }
+            Map<String, String> contextPathConfig = builder.getConfiguration(Constants.WEB_CONTEXT_PATHS_PID);
             String key = requirements.getGroupId() + "/" + requirements.getArtifactId();
             String current = contextPathConfig.get(key);
             if (!Objects.equal(current, webContextPath)) {
@@ -280,7 +276,7 @@ public final class ProjectDeployerImpl extends AbstractComponent implements Proj
             LOG.info("Using resolver to add extra features and bundles on " + bundleUrl);
 
             List<String> features = new ArrayList<String>();
-            List<String> bundles = new ArrayList<String>();
+            List<String> bundles = new ArrayList<String>(profile.getBundles());
             List<String> optionals = new ArrayList<String>();
 
             if (requirements.getFeatures() != null) {

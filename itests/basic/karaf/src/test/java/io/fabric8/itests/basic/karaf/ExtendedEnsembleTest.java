@@ -81,7 +81,7 @@ public class ExtendedEnsembleTest {
     @SuppressWarnings("unchecked")
     @Ignore
     public void testAddAndRemoveWithVersions() throws Exception {
-        System.err.println(CommandSupport.executeCommand("fabric:create --force --clean -n"));
+        System.err.println(CommandSupport.executeCommand("fabric:create --force --clean -n --wait-for-provisioning"));
         BundleContext moduleContext = ServiceLocator.getSystemContext();
         ServiceProxy<FabricService> fabricProxy = ServiceProxy.createServiceProxy(moduleContext, FabricService.class);
         try {
@@ -147,7 +147,7 @@ public class ExtendedEnsembleTest {
     @SuppressWarnings("unchecked")
     @Ignore
     public void testAddAndRemoveWithPartialVersionUpgrades() throws Exception {
-        System.out.println(CommandSupport.executeCommand("fabric:create --force --clean -n"));
+        System.out.println(CommandSupport.executeCommand("fabric:create --force --clean -n --wait-for-provisioning"));
         //System.out.println(executeCommand("shell:info"));
         //System.out.println(executeCommand("fabric:info"));
         //System.out.println(executeCommand("fabric:profile-list"));

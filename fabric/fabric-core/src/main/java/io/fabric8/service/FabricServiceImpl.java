@@ -28,7 +28,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -80,7 +79,6 @@ import io.fabric8.api.visibility.VisibleForTesting;
 import io.fabric8.internal.ContainerImpl;
 import io.fabric8.internal.ProfileDependencyConfig;
 import io.fabric8.internal.ProfileDependencyKind;
-import io.fabric8.utils.DataStoreUtils;
 import io.fabric8.utils.FabricValidations;
 import io.fabric8.utils.PasswordEncoder;
 import io.fabric8.api.SystemProperties;
@@ -859,11 +857,18 @@ public final class FabricServiceImpl extends AbstractComponent implements Fabric
                 }
                 if (children != null) {
                     for (String child : children) {
-                        String mavenRepo = getSubstitutedPath(curator.get(), ZkPath.MAVEN_PROXY.getPath("download") + "/" + child);
+                        String mavenRepo = "";
+                        try {
+                            mavenRepo = getSubstitutedPath(curator.get(), ZkPath.MAVEN_PROXY.getPath("download") + "/" + child);
+                        } catch (Exception e){
+                            LOGGER.warn("No znodes found under path: [{}]", ZkPath.MAVEN_PROXY.getPath("download"), e);
+                            return new ArrayList<URI>(0);
+                        }
                         if (mavenRepo != null && !mavenRepo.endsWith("/")) {
                             mavenRepo += "/";
                         }
                         if(mavenRepo != null) {
+                            mavenRepo += "@snapshots@id=fabric_internal@snapshotsUpdate=always@checksum=ignore";
                             uris.add(new URI(mavenRepo));
                         }
                     }
@@ -1214,22 +1219,12 @@ public final class FabricServiceImpl extends AbstractComponent implements Fabric
     public String getConfigurationValue(String versionId, String profileId, String pid, String key) {
         assertValid();
         Profile pr = profileService.get().getRequiredProfile(versionId, profileId);
-        Map<String, byte[]> configs = pr.getFileConfigurations();
+        Map<String, String> config = pr.getConfiguration(pid);
 
-        byte[] b = configs.get(pid);
-
-        Properties p = null;
-        try {
-            if (b != null) {
-                p = DataStoreUtils.toProperties(b);
-            } else {
-                p = new Properties();
-            }
-        } catch (Throwable t) {
-            throw new FabricException(t);
+        if (config == null) {
+            return null;
         }
-
-        return p.getProperty(key);
+        return config.get(key);
     }
 
     @Override
@@ -1237,21 +1232,12 @@ public final class FabricServiceImpl extends AbstractComponent implements Fabric
         assertValid();
         Version version = profileService.get().getRequiredVersion(versionId);
         Profile profile = version.getRequiredProfile(profileId);
-        
-        Map<String, byte[]> configs = profile.getFileConfigurations();
-        byte[] bytes = configs.get(pid);
-        Properties properties;
-        if (bytes != null) {
-            properties = DataStoreUtils.toProperties(bytes);
-        } else {
-            properties = new Properties();
-        }
-        properties.setProperty(key, value);
-        bytes = DataStoreUtils.toBytes(properties);
-        configs.put(pid, bytes);
-        
+
         ProfileBuilder builder = ProfileBuilder.Factory.createFrom(profile);
-        builder.setFileConfigurations(configs);
+        Map<String, String> config = builder.getConfiguration(pid);
+        config.put(key, value);
+
+        builder.addConfiguration(pid, config);
         profileService.get().updateProfile(builder.getProfile());
     }
 

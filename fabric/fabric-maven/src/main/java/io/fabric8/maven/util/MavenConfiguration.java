@@ -107,6 +107,7 @@ public interface MavenConfiguration {
 
     /**
      * @param url Enables the proxy server for a given URL.
+     * @deprecated
      */
     void enableProxy(URL url);
 

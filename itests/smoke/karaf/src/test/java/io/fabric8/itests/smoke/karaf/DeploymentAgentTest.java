@@ -81,7 +81,7 @@ public class DeploymentAgentTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testFeatureRepoResolution() throws Exception {
-        CommandSupport.executeCommand("fabric:create --force --clean -n");
+        CommandSupport.executeCommand("fabric:create --force --clean -n --wait-for-provisioning");
 
         //We are just want to use a feature repository that is not part of the distribution.
         CommandSupport.executeCommand("fabric:profile-create --parent feature-camel test-profile");
@@ -123,7 +123,7 @@ public class DeploymentAgentTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testResolveOptionalImports() throws Exception {
-        CommandSupport.executeCommand("fabric:create --force --clean -n");
+        CommandSupport.executeCommand("fabric:create --force --clean -n --wait-for-provisioning");
 
         CommandSupport.executeCommand("fabric:profile-create --parent default test-profile");
         CommandSupport.executeCommand("fabric:profile-edit --pid io.fabric8.agent/resolve.optional.imports=true test-profile");

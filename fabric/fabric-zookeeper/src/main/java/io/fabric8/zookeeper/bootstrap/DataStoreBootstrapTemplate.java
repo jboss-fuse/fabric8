@@ -15,6 +15,7 @@
  */
 package io.fabric8.zookeeper.bootstrap;
 
+import io.fabric8.api.Constants;
 import io.fabric8.api.CreateEnsembleOptions;
 import io.fabric8.api.DataStore;
 import io.fabric8.api.DataStoreTemplate;
@@ -133,8 +134,15 @@ public class DataStoreBootstrapTemplate implements DataStoreTemplate {
                     }
                 } else {
                     ProfileBuilder builder = ProfileBuilder.Factory.createFrom(defaultProfile);
-                    builder.addConfiguration("io.fabric8.jaas", jaasConfig);
-                    builder.addFileConfiguration("io.fabric8.zookeeper.properties", DataStoreUtils.toBytes(zkProps));
+                    // be careful not to mess with existing *.properties files - for better "diffability"
+                    // during git-based patching
+                    Map<String, String> existingJaasConfig = builder.getConfiguration("io.fabric8.jaas");
+                    Map<String, String> existingZkConfig = builder.getConfiguration("io.fabric8.zookeeper");
+                    existingJaasConfig.putAll(jaasConfig);
+                    existingZkConfig.put("zookeeper.url", zkProps.getProperty("zookeeper.url"));
+                    existingZkConfig.put("zookeeper.password", zkProps.getProperty("zookeeper.password"));
+                    builder.addConfiguration("io.fabric8.jaas", existingJaasConfig);
+                    builder.addConfiguration("io.fabric8.zookeeper", existingZkConfig);
                     profileRegistry.updateProfile(builder.getProfile());
                 }
 
@@ -186,9 +194,9 @@ public class DataStoreBootstrapTemplate implements DataStoreTemplate {
                     fabricProfile = profileRegistry.getRequiredProfile(versionId, createdId);
                 } else {
                     ProfileBuilder builder = ProfileBuilder.Factory.createFrom(fabricProfile);
-                    Properties agentProps = DataStoreUtils.toProperties(fabricProfile.getFileConfiguration("io.fabric8.agent.properties"));
+                    Map<String, String> agentProps = builder.getConfiguration(Constants.AGENT_PID);
                     agentProps.put("feature.fabric-commands", "fabric-commands");
-                    builder.addFileConfiguration("io.fabric8.agent.properties", DataStoreUtils.toBytes(agentProps));
+                    builder.addConfiguration(Constants.AGENT_PID, agentProps);
                     String updatedId = profileRegistry.updateProfile(builder.getProfile());
                     fabricProfile = profileRegistry.getRequiredProfile(versionId, updatedId);
                 }
@@ -223,7 +231,9 @@ public class DataStoreBootstrapTemplate implements DataStoreTemplate {
             //Ensure ACLs are from the beggining of the fabric tree.
             aclManager.fixAcl(curator, "/fabric", true);
         } finally {
-            curator.close();
+            if (curator != null) {
+                curator.close();
+            }
         }
     }
 

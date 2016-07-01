@@ -21,11 +21,14 @@ import java.util.regex.Pattern;
 
 public final class FabricValidations {
 
-    // container name must be lower case only, and without dots
-    private static final Pattern ALLOWED_CONTAINER_NAMES_PATTERN = Pattern.compile("^[a-z0-9]+[a-z0-9_-]*$");
+    // see https://tools.ietf.org/html/rfc952, we extend it to allow also UNDERSCORE symbol
+    private static final Pattern ALLOWED_CONTAINER_NAMES_PATTERN = Pattern.compile("^[a-zA-Z0-9]+[\\.a-zA-Z0-9_-]*$");
 
     // we allow using dot in profile names
     private static final Pattern ALLOWED_PROFILE_NAMES_PATTERN = Pattern.compile("^[a-zA-Z0-9]+[\\.a-zA-Z0-9_-]*$");
+    
+    // we allow using dot in service names
+    private static final Pattern ALLOWED_VERSION_NAMES_PATTERN = Pattern.compile("^[a-zA-Z0-9]+[\\.a-zA-Z0-9_-]*$");
 
     private FabricValidations() {
         //Utility Class
@@ -41,6 +44,12 @@ public final class FabricValidations {
     public static void validateProfileName(String profileName) {
         if (!isValidProfileName(profileName)) {
             throw new IllegalArgumentException("Profile name '" + profileName + "' is invalid. Profile name must be: letters, numbers, and . _ or - characters");
+        }
+    }
+    
+    public static void validateVersionName(String versionName) {
+        if (!isValidVersionName(versionName)) {
+            throw new IllegalArgumentException("Version name '" + versionName + "' is invalid. Version name must be: letters, numbers, and . _ or - characters");
         }
     }
 
@@ -73,4 +82,8 @@ public final class FabricValidations {
     public static boolean isValidProfileName(String name) {
        return name != null && !name.isEmpty() && ALLOWED_PROFILE_NAMES_PATTERN.matcher(name).matches();
     }
+    
+    public static boolean isValidVersionName(String name) {
+        return name != null && !name.isEmpty() && ALLOWED_VERSION_NAMES_PATTERN.matcher(name).matches();
+     }
 }

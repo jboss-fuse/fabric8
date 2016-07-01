@@ -227,7 +227,31 @@ public class FabricTestSupport extends FabricKarafTestSupport {
                 KarafDistributionOption.editConfigurationFilePut("fabric/import/fabric/profiles/default.profile/io.fabric8.agent.properties", "org.ops4j.pax.url.mvn.globalUpdatePolicy", "never"),
                 KarafDistributionOption.editConfigurationFilePut("fabric/import/fabric/profiles/default.profile/io.fabric8.agent.properties", "org.ops4j.pax.url.mvn.globalChecksumPolicy", "ignore"),
                 KarafDistributionOption.editConfigurationFilePut("etc/org.ops4j.pax.url.mvn.cfg", "org.ops4j.pax.url.mvn.globalUpdatePolicy", "never"),
-                KarafDistributionOption.editConfigurationFilePut("etc/org.ops4j.pax.url.mvn.cfg", "org.ops4j.pax.url.mvn.globalChecksumPolicy", "ignore")
+                KarafDistributionOption.editConfigurationFilePut("etc/org.ops4j.pax.url.mvn.cfg", "org.ops4j.pax.url.mvn.globalChecksumPolicy", "ignore"),
+                // we removed ~/.m2/repository from default configuration - add this repository for tests
+                KarafDistributionOption.editConfigurationFileExtend("fabric/import/fabric/profiles/default.profile/io.fabric8.agent.properties", "org.ops4j.pax.url.mvn.defaultRepositories", ",file:${user.home}/.m2/repository@snapshots@id=local"),
+                KarafDistributionOption.editConfigurationFileExtend("etc/org.ops4j.pax.url.mvn.cfg", "org.ops4j.pax.url.mvn.defaultRepositories", ",file:${user.home}/.m2/repository@snapshots@id=local"),
+                // synchronize org.apache.karaf.command.acl.* PIDs
+                KarafDistributionOption.replaceConfigurationFile("etc/org.apache.karaf.command.acl.activemq.cfg", new File("target/fabric8-profiles/fabric/import/fabric/profiles/acls.profile/org.apache.karaf.command.acl.activemq.properties")),
+                KarafDistributionOption.replaceConfigurationFile("etc/org.apache.karaf.command.acl.admin.cfg", new File("target/fabric8-profiles/fabric/import/fabric/profiles/acls.profile/org.apache.karaf.command.acl.admin.properties")),
+                KarafDistributionOption.replaceConfigurationFile("etc/org.apache.karaf.command.acl.camel.cfg", new File("target/fabric8-profiles/fabric/import/fabric/profiles/acls.profile/org.apache.karaf.command.acl.camel.properties")),
+                KarafDistributionOption.replaceConfigurationFile("etc/org.apache.karaf.command.acl.config.cfg", new File("target/fabric8-profiles/fabric/import/fabric/profiles/acls.profile/org.apache.karaf.command.acl.config.properties")),
+                KarafDistributionOption.replaceConfigurationFile("etc/org.apache.karaf.command.acl.cxf.cfg", new File("target/fabric8-profiles/fabric/import/fabric/profiles/acls.profile/org.apache.karaf.command.acl.cxf.properties")),
+                KarafDistributionOption.replaceConfigurationFile("etc/org.apache.karaf.command.acl.dev.cfg", new File("target/fabric8-profiles/fabric/import/fabric/profiles/acls.profile/org.apache.karaf.command.acl.dev.properties")),
+                KarafDistributionOption.replaceConfigurationFile("etc/org.apache.karaf.command.acl.esb.cfg", new File("target/fabric8-profiles/fabric/import/fabric/profiles/acls.profile/org.apache.karaf.command.acl.esb.properties")),
+                KarafDistributionOption.replaceConfigurationFile("etc/org.apache.karaf.command.acl.fab.cfg", new File("target/fabric8-profiles/fabric/import/fabric/profiles/acls.profile/org.apache.karaf.command.acl.fab.properties")),
+                KarafDistributionOption.replaceConfigurationFile("etc/org.apache.karaf.command.acl.fabric.cfg", new File("target/fabric8-profiles/fabric/import/fabric/profiles/acls.profile/org.apache.karaf.command.acl.fabric.properties")),
+                KarafDistributionOption.replaceConfigurationFile("etc/org.apache.karaf.command.acl.features.cfg", new File("target/fabric8-profiles/fabric/import/fabric/profiles/acls.profile/org.apache.karaf.command.acl.features.properties")),
+                KarafDistributionOption.replaceConfigurationFile("etc/org.apache.karaf.command.acl.jaas.cfg", new File("target/fabric8-profiles/fabric/import/fabric/profiles/acls.profile/org.apache.karaf.command.acl.jaas.properties")),
+                KarafDistributionOption.replaceConfigurationFile("etc/org.apache.karaf.command.acl.jasypt.cfg", new File("target/fabric8-profiles/fabric/import/fabric/profiles/acls.profile/org.apache.karaf.command.acl.jasypt.properties")),
+                KarafDistributionOption.replaceConfigurationFile("etc/org.apache.karaf.command.acl.log.cfg", new File("target/fabric8-profiles/fabric/import/fabric/profiles/acls.profile/org.apache.karaf.command.acl.log.properties")),
+                KarafDistributionOption.replaceConfigurationFile("etc/org.apache.karaf.command.acl.osgi.cfg", new File("target/fabric8-profiles/fabric/import/fabric/profiles/acls.profile/org.apache.karaf.command.acl.osgi.properties")),
+                KarafDistributionOption.replaceConfigurationFile("etc/org.apache.karaf.command.acl.packages.cfg", new File("target/fabric8-profiles/fabric/import/fabric/profiles/acls.profile/org.apache.karaf.command.acl.packages.properties")),
+                KarafDistributionOption.replaceConfigurationFile("etc/org.apache.karaf.command.acl.patch.cfg", new File("target/fabric8-profiles/fabric/import/fabric/profiles/acls.profile/org.apache.karaf.command.acl.patch.properties")),
+                KarafDistributionOption.replaceConfigurationFile("etc/org.apache.karaf.command.acl.scope_bundle.cfg", new File("target/fabric8-profiles/fabric/import/fabric/profiles/acls.profile/org.apache.karaf.command.acl.scope_bundle.properties")),
+                KarafDistributionOption.replaceConfigurationFile("etc/org.apache.karaf.command.acl.scr.cfg", new File("target/fabric8-profiles/fabric/import/fabric/profiles/acls.profile/org.apache.karaf.command.acl.scr.properties")),
+                KarafDistributionOption.replaceConfigurationFile("etc/org.apache.karaf.command.acl.shell.cfg", new File("target/fabric8-profiles/fabric/import/fabric/profiles/acls.profile/org.apache.karaf.command.acl.shell.properties")),
+                KarafDistributionOption.replaceConfigurationFile("etc/org.apache.karaf.command.acl.ssh.cfg", new File("target/fabric8-profiles/fabric/import/fabric/profiles/acls.profile/org.apache.karaf.command.acl.ssh.properties"))
         };
     }
 

@@ -20,14 +20,14 @@ import io.fabric8.api.scr.Configurer;
 import io.fabric8.api.scr.ValidatingReference;
 import org.apache.felix.scr.annotations.*;
 import org.jolokia.osgi.servlet.JolokiaServlet;
+import org.jolokia.restrictor.Restrictor;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.http.HttpContext;
 import org.osgi.service.http.HttpService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Hashtable;
-import java.util.Map;
+import java.util.*;
 
 @Component(name = "io.fabric8.jolokia",
         label = "Fabric8 Jolokia",
@@ -58,8 +58,25 @@ public class FabricJolokia extends AbstractComponent {
     void activate(BundleContext bundleContext, Map<String, String> properties) throws Exception {
         configurer.configure(properties, this);
         context = new JolokiaSecureHttpContext(realm, role);
-        httpService.get().registerServlet(getServletAlias(), new JolokiaServlet(bundleContext), new Hashtable(), context);
+        Hashtable<String,String> initProps = new Hashtable<>();
+        //initProps.put("restrictorClass", RBACRestrictor.class.getName()); // This requires Jolokia 1.3.3
+        injectSystemProperties(initProps);
+        httpService.get().registerServlet(getServletAlias(), new JolokiaServlet(bundleContext) {
+            @Override
+            protected Restrictor createRestrictor(String policyLocation) {
+                return new RBACRestrictor(policyLocation);
+            }
+        }, initProps, context);
         activateComponent();
+    }
+
+    protected void injectSystemProperties(Hashtable<String,String> initProps) {
+        java.util.Properties properties = System.getProperties();
+        for(String prop : properties.stringPropertyNames()){
+            if(prop.startsWith("jolokia.")){
+                initProps.put(prop.substring(prop.indexOf(".") + 1), properties.getProperty(prop));
+            }
+        }
     }
 
     @Deactivate

@@ -86,7 +86,7 @@
         <fuse.osgi.import.default.version>[$(version;==;$(@)),$(version;+;$(@)))</fuse.osgi.import.default.version>
         <fuse.osgi.import.defaults>
             org.springframework.osgi.*;version="[1.2,2)",
-            org.springframework.*;version="[3.1,4)",
+            org.springframework.*;version="[3.2,4)",
             org.apache.commons.logging.*;version="[1.1,2)",
             org.apache.camel.*;version="[2.13,3)",
             org.apache.felix.gogo.commands.*;version="[0.10,1)",
@@ -122,7 +122,7 @@
         <!-- ServiceMix legal shared resources -->
         <servicemix.legal.version>1.0</servicemix.legal.version>
 
-        <activemq-version>5.11.0.redhat-630057</activemq-version>
+        <activemq-version>5.11.0.redhat-630131</activemq-version>
         <aether-version>1.0.2.v20150114</aether-version>
         <ant.bundle.version>1.8.2_2</ant.bundle.version>
         <antlr-version>3.3</antlr-version>
@@ -130,7 +130,7 @@
         <archetype-packaging.version>2.2</archetype-packaging.version>
         <aries-blueprint-api-version>1.0.1</aries-blueprint-api-version>
         <aries-blueprint-cm-version>1.0.6</aries-blueprint-cm-version>
-        <aries-blueprint-core-version>1.4.4</aries-blueprint-core-version>
+        <aries-blueprint-core-version>1.4.5</aries-blueprint-core-version>
         <aries-blueprint-core-compatibility-version>1.0.0</aries-blueprint-core-compatibility-version>
         <aries-blueprint-version>1.1.0</aries-blueprint-version>
         <aries-jmx-api-version>1.1.1</aries-jmx-api-version>
@@ -138,7 +138,7 @@
         <aries-jmx-blueprint-api-version>1.1.0</aries-jmx-blueprint-api-version>
         <aries-jmx-blueprint-core-version>1.1.0</aries-jmx-blueprint-core-version>
         <aries-proxy-api-version>1.0.1</aries-proxy-api-version>
-        <aries-proxy-impl-version>1.0.4</aries-proxy-impl-version>
+        <aries-proxy-impl-version>1.0.5</aries-proxy-impl-version>
         <aries-proxy-version>1.0.1</aries-proxy-version>
         <aries-util-version>1.1.0</aries-util-version>
         <arquillian-core-version>1.1.1.Final</arquillian-core-version>
@@ -149,31 +149,32 @@
         <asm.bundle.version>3.3.1_1</asm.bundle.version>
         <asm.version>5.0.4</asm.version>
         <blueprint-web-version>1.0.0</blueprint-web-version>
-        <bndlib-version>2.4.0</bndlib-version>
+        <bndlib-version>2.4.1</bndlib-version>
         <bouncycastle-version>1.54</bouncycastle-version>
         <camel-version-range>[2.14,3)</camel-version-range>
-        <camel-version>2.17.0.redhat-630057</camel-version>
+        <camel-version>2.17.0.redhat-630131</camel-version>
         <cassandra-version>2.0.7</cassandra-version>
         <codehaus-plexus-interpolation-version>1.19</codehaus-plexus-interpolation-version>
         <codehaus-plexus-version>1.5.5</codehaus-plexus-version>
         <codahale-metrics-version>3.0.2</codahale-metrics-version>
-        <commons-beanutils-version>1.9.2</commons-beanutils-version>
-        <commons-codec-version>1.10</commons-codec-version>
-        <commons-collections-version>3.2.2</commons-collections-version>
+        <commons-beanutils-version>1.9.2.redhat-1</commons-beanutils-version>
+        <commons-codec-version>1.10.0.redhat-5</commons-codec-version>
+        <commons-collections-version>3.2.2.redhat-2</commons-collections-version>
         <commons-compress-version>1.8</commons-compress-version>
         <commons-fileupload-version>1.3.1</commons-fileupload-version>
-        <commons-httpclient-version>3.1</commons-httpclient-version>
-        <commons-io2-version>2.4</commons-io2-version>
-        <commons-lang-version>2.6</commons-lang-version>
+        <commons-httpclient-version>3.1.0.redhat-7</commons-httpclient-version>
+        <commons-io2-version>2.4.0.redhat-1</commons-io2-version>
+        <commons-lang-version>2.6.0.redhat-5</commons-lang-version>
         <commons-lang3-version>3.4</commons-lang3-version>
-        <commons-pool-version>1.6</commons-pool-version>
+        <commons-net-version>3.3.0.redhat-3</commons-net-version>
+        <commons-pool-version>1.6.0.redhat-9</commons-pool-version>
         <commons-jexl-version>2.1.1</commons-jexl-version>
         <commons-digester-version>1.8_4</commons-digester-version>
         <commons-configuration-version>1.9</commons-configuration-version>
         <commons-jxpath-version>1.3_1</commons-jxpath-version>
         <xmlresolver-version>1.2_5</xmlresolver-version>
         <curator.version>2.6.0</curator.version>
-        <cxf-version>3.1.5.redhat-630057</cxf-version>
+        <cxf-version>3.1.5.redhat-630131</cxf-version>
         <cxf-version-range>[3.1,3.2)</cxf-version-range>
         <deltaspike-version>1.0.1</deltaspike-version>
         <dnsjava.version>2.1.1</dnsjava.version>
@@ -222,31 +223,32 @@
         <gson-version>2.4</gson-version>
         <groovy1-version>1.8.6</groovy1-version>
         <groovy-version>2.4.6</groovy-version>
-        <guava-version>18.0</guava-version>
+        <guava-version>18.0.0.redhat-1</guava-version>
         <guava.osgi.version.clean>17.0</guava.osgi.version.clean>
         <guice.version>3.0</guice.version>
         <hadoop-version>1.2.1</hadoop-version>
-        <hawtbuf-version>1.11</hawtbuf-version>
-        <hawtdispatch-version>1.21</hawtdispatch-version>
+        <hawtbuf-version>1.11.0.redhat-1</hawtbuf-version>
+        <hawtdispatch-version>1.22</hawtdispatch-version>
         <hawtio-dockerui-version>1.0.4</hawtio-dockerui-version>
         <hawtio-eshead-version>1.0.2</hawtio-eshead-version>
         <hawtio-kibana-version>3.1.2_2</hawtio-kibana-version>
         <hawtio-swagger-version>${hawtio-version}</hawtio-swagger-version>
-        <hawtio-version>1.4.redhat-630057</hawtio-version>
-        <http-client-version>4.4.1</http-client-version>
-        <http-core-version>4.4.1</http-core-version>
+        <hawtio-version>1.4.redhat-630131</hawtio-version>
+        <http-client-version>4.5.2</http-client-version>
+        <http-core-version>4.4.4</http-core-version>
         <influxdb-version>1.2</influxdb-version>
-        <jackson-version>1.9.12</jackson-version>
+        <jackson-version>1.9.13</jackson-version>
+        <jackson2-community-version>2.6.3</jackson2-community-version>
         <jackson2-version>2.6.3</jackson2-version>
         <jackson-module-scala-version>2.1.5_3</jackson-module-scala-version>
-        <jansi-version>1.11</jansi-version>
+        <jansi-version>1.11.redhat-1</jansi-version>
         <jasypt-smx-version>1.9.3.redhat_3</jasypt-smx-version>
         <jasypt-spring-smx-version>1.9.3.redhat_3</jasypt-spring-smx-version>
         <jasypt-version>1.9.3.redhat_3</jasypt-version>
         <javassist-version>3.19.0-GA</javassist-version>
         <javax.inject.bundle.version>1_2</javax.inject.bundle.version>
         <jaxb-api-version>2.1</jaxb-api-version>
-        <jaxb-version>2.2.11</jaxb-version>
+        <jaxb-version>2.2.11.redhat-2</jaxb-version>
         <jaxb-smx-version>2.2.11_1</jaxb-smx-version>
         <jboss-javaee-6-version>1.0.0.Final</jboss-javaee-6-version>
         <!-- TODO is this always the same as drools-version? -->
@@ -262,7 +264,7 @@
         <jetty-version>9.2.15.v20160210</jetty-version>
         <jgit-version>4.1.1.201511131810-r</jgit-version>
         <jledit.version>0.2.1</jledit.version>
-        <jline.version>2.12.1.redhat-001</jline.version>
+        <jline.version>2.12.1.redhat-002</jline.version>
         <jmdns-version>3.4.1</jmdns-version>
         <jms-1.1-version>1.1.1</jms-1.1-version>
         <jna-bundle-version>1.1</jna-bundle-version>
@@ -276,10 +278,10 @@
         <json4s-version>3.2.8_1</json4s-version>
         <jsr311-api-smx-version>2.7.0</jsr311-api-smx-version>
         <junit-version>4.11</junit-version>
-        <karaf-version>2.4.0.redhat-630057</karaf-version>
+        <karaf-version>2.4.0.redhat-630131</karaf-version>
         <libvirt-bundle-version>1.1</libvirt-bundle-version>
         <libvirt-version>0.4.7</libvirt-version>
-        <log4j-version>1.2.17</log4j-version>
+        <log4j-version>1.2.17.redhat-1</log4j-version>
         <logback-version>1.1.2</logback-version>
         <lombok.version>1.14.4</lombok.version>
         <lucene-version>4.9.0</lucene-version>
@@ -292,7 +294,7 @@
         <mina-version>2.0.13</mina-version>
         <mockserver-version>3.4</mockserver-version>
         <mongo-java-driver-version>2.12.3</mongo-java-driver-version>
-        <mvel-version>2.2.7.Final</mvel-version>
+        <mvel-version>2.2.7.Final-redhat-1</mvel-version>
         <netty3.version>3.10.5.Final</netty3.version>
         <netty.version>4.0.37.Final</netty.version>
         <openshift.client.groupId>com.openshift</openshift.client.groupId>
@@ -312,7 +314,7 @@
         <osgi-version>5.0.0</osgi-version>
         <paranamer-bundle-version>2.8_1</paranamer-bundle-version>
         <pax-runner-version>1.7.6</pax-runner-version>
-        <pax.logging.version>1.8.4</pax.logging.version>
+        <pax.logging.version>1.8.5</pax.logging.version>
         <pax.url.mvn.commons.version>${pax.url.version}</pax.url.mvn.commons.version>
         <pax.url.mvn.version>${pax.url.version}</pax.url.mvn.version>
         <pax.url.version>2.4.7</pax.url.version>
@@ -334,20 +336,20 @@
         <servicemix-tooling-plugin-version>1.2</servicemix-tooling-plugin-version>
         <servicemix-utils-version>1.6.0</servicemix-utils-version>
         <servlet-api-version>2.5</servlet-api-version>
-        <servlet31-api-version>3.1.0</servlet31-api-version>
+        <servlet31-api-version>3.1.0.redhat-1</servlet31-api-version>
         <!-- aligned to Maven 3.3.3 -->
         <sisu-guice-version>3.2.5</sisu-guice-version>
         <sisu-inject-plexus-version>0.3.0</sisu-inject-plexus-version>
         <shrinkwrap-resolver-version>2.2.0-beta-2</shrinkwrap-resolver-version>
         <shrinkwrap-version>1.2.3</shrinkwrap-version>
-        <slf4j-api-version>1.7.7</slf4j-api-version>
-        <slf4j-version>1.7.7</slf4j-version>
+        <slf4j-api-version>1.7.7.redhat-2</slf4j-api-version>
+        <slf4j-version>1.7.7.redhat-2</slf4j-version>
         <sonatype-plexus-sec-version>1.3</sonatype-plexus-sec-version>
         <sonatype-plexus-cipher-version>1.7</sonatype-plexus-cipher-version>
-        <spring-bundle-version>3.2.12.RELEASE_2</spring-bundle-version>
+        <spring-bundle-version>3.2.16.RELEASE_2</spring-bundle-version>
         <spring-data-rest-version>2.0.2.RELEASE</spring-data-rest-version>
         <spring-osgi-version>1.2.1</spring-osgi-version>
-        <spring-version>3.2.12.RELEASE</spring-version>
+        <spring-version>3.2.16.RELEASE</spring-version>
         <sshd-version>0.14.0</sshd-version>
         <sshj.version>0.10.0</sshj.version>
         <swagger15-version>1.5.8</swagger15-version>
@@ -361,7 +363,7 @@
         <tomcat-version>7.0.54</tomcat-version>
         <tomcat-plugin-version>2.2</tomcat-plugin-version>
         <tomee-version>1.7.0</tomee-version>
-        <validation-api-version>1.1.0.Final</validation-api-version>
+        <validation-api-version>1.1.0.Final-redhat-1</validation-api-version>
         <vertx-version>2.1.2</vertx-version>
         <wagon-version>2.8</wagon-version>
         <wagon-webdav-plugin-version>1.0-beta-7</wagon-webdav-plugin-version>
@@ -370,11 +372,11 @@
         <wildfly-version>8.1.0.Final</wildfly-version>
         <woodstox-stax2-api-version>3.1.4</woodstox-stax2-api-version>
         <woodstox-version>4.4.1</woodstox-version>
-        <xalan.version>2.7.2</xalan.version>
+        <xalan.version>2.7.1.redhat-8</xalan.version>
         <xbean-version>3.18</xbean-version>
         <xbean-reflect-version>3.18</xbean-reflect-version>
         <!--from xerces-j2-2.11.0-22.fc21 build at http://koji.fedoraproject.org/koji/buildinfo?buildID=576421 (fixes CVE-2013-4002) -->
-        <xerces.version>2.11.0-22</xerces.version>
+        <xerces.version>2.11.0.SP4-redhat-1</xerces.version>
         <xjc-version>2.1.10.1</xjc-version>
         <xml.api.version>1.4.01</xml.api.version>
         <zookeeper-version>3.4.7</zookeeper-version>
@@ -399,32 +401,22 @@
 
     <repositories>
         <repository>
-            <id>redhat-ga-repository</id>
-            <url>http://maven.repository.redhat.com/ga</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
+            <id>fusesource.public</id>
+            <name>Fusesource Public Release Repositories</name>
+            <url>https://repository.jboss.org/nexus/content/groups/fs-public</url>
+            <layout>default</layout>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
-        </repository>
-        <!-- Note: m2-snapshot is needed during CI builds -->
-        <repository>
-            <id>fusesource.m2-snapshot</id>
-            <name>FuseSource Community Snapshot Repository</name>
-            <url>https://repo.fusesource.com/nexus/content/groups/public-snapshots</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
             <releases>
-                <enabled>false</enabled>
+                <enabled>true</enabled>
+                <updatePolicy>never</updatePolicy>
             </releases>
         </repository>
-        <!-- Note: repo.fusesource.com is the correct repo for JBoss Fuse and it is not a mistake -->
         <repository>
             <id>fusesource.ea</id>
-            <name>JBoss Community Early Access Release Repository</name>
-            <url>https://repo.fusesource.com/nexus/content/groups/ea</url>
+            <name>Fusesource Early Access Release Repository</name>
+            <url>https://repository.jboss.org/nexus/content/groups/ea</url>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
@@ -434,88 +426,8 @@
             </releases>
         </repository>
         <repository>
-            <id>fusesource.m2</id>
-            <name>JBoss FS Public Repository Group</name>
-            <url>https://repo.fusesource.com/nexus/content/groups/public</url>
-            <layout>default</layout>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>jboss.fs.public</id>
-            <name>JBoss FS Public Repository Group</name>
-            <url>http://repository.jboss.org/nexus/content/repositories/fs-public/</url>
-            <layout>default</layout>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>jboss-thirdparty-uploads</id>
-            <name>JBoss Thirdparty Uploads</name>
-            <url>https://repository.jboss.org/nexus/content/repositories/thirdparty-uploads</url>
-            <layout>default</layout>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-                <updatePolicy>never</updatePolicy>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>jboss-public-repository-group</id>
-            <name>JBoss Public Repository Group</name>
-            <url>http://repository.jboss.org/nexus/content/groups/public/</url>
-            <layout>default</layout>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-                <updatePolicy>daily</updatePolicy>
-            </snapshots>
-        </repository>
-        <!-- Java.net Maven Repository, required by javax.mail -->
-        <repository>
-            <id>java.net</id>
-            <name>Java.net Maven2 Repository</name>
-            <url>http://download.java.net/maven/2</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <!-- Scriptengines Google Maven Repository, required by scriptengines -->
-        <repository>
-            <id>scriptengines</id>
-            <name>Scriptengines Google Code Maven Repository</name>
-            <url>http://scriptengines.googlecode.com/svn/m2-repo</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <!-- ServiceMix Maven 2 repository: jsmpp 2.0 is not in central repo -->
-        <repository>
-            <id>servicemix.m2-repo</id>
-            <name>ServiceMix Maven 2 repository</name>
-            <url>http://svn.apache.org/repos/asf/servicemix/m2-repo</url>
+            <id>redhat-ga-repository</id>
+            <url>https://maven.repository.redhat.com/ga</url>
             <releases>
                 <enabled>true</enabled>
             </releases>
@@ -524,33 +436,14 @@
             </snapshots>
         </repository>
         <repository>
-            <id>maven-restlet</id>
-            <name>Public online Restlet repository</name>
-            <url>http://maven.restlet.org</url>
-        </repository>
-        <repository>
-            <id>apache.snapshots</id>
-            <name>Apache Snapshot Repository</name>
-            <url>http://repository.apache.org/snapshots</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-        </repository>
-        <repository>
-            <id>conjars</id>
-            <name>Conjars Maven Repository</name>
-            <url>http://conjars.org/repo</url>
+            <id>redhat-ea-repository</id>
+            <url>https://maven.repository.redhat.com/earlyaccess/all</url>
             <releases>
                 <enabled>true</enabled>
             </releases>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
-        </repository>
-        <repository>
-          <id>redhat-product</id>
-          <name>Redhat Product Repository</name>
-          <url>https://maven.repository.redhat.com/techpreview/all</url>
         </repository>
         <repository>
             <id>brewroot</id>
@@ -566,22 +459,12 @@
         </repository>
     </repositories>
 
-    <!-- Note: repo.fusesource.com is the correct repo for JBoss Fuse and it is not a mistake -->
     <pluginRepositories>
         <pluginRepository>
-            <id>redhat-ga-repository</id>
-            <url>http://maven.repository.redhat.com/ga</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </pluginRepository>        
-        <pluginRepository>
-            <id>fusesource.m2</id>
-            <name>FuseSource Community Release Repository</name>
-            <url>https://repo.fusesource.com/nexus/content/groups/public</url>
+            <id>fusesource.public</id>
+            <name>Fusesource Public Release Repositories</name>
+            <url>https://repository.jboss.org/nexus/content/groups/fs-public</url>
+            <layout>default</layout>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
@@ -592,8 +475,8 @@
         </pluginRepository>
         <pluginRepository>
             <id>fusesource.ea</id>
-            <name>FuseSource Community Early Access Release Repository</name>
-            <url>https://repo.fusesource.com/nexus/content/groups/ea</url>
+            <name>FuseSource Early Access Release Repository</name>
+            <url>https://repository.jboss.org/nexus/content/groups/ea</url>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
@@ -603,24 +486,36 @@
             </releases>
         </pluginRepository>
         <pluginRepository>
-            <id>jboss.fs.public</id>
-            <name>JBoss FS Public Repository Group</name>
-            <url>http://repository.jboss.org/nexus/content/repositories/fs-public/</url>
-            <layout>default</layout>
+            <id>redhat-ga-repository</id>
+            <url>https://maven.repository.redhat.com/ga</url>
             <releases>
                 <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
             </releases>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
         </pluginRepository>
         <pluginRepository>
-            <id>apache.snapshots</id>
-            <name>Apache Snapshot Repository</name>
-            <url>http://repository.apache.org/snapshots</url>
+            <id>redhat-ea-repository</id>
+            <url>https://maven.repository.redhat.com/earlyaccess/all</url>
             <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
                 <enabled>false</enabled>
+            </snapshots>
+        </pluginRepository>
+        <pluginRepository>
+            <!-- required for jline:jline:2.12.1.redhat-002 -->
+            <id>brewroot</id>
+            <name>Brew Repository</name>
+            <url>http://download.eng.bos.redhat.com/brewroot/repos/jb-fuse-6.2-build/latest/maven</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>never</updatePolicy>
             </releases>
         </pluginRepository>
     </pluginRepositories>
@@ -1302,6 +1197,17 @@
                 <version>${felix-utils-version}</version>
             </dependency>
             <dependency>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>org.apache.felix.bundlerepository</artifactId>
+                <version>${felix.bundlerepository.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.easymock</groupId>
+                        <artifactId>easymock</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.zookeeper</groupId>
                 <artifactId>zookeeper</artifactId>
                 <version>${zookeeper-version}</version>
@@ -1456,7 +1362,7 @@
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
-                <version>1.9.5</version>
+                <version>1.10.19</version>
             </dependency>
             <dependency>
                 <groupId>org.hamcrest</groupId>
@@ -2759,7 +2665,7 @@
 
             <dependency>
                 <groupId>biz.aQute.bnd</groupId>
-                <artifactId>bndlib</artifactId>
+                <artifactId>biz.aQute.bndlib</artifactId>
                 <version>${bndlib-version}</version>
             </dependency>
 
@@ -2954,7 +2860,7 @@
             </dependency>
             <dependency>
                 <groupId>com.wordnik</groupId>
-                <artifactId>swagger-core</artifactId>
+                <artifactId>swagger-core_2.10</artifactId>
                 <version>${swagger-community-version}</version>
             </dependency>
             <dependency>
@@ -3048,7 +2954,7 @@
         <profile>
             <id>hawtio-snapshot</id>
             <properties>
-                <hawtio-version>1.4.redhat-630057</hawtio-version>
+                <hawtio-version>1.4.redhat-630131</hawtio-version>
             </properties>
         </profile>
         <profile>

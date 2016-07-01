@@ -19,13 +19,21 @@ import io.fabric8.api.Container;
 import io.fabric8.api.FabricService;
 import io.fabric8.api.gravia.ServiceLocator;
 import io.fabric8.itests.support.CommandSupport;
+import io.fabric8.itests.support.ContainerBuilder;
 import io.fabric8.itests.support.EnsembleSupport;
 import io.fabric8.itests.support.ProvisionSupport;
 import io.fabric8.itests.support.ServiceProxy;
 
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
+import io.fabric8.zookeeper.ZkPath;
+import io.fabric8.zookeeper.utils.ZooKeeperUtils;
+import org.apache.curator.framework.CuratorFramework;
 import org.apache.felix.gogo.commands.Action;
 import org.apache.felix.gogo.commands.basic.AbstractCommand;
 import org.apache.karaf.admin.AdminService;
@@ -37,6 +45,7 @@ import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.Asset;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.Ignore;
 import org.junit.runner.RunWith;
@@ -48,7 +57,7 @@ import org.slf4j.Logger;
 @RunWith(Arquillian.class)
 public class ExtendedJoinTest {
 
-    private static final String WAIT_FOR_JOIN_SERVICE = "wait-for-service io.fabric8.boot.commands.service.JoinAvailable";
+    private static final String WAIT_FOR_JOIN_SERVICE = "wait-for-service io.fabric8.zookeeper.bootstrap.BootstrapConfiguration";
 
     @Deployment
     @StartLevelAware(autostart = true)
@@ -78,7 +87,7 @@ public class ExtendedJoinTest {
 	@Test
 	@Ignore
 	public void testJoinAndAddToEnsemble() throws Exception {
-        System.err.println(CommandSupport.executeCommand("fabric:create --force --clean -n"));
+        System.err.println(CommandSupport.executeCommand("fabric:create --force --clean -n --wait-for-provisioning"));
         //System.out.println(executeCommand("shell:info"));
         //System.out.println(executeCommand("fabric:info"));
         //System.out.println(executeCommand("fabric:profile-list"));
@@ -127,4 +136,62 @@ public class ExtendedJoinTest {
             fabricProxy.close();
         }
 	}
+
+    /**
+     * Verify that containers can use dot symbol in their name
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testContainerHostnameSupport() throws Exception {
+        System.out.println(CommandSupport.executeCommand("fabric:create --force --clean -n"));
+        //System.out.println(executeCommand("shell:info"));
+        //System.out.println(executeCommand("fabric:info"));
+        //System.out.println(executeCommand("fabric:profile-list"));
+
+
+
+        BundleContext moduleContext = ServiceLocator.getSystemContext();
+        ServiceProxy<FabricService> fabricProxy = ServiceProxy.createServiceProxy(moduleContext, FabricService.class);
+        try {
+            FabricService fabricService = fabricProxy.getService();
+            AdminService adminService = ServiceLocator.awaitService(AdminService.class);
+            Container root = fabricService.getContainer("root");
+            Set<Container> set = new HashSet<>();
+            set.add(root);
+
+            String version = System.getProperty("fabric.version");
+
+            try {
+                System.out.println(CommandSupport.executeCommand("fabric:profile-edit --features admin default"));
+                ProvisionSupport.provisioningSuccess(set, 60_000L);
+                System.out.println(CommandSupport.executeCommand("admin:create --java-opts ' -Dpatching.disabled=true ' --featureURL mvn:io.fabric8/fabric8-karaf/" + version + "/xml/features --feature fabric joiner "));
+                System.out.println(CommandSupport.executeCommand("admin:start joiner"));
+                ProvisionSupport.instanceStarted(Arrays.asList("joiner"), ProvisionSupport.PROVISION_TIMEOUT);
+
+                System.out.println(CommandSupport.executeCommand("admin:list"));
+                String joinCommand = "fabric:join -f --zookeeper-password "+ fabricService.getZookeeperPassword() +" " + fabricService.getZookeeperUrl() + " joiner.complex.name";
+
+                String response = "";
+                for (int i = 0; i < 10 && !response.contains("true"); i++) {
+                    response = CommandSupport.executeCommand("ssh:ssh -l karaf -P karaf -p " + adminService.getInstance("joiner").getSshPort() + " localhost " + WAIT_FOR_JOIN_SERVICE);
+                    Thread.sleep(1000);
+                }
+                response = CommandSupport.executeCommand("ssh:ssh -l karaf -P karaf -p " + adminService.getInstance("joiner").getSshPort() + " localhost " + joinCommand);
+
+                ProvisionSupport.containersExist(Arrays.asList("joiner.complex.name"), ProvisionSupport.PROVISION_TIMEOUT);
+                Container joiner = fabricService.getContainer("joiner.complex.name");
+                ProvisionSupport.containerStatus(Arrays.asList(joiner), "success", ProvisionSupport.PROVISION_TIMEOUT);
+
+
+                //System.err.println(CommandSupport.executeCommand("ssh:ssh -l karaf -P karaf -p " + adminService.getInstance("basic_cnt_f").getSshPort() + " localhost " + joinCommand));
+
+            } finally {
+                System.out.println(CommandSupport.executeCommand("fabric:container-info joiner"));
+                System.out.println(CommandSupport.executeCommand("admin:stop joiner"));
+            }
+        } finally {
+            fabricProxy.close();
+        }
+    }
 }

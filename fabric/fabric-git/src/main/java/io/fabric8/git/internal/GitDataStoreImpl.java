@@ -47,11 +47,11 @@ import io.fabric8.git.PullPushPolicy.PullPolicyResult;
 import io.fabric8.git.PullPushPolicy.PushPolicyResult;
 import io.fabric8.service.EnvPlaceholderResolver;
 import io.fabric8.utils.DataStoreUtils;
+import io.fabric8.utils.NamedThreadFactory;
 import io.fabric8.zookeeper.ZkPath;
 import io.fabric8.zookeeper.utils.ZooKeeperUtils;
 
 import java.io.File;
-import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
@@ -79,7 +79,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
-import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.shared.SharedCount;
 import org.apache.curator.framework.recipes.shared.SharedCountListener;
@@ -153,7 +152,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     @Reference
     private Configurer configurer;
     
-    private final ScheduledExecutorService threadPool = Executors.newSingleThreadScheduledExecutor();
+    private final ScheduledExecutorService threadPool = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("git-ds"));
 
     private final ImportExportHandler importExportHandler = new ImportExportHandler();
     private final GitDataStoreListener gitListener = new GitDataStoreListener();
@@ -206,7 +205,9 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
             activateComponent();
             activateInternal();
         } catch (Exception ex) {
+            LOGGER.error(ex.getMessage(), ex);
             deactivateComponent();
+            deactivateInternal();
             throw ex;
         }
     }
@@ -350,11 +351,24 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         // when the SharedCounter gets updated.
         //Also we cannot rely on the remote url change event, as it will only trigger when there is an actual change.
         //So we should be awesome and always attempt a pull when we are activating if we don't want to loose stuff.
-        doPullInternal();
+
+        // ENTESB-5253: there were problems with doPullInternal() in activation if there was remote url change
+        // event that lead to other thread invoking this operation. When it was slow, this activate() failed leaving
+        // GitDataStore in failed state (because of missing deactivateInternal())
+        // but in case other thread does the pull, let's not try to do it again if write lock is held - but without
+        // failing to activate the component
+        if (readWriteLock.isWriteLockedByCurrentThread() || readWriteLock.getWriteHoldCount() == 0) {
+            try {
+                doPullInternal();
+            } catch (IllegalStateException e) {
+                LOGGER.info("Another thread acquired write lock and GitDataStore can't pull from remote repository.");
+            }
+        } else {
+            LOGGER.info("Another thread is keeping git write lock. GitDataStore will continue activation.");
+        }
     }
 
     private void deactivateInternal() {
-        
         // Remove the GitListener
         gitService.get().removeGitListener(gitListener);
         
@@ -371,22 +385,24 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
             Thread.currentThread().interrupt();
         } catch (Exception ex) {
             throw FabricException.launderThrowable(ex);
-        }
+        } finally {
+            LOGGER.debug("Restoring ProxySelector to original: {}", defaultProxySelector);
+            ProxySelector.setDefault(defaultProxySelector);
+            // authenticator disabled, until properly tested it does not affect others, as Authenticator is static in the JVM
+            // reset authenticator by setting it to null
+            // Authenticator.setDefault(null);
 
-        LOGGER.debug("Restoring ProxySelector to original: {}", defaultProxySelector);
-        ProxySelector.setDefault(defaultProxySelector);
-        // authenticator disabled, until properly tested it does not affect others, as Authenticator is static in the JVM
-        // reset authenticator by setting it to null
-        // Authenticator.setDefault(null);
-
-        // Closing the shared counter
-        try {
-            counter.close();
-        } catch (IOException ex) {
-            LOGGER.warn("Error closing SharedCount due " + ex.getMessage() + ". This exception is ignored.");
+            // Closing the shared counter
+            try {
+                if (counter != null) {
+                    counter.close();
+                }
+            } catch (IOException ex) {
+                LOGGER.warn("Error closing SharedCount due " + ex.getMessage() + ". This exception is ignored.");
+            }
         }
     }
-    
+
     @Override
     public Git getGit() {
         return gitService.get().getGit();
@@ -836,19 +852,18 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
             // FileConfigurations
             Map<String, byte[]> fileConfigurations = profile.getFileConfigurations();
             setFileConfigurations(context, versionId, profileId, fileConfigurations);
-            
-            // A warning commit message if there has been none yet 
+            // A warning commit message if there has been none yet
             if (context.getCommitMessage().length() == 0) {
                 context.commitMessage("WARNING - Profile with no content: " + versionId + "/" + profileId);
             }
-            
+
             // Mark this profile as processed
             profiles.add(profileId);
         }
 
         return profileId;
     }
-    
+
     private String createProfileDirectoryAfterCheckout(GitContext context, final String versionId, final String profileId) throws IOException, GitAPIException {
         assertWriteLock();
         File profileDirectory = GitHelpers.getProfileDirectory(getGit(), profileId);
@@ -858,24 +873,25 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         }
         return null;
     }
-    
+
     private void setFileConfigurations(GitContext context, final String versionId, final String profileId, final Map<String, byte[]> fileConfigurations) throws IOException, GitAPIException {
         assertWriteLock();
 
         // Delete and remove stale file configurations
         File profileDir = GitHelpers.getProfileDirectory(getGit(), profileId);
 
-        HashSet<File> filesToDelete = new HashSet<File>();
+        final HashSet<File> filesToDelete = new HashSet<File>();
         if (profileDir.exists()) {
-            File[] files = profileDir.listFiles(new FilenameFilter() {
+            final List<File> filesList = new ArrayList<File>();
+            java.nio.file.Files.walkFileTree(profileDir.toPath(), new SimpleFileVisitor<Path>() {
                 @Override
-                public boolean accept(File dir, String name) {
-                    return !Constants.AGENT_PROPERTIES.equals(name);
+                public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) throws IOException {
+                    if(!Constants.AGENT_PROPERTIES.equals(path.getFileName().toString())) {
+                        filesToDelete.add(path.toFile());
+                    }
+                    return super.visitFile(path, attrs);
                 }
             });
-            for (File file : files) {
-                filesToDelete.add(file);
-            }
         }
 
         for (Map.Entry<String, byte[]> entry : fileConfigurations.entrySet()) {
@@ -1117,7 +1133,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     }
     
     private PullPolicyResult doPullInternal(GitContext context, CredentialsProvider credentialsProvider, boolean allowVersionDelete) {
-        PullPolicyResult pullResult = pullPushPolicy.doPull(context, getCredentialsProvider(), allowVersionDelete);
+        PullPolicyResult pullResult = pullPushPolicy.doPull(context, credentialsProvider, allowVersionDelete);
         if (pullResult.getLastException() == null) {
             Set<String> updatedVersions = pullResult.localUpdateVersions();
             if (!updatedVersions.isEmpty()) {
@@ -1211,7 +1227,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     private void assertReadLock() {
         boolean locked = readWriteLock.getReadHoldCount() > 0 || readWriteLock.isWriteLockedByCurrentThread();
         IllegalStateAssertion.assertTrue(!strictLockAssert || locked, "No read lock obtained");
-        if (!locked) { 
+        if (!locked) {
             LOGGER.warn("No read lock obtained");
         }
     }
@@ -1232,7 +1248,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
     private String checkoutProfileBranch(Git git, GitContext context, String versionId, String profileId) throws GitAPIException {
         String branch = GitHelpers.getProfileBranch(versionId, profileId);
-        if( branch == GitHelpers.MASTER_BRANCH ) {
+        if (branch.equals(GitHelpers.MASTER_BRANCH)) {
             context.setCacheKey(null); // So we invalidate the entire cache.
         }
         return GitHelpers.checkoutBranch(git, branch) ? branch : null;
@@ -1337,6 +1353,8 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         @Override
         public void onRemoteUrlChanged(final String updatedUrl) {
             final String actualUrl = gitRemoteUrl != null ? gitRemoteUrl : updatedUrl;
+            LOGGER.debug("GitDataStoreListener detected remote url change to \"" + actualUrl + "\". Submitting task" +
+                    " that'll pull from new remote. Using thread pool " + threadPool);
             threadPool.submit(new Runnable() {
                 @Override
                 public void run() {
@@ -1425,12 +1443,12 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
             List<Proxy> answer;
             if (path != null && path.startsWith(GIT_FABRIC_PATH)) {
                 answer = doSelect(host, proxyService.getNonProxyHosts(), proxyService.getProxyHost(), proxyService.getProxyPort());
+                LOGGER.debug("ProxySelector uri: {} -> {}", uri, answer);
             } else {
                 // use delegate
                 answer = delegate.select(uri);
             }
 
-            LOGGER.debug("ProxySelector uri: {} -> {}", uri, answer);
             return answer;
         }
 
@@ -1714,7 +1732,10 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                 // remove placeholder tokens which the EnvPlaceholderResolver do not expect
                 url = EnvPlaceholderResolver.removeTokens(url);
                 // resolve the url as it may point to a system environment to be used
-                url = EnvPlaceholderResolver.resolveExpression(url, null, false);
+                String resolved = EnvPlaceholderResolver.resolveExpression(url, null, false);
+                if (resolved != null) {
+                    url = resolved;
+                }
 
                 // maybe there is more in the same url so we split by comma
                 String[] urls = url.split(",");
@@ -1864,6 +1885,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
             return null;
         }
     }
+
 }
 
 

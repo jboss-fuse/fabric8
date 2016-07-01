@@ -28,6 +28,8 @@ public interface Container extends HasId {
     String PROVISION_DOWNLOADING = "downloading";
     String PROVISION_FINALIZING = "finalizing";
     String PROVISION_INSTALLING = "installing";
+    String PROVISION_STOPPING = "stopping";
+    String PROVISION_DELETING = "deleting";
 
     String getType();
 

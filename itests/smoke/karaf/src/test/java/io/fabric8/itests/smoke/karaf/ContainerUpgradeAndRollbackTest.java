@@ -85,7 +85,7 @@ public class ContainerUpgradeAndRollbackTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testContainerUpgradeAndRollback() throws Exception {
-        CommandSupport.executeCommand("fabric:create --force --clean -n");
+        CommandSupport.executeCommand("fabric:create --force --clean -n  --wait-for-provisioning");
         BundleContext moduleContext = ServiceLocator.getSystemContext();
         ServiceProxy<FabricService> fabricProxy = ServiceProxy.createServiceProxy(moduleContext, FabricService.class);
         try {

@@ -40,7 +40,11 @@ import org.slf4j.LoggerFactory;
 
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.TabularData;
+import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -103,6 +107,7 @@ public final class ChildContainerProvider extends AbstractComponent implements C
     @Override
     public void destroy(final Container container) {
         assertValid();
+        container.setProvisionResult(Container.PROVISION_DELETING);
         getContainerController(container).destroy(container);
     }
 
@@ -229,8 +234,16 @@ public final class ChildContainerProvider extends AbstractComponent implements C
             public void stop(final Container container) {
                 getContainerTemplateForChild(container).execute(new ContainerTemplate.AdminServiceCallback<Object>() {
                     public Object doWithAdminService(AdminServiceMBean adminService) throws Exception {
-                        adminService.stopInstance(container.getId());
-                        container.setProvisionResult(Container.PROVISION_STOPPED);
+                        String prevProvisionResult = container.getProvisionResult();
+                        container.setProvisionResult(Container.PROVISION_STOPPING);
+                        try {
+                            adminService.stopInstance(container.getId());
+                            container.setProvisionResult(Container.PROVISION_STOPPED);
+                        } catch (Throwable t){
+                            container.setProvisionResult(prevProvisionResult);
+                            LOG.error("Failed to stop container: " + container.getId(), t);
+                            throw t;
+                        }
                         return null;
                     }
                 });
@@ -335,6 +348,7 @@ public final class ChildContainerProvider extends AbstractComponent implements C
                     sshPort,
                     rmiRegistryPort,
                     rmiServerPort, null, jvmOptsBuilder.toString(), collectionAsString(features), featuresUrls);
+
             adminService.startInstance(containerName, null);
         } catch (Throwable t) {
             metadata.setFailure(t);

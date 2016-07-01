@@ -17,7 +17,6 @@ package io.fabric8.patch.management;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -104,7 +103,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     @Test
     public void initializationPerformedBaselineDistributionFoundInPatches() throws IOException, GitAPIException {
         freshKarafStandaloneDistro();
-        preparePatchZip("src/test/resources/baselines/baseline1", "target/karaf/patches/jboss-fuse-full-6.2.0-baseline.zip", true);
+        preparePatchZip("src/test/resources/baselines/baseline1", "target/karaf/patches/jboss-fuse-karaf-6.2.0-baseline.zip", true);
         validateInitialGitRepository();
         // check one more time - should not do anything harmful
         validateInitialGitRepository();
@@ -113,7 +112,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     @Test
     public void initializationPerformedBaselineDistributionFoundInSystem() throws IOException, GitAPIException {
         freshKarafStandaloneDistro();
-        preparePatchZip("src/test/resources/baselines/baseline1", "target/karaf/system/org/jboss/fuse/jboss-fuse-full/6.2.0/jboss-fuse-full-6.2.0-baseline.zip", true);
+        preparePatchZip("src/test/resources/baselines/baseline1", "target/karaf/system/org/jboss/fuse/jboss-fuse-karaf/6.2.0/jboss-fuse-karaf-6.2.0-baseline.zip", true);
         validateInitialGitRepository();
     }
 
@@ -131,7 +130,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         freshKarafStandaloneDistro();
         String line = String.format("io/fabric8/patch/patch-management/%s/patch-management-%s.jar=2\n", version, version);
         FileUtils.write(new File(karafHome, "etc/startup.properties"), line, true);
-        preparePatchZip("src/test/resources/baselines/baseline1", "target/karaf/system/org/jboss/fuse/jboss-fuse-full/6.2.0/jboss-fuse-full-6.2.0-baseline.zip", true);
+        preparePatchZip("src/test/resources/baselines/baseline1", "target/karaf/system/org/jboss/fuse/jboss-fuse-karaf/6.2.0/jboss-fuse-karaf-6.2.0-baseline.zip", true);
         validateInitialGitRepository();
     }
 
@@ -285,6 +284,17 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         preparePatchZip("src/test/resources/content/patch1", "target/karaf/patches/source/patch-1.zip", false);
         preparePatchZip("src/test/resources/content/patch4", "target/karaf/patches/source/patch-4.zip", false);
 
+        // simulation of P patch installed using old patching mechanism
+        GitPatchRepository repository = ((GitPatchManagementServiceImpl) pm).getGitPatchRepository();
+        Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
+        FileUtils.write(new File(karafHome, "etc/overrides.properties"), "mvn:io.fabric8/fabric-oceans/1.4.2\n");
+        ((GitPatchManagementServiceImpl)pm).applyUserChanges(fork); // non-conflicting
+        repository.closeRepository(fork, true);
+
+        // overrides.properties as after installing P patch with old mechanism
+        String etcOverridesProperties = FileUtils.readFileToString(new File(karafHome, "etc/overrides.properties"));
+        assertThat(etcOverridesProperties, equalTo("mvn:io.fabric8/fabric-oceans/1.4.2\n"));
+
         PatchManagement service = (PatchManagement) pm;
         PatchData patchData1 = service.fetchPatches(new File("target/karaf/patches/source/patch-1.zip").toURI().toURL()).get(0);
         Patch patch1 = service.trackPatch(patchData1);
@@ -295,8 +305,14 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         service.install(tx, patch1, null);
         service.commitInstallation(tx);
 
-        GitPatchRepository repository = ((GitPatchManagementServiceImpl) pm).getGitPatchRepository();
-        Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
+        assertTrue("There should be etc/overrides.properties after installing non-rollup patch",
+                new File(karafHome, "etc/overrides.properties").exists());
+        // overrides.properties as after installing P patch with new mechanism
+        etcOverridesProperties = FileUtils.readFileToString(new File(karafHome, "etc/overrides.properties"));
+        assertThat(etcOverridesProperties, equalTo("mvn:io.fabric8/fabric-oceans/1.4.2\n" +
+                "mvn:io.fabric8/fabric-tranquility/1.2.3\n"));
+
+        fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
 
         assertTrue(repository.containsTag(fork, "patch-my-patch-1"));
         assertFalse(repository.containsTag(fork, "baseline-6.2.0.redhat-002"));
@@ -310,6 +326,9 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
         assertFalse(repository.containsTag(fork, "patch-my-patch-1"));
         assertTrue(repository.containsTag(fork, "baseline-6.2.0.redhat-002"));
+
+        assertFalse("There should be no etc/overrides.properties after installing rollup patch",
+                new File(karafHome, "etc/overrides.properties").exists());
 
         repository.closeRepository(fork, true);
     }
@@ -408,7 +427,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     @Test
     public void listNoPatchesAvailable() throws IOException, GitAPIException {
         freshKarafStandaloneDistro();
-        GitPatchRepository repository = patchManagement();
+        patchManagement();
         PatchManagement management = (PatchManagement) pm;
         assertThat(management.listPatches(false).size(), equalTo(0));
     }
@@ -416,7 +435,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     @Test
     public void listSingleUntrackedPatch() throws IOException, GitAPIException {
         freshKarafStandaloneDistro();
-        GitPatchRepository repository = patchManagement();
+        patchManagement();
         PatchManagement management = (PatchManagement) pm;
         preparePatchZip("src/test/resources/content/patch1", "target/karaf/patches/source/patch-1.zip", false);
         management.fetchPatches(new File("target/karaf/patches/source/patch-1.zip").toURI().toURL());
@@ -470,7 +489,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     @Test
     public void listPatches() throws IOException, GitAPIException {
         freshKarafStandaloneDistro();
-        GitPatchRepository repository = patchManagement();
+        patchManagement();
         PatchManagement management = (PatchManagement) pm;
 
         preparePatchZip("src/test/resources/content/patch1", "target/karaf/patches/source/patch-1.zip", false);
@@ -496,7 +515,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     @Test
     public void beginRollupPatchInstallation() throws IOException, GitAPIException {
         freshKarafStandaloneDistro();
-        GitPatchRepository repository = patchManagement();
+        patchManagement();
         PatchManagement management = (PatchManagement) pm;
         String tx = management.beginInstallation(PatchKind.ROLLUP);
         assertTrue(tx.startsWith("refs/heads/patch-install-"));
@@ -517,7 +536,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
     @Test
     public void beginNonRollupPatchInstallation() throws IOException, GitAPIException {
         freshKarafStandaloneDistro();
-        GitPatchRepository repository = patchManagement();
+        patchManagement();
         PatchManagement management = (PatchManagement) pm;
         String tx = management.beginInstallation(PatchKind.NON_ROLLUP);
         assertTrue(tx.startsWith("refs/heads/patch-install-"));
@@ -907,7 +926,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
      * @throws IOException
      */
     private GitPatchRepository patchManagement() throws IOException, GitAPIException {
-        preparePatchZip("src/test/resources/baselines/baseline1", "target/karaf/system/org/jboss/fuse/jboss-fuse-full/6.2.0/jboss-fuse-full-6.2.0-baseline.zip", true);
+        preparePatchZip("src/test/resources/baselines/baseline1", "target/karaf/system/org/jboss/fuse/jboss-fuse-karaf/6.2.0/jboss-fuse-karaf-6.2.0-baseline.zip", true);
         pm = new GitPatchManagementServiceImpl(bundleContext);
         pm.start();
         pm.ensurePatchManagementInitialized();

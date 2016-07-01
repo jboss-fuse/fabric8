@@ -61,11 +61,11 @@ public class ContainerCreateSshAction extends AbstractContainerCreateAction {
     @Option(name = "--pass-phrase", description = "The pass phrase of the key. This is for use with private keys that require a pass phrase.")
     private String passPhrase;
 
-    @Option(name = "--new-user", multiValued = false, description = "The username of a new user. The option refers to karaf user (ssh, http, jmx).")
+    @Option(name = "--new-user", multiValued = false, description = "[Deprecated] The username of a new user. The option refers to karaf user (ssh, http, jmx). It takes effect only when used in combination with the --ensemble-server option.")
     private String newUser="admin";
-    @Option(name = "--new-user-password", multiValued = false, description = "The password of the new user. The option refers to karaf user (ssh, http, jmx).")
+    @Option(name = "--new-user-password", multiValued = false, description = "[Deprecated] The password of the new user. The option refers to karaf user (ssh, http, jmx). It takes effect only when used in combination with the --new-user and --ensemble-server options.")
     private String newUserPassword;
-    @Option(name = "--new-user-role", multiValued = false, description = "The role of the new user. The option refers to karaf user (ssh, http, jmx).")
+    @Option(name = "--new-user-role", multiValued = false, description = "[Deprecated] The role of the new user. The option refers to karaf user (ssh, http, jmx). It takes effect only when used in combination with the --new-user and --ensemble-server options.")
     private String newUserRole = "admin";
     @Option(name = "--with-admin-access", description = "Indicates that the target user has admin access (password-less sudo). When used installation of missing dependencies will be attempted.")
     private boolean adminAccess;

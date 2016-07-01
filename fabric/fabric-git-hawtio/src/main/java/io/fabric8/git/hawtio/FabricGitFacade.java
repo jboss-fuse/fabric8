@@ -397,15 +397,14 @@ public final class FabricGitFacade extends GitFacadeSupport implements Validatab
 
     @Override
     public <T> T readFile(final String branch, final String pathOrEmpty, final Function<File,T> callback) throws IOException, GitAPIException {
-        return gitOperation(getStashPersonIdent(), new Callable<T>() {
+        return gitReadOperation(new GitOperation<T>() {
             @Override
             public String toString() {
                 return "doReadFile(" + branch + ", " + pathOrEmpty + ", " + callback + ")";
             }
 
             @Override
-            public T call() throws Exception {
-                Git git = gitDataStore.get().getGit();
+            public T call(Git git, GitContext context) throws Exception {
                 return doReadFile(git, getRootGitDirectory(git), branch, pathOrEmpty, callback);
             }
         });
@@ -413,15 +412,14 @@ public final class FabricGitFacade extends GitFacadeSupport implements Validatab
 
     @Override
     public <T> T writeFile(final String branch, final String pathOrEmpty, final WriteCallback<T> callback) throws IOException, GitAPIException {
-        return gitOperation(getStashPersonIdent(), new Callable<T>() {
+        return gitWriteOperation(getStashPersonIdent(), new GitOperation<T>() {
             @Override
             public String toString() {
                 return "doWriteFile(" + branch + ", " + pathOrEmpty + ", " + callback + ")";
             }
 
             @Override
-            public T call() throws Exception {
-                Git git = gitDataStore.get().getGit();
+            public T call(Git git, GitContext context) throws Exception {
                 return doWriteFile(git, getRootGitDirectory(git), branch, pathOrEmpty, callback);
             }
         });

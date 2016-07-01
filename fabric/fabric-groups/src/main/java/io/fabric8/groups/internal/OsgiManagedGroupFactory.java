@@ -27,6 +27,7 @@ import org.osgi.util.tracker.ServiceTrackerCustomizer;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ThreadFactory;
 
 /**
  */
@@ -49,7 +50,17 @@ public class OsgiManagedGroupFactory implements ManagedGroupFactory {
     }
 
     @Override
+    public <T extends NodeState> Group<T> createGroup(String path, Class<T> clazz, ThreadFactory threadFactory) {
+        return delegate.createGroup(path, clazz, threadFactory);
+    }
+
+    @Override
     public <T extends NodeState> Group<T> createMultiGroup(String path, Class<T> clazz) {
+        throw new IllegalStateException("not supported");
+    }
+
+    @Override
+    public <T extends NodeState> Group<T> createMultiGroup(String path, Class<T> clazz, ThreadFactory threadFactory) {
         throw new IllegalStateException("not supported");
     }
 
@@ -131,6 +142,11 @@ public class OsgiManagedGroupFactory implements ManagedGroupFactory {
         }
 
         @Override
+        public <T extends NodeState> Group<T> createGroup(String path, Class<T> clazz, ThreadFactory threadFactory) {
+            throw new IllegalStateException("not supported");
+        }
+
+        @Override
         public <T extends NodeState> Group<T> createMultiGroup(String path, Class<T> clazz) {
             return new DelegateZooKeeperMultiGroup<T>(path, clazz) {
                 @Override
@@ -146,6 +162,11 @@ public class OsgiManagedGroupFactory implements ManagedGroupFactory {
                     super.close();
                 }
             };
+        }
+
+        @Override
+        public <T extends NodeState> Group<T> createMultiGroup(String path, Class<T> clazz, ThreadFactory threadFactory) {
+            throw new IllegalStateException("not supported");
         }
 
         @Override

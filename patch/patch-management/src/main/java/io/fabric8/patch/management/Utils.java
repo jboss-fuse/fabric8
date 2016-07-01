@@ -46,6 +46,7 @@ import org.apache.commons.compress.archivers.zip.ZipFile;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.felix.utils.version.VersionCleaner;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Version;
 import org.osgi.service.log.LogService;
@@ -124,10 +125,10 @@ public class Utils {
      */
     public static Set<PosixFilePermission> getPermissionsFromUnixMode(File file, int unixMode) {
         String numeric = Integer.toOctalString(unixMode);
-        if (numeric != null && numeric.length() > 3) {
+        if (numeric.length() > 3) {
             numeric = numeric.substring(numeric.length() - 3);
         }
-        if (numeric == null || unixMode == 0) {
+        if (unixMode == 0) {
             return PosixFilePermissions.fromString(file.isDirectory() ? "rwxrwxr-x" : "rw-rw-r--");
         }
 
@@ -228,9 +229,7 @@ public class Utils {
                 }
             }
         } finally {
-            if (zf != null) {
-                zf.close();
-            }
+            zf.close();
         }
     }
 
@@ -444,7 +443,19 @@ public class Utils {
      * @param version
      * @return
      */
-    public static Version getFeatureVersion(String version) {
+    public static Version getOsgiVersion(String version) {
+        if (version == null || "".equals(version.trim())) {
+            return Version.emptyVersion;
+        }
+        return new Version(VersionCleaner.clean(version));
+    }
+
+    /**
+     * Feature versions may not have 4 positions. Let's make them canonical
+     * @param version
+     * @return
+     */
+    private static Version getFeatureVersion(String version) {
         if (version == null || "".equals(version.trim())) {
             return Version.emptyVersion;
         }
@@ -461,7 +472,6 @@ public class Utils {
                     v123[i] = Integer.parseInt(vt[i]);
                 }
             } catch (NumberFormatException e) {
-                v4 = vt[vt.length - 1];
                 for (int i=0; i<vt.length-1; i++) {
                     v123[i] = Integer.parseInt(vt[i]);
                 }
@@ -556,6 +566,49 @@ public class Utils {
         } finally {
             IOUtils.closeQuietly(is);
         }
+    }
+
+    /**
+     * <p>Tries to extract {@link Version} from a name like <code>some-name-version.extension</code>.</p>
+     * <p>This may be quite complicated, for example <code>jboss-fuse-6.1.1.redhat-459-hf26.patch</code>. In this case
+     * the version should be <code>new Version(6, 1, 1, "redhat-459-hf26")</code>.</p>
+     * @param name
+     * @return
+     */
+    public static Version findVersionInName(String name) {
+        Version result = Version.emptyVersion;
+
+        String[] segments = name.split("-");
+        if (segments.length < 2) {
+            return result;
+        }
+
+        int possibleVersionSegment = 0;
+        for (int i = 1; i < segments.length; i++) {
+            if (segments[i].length() > 0 && Character.isDigit(segments[i].charAt(0))) {
+                possibleVersionSegment = i;
+                break;
+            }
+        }
+        if (possibleVersionSegment > 0) {
+            StringBuilder sb = null;
+            for (int i = possibleVersionSegment; i < segments.length; i++) {
+                if (sb == null) {
+                    sb = new StringBuilder();
+                } else {
+                    sb.append('-');
+                }
+                sb.append(segments[i]);
+            }
+            if (sb != null) {
+                try {
+                    result = Version.parseVersion(sb.toString());
+                } catch (IllegalArgumentException ignore) {
+                }
+            }
+        }
+
+        return result;
     }
 
 }

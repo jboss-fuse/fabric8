@@ -21,7 +21,6 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.References;
 import org.apache.felix.scr.annotations.Service;
@@ -32,8 +31,6 @@ import org.osgi.service.blueprint.container.BlueprintEvent;
 import org.osgi.service.blueprint.container.BlueprintListener;
 
 import java.util.Map;
-
-import static io.fabric8.zookeeper.utils.ZooKeeperUtils.setData;
 
 @ThreadSafe
 @Component(name = "io.fabric8.extender.listener.blueprint", label = "Fabric8 Blueprint Listener", immediate = true, metatype = false)
@@ -72,6 +69,11 @@ public final class FabricBlueprintBundleListener extends AbstractExtenderListene
         long bundleId = event.getBundle().getBundleId();
         ModuleStatus moduleStatus = toModuleStatus(event.getType());
         updateBundle(bundleId, moduleStatus);
+    }
+
+    @Override
+    protected String getThreadNamePrefix() {
+        return "fabric-bp-listener";
     }
 
     private ModuleStatus toModuleStatus(int type) {

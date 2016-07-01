@@ -25,11 +25,11 @@ wait-for-command-fast = {
   sleep -s 1;
 }
 
-if { "true" equals ${ensemble.auto.start} } {
-  // bin/fabric8 mode
-  echo "Waiting for Fabric8 ..."; 
-  wait-for-service "io.fabric8.api.FabricService";
-  wait-for-command fabric wait-for-provisioning;
-  fabric:wait-for-provisioning;
-}
+// if { "true" equals ${ensemble.auto.start} } {
+//   // bin/fabric8 mode
+//   echo "Waiting for Fabric8 ..."; 
+//   wait-for-service "io.fabric8.api.FabricService";
+//   wait-for-command fabric wait-for-provisioning;
+//   fabric:wait-for-provisioning;
+// }
 

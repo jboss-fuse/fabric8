@@ -65,14 +65,6 @@
                 <type>pom</type>
             </dependency>
 
-            <dependency>
-                <groupId>io.fabric8.quickstarts</groupId>
-                <artifactId>fabric8-quickstarts-parent</artifactId>
-                <version>${project.version}</version>
-                <classifier>profile</classifier>
-                <type>zip</type>
-            </dependency>
-
             <!-- disable until we find a better solution, see #2280
             <dependency>
                 <groupId>io.fabric8.quickstarts</groupId>
@@ -391,11 +383,6 @@
 
        <build>
            <resources>
-             <resource>
-                 <directory>${basedir}/../../etc</directory>
-                 <filtering>true</filtering>
-                 <targetPath>distro/etc</targetPath>
-             </resource>
                <resource>
                    <directory>src/main/resources</directory>
                    <filtering>true</filtering>
@@ -428,6 +415,9 @@
                            </goals>
                        </execution>
                    </executions>
+                   <configuration>
+                       <escapeString>\</escapeString>
+                   </configuration>
                </plugin>
                <plugin>
                    <groupId>io.fabric8</groupId>
@@ -560,10 +550,11 @@
                                         <fileset file="src/main/append-resources/common/etc/custom.properties" />
                                    </concat>
 
-                                   <echo message="Updating etc/org.ops4j.pax.logging.cfg in unix assembly" />
-                                   <concat destfile="target/dependencies/unix/apache-karaf-${karaf-version}/etc/org.ops4j.pax.logging.cfg" append="true" eol="unix">
-                                       <fileset file="src/main/append-resources/common/etc/org.ops4j.pax.logging.cfg" />
-                                   </concat>
+                                   <!-- No need to do it - it's overwritten by target/classes/etc/org.ops4j.pax.logging.cfg -->
+                                   <!--<echo message="Updating etc/org.ops4j.pax.logging.cfg in unix assembly" />-->
+                                   <!--<concat destfile="target/dependencies/unix/apache-karaf-${karaf-version}/etc/org.ops4j.pax.logging.cfg" append="true" eol="unix">-->
+                                       <!--<fileset file="src/main/append-resources/common/etc/org.ops4j.pax.logging.cfg" />-->
+                                   <!--</concat>-->
 
                                    <echo message="Updating etc/system.properties in unix assembly" />
                                    <concat destfile="target/dependencies/unix/apache-karaf-${karaf-version}/etc/system.properties" append="true" eol="unix">
@@ -617,12 +608,6 @@
                                   <copy todir="${dest.profiles}/docs/fabric">
                                     <fileset dir="${basedir}/../../docs"/>
                                   </copy>
-
-                                  <!-- quickstart zip to system -->
-                                  <echo message="Copying quickstarts"/>
-                                  <property name="quickstart.src" value="${basedir}/../../quickstarts"/>
-                                  <copy file="${quickstart.src}/target/profile.zip"
-                                    tofile="target/features-repo/io/fabric8/quickstarts/fabric8-quickstarts-parent/${project.version}/fabric8-quickstarts-parent-${project.version}-profile.zip"/>
 
                                   <!-- .gitattributes -->
                                   <echo message="Copying .gitattributes"/>
@@ -768,6 +753,31 @@
                                        <artifactId>apache-karaf</artifactId>
                                        <type>zip</type>
                                        <outputDirectory>target/dependencies/win</outputDirectory>
+                                   </artifactItem>
+                               </artifactItems>
+                           </configuration>
+                       </execution>
+                       <execution>
+                           <id>unpack-additional-dependencies</id>
+                           <phase>generate-resources</phase>
+                           <goals>
+                               <goal>copy</goal>
+                           </goals>
+                           <configuration>
+                               <artifactItems>
+                                   <artifactItem>
+                                       <groupId>org.fusesource.hawtbuf</groupId>
+                                       <artifactId>hawtbuf</artifactId>
+                                       <type>jar</type>
+                                       <version>${hawtbuf-version}</version>
+                                       <outputDirectory>target/features-repo/org/fusesource/hawtbuf/hawtbuf/${hawtbuf-version}</outputDirectory>
+                                   </artifactItem>
+                                   <artifactItem>
+                                       <groupId>commons-net</groupId>
+                                       <artifactId>commons-net</artifactId>
+                                       <type>jar</type>
+                                       <version>${commons-net-version}</version>
+                                       <outputDirectory>target/features-repo/commons-net/commons-net/${commons-net-version}</outputDirectory>
                                    </artifactItem>
                                </artifactItems>
                            </configuration>

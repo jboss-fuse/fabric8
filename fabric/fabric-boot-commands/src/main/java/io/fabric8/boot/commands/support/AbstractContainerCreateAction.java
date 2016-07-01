@@ -47,7 +47,7 @@ public abstract class AbstractContainerCreateAction extends AbstractAction {
     protected String manualIp;
     @Option(name = "-b", aliases = {"--bind-address"}, description = "The default bind address.")
     protected String bindAddress;
-    @Option(name = "--ensemble-server", multiValued = false, required = false, description = "Whether the new container should be a fabric ensemble server (ZooKeeper ensemble server).")
+    @Option(name = "--ensemble-server", multiValued = false, required = false, description = "[Deprecated] Whether the new container should be a fabric ensemble server (ZooKeeper ensemble server). Note that this does not add the new container to the current fabric but creates a wholly new fabric.")
     protected Boolean isEnsembleServer = Boolean.FALSE;
     @Option(name = "--zookeeper-password", multiValued = false, description = "The ensemble password to use (one will be generated if not given)")
     protected String zookeeperPassword;

@@ -78,7 +78,7 @@ public class ResolverTest {
 
     @Test
     public void testRootContainerResolver() throws Exception {
-        System.out.println(CommandSupport.executeCommand("fabric:create --force --clean -n"));
+        System.out.println(CommandSupport.executeCommand("fabric:create --force --clean -n --wait-for-provisioning"));
         //System.out.println(executeCommand("shell:info"));
         //System.out.println(executeCommand("fabric:info"));
         //System.out.println(executeCommand("fabric:profile-list"));
@@ -105,7 +105,7 @@ public class ResolverTest {
 
     @Test
     public void testCreateWithGlobalResolver() throws Exception {
-        System.out.println(CommandSupport.executeCommand("fabric:create --force --clean -n -g manualip --manual-ip localhost -b localhost"));
+        System.out.println(CommandSupport.executeCommand("fabric:create --force --clean -n --wait-for-provisioning -g manualip --manual-ip localhost -b localhost"));
         //System.out.println(executeCommand("shell:info"));
         //System.out.println(executeCommand("fabric:info"));
         //System.out.println(executeCommand("fabric:profile-list"));
@@ -123,7 +123,7 @@ public class ResolverTest {
 
     @Test
     public void testCreateWithGlobalAndLocalResolver() throws Exception {
-        System.out.println(CommandSupport.executeCommand("fabric:create --force --clean -n -g manualip -r localhostname --manual-ip localhost"));
+        System.out.println(CommandSupport.executeCommand("fabric:create --force --clean -n --wait-for-provisioning -g manualip -r localhostname --manual-ip localhost"));
         //System.out.println(executeCommand("shell:info"));
         //System.out.println(executeCommand("fabric:info"));
         //System.out.println(executeCommand("fabric:profile-list"));
@@ -141,7 +141,7 @@ public class ResolverTest {
 
     @Test
     public void testChildContainerResolver() throws Exception {
-        System.out.println(CommandSupport.executeCommand("fabric:create --force --clean -n"));
+        System.out.println(CommandSupport.executeCommand("fabric:create --force --clean -n --wait-for-provisioning"));
         //System.out.println(executeCommand("shell:info"));
         //System.out.println(executeCommand("fabric:info"));
         //System.out.println(executeCommand("fabric:profile-list"));
@@ -193,7 +193,7 @@ public class ResolverTest {
 
     @Test
     public void testResolverInheritanceOnChild() throws Exception {
-        System.out.println(CommandSupport.executeCommand("fabric:create --force --clean -n -g localip -r manualip --manual-ip localhost -b localhost"));
+        System.out.println(CommandSupport.executeCommand("fabric:create --force --clean -n --wait-for-provisioning -g localip -r manualip --manual-ip localhost -b localhost"));
         //System.out.println(executeCommand("shell:info"));
         //System.out.println(executeCommand("fabric:info"));
         //System.out.println(executeCommand("fabric:profile-list"));

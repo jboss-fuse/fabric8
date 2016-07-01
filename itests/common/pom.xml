@@ -29,6 +29,22 @@
     
     <name>Fabric8 :: Integration Tests :: Common</name>
 
+    <repositories>
+        <!-- required for org.jboss.osgi.metadata:jbosgi-metadata:jar:4.0.0.CR1 -->
+        <repository>
+            <id>jboss.public</id>
+            <name>Public Repository Group</name>
+            <url>https://repository.jboss.org/nexus/content/groups/public</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>never</updatePolicy>
+            </releases>
+        </repository>
+    </repositories>
+
     <dependencies>
         <dependency>
             <groupId>io.fabric8</groupId>

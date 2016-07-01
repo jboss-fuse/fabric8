@@ -21,13 +21,13 @@ import io.fabric8.api.RuntimeProperties;
 import io.fabric8.api.jcip.ThreadSafe;
 import io.fabric8.api.scr.AbstractComponent;
 import io.fabric8.api.scr.ValidatingReference;
-import io.fabric8.common.util.Files;
 import io.fabric8.git.GitDataStore;
 import io.fabric8.git.GitHttpEndpoint;
 import io.fabric8.git.GitNode;
 import io.fabric8.groups.Group;
 import io.fabric8.groups.GroupListener;
 import io.fabric8.groups.internal.ZooKeeperGroup;
+import io.fabric8.utils.NamedThreadFactory;
 import io.fabric8.zookeeper.ZkPath;
 import io.fabric8.zookeeper.utils.ZooKeeperUtils;
 
@@ -93,18 +93,18 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
     private Git git;
 
     private String realm;
-    private String role;
+    private String roles;
     private Path dataPath;
 
     @Activate
     void activate(Map<String, ?> configuration) throws Exception {
         RuntimeProperties sysprops = runtimeProperties.get();
         realm = getConfiguredRealm(sysprops, configuration);
-        role = getConfiguredRole(sysprops, configuration);
+        roles = getConfiguredRoles(sysprops, configuration);
         dataPath = sysprops.getDataPath();
         activateComponent();
 
-        group = new ZooKeeperGroup<GitNode>(curator.get(), ZkPath.GIT.getPath(), GitNode.class);
+        group = new ZooKeeperGroup<GitNode>(curator.get(), ZkPath.GIT.getPath(), GitNode.class, new NamedThreadFactory("zkgroup-git-httpreg"));
         //if anything went wrong in a previous deactivation we still have to clean up the registry
         zkCleanUp(group);
 
@@ -148,7 +148,7 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
         return realm;
     }
 
-    private String getConfiguredRole(RuntimeProperties sysprops, Map<String, ?> configuration) {
+    private String getConfiguredRoles(RuntimeProperties sysprops, Map<String, ?> configuration) {
         return configuration.containsKey(ROLE_PROPERTY_NAME) ? (String)configuration.get(ROLE_PROPERTY_NAME) : DEFAULT_ROLE;
     }
 
@@ -157,7 +157,7 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
             if (group.isMaster()) {
                 LOGGER.debug("Git repo is the master");
                 if (!isMaster.getAndSet(true)) {
-                    registerServlet(dataPath, realm, role);
+                    registerServlet(dataPath, realm, roles);
                 }
             } else {
                 LOGGER.debug("Git repo is not the master");
@@ -211,7 +211,6 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
         }
     }
 
-
     /**
      * The complexity of this code is due to problems with jgit and Windows file system.
      * See https://bugs.eclipse.org/bugs/show_bug.cgi?id=300084
@@ -257,7 +256,6 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
         }
     }
 
-
     private void recursiveDelete(File file) throws IOException{
         org.eclipse.jgit.util.FileUtils.delete(file,
                 org.eclipse.jgit.util.FileUtils.RECURSIVE |org.eclipse.jgit.util.FileUtils.RETRY);
@@ -291,25 +289,26 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
         GitNode state = new GitNode("fabric-repo", runtimeIdentity);
         if (group != null && group.isMaster()) {
             String externalGitUrl = readExternalGitUrl();
-            if( externalGitUrl!= null){
-                state.setUrl( externalGitUrl);
+            if (externalGitUrl != null) {
+                state.setUrl(externalGitUrl);
             } else {
-	        String fabricRepoUrl = "${zk:" + runtimeIdentity + "/http}/git/fabric/";
-        	state.setUrl(fabricRepoUrl);
+                String fabricRepoUrl = "${zk:" + runtimeIdentity + "/http}/git/fabric/";
+                state.setUrl(fabricRepoUrl);
             }
         }
         return state;
     }
 
-    private void zkCleanUp(Group<GitNode> group){
+    private void zkCleanUp(Group<GitNode> group) {
         try {
             RuntimeProperties sysprops = runtimeProperties.get();
             String runtimeIdentity = sysprops.getRuntimeIdentity();
 
+            curator.get().newNamespaceAwareEnsurePath(ZkPath.GIT.getPath()).ensure(curator.get().getZookeeperClient());
             List<String> allChildren = ZooKeeperUtils.getAllChildren(curator.get(), ZkPath.GIT.getPath());
-            for(String path : allChildren){
+            for (String path : allChildren) {
                 String stringData = ZooKeeperUtils.getStringData(curator.get(), path);
-                if(stringData.contains("\"container\":\"" + runtimeIdentity + "\"")){
+                if (stringData.contains("\"container\":\"" + runtimeIdentity + "\"")) {
                     LOGGER.info("Found older ZK \"/fabric/registry/clusters/git\" entry for node " + runtimeIdentity);
                     ZooKeeperUtils.delete(curator.get(), path);
                     LOGGER.info("Older ZK \"/fabric/registry/clusters/git\" entry for node " + runtimeIdentity + " has been removed");

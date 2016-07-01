@@ -311,17 +311,13 @@ public class AgentUtils {
                 StringBuilder sb = new StringBuilder();
                 for (URI uri : mavenRepoUris) {
                     String mavenRepo = uri.toString();
-                    if (mavenRepo.startsWith(httpUrl)) {
-                        continue;
-                    }
-                    if (!mavenRepo.endsWith("/")) {
-                        mavenRepo += "/";
-                    }
+//                    if (mavenRepo.startsWith(httpUrl)) {
+//                        continue;
+//                    }
                     if (sb.length() > 0) {
                         sb.append(",");
                     }
                     sb.append(mavenRepo);
-                    sb.append("@snapshots@snapshotsUpdate=always");
                 }
                 String existingRepos = props.get("org.ops4j.pax.url.mvn.repositories");
                 if (existingRepos != null) {

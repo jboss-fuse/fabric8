@@ -60,7 +60,7 @@ public class GitPatchManagementServiceForStandaloneChildContainersTest extends P
         freshKarafStandaloneDistro();
         FileUtils.copyFile(new File("src/test/resources/karaf2/system/org/apache/karaf/admin/org.apache.karaf.admin.core/2.4.0.redhat-620133/org.apache.karaf.admin.core-2.4.0.redhat-620133.jar"),
                 new File(karafHome, "system/org/apache/karaf/admin/org.apache.karaf.admin.core/2.4.0.redhat-620133/org.apache.karaf.admin.core-2.4.0.redhat-620133.jar"));
-        preparePatchZip("src/test/resources/baselines/baseline3", "target/karaf/patches/jboss-fuse-full-6.2.0-baseline.zip", true);
+        preparePatchZip("src/test/resources/baselines/baseline3", "target/karaf/patches/jboss-fuse-karaf-6.2.0-baseline.zip", true);
 
         pm = new GitPatchManagementServiceImpl(bundleContext);
         pm.start();

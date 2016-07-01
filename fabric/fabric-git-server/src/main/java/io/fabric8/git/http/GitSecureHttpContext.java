@@ -38,6 +38,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.security.Principal;
 import java.security.acl.Group;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Properties;
 
@@ -55,13 +56,13 @@ public class GitSecureHttpContext implements HttpContext {
     private final HttpContext base;
     private final CuratorFramework curator;
     private final String realm;
-    private final String role;
+    private final String[] roles;
 
     public GitSecureHttpContext(HttpContext base, CuratorFramework curator, String realm, String role) {
         this.base = base;
         this.curator = curator;
         this.realm = realm;
-        this.role = role;
+        this.roles = role.split(",");
     }
 
     @Override
@@ -172,17 +173,20 @@ public class GitSecureHttpContext implements HttpContext {
                 }
             });
             loginContext.login();
-            if (role != null && role.length() > 0) {
-                boolean found = false;
-                for (Principal p : subject.getPrincipals()) {
-                    if (role.equals(p.getName()) || p instanceof Group && isGroupMember((Group) p, role)) {
-                        found = true;
-                        break;
+            boolean found = false;
+            main:
+            for(String role : roles){
+                if (role != null && role.length() > 0) {
+                    for (Principal p : subject.getPrincipals()) {
+                        if (role.equals(p.getName()) || p instanceof Group && isGroupMember((Group) p, role)) {
+                            found = true;
+                            break main;
+                        }
                     }
                 }
-                if (!found) {
-                    throw new FailedLoginException("User does not have the required role: " + role);
-                }
+            }
+            if (!found) {
+                throw new FailedLoginException("User does not have any of the required roles: " + Arrays.asList(roles));
             }
             return subject;
         } catch (AccountException e) {
