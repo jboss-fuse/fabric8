@@ -59,7 +59,9 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
+import org.apache.felix.utils.manifest.Attribute;
 import org.apache.felix.utils.manifest.Clause;
+import org.apache.felix.utils.manifest.Directive;
 import org.apache.felix.utils.manifest.Parser;
 import org.apache.felix.utils.version.VersionRange;
 import org.apache.felix.utils.version.VersionTable;
@@ -1283,6 +1285,17 @@ public class ServiceImpl implements Service {
                 toStop.remove(bundle);
             }
         }
+
+        // eagerly load some classes
+        try {
+            getClass().getClassLoader().loadClass(Parser.class.getName());
+            getClass().getClassLoader().loadClass(Clause.class.getName());
+            getClass().getClassLoader().loadClass(Attribute.class.getName());
+            getClass().getClassLoader().loadClass(Directive.class.getName());
+            getClass().getClassLoader().loadClass(RefreshListener.class.getName());
+        } catch (Exception ignored) {
+        }
+
         Set<Bundle> toRefresh = new HashSet<Bundle>();
         Set<Bundle> toStart = new HashSet<Bundle>();
         for (Map.Entry<Bundle, String> e : lessToUpdate.entrySet()) {
@@ -1302,12 +1315,7 @@ public class ServiceImpl implements Service {
         findBundlesWithFragmentsToRefresh(toRefresh);
         if (!toRefresh.isEmpty()) {
             final CountDownLatch l = new CountDownLatch(1);
-            FrameworkListener listener = new FrameworkListener() {
-                @Override
-                public void frameworkEvent(FrameworkEvent event) {
-                    l.countDown();
-                }
-            };
+            FrameworkListener listener = new RefreshListener(l);
             FrameworkWiring wiring = bundleContext.getBundle(0).adapt(FrameworkWiring.class);
             wiring.refreshBundles(toRefresh, listener);
             try {
@@ -1588,6 +1596,20 @@ public class ServiceImpl implements Service {
                 location = bundle.getLocation();
             }
             return location;
+        }
+    }
+
+    private static class RefreshListener implements FrameworkListener {
+
+        private final CountDownLatch l;
+
+        public RefreshListener(CountDownLatch l) {
+            this.l = l;
+        }
+
+        @Override
+        public void frameworkEvent(FrameworkEvent event) {
+            l.countDown();
         }
     }
 
