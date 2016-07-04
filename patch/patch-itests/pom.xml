@@ -51,6 +51,11 @@
 
         <dependency>
             <groupId>io.fabric8.patch</groupId>
+            <artifactId>patch-core-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.fabric8.patch</groupId>
             <artifactId>patch-core</artifactId>
             <scope>provided</scope>
         </dependency>
