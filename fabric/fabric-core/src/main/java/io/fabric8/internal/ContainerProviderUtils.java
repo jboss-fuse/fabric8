@@ -70,7 +70,6 @@ public final class ContainerProviderUtils {
     private static final String FIND_FREE_PORT = loadFunction("find_free_port.sh");
     private static final String WAIT_FOR_PORT = loadFunction("wait_for_port.sh");
     private static final String EXTRACT_ZIP = loadFunction("extract_zip.sh");
-    private static final String GENERATE_SSH_KEYS = loadFunction("generate_ssh_keys.sh");
 
     public static final int DEFAULT_SSH_PORT = 8101;
     public static final int DEFAULT_RMI_SERVER_PORT = 44444;
@@ -132,7 +131,6 @@ public final class ContainerProviderUtils {
         sb.append(FIND_FREE_PORT).append("\n");
         sb.append(WAIT_FOR_PORT).append("\n");
         sb.append(EXTRACT_ZIP).append("\n");
-        sb.append(GENERATE_SSH_KEYS).append("\n");
         sb.append("run mkdir -p ").append(options.getPath()).append("\n");
         sb.append("run cd ").append(options.getPath()).append("\n");
         sb.append("run mkdir -p ").append(name).append("\n");
@@ -249,7 +247,6 @@ public final class ContainerProviderUtils {
             }
         }
 
-        sb.append("generate_ssh_keys").append("\n");
         sb.append("configure_hostnames").append(" ").append(options.getHostNameContext()).append("\n");
 
         String jvmOptions = options.getJvmOpts();
