@@ -20,6 +20,7 @@ import io.fabric8.utils.Base64Encoder;
 import java.io.IOException;
 import java.net.URL;
 import java.security.Principal;
+import java.util.Arrays;
 
 import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
@@ -91,10 +92,13 @@ final class JolokiaSecureHttpContext implements HttpContext {
                 }
             });
             loginContext.login();
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Login successful: {}", subject);
+            }
             boolean found = false;
             for (String role : roles) {
                 if (role != null && role.length() > 0 && !found) {
-                    String roleName = role;
+                    String roleName = role.trim();
                     int idx = roleName.indexOf(':');
                     if (idx > 0) {
                         roleName = roleName.substring(idx + 1);
@@ -110,7 +114,7 @@ final class JolokiaSecureHttpContext implements HttpContext {
                 }
             }
             if (!found) {
-                throw new FailedLoginException("User does not have the required role " + roles);
+                throw new FailedLoginException("User does not have the required role " + Arrays.asList(roles));
             }
 
             return subject;
