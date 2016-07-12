@@ -27,8 +27,8 @@ import org.apache.felix.gogo.commands.Command;
 @Command(name = ContainerStop.FUNCTION_VALUE, scope = ContainerStop.SCOPE_VALUE, description = ContainerStop.DESCRIPTION, detailedDescription = "classpath:containerStop.txt")
 public final class ContainerStopAction extends AbstractContainerLifecycleAction {
 	
-	private long pollingInterval = 1000L;
-	private int attemptNumber = 3;
+	private long pollingInterval = 5000L;
+	private int attemptNumber = 6;
 
     ContainerStopAction(FabricService fabricService) {
         super(fabricService);
