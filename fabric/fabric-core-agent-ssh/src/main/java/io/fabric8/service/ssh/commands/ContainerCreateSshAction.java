@@ -71,7 +71,7 @@ public class ContainerCreateSshAction extends AbstractContainerCreateAction {
     private boolean adminAccess;
     @Option(name = "--disable-distribution-upload", multiValued = false, description = "Flag to disable uploading the distribution. When used distribution will be downloaded via maven")
     private Boolean distributionUploadDisable = false;
-    @Option(name = "--fallback-repos", required = false, multiValued = true, description = "Adds a fallback repo to check for the fabric8 distribtion to use on the remote node. To specify multiple repos, use this flag multiple times.")
+    @Option(name = "--fallback-repos", required = false, multiValued = true, description = "Adds a fallback repo to check for the fabric8 distribution to use on the remote node. To specify multiple repos, use this flag multiple times.")
     private List<String> fallbackRepos;
 
     @Argument(index = 0, required = true, description = "The name of the container to be created. When creating multiple containers it serves as a prefix")

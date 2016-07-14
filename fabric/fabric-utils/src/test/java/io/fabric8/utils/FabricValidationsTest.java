@@ -15,13 +15,17 @@
  */
 package io.fabric8.utils;
 
+import java.net.URISyntaxException;
+
 import org.junit.Test;
 
 import static io.fabric8.utils.FabricValidations.isValidContainerName;
 import static io.fabric8.utils.FabricValidations.isValidProfileName;
 import static io.fabric8.utils.FabricValidations.validateProfileName;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static io.fabric8.utils.FabricValidations.validateContainerName;
+import static io.fabric8.utils.FabricValidations.isURIValid;
 
 public class FabricValidationsTest {
 
@@ -80,4 +84,24 @@ public class FabricValidationsTest {
         assertTrue(isValidProfileName("my.container.name"));
         assertTrue(isValidProfileName("my.container123.name"));
     }
+
+    @Test
+    public void uris() {
+        assertFalse(isURIValid("http:///path"));
+        assertFalse(isURIValid("http://:/path"));
+        assertFalse(isURIValid("http://:8181/path"));
+        assertFalse(isURIValid("http://:abcd/path"));
+        assertFalse(isURIValid("http://u:p/path"));
+        assertFalse(isURIValid("http://u:p@/path"));
+        assertFalse(isURIValid("http://u:p@:/path"));
+        assertFalse(isURIValid("http://u:p@:8181/path"));
+        assertFalse(isURIValid("http://u:p@:abcd/path"));
+        assertFalse(isURIValid("http://host.name:abcd/path"));
+        assertFalse(isURIValid("http://u:p@host.name:abcd/path"));
+        assertTrue(isURIValid("http://host.name/path"));
+        assertTrue(isURIValid("http://host.name:8181/path"));
+        assertTrue(isURIValid("http://u@host.name:8181/path"));
+        assertTrue(isURIValid("http://u:p@host.name:8181/path"));
+    }
+
 }

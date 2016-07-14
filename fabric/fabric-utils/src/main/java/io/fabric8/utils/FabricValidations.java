@@ -15,9 +15,13 @@
  */
 package io.fabric8.utils;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.List;
 import java.util.regex.Pattern;
+
+import io.fabric8.common.util.Strings;
 
 public final class FabricValidations {
 
@@ -86,4 +90,29 @@ public final class FabricValidations {
     public static boolean isValidVersionName(String name) {
         return name != null && !name.isEmpty() && ALLOWED_VERSION_NAMES_PATTERN.matcher(name).matches();
      }
+
+    public static boolean isURIValid(String uriString) {
+        URI uri = null;
+        try {
+            uri = new URI(uriString);
+        } catch (URISyntaxException e) {
+            return false;
+        }
+
+        if (Strings.isEmpty(uri.getHost())) {
+            return false;
+        }
+        String userInfo = uri.getUserInfo();
+        String authority = uri.getAuthority();
+        String hostPort = authority;
+        if (userInfo != null && hostPort.contains("@")) {
+            hostPort = hostPort.substring(hostPort.lastIndexOf("@"));
+        }
+        if (uri.getPort() == -1 && !hostPort.equals(uri.getHost())) {
+            return false;
+        }
+
+        return true;
+    }
+
 }
