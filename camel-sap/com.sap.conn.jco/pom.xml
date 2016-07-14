@@ -18,18 +18,22 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.sap.conn.jco</groupId>
 	<artifactId>com.sap.conn.jco</artifactId>
-	<version>3.0.11.redhat_1</version>
+	<version>3.0.11.redhat_2</version>
 	<packaging>eclipse-plugin</packaging>
 	<parent>
 		<groupId>org.fusesource</groupId>
 		<artifactId>fusesource-pom</artifactId>
 		<version>1.9</version>
 	</parent>
+        <properties>
+                <maven.deploy.skip>true</maven.deploy.skip>
+        </properties>
 	<build>
 		<plugins>
 			<plugin>
 				<groupId>org.eclipse.tycho</groupId>
 				<artifactId>tycho-maven-plugin</artifactId>
+                                <version>0.24.0</version>
 				<extensions>true</extensions>
 			</plugin>
 			<plugin>
@@ -117,7 +121,7 @@
 	<repositories>
 		<repository>
 			<id>fusesource-third-party-internal</id>
-			<url>https://repository.jboss.org/nexus/content/repositories/fs-maven2-all/</url>
+			<url>https://repository.jboss.org/nexus/content/repositories/fs-releases/</url>
 			<layout>default</layout>
 			<snapshots>
 				<enabled>true</enabled>

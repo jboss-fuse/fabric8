@@ -202,18 +202,18 @@
 
 		</dependencies>
 	</dependencyManagement>
-	<dependencies>
-		<dependency>
-			<groupId>com.sap.conn.jco</groupId>
-			<artifactId>com.sap.conn.jco</artifactId>
-			<version>3.0.11.redhat_1</version>
-		</dependency>
-		<dependency>
-			<groupId>com.sap.conn.idoc</groupId>
-			<artifactId>com.sap.conn.idoc</artifactId>
-			<version>3.0.10.redhat_1</version>
-		</dependency>
-	</dependencies>
+        <dependencies>
+                <dependency>
+                        <groupId>com.sap.conn.jco</groupId>
+                        <artifactId>com.sap.conn.jco</artifactId>
+                        <version>3.0.11.redhat_2</version>
+                </dependency>
+                <dependency>
+                        <groupId>com.sap.conn.idoc</groupId>
+                        <artifactId>com.sap.conn.idoc</artifactId>
+                        <version>3.0.10.redhat_2</version>
+                </dependency>
+        </dependencies>
 	<profiles>
 		<profile>
 			<id>integration-tests</id>
@@ -418,6 +418,18 @@
 				<native.lib.filename>libsapjco3</native.lib.filename>
 			</properties>
 		</profile>
+                <profile>
+                        <id>repository</id>
+                        <modules>
+                                <module>com.sap.conn.jco.linux.x86</module>
+                                <module>com.sap.conn.jco.linux.x86_64</module>
+                                <module>com.sap.conn.jco.osx.x86</module>
+                                <module>com.sap.conn.jco.osx.x86_64</module>
+                                <module>com.sap.conn.jco.win32.x86</module>
+                                <module>com.sap.conn.jco.win32.x86_64</module>
+                                <module>camel-sap-repository</module> 
+                        </modules>
+                </profile>
 	</profiles>
 	<build>
 		<pluginManagement>
@@ -615,13 +627,13 @@
 		</plugins>
 	</build>
 	<modules>
+                <module>com.sap.conn.idoc</module>
+                <module>com.sap.conn.jco</module>
 		<module>org.fusesource.camel.component.sap.model</module>
 		<module>org.fusesource.camel.component.sap.model.edit</module>
 		<module>org.fusesource.camel.component.sap</module>
 		<module>org.fusesource.camel.component.sap.test</module>
 		<module>camel-sap-component</module>
-<!-- ENTESB-5801 disable for now
-<module>camel-sap-repository</module> -->
 	</modules>
 	<repositories>
 		<repository>
@@ -637,7 +649,7 @@
 		</repository>
 		<repository>
 			<id>fusesource-third-party-internal</id>
-			<url>https://repository.jboss.org/nexus/content/repositories/fs-maven2-all/</url>
+			<url>https://repository.jboss.org/nexus/content/repositories/fs-releases/</url>
 			<layout>default</layout>
 			<snapshots>
 				<enabled>true</enabled>

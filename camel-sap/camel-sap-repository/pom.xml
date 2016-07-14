@@ -145,42 +145,42 @@
 		<dependency>
 			<groupId>com.sap.conn.jco</groupId>
 			<artifactId>com.sap.conn.jco</artifactId>
-			<version>3.0.11.redhat_1</version>
+			<version>3.0.11.redhat_2</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sap.conn.jco</groupId>
 			<artifactId>com.sap.conn.jco.linux.x86</artifactId>
-			<version>3.0.11.redhat_1</version>
+			<version>3.0.11.redhat_2</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sap.conn.jco</groupId>
 			<artifactId>com.sap.conn.jco.linux.x86_64</artifactId>
-			<version>3.0.11.redhat_1</version>
+			<version>3.0.11.redhat_2</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sap.conn.jco</groupId>
 			<artifactId>com.sap.conn.jco.osx.x86</artifactId>
-			<version>3.0.11.redhat_1</version>
+			<version>3.0.11.redhat_2</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sap.conn.jco</groupId>
 			<artifactId>com.sap.conn.jco.osx.x86_64</artifactId>
-			<version>3.0.11.redhat_1</version>
+			<version>3.0.11.redhat_2</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sap.conn.jco</groupId>
 			<artifactId>com.sap.conn.jco.win32.x86</artifactId>
-			<version>3.0.11.redhat_1</version>
+			<version>3.0.11.redhat_2</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sap.conn.jco</groupId>
 			<artifactId>com.sap.conn.jco.win32.x86_64</artifactId>
-			<version>3.0.11.redhat_1</version>
+			<version>3.0.11.redhat_2</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sap.conn.idoc</groupId>
 			<artifactId>com.sap.conn.idoc</artifactId>
-			<version>3.0.10.redhat_1</version>
+			<version>3.0.10.redhat_2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.fusesource</groupId>
@@ -207,7 +207,7 @@
 		</repository>
 		<repository>
 			<id>fusesource-third-party-internal</id>
-			<url>https://repository.jboss.org/nexus/content/repositories/fs-maven2-all/</url>
+			<url>https://repository.jboss.org/nexus/content/repositories/fs-releases/</url>
 			<layout>default</layout>
 			<snapshots>
 				<enabled>true</enabled>

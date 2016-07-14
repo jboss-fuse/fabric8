@@ -7,15 +7,19 @@
   </parent>
   <groupId>com.sap.conn.idoc</groupId>
   <artifactId>com.sap.conn.idoc</artifactId>
-  <version>3.0.10.redhat_1</version>
+  <version>3.0.10.redhat_2</version>
   <packaging>eclipse-plugin</packaging>
   <name>SAP IDoc Class Library v3 Plugin</name>
   <description>Builds Plugin exporting the IDoc Class Library v3</description>
+  <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+  </properties>
 	<build>
 		<plugins>
 			<plugin>
 				<groupId>org.eclipse.tycho</groupId>
 				<artifactId>tycho-maven-plugin</artifactId>
+                                <version>0.24.0</version>
 				<extensions>true</extensions>
 			</plugin>
 			<plugin>
@@ -96,7 +100,7 @@
 	<repositories>
 		<repository>
 			<id>fusesource-third-party-internal</id>
-			<url>https://repository.jboss.org/nexus/content/repositories/fs-maven2-all/</url>
+			<url>https://repository.jboss.org/nexus/content/repositories/fs-releases/</url>
 			<layout>default</layout>
 			<snapshots>
 				<enabled>true</enabled>
