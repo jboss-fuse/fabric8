@@ -1810,37 +1810,44 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             }
 
             if (env == EnvType.STANDALONE) {
-                // do standalone history initialization. We're in root Fuse/AMQ container
-                String currentFuseVersion = determineVersion("fuse");
+                boolean possiblyInFabric8KarafDistro = new File(karafHome, "bin/fabric8").isFile() || new File(karafHome, "bin/fabric8.bat").isFile();
 
-                // one of the steps may return a commit that has to be tagged as first baseline
-                RevCommit baselineCommit = null;
-                if (!gitPatchRepository.containsTag(fork, String.format(env.getBaselineTagFormat(), currentFuseVersion))) {
-                    baselineCommit = trackBaselineRepository(fork);
-                    RevCommit c2 = installPatchManagementBundle(fork);
-                    if (c2 != null) {
-                        baselineCommit = c2;
+                if (!possiblyInFabric8KarafDistro) {
+                    // ENTESB-5761: let's skip the initialization in fabric8-karaf distro - probably we're in SSH container
+                    // that's just being created
+
+                    // do standalone history initialization. We're in root Fuse/AMQ container
+                    String currentFuseVersion = determineVersion("fuse");
+
+                    // one of the steps may return a commit that has to be tagged as first baseline
+                    RevCommit baselineCommit = null;
+                    if (!gitPatchRepository.containsTag(fork, String.format(env.getBaselineTagFormat(), currentFuseVersion))) {
+                        baselineCommit = trackBaselineRepository(fork);
+                        RevCommit c2 = installPatchManagementBundle(fork);
+                        if (c2 != null) {
+                            baselineCommit = c2;
+                        }
                     }
+                    // because patch management is already installed, we have to add consecutive (post patch-management installation) changes
+                    applyUserChanges(fork);
+
+                    if (baselineCommit != null) {
+                        // and we'll tag the baseline *after* steps related to first baseline
+                        fork.tag()
+                                .setName(String.format(env.getBaselineTagFormat(), currentFuseVersion))
+                                .setObjectId(baselineCommit)
+                                .call();
+
+                        gitPatchRepository.push(fork);
+                    }
+
+                    // now we have to do the same for existing/future admin:create based child containers
+                    // it's the root container that takes care of this
+                    trackBaselinesForChildContainers(fork);
+
+                    // repository of patch data - already installed patches
+                    migrateOldPatchData();
                 }
-                // because patch management is already installed, we have to add consecutive (post patch-management installation) changes
-                applyUserChanges(fork);
-
-                if (baselineCommit != null) {
-                    // and we'll tag the baseline *after* steps related to first baseline
-                    fork.tag()
-                            .setName(String.format(env.getBaselineTagFormat(), currentFuseVersion))
-                            .setObjectId(baselineCommit)
-                            .call();
-
-                    gitPatchRepository.push(fork);
-                }
-
-                // now we have to do the same for existing/future admin:create based child containers
-                // it's the root container that takes care of this
-                trackBaselinesForChildContainers(fork);
-
-                // repository of patch data - already installed patches
-                migrateOldPatchData();
             } else if (env == EnvType.STANDALONE_CHILD) {
                 // we're in admin:create based child container. we share patch management git repository
                 // with the container that created us
