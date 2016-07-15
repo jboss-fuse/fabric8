@@ -124,4 +124,24 @@ public class ConflictResolutionTest {
         assertThat(resolved4, equalTo(expected4));
     }
 
+    /**
+     * Tests for resolving conflicts inside <code>etc/org.apache.karaf.features.cfg</code>
+     * The rule here is: take patch version and add custom features and repositories at the end of <code>featuresBoot</code>
+     * and <code>featuresRepositories</code> properties.
+     * @throws Exception
+     */
+    @Test
+    public void resolveFeatureProperties() throws Exception {
+        PropertiesFileResolver resolver = (PropertiesFileResolver) cr.getResolver("etc/org.apache.karaf.features.cfg");
+
+        String resolved1 = resolver.resolve(
+                new File("src/test/resources/conflicts/example3/org.apache.karaf.features.patched.cfg"),
+                new File("src/test/resources/conflicts/example3/org.apache.karaf.features.base.cfg"),
+                new File("src/test/resources/conflicts/example3/org.apache.karaf.features.after-create.cfg"),
+                false
+        );
+        String expected1 = FileUtils.readFileToString(new File("src/test/resources/conflicts/example3/org.apache.karaf.features.expected.cfg"));
+        assertThat(resolved1, equalTo(expected1));
+    }
+
 }
