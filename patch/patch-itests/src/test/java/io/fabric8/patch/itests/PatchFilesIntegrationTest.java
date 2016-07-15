@@ -48,8 +48,8 @@ public class PatchFilesIntegrationTest extends AbstractPatchIntegrationTest {
     // Bundle-SymbolicName of the bundle we're patching
     private static final String ORIGINAL_FILE_CONTENTS = "Original file contents\n";
     private static final String PATCHED_FILE_CONTENTS = "Patched file contents\n";
-    private static final String PATCHED_FILE = "etc/patched.cfg";
-    private static final String PATCHED2_FILE = "etc/patched2.cfg";
+    private static final String PATCHED_FILE = "etc/patched.txt";
+    private static final String PATCHED2_FILE = "etc/patched2.txt";
 
     @Deployment
     public static JavaArchive createdeployment() {
@@ -83,12 +83,12 @@ public class PatchFilesIntegrationTest extends AbstractPatchIntegrationTest {
             public InputStream openStream() {
                 return new ByteArrayInputStream(PATCHED_FILE_CONTENTS.getBytes());
             }
-        }, "etc/patched.cfg");
+        }, PATCHED_FILE);
         archive.add(new Asset() {
             public InputStream openStream() {
                 return new ByteArrayInputStream(PATCHED_FILE_CONTENTS.getBytes());
             }
-        }, "etc/patched2.cfg");
+        }, PATCHED2_FILE);
 
         return archive;
     }
