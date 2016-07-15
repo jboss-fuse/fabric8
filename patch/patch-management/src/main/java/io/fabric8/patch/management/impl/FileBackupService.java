@@ -87,8 +87,11 @@ public class FileBackupService implements BackupService {
         // is stored - the data must be restored both during R patch installation and rollback
         Properties properties = new Properties();
 
-        File dataBackupDir = new File(result.getPatchData().getPatchLocation(),
-                result.getPatchData().getId() + ".datafiles");
+        String dirName = result.getPatchData().getId() + ".datafiles";
+        if (result.getParent() != null) {
+            dirName = result.getPatchData().getId() + "." + System.getProperty("karaf.name") + ".datafiles";
+        }
+        File dataBackupDir = new File(result.getPatchData().getPatchLocation(), dirName);
         String prefix = pending == Pending.ROLLUP_INSTALLATION ? "install" : "rollback";
         for (BundleUpdate update : result.getBundleUpdates()) {
             // same update for both updated and reinstalled bundle

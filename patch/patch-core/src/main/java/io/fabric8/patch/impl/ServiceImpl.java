@@ -174,25 +174,46 @@ public class ServiceImpl implements Service {
                 return pathname.exists() && pathname.getName().endsWith(".pending");
             }
         });
-        if (pendingPatches == null) {
+        if (pendingPatches == null || pendingPatches.length == 0) {
             return;
         }
         for (File pending : pendingPatches) {
             Pending what = Pending.valueOf(FileUtils.readFileToString(pending));
 
-            File patchFile = new File(pending.getParentFile(), pending.getName().replaceFirst("\\.pending$", ""));
+            String name = pending.getName().replaceFirst("\\.pending$", "");
+            if (patchManagement.isStandaloneChild()) {
+                if (name.endsWith("." + System.getProperty("karaf.name") + ".patch")) {
+                    name = name.replaceFirst("\\." + System.getProperty("karaf.name"), "");
+                } else {
+                    continue;
+                }
+            }
+            File patchFile = new File(pending.getParentFile(), name);
+            if (!patchFile.isFile()) {
+                System.out.println("Ignoring patch result file: " + patchFile.getName());
+                continue;
+            }
             PatchData patchData = PatchData.load(new FileInputStream(patchFile));
             Patch patch = patchManagement.loadPatch(new PatchDetailsRequest(patchData.getId()));
+
             System.out.printf("Resume %s of %spatch \"%s\"%n",
                     what == Pending.ROLLUP_INSTALLATION ? "installation" : "rollback",
                     patch.getPatchData().isRollupPatch() ? "rollup " : "",
                     patch.getPatchData().getId());
 
+            PatchResult result = patch.getResult();
+            if (patchManagement.isStandaloneChild()) {
+                result = result.getChildPatches().get(System.getProperty("karaf.name"));
+                if (result == null) {
+                    System.out.println("Ignoring patch result file: " + patchFile.getName());
+                    continue;
+                }
+            }
             // feature time
 
             Set<String> newRepositories = new LinkedHashSet<>();
             Set<String> features = new LinkedHashSet<>();
-            for (FeatureUpdate featureUpdate : patch.getResult().getFeatureUpdates()) {
+            for (FeatureUpdate featureUpdate : result.getFeatureUpdates()) {
                 if (featureUpdate.getName() == null && featureUpdate.getPreviousRepository() != null) {
                     // feature was not shipped by patch
                     newRepositories.add(featureUpdate.getPreviousRepository());
@@ -235,7 +256,7 @@ public class ServiceImpl implements Service {
 
             // bundle time
 
-            for (BundleUpdate update : patch.getResult().getBundleUpdates()) {
+            for (BundleUpdate update : result.getBundleUpdates()) {
                 if (!update.isIndependent()) {
                     continue;
                 }
@@ -291,11 +312,17 @@ public class ServiceImpl implements Service {
                         iterator.remove();
                     }
                 }
-                patch.getResult().setPending(null);
+                result.setPending(null);
                 patch.getResult().store();
                 if (patch.getResult().getKarafBases().size() == 0) {
                     File file = new File(patchDir, patchData.getId() + ".patch.result");
                     file.delete();
+                }
+                if (patchManagement.isStandaloneChild()) {
+                    File file = new File(patchDir, patchData.getId() + "." + System.getProperty("karaf.name") + ".patch.result");
+                    if (file.isFile()) {
+                        file.delete();
+                    }
                 }
             }
         }
@@ -395,6 +422,7 @@ public class ServiceImpl implements Service {
     private Map<String, PatchResult> install(final Collection<Patch> patches, final boolean simulate, boolean synchronous) {
         PatchKind kind = checkConsistency(patches);
         checkPrerequisites(patches);
+        checkStandaloneChild(patches);
 //        checkFabric();
         String transaction = null;
 
@@ -457,6 +485,13 @@ public class ServiceImpl implements Service {
                 PatchResult result = null;
                 if (patch.getResult() != null) {
                     result = patch.getResult();
+                    if (patchManagement.isStandaloneChild()) {
+                        // ENTESB-5120: "result" is actually a result of patch installation in root container
+                        // we need dedicated result for admin:create based child container
+                        PatchResult childResult = new PatchResult(patch.getPatchData(), simulate, System.currentTimeMillis(),
+                                bundleUpdatesInThisPatch, featureUpdatesInThisPatch, result);
+                        result.addChildResult(System.getProperty("karaf.name"), childResult);
+                    }
                 } else {
                     result = new PatchResult(patch.getPatchData(), simulate, System.currentTimeMillis(),
                             bundleUpdatesInThisPatch, featureUpdatesInThisPatch);
@@ -513,7 +548,11 @@ public class ServiceImpl implements Service {
 
                         // backup all datafiles of all bundles - we we'll backup configadmin configurations in
                         // single shot
-                        backupService.backupDataFiles(result, Pending.ROLLUP_INSTALLATION);
+                        if (patchManagement.isStandaloneChild()) {
+                            backupService.backupDataFiles(result.getChildPatches().get(System.getProperty("karaf.name")), Pending.ROLLUP_INSTALLATION);
+                        } else {
+                            backupService.backupDataFiles(result, Pending.ROLLUP_INSTALLATION);
+                        }
 
                         for (Bundle b : coreBundles.values()) {
                             if (b.getSymbolicName() != null
@@ -526,7 +565,11 @@ public class ServiceImpl implements Service {
                         // update KARAF_HOME
                         patchManagement.commitInstallation(transaction);
 
-                        result.setPending(Pending.ROLLUP_INSTALLATION);
+                        if (patchManagement.isStandaloneChild()) {
+                            result.getChildPatches().get(System.getProperty("karaf.name")).setPending(Pending.ROLLUP_INSTALLATION);
+                        } else {
+                            result.setPending(Pending.ROLLUP_INSTALLATION);
+                        }
                         result.store();
 
                         // Some updates need a full JVM restart.
@@ -1108,7 +1151,9 @@ public class ServiceImpl implements Service {
 
     @Override
     public void rollback(final Patch patch, boolean simulate, boolean force) throws PatchException {
-        final PatchResult result = patch.getResult();
+        final PatchResult result = !patchManagement.isStandaloneChild() ? patch.getResult()
+                : patch.getResult().getChildPatches().get(System.getProperty("karaf.name"));
+
         if (result == null) {
             throw new PatchException("Patch " + patch.getPatchData().getId() + " is not installed");
         }
@@ -1135,7 +1180,11 @@ public class ServiceImpl implements Service {
 
                     patchManagement.rollback(patch.getPatchData());
                     result.setPending(Pending.ROLLUP_ROLLBACK);
-                    result.store();
+                    if (patchManagement.isStandaloneChild()) {
+                        result.getParent().store();
+                    } else {
+                        result.store();
+                    }
 
                     if (isJvmRestartNeeded(result)) {
                         boolean handlesFullRestart = Boolean.getBoolean("karaf.restart.jvm.supported");
@@ -1217,6 +1266,7 @@ public class ServiceImpl implements Service {
                 }
             }
 
+            final boolean isStandaloneChild = patchManagement.isStandaloneChild();
             patchManagement.rollback(patch.getPatchData());
 
             Executors.newSingleThreadExecutor().execute(new Runnable() {
@@ -1229,6 +1279,9 @@ public class ServiceImpl implements Service {
                     }
                     patch.setResult(null);
                     File file = new File(patchDir, result.getPatchData().getId() + ".patch.result");
+                    if (isStandaloneChild) {
+                        file = new File(patchDir, result.getPatchData().getId() + "." + System.getProperty("karaf.name") + ".patch.result");
+                    }
                     file.delete();
                 }
             });
@@ -1549,6 +1602,33 @@ public class ServiceImpl implements Service {
             }
             if (!required.isInstalled()) {
                 throw new PatchException(String.format("Required patch '%s' is not installed", requirement));
+            }
+        }
+    }
+
+    /**
+     * Check if this is installation in @{link {@link io.fabric8.patch.management.EnvType#STANDALONE_CHILD}}
+     * - in this case the patch has to be installed in root first
+     * @param patches
+     */
+    private void checkStandaloneChild(Collection<Patch> patches) {
+        if (patchManagement.isStandaloneChild()) {
+            for (Patch patch : patches) {
+                if (patch.getResult() == null) {
+                    throw new PatchException(String.format("Patch '%s' should be installed in parent container first", patch.getPatchData().getId()));
+                } else {
+                    List<String> bases = patch.getResult().getKarafBases();
+                    boolean isInstalledInRoot = false;
+                    for (String base : bases) {
+                        String[] coords = base.split("\\s*\\|\\s*");
+                        if (coords.length == 2 && coords[1].trim().equals(System.getProperty("karaf.home"))) {
+                            isInstalledInRoot = true;
+                        }
+                    }
+                    if (!isInstalledInRoot) {
+                        throw new PatchException(String.format("Patch '%s' should be installed in parent container first", patch.getPatchData().getId()));
+                    }
+                }
             }
         }
     }
