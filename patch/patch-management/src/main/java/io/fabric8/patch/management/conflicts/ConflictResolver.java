@@ -32,6 +32,7 @@ public class ConflictResolver {
 
     public ConflictResolver() {
         builtInResolvers.put("etc/users.properties", new UsersPropertiesResolver());
+        builtInResolvers.put("etc/org.apache.karaf.features.cfg", new KarafFeaturesPropertiesFileResolver());
         builtInResolvers.put("bin/setenv", new ChooseUserVersionResolver());
         builtInResolvers.put("bin/setenv.bat", new ChooseUserVersionResolver());
         PropertiesFileResolver resolver = new PropertiesFileResolver();
