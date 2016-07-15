@@ -42,7 +42,9 @@ public class PropertiesFileResolver implements ResolverEx {
     public String resolve(File firstChange, File base, File secondChange, boolean useFirstChangeAsBase) {
         try {
             Properties baseProperties = new Properties(false);
-            baseProperties.load(base);
+            if (base != null) {
+                baseProperties.load(base);
+            }
             Properties firstProperties = new Properties(false);
             firstProperties.load(firstChange);
             Properties secondProperties = new Properties(secondChange, false);

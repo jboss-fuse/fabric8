@@ -1196,6 +1196,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             // we have original commit (that had conflicts) stored in this commit's full message
                             String ref = commitMessage[commitMessage.length - 1];
                             File backupDir = new File(patchesDir, patchData.getId() + ".backup");
+                            if (isStandaloneChild()) {
+                                backupDir = new File(patchesDir, patchData.getId() + "." + System.getProperty("karaf.name") + ".backup");
+                            }
                             backupDir = new File(backupDir, ref);
                             if (backupDir.exists() && backupDir.isDirectory()) {
                                 Activator.log2(LogService.LOG_DEBUG, String.format("Restoring content of %s", backupDir.getCanonicalPath()));
@@ -1546,6 +1549,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     // the other entry should be backed up
                     if (loaderForBackup != null) {
                         File target = new File(patchDirectory.getParent(), patchDirectory.getName() + ".backup");
+                        if (isStandaloneChild()) {
+                            target = new File(patchDirectory.getParent(), patchDirectory.getName() + "." + System.getProperty("karaf.name") + ".backup");
+                        }
                         if (cpPrefix != null) {
                             target = new File(target, cpPrefix);
                         }
@@ -2992,11 +2998,27 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 Pending what = Pending.valueOf(FileUtils.readFileToString(pending));
                 final String prefix = what == Pending.ROLLUP_INSTALLATION ? "install" : "rollback";
 
-                File patchFile = new File(pending.getParentFile(), pending.getName().replaceFirst("\\.pending$", ""));
+                String name = pending.getName().replaceFirst("\\.pending$", "");
+                if (isStandaloneChild()) {
+                    if (name.endsWith("." + System.getProperty("karaf.name") + ".patch")) {
+                        name = name.replaceFirst("\\." + System.getProperty("karaf.name"), "");
+                    } else {
+                        continue;
+                    }
+                }
+                File patchFile = new File(pending.getParentFile(), name);
+                if (!patchFile.isFile()) {
+                    Activator.log(LogService.LOG_INFO, "Ignoring patch result file: " + patchFile.getName());
+                    continue;
+                }
                 PatchData patchData = PatchData.load(new FileInputStream(patchFile));
                 Patch patch = loadPatch(new PatchDetailsRequest(patchData.getId()));
 
-                final File dataFilesBackupDir = new File(pending.getParentFile(), patchData.getId() + ".datafiles");
+                String dataFilesName = patchData.getId() + ".datafiles";
+                if (isStandaloneChild()) {
+                    dataFilesName = patchData.getId() + "." + System.getProperty("karaf.name") + ".datafiles";
+                }
+                final File dataFilesBackupDir = new File(pending.getParentFile(), dataFilesName);
                 final Properties backupProperties = new Properties();
                 FileInputStream inStream = new FileInputStream(new File(dataFilesBackupDir, "backup-" + prefix + ".properties"));
                 backupProperties.load(inStream);
