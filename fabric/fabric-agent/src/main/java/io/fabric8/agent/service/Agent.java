@@ -191,11 +191,7 @@ public class Agent {
             for (Feature f : repository.getFeatures()) {
                 String id = f.getId();
                 if (allFeatures.put(id, f) != null) {
-                    //will revert this change when upgrade to next CI build NO. which
-                    // will align karaf version from all component, just let the CI build
-                    //pass
-                    //throw new IllegalStateException("Duplicate feature found: " + id);
-                    System.out.println("Duplicate feature found: " + id);
+                    throw new IllegalStateException("Duplicate feature found: " + id);
                 }
             }
         }
