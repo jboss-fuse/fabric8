@@ -49,7 +49,8 @@
             org.apache.log4j*;version="[1.2,2)"
         </fuse.osgi.import.additional>
         <fuse.osgi.capabilities.provide><![CDATA[
-            osgi.service;effective:=active;objectClass=org.apache.curator.framework.CuratorFramework
+            osgi.service;effective:=active;objectClass=org.apache.curator.framework.CuratorFramework,
+            osgi.service;effective:=active;objectClass=io.fabric8.api.CuratorComplete
         ]]></fuse.osgi.capabilities.provide>
         <fuse.osgi.private.pkg>
             org.apache.jute*,

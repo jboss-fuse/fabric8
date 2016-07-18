@@ -33,6 +33,7 @@
         <fuse.osgi.import>
             !org.eclipse.osgi.service.resolver,
             org.osgi.service.event;resolution:=optional;version="[1.3,2)",
+            io.fabric8.api.scr;version="[1.2,2)",
             io.fabric8.api;version="[1.2,2)",
             io.fabric8.api.gravia;version="[1.2,2)",
             io.fabric8.common.util.json;version="[1.2,2)",
@@ -145,6 +146,17 @@
         <dependency>
             <groupId>org.osgi</groupId>
             <artifactId>org.osgi.enterprise</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.felix</groupId>
+            <artifactId>org.apache.felix.scr</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.felix</groupId>
+            <artifactId>org.apache.felix.scr.annotations</artifactId>
             <scope>provided</scope>
         </dependency>
 

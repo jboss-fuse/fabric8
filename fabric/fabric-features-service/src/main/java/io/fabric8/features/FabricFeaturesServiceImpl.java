@@ -18,6 +18,7 @@ package io.fabric8.features;
 import static io.fabric8.utils.features.FeatureUtils.search;
 import io.fabric8.api.Container;
 import io.fabric8.api.FabricService;
+import io.fabric8.api.InvalidComponentException;
 import io.fabric8.api.OptionsProvider;
 import io.fabric8.api.Profile;
 import io.fabric8.api.ProfileBuilder;
@@ -106,23 +107,42 @@ public final class FabricFeaturesServiceImpl extends AbstractComponent implement
     @Override
     public synchronized void run() {
         assertValid();
+        boolean updated = false;
+        final int MAX_RETRIES = 10;
+        int iteration = 0;
+        while(!updated && iteration < MAX_RETRIES) {
+            try {
+                iteration = iteration + 1;
+                List<Repository> listInstalledRepositories = Arrays.asList(listInstalledRepositories());
+                List<Feature> listInstalledFeatures = Arrays.asList(listInstalledFeatures());
+                repositories.invalidateAll();
 
-        try {
-            List<Repository> listInstalledRepositories = Arrays.asList(listInstalledRepositories());
-            List<Feature> listInstalledFeatures = Arrays.asList(listInstalledFeatures());
-            repositories.invalidateAll();
+                installedRepositories.clear();
+                installedFeatures.clear();
 
-            installedRepositories.clear();
-            installedFeatures.clear();
-
-            installedRepositories.addAll(listInstalledRepositories);
-            installedFeatures.addAll(listInstalledFeatures);
-        } catch (IllegalStateException e){
-            if ("Client is not started".equals(e.getMessage())){
-                LOGGER.warn("Zookeeper connection not available. It's not yet possible to compute features.");
+                installedRepositories.addAll(listInstalledRepositories);
+                installedFeatures.addAll(listInstalledFeatures);
+                updated = true;
+                LOGGER.info("Features confguration correctly set");
+            } catch (IllegalStateException | InvalidComponentException e){
+                interruptibleThreadSleep(5000L);
+            }
+            if(!updated) {
+                LOGGER.info("Connection to Zookeeper was not available. Retrying...");
             }
         }
+        if(!updated){
+            LOGGER.info("It's been impossible to correctly set features configuration after {} retries", MAX_RETRIES);
+        }
+    }
 
+    protected void interruptibleThreadSleep(long timeout){
+        try {
+            Thread.sleep(5000L);
+        } catch (InterruptedException e1) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Operation interrupted while waiting for Zookeeper Connection to be available.", e1);
+        }
     }
 
     @Override

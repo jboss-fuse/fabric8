@@ -23,6 +23,8 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.Map;
 
+import io.fabric8.api.CuratorComplete;
+import io.fabric8.api.InvalidComponentException;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -42,6 +44,8 @@ import io.fabric8.api.scr.ValidationSupport;
 import io.fabric8.api.gravia.IllegalStateAssertion;
 import org.osgi.service.url.AbstractURLStreamHandlerService;
 import org.osgi.service.url.URLStreamHandlerService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ThreadSafe
 @Component(name = "io.fabric8.profile.urlhandler", label = "Fabric8 Profile URL Handler", immediate = true, metatype = false)
@@ -53,8 +57,13 @@ public final class ProfileUrlHandler extends AbstractURLStreamHandlerService imp
 
     private static final String SYNTAX = "profile:<resource name>";
 
+    public static final Logger LOGGER = LoggerFactory.getLogger(ProfileUrlHandler.class);
+
     @Reference(referenceInterface = FabricService.class)
     private final ValidatingReference<FabricService> fabricService = new ValidatingReference<FabricService>();
+
+    @Reference(referenceInterface = CuratorComplete.class)
+    private final ValidatingReference<CuratorComplete> platformReadyService = new ValidatingReference<>();
 
     private final ValidationSupport active = new ValidationSupport();
 
@@ -108,9 +117,27 @@ public final class ProfileUrlHandler extends AbstractURLStreamHandlerService imp
         public InputStream getInputStream() throws IOException {
             assertValid();
             String path = url.getPath();
-            Container container = fabricService.get().getCurrentContainer();
-            Profile overlayProfile = container.getOverlayProfile();
-            byte[] bytes = overlayProfile.getFileConfiguration(path);
+            byte[] bytes = null;
+            boolean resolved = false;
+            final int MAX_RETRIES = 10;
+            int iteration = 0;
+            while(!resolved && iteration < MAX_RETRIES) {
+                try {
+                    Container container = fabricService.get().getCurrentContainer();
+                    Profile overlayProfile = container.getOverlayProfile();
+                    bytes = overlayProfile.getFileConfiguration(path);
+                    resolved = true;
+                } catch (IllegalStateException | InvalidComponentException e) {
+                    LOGGER.warn("Connection to fabric service is temporarily not available. Retrying...");
+                    try {
+                        iteration = iteration + 1;
+                        Thread.sleep(7000L);
+                    } catch (InterruptedException e1) {
+                        Thread.currentThread().interrupt();
+                        throw new IOException("'profile:' resolution operation interrupted.", e1);
+                    }
+                }
+            }
             IllegalStateAssertion.assertNotNull(bytes, "Resource " + path + " does not exist in the profile overlay.");
             return new ByteArrayInputStream(bytes);
         }
@@ -123,4 +150,14 @@ public final class ProfileUrlHandler extends AbstractURLStreamHandlerService imp
     void unbindFabricService(FabricService fabricService) {
         this.fabricService.unbind(fabricService);
     }
+
+    void bindPlatformReadyService(CuratorComplete platformReadyService) {
+        this.platformReadyService.bind(platformReadyService);
+    }
+
+    void unbindPlatformReadyService(CuratorComplete platformReadyService) {
+        this.platformReadyService.unbind(platformReadyService);
+    }
+
+
 }

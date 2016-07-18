@@ -55,6 +55,7 @@ public abstract class ContainerBuilder<T extends ContainerBuilder, B extends Cre
 
     private boolean waitForProvisioning;
     private boolean assertProvisioningResult;
+
     private long provisionTimeOut = PROVISION_TIMEOUT;
     private ExecutorService executorService = Executors.newCachedThreadPool();
 
@@ -173,6 +174,12 @@ public abstract class ContainerBuilder<T extends ContainerBuilder, B extends Cre
         return this;
     }
 
+    public ContainerBuilder<T, B> waitForProvisioning(Long timeout) {
+        this.waitForProvisioning = true;
+        this.provisionTimeOut = timeout;
+        return this;
+    }
+
     public ContainerBuilder<T, B> assertProvisioningResult() {
         this.assertProvisioningResult = true;
         return this;
@@ -285,4 +292,5 @@ public abstract class ContainerBuilder<T extends ContainerBuilder, B extends Cre
     static BundleContext getBundleContext() {
         return FrameworkUtil.getBundle(ContainerBuilder.class).getBundleContext();
     }
+
 }

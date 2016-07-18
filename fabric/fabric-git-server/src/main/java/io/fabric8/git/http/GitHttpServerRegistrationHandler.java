@@ -316,6 +316,15 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
             }
         } catch (KeeperException.NoNodeException ignored) {
         } catch (Exception e) {
+            handleException( e);
+        }
+    }
+
+    protected void handleException(Throwable e) {
+        if( e instanceof IllegalStateException && "Client is not started".equals(e.getMessage())) {
+            LOGGER.debug("", e);
+        }
+        else {
             LOGGER.warn("Failed to remove git server from registry.", e);
         }
     }
