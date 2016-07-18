@@ -2497,6 +2497,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             // baseline
             File featuresCfg = new File(git.getRepository().getWorkTree(), "etc/org.apache.karaf.features.cfg");
             if (featuresCfg.isFile()) {
+                boolean needsRewriting = false;
                 List<String> lines = FileUtils.readLines(featuresCfg);
                 List<String> newVersion = new LinkedList<>();
                 for (String line : lines) {
@@ -2507,22 +2508,27 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         // to old patch management
                         String newLine = line.replace(fabricVersion, bundleContext.getBundle().getVersion().toString());
                         newVersion.add(newLine);
+                        if (!line.equals(newLine)) {
+                            needsRewriting = true;
+                        }
                     }
                 }
-                StringBuilder sb = new StringBuilder();
-                for (String newLine : newVersion) {
-                    sb.append(newLine).append("\n");
-                }
-                FileUtils.write(featuresCfg, sb.toString());
-                git.add()
-                        .addFilepattern("etc/org.apache.karaf.features.cfg")
-                        .call();
-                gitPatchRepository.prepareCommit(git, String.format(MARKER_BASELINE_REPLACE_PATCH_FEATURE_PATTERN,
-                        version, bundleContext.getBundle().getVersion().toString())).call();
+                if (needsRewriting) {
+                    StringBuilder sb = new StringBuilder();
+                    for (String newLine : newVersion) {
+                        sb.append(newLine).append("\n");
+                    }
+                    FileUtils.write(featuresCfg, sb.toString());
+                    git.add()
+                            .addFilepattern("etc/org.apache.karaf.features.cfg")
+                            .call();
+                    gitPatchRepository.prepareCommit(git, String.format(MARKER_BASELINE_REPLACE_PATCH_FEATURE_PATTERN,
+                            version, bundleContext.getBundle().getVersion().toString())).call();
 
-                // let's assume that user didn't change this file and replace it with our version
-                FileUtils.copyFile(featuresCfg,
-                        new File(karafBase, "etc/org.apache.karaf.features.cfg"));
+                    // let's assume that user didn't change this file and replace it with our version
+                    FileUtils.copyFile(featuresCfg,
+                            new File(karafBase, "etc/org.apache.karaf.features.cfg"));
+                }
             }
         }
 
