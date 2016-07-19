@@ -77,7 +77,7 @@ public class EncryptedPropertyResolverTest {
 
     private PlaceholderResolver getEncryptedPropertyResolver() {
         EncryptedPropertyResolver resolver = new EncryptedPropertyResolver();
-        resolver.activate();
+        resolver.activate(null);
         return resolver;
     }
 }

@@ -186,6 +186,9 @@ public final class FabricServiceImpl extends AbstractComponent implements Fabric
     void activate(BundleContext bundleContext) {
         this.bundleContext = bundleContext;
         activateComponent();
+        if (encryptedPropertyResolver != null) {
+            encryptedPropertyResolver.initialize(this);
+        }
     }
 
     @Deactivate
@@ -1330,7 +1333,8 @@ public final class FabricServiceImpl extends AbstractComponent implements Fabric
         for (Map.Entry<String, Map<String, String>> entry : mutableConfigurations.entrySet()) {
             final String pid = entry.getKey();
             Map<String, String> props = entry.getValue();
-            for (Map.Entry<String, String> e : props.entrySet()) {
+            Map<String, String> original = new HashMap<>(props);
+            for (Map.Entry<String, String> e : original.entrySet()) {
                 final String key = e.getKey();
                 final String value = e.getValue();
                 props.put(key, InterpolationHelper.substVars(value, key, null, props, new InterpolationHelper.SubstitutionCallback() {
