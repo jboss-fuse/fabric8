@@ -65,7 +65,7 @@ public class FabricMavenProxyTest extends FabricTestSupport {
 
         ServiceProxy<FabricService> fabricProxy = ServiceProxy.createServiceProxy(bundleContext, FabricService.class);
         try {
-            Set<ContainerProxy> containers = ContainerBuilder.create(fabricProxy, 2).withName("maven").withProfiles("fabric").assertProvisioningResult().build();
+            Set<ContainerProxy> containers = ContainerBuilder.create(fabricProxy, 2).withName("maven").withProfiles("fabric").waitForProvisioning(10 * 60 * 1000L).assertProvisioningResult().build();
             try {
                 List<String> uploadUrls = new ArrayList<String>();
                 ServiceProxy<CuratorFramework> curatorProxy = ServiceProxy.createServiceProxy(bundleContext, CuratorFramework.class);

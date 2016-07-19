@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import io.fabric8.api.CuratorComplete;
 import io.fabric8.api.RuntimeProperties;
 import io.fabric8.api.jcip.GuardedBy;
 import io.fabric8.api.jcip.ThreadSafe;
@@ -66,8 +67,8 @@ public final class MavenProxyRegistrationHandler extends AbstractComponent imple
 
     private static final String DEFAULT_LOCAL_REPOSITORY = System.getProperty("karaf.data") + File.separator + "maven" + File.separator + "proxy" + File.separator + "downloads";
 
-    @Reference
-    private Configurer configurer;
+    @Reference(referenceInterface = Configurer.class)
+    private final ValidatingReference<Configurer> configurer = new ValidatingReference<Configurer>();
     @Reference(referenceInterface = HttpService.class)
     private final ValidatingReference<HttpService> httpService = new ValidatingReference<HttpService>();
     @Reference(referenceInterface = CuratorFramework.class)
@@ -111,7 +112,7 @@ public final class MavenProxyRegistrationHandler extends AbstractComponent imple
 
     @Activate
     void init(Map<String, ?> configuration) throws Exception {
-        configurer.configure(configuration, this);
+        configurer.get().configure(configuration, this);
         if (uploadRepository == null) {
             uploadRepository = runtimeProperties.get().getProperty("runtime.data") + "/maven/upload";
         }
@@ -246,4 +247,13 @@ public final class MavenProxyRegistrationHandler extends AbstractComponent imple
     void unbindMavenResolver(MavenResolver mavenResolver) {
         this.mavenResolver.unbind(mavenResolver);
     }
+
+    void bindConfigurer(Configurer configurer) {
+        this.configurer.bind(configurer);
+    }
+
+    void unbindConfigurer(Configurer configurer) {
+        this.configurer.unbind(configurer);
+    }
+
 }

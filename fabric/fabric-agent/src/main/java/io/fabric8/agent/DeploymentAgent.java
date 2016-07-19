@@ -52,7 +52,9 @@ import io.fabric8.agent.service.Constants;
 import io.fabric8.agent.service.FeatureConfigInstaller;
 import io.fabric8.agent.service.State;
 import io.fabric8.api.Container;
+import io.fabric8.api.CuratorComplete;
 import io.fabric8.api.FabricService;
+import io.fabric8.api.InvalidComponentException;
 import io.fabric8.api.Profile;
 import io.fabric8.common.util.ChecksumUtils;
 import io.fabric8.common.util.Files;
@@ -109,6 +111,7 @@ public class DeploymentAgent implements ManagedService {
     private static final String STATE_FILE = "state.json";
 
     private ServiceTracker<FabricService, FabricService> fabricService;
+    private ServiceTracker<CuratorComplete, CuratorComplete> curatorCompleteService;
 
     private final ExecutorService executor;
     private final ScheduledExecutorService downloadExecutor;
@@ -169,13 +172,13 @@ public class DeploymentAgent implements ManagedService {
             public FabricService addingService(ServiceReference<FabricService> reference) {
                 FabricService service = systemBundleContext.getService(reference);
                 if (provisioningStatus != null) {
-                    updateStatus(service, provisioningStatus, provisioningError, false);
+                    updateStatus(service, provisioningStatus, provisioningError, true);
                 }
                 if (service != null) {
                     if (LOGGER.isDebugEnabled()) {
                         LOGGER.debug("FabricService found, getting httpUrl and repositoryURIs");
                     }
-                    updateMavenRepositoryConfiguration(service);
+                    updateMavenRepositoryConfiguration();
                 }
                 return service;
             }
@@ -183,13 +186,13 @@ public class DeploymentAgent implements ManagedService {
             @Override
             public void modifiedService(ServiceReference<FabricService> reference, FabricService service) {
                 if (provisioningStatus != null) {
-                    updateStatus(service, provisioningStatus, provisioningError, false);
+                    updateStatus(service, provisioningStatus, provisioningError, true);
                 }
                 if (service != null) {
                     if (LOGGER.isDebugEnabled()) {
                         LOGGER.debug("FabricService modified, getting httpUrl and repositoryURIs");
                     }
-                    updateMavenRepositoryConfiguration(service);
+                    updateMavenRepositoryConfiguration();
                 }
             }
 
@@ -199,16 +202,26 @@ public class DeploymentAgent implements ManagedService {
             }
         });
         fabricService.open();
+        curatorCompleteService = new ServiceTracker<CuratorComplete, CuratorComplete>(systemBundleContext, CuratorComplete.class, null);
+        curatorCompleteService.open();
     }
 
-    private void updateMavenRepositoryConfiguration(FabricService service) {
+    private void updateMavenRepositoryConfiguration() {
+        LOGGER.info("Updating Maven Repository Configuration");
         try {
             fabricServiceOperations.lock();
-            httpUrl = service.getCurrentContainer().getHttpUrl();
-            mavenRepoURIs = service.getMavenRepoURIs();
+            httpUrl = this.fabricService.getService().getCurrentContainer().getHttpUrl();
+            mavenRepoURIs = this.fabricService.getService().getMavenRepoURIs();
             // one time operation - after this, we have httpUrl and mavenRepoURIs
             fabricServiceAvailable.countDown();
-        } finally {
+            LOGGER.info("Maven repository configuration correctly updated: httpUrl=[{}], mavenRepoURIs=[{}]", httpUrl, mavenRepoURIs);
+        } catch (RuntimeException e){
+            LOGGER.info("It's been impossible to correctly update maven repositories configuration");
+            if(LOGGER.isTraceEnabled()){
+                LOGGER.trace("Detailed Exception", e);
+            }
+        }
+        finally {
             fabricServiceOperations.unlock();
         }
     }
@@ -258,6 +271,7 @@ public class DeploymentAgent implements ManagedService {
         }
         downloadExecutor.shutdown();
         fabricService.close();
+        curatorCompleteService.close();
     }
 
     private void loadLibChecksums(String path, Properties props) throws IOException {
@@ -402,13 +416,14 @@ public class DeploymentAgent implements ManagedService {
         updateStatus("analyzing", null);
 
         // Building configuration
+        curatorCompleteService.waitForService(TimeUnit.SECONDS.toMillis(30));
         fabricServiceAvailable.await(30, TimeUnit.SECONDS);
         String httpUrl;
         List<URI> mavenRepoURIs;
-        
+
         //force reading of updated informations from ZK
-        if(!fabricService.isEmpty()) {
-            updateMavenRepositoryConfiguration(fabricService.getService());
+        if (!fabricService.isEmpty()) {
+            updateMavenRepositoryConfiguration();
         }
 
         try {
