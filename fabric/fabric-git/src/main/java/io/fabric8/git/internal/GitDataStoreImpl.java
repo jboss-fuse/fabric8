@@ -113,6 +113,9 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 
+import static io.fabric8.patch.management.impl.GitPatchRepository.ADMIN_HISTORY_BRANCH;
+import static io.fabric8.patch.management.impl.GitPatchRepository.HISTORY_BRANCH;
+
 
 /**
  * A git based implementation of {@link DataStore} which stores the profile
@@ -472,7 +475,9 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                             name = name.substring(prefix.length());
                             if (!name.equals(GitHelpers.MASTER_BRANCH)
                                     && !name.startsWith("patch-")
-                                    && !name.startsWith("patches-")) {
+                                    && !name.startsWith("patches-")
+                                    && !name.equals(HISTORY_BRANCH)
+                                    && !name.equals(ADMIN_HISTORY_BRANCH)) {
                                 answer.add(name);
                             }
                         }
@@ -1157,7 +1162,8 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
             if (!pullVersions.isEmpty() && !pullVersions.equals(versions)) {
                 versions.clear();
                 for (String v : pullVersions) {
-                    if (!v.startsWith("patches-") && !v.startsWith("patch-")) {
+                    if (!v.startsWith("patches-") && !v.startsWith("patch-")
+                            && !v.equals(HISTORY_BRANCH) && !v.equals(ADMIN_HISTORY_BRANCH))  {
                         versions.add(v);
                     }
                 }
