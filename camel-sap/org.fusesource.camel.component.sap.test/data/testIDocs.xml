@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="ASCII"?>
 <idoc:DocumentList xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:FLCUSTOMER_CREATEFROMDATA01---="http://sap.fusesource.org/idoc/NPL/FLCUSTOMER_CREATEFROMDATA01///" xmlns:idoc="http://sap.fusesource.org/idoc">
-  <document creationDate="2016-07-21T13:08:17.491-0230" creationTime="2016-07-21T13:08:17.491-0230" iDocType="FLCUSTOMER_CREATEFROMDATA01" iDocTypeExtension="" messageType="FLCUSTOMER_CREATEFROMDATA" recipientPartnerNumber="NPLCLNT002" recipientPartnerType="LS" senderPartnerNumber="JCOCLIENT" senderPartnerType="LS">
+  <document creationDate="2016-07-21T16:07:36.107-0230" creationTime="2016-07-21T16:07:36.107-0230" iDocType="FLCUSTOMER_CREATEFROMDATA01" iDocTypeExtension="" messageType="FLCUSTOMER_CREATEFROMDATA" recipientPartnerNumber="NPLCLNT002" recipientPartnerType="LS" senderPartnerNumber="JCOCLIENT" senderPartnerType="LS">
     <rootSegment xsi:type="FLCUSTOMER_CREATEFROMDATA01---:ROOT">
       <segmentChildren parent="//@document.0/@rootSegment">
         <E1SCU_CRE parent="//@document.0/@rootSegment">
@@ -11,7 +11,7 @@
       </segmentChildren>
     </rootSegment>
   </document>
-  <document creationDate="2016-07-21T13:08:17.492-0230" creationTime="2016-07-21T13:08:17.492-0230" iDocType="FLCUSTOMER_CREATEFROMDATA01" iDocTypeExtension="" messageType="FLCUSTOMER_CREATEFROMDATA" recipientPartnerNumber="NPLCLNT002" recipientPartnerType="LS" senderPartnerNumber="JCOCLIENT" senderPartnerType="LS">
+  <document creationDate="2016-07-21T16:07:36.108-0230" creationTime="2016-07-21T16:07:36.108-0230" iDocType="FLCUSTOMER_CREATEFROMDATA01" iDocTypeExtension="" messageType="FLCUSTOMER_CREATEFROMDATA" recipientPartnerNumber="NPLCLNT002" recipientPartnerType="LS" senderPartnerNumber="JCOCLIENT" senderPartnerType="LS">
     <rootSegment xsi:type="FLCUSTOMER_CREATEFROMDATA01---:ROOT">
       <segmentChildren parent="//@document.1/@rootSegment">
         <E1SCU_CRE parent="//@document.1/@rootSegment">
