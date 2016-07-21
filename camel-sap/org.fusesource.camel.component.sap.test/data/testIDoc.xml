@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="ASCII"?>
-<idoc:Document xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:FLCUSTOMER_CREATEFROMDATA01---="http://sap.fusesource.org/idoc/NPL/FLCUSTOMER_CREATEFROMDATA01///" xmlns:idoc="http://sap.fusesource.org/idoc" creationDate="2016-07-20T16:57:02.383-0230" creationTime="2016-07-20T16:57:02.383-0230" iDocType="FLCUSTOMER_CREATEFROMDATA01" iDocTypeExtension="" messageType="FLCUSTOMER_CREATEFROMDATA" recipientPartnerNumber="NPLCLNT002" recipientPartnerType="LS" senderPartnerNumber="JCOCLIENT" senderPartnerType="LS">
+<idoc:Document xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:FLCUSTOMER_CREATEFROMDATA01---="http://sap.fusesource.org/idoc/NPL/FLCUSTOMER_CREATEFROMDATA01///" xmlns:idoc="http://sap.fusesource.org/idoc" creationDate="2016-07-21T13:08:17.401-0230" creationTime="2016-07-21T13:08:17.401-0230" iDocType="FLCUSTOMER_CREATEFROMDATA01" iDocTypeExtension="" messageType="FLCUSTOMER_CREATEFROMDATA" recipientPartnerNumber="NPLCLNT002" recipientPartnerType="LS" senderPartnerNumber="JCOCLIENT" senderPartnerType="LS">
   <rootSegment xsi:type="FLCUSTOMER_CREATEFROMDATA01---:ROOT">
     <segmentChildren parent="//@rootSegment">
       <E1SCU_CRE parent="//@rootSegment">

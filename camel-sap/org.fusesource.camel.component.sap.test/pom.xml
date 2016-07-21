@@ -19,6 +19,7 @@
 	</organization>
 	
 	<properties>
+                <lib.directory>${project.build.directory}/lib</lib.directory>
 		<native.lib.directory>${project.build.directory}/jni</native.lib.directory>
 	</properties>
 	
@@ -98,15 +99,45 @@
             				</artifactItems>
             			</configuration>
             		</execution>
+                                        <execution>
+                                                <id>copy-jco-libs-unit-tests</id>
+                                                <phase>validate</phase>
+                                                <goals>
+                                                        <goal>copy</goal>
+                                                </goals>
+                                                <configuration>
+                                                        <stripVersion>true</stripVersion>
+                                                        <outputDirectory>${lib.directory}</outputDirectory>
+                                                        <artifactItems>
+                                                                <artifactItem>
+                                                                        <groupId>com.sap.conn.jco</groupId>
+                                                                        <artifactId>sapjco3</artifactId>
+                                                                        <overWrite>true</overWrite>
+                                                                        <destFileName>sapjco3.jar</destFileName>
+                                                                </artifactItem>
+                                                                <artifactItem>
+                                                                        <groupId>com.sap.conn.idoc</groupId>
+                                                                        <artifactId>sapidoc3</artifactId>
+                                                                        <overWrite>true</overWrite>
+                                                                        <destFileName>sapidoc3.jar</destFileName>
+                                                                </artifactItem>
+                                                        </artifactItems>
+                                                </configuration>
+                                        </execution>
             	</executions>
             </plugin>
 		</plugins>
 		<pluginManagement>
 			<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
-			</plugin>
+                        <plugin>
+                                <groupId>org.apache.maven.plugins</groupId>
+                                <artifactId>maven-surefire-plugin</artifactId>
+                                <configuration>
+                                        <reuseForks>false</reuseForks><!-- Added to resolve issues with multiple
+                                                loading of JCo native library -->
+                                        <argLine>-Djava.library.path="${native.lib.directory}"</argLine>
+                                </configuration>
+                        </plugin>
 				<!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
 				<plugin>
 					<groupId>org.eclipse.m2e</groupId>
@@ -144,6 +175,18 @@
         <dependencies>
                 <dependency>
                         <groupId>com.sap.conn.jco</groupId>
+                        <artifactId>sapjco3</artifactId>
+                        <scope>system</scope>
+                        <systemPath>${lib.directory}/sapjco3.jar</systemPath>
+                </dependency>
+                <dependency>
+                        <groupId>com.sap.conn.idoc</groupId>
+                        <artifactId>sapidoc3</artifactId>
+                        <scope>system</scope>
+                        <systemPath>${lib.directory}/sapidoc3.jar</systemPath>
+                </dependency>
+                <dependency>
+                        <groupId>com.sap.conn.jco</groupId>
                         <artifactId>com.sap.conn.jco</artifactId>
                         <version>3.0.11.redhat_2</version>
                 </dependency>
@@ -152,13 +195,14 @@
                         <artifactId>com.sap.conn.idoc</artifactId>
                         <version>3.0.10.redhat_2</version>
                 </dependency>
+
 	    <dependency>
      	 <groupId>junit</groupId>
      	 <artifactId>junit</artifactId>
      	 <scope>test</scope>
     	</dependency>
 	</dependencies>
-	
+
 	<version>6.3.0-SNAPSHOT</version>
 	<url>http://www.jboss.org/products/fuse/overview/</url>
 </project>
