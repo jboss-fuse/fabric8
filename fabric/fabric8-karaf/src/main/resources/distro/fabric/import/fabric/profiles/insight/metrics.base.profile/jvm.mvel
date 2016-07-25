@@ -43,28 +43,28 @@
 	  @code{total = result.results['os'].results[0].attrs['MaxFileDescriptorCount']}
       "free": @{total - open},
       "total": @{total},
-      "used": @{(open * 100) / total}
+      "used": @{total != 0 ? (open * 100) / total : -1}
     },
     "memory": {
 	  @code{free = result.results['os'].results[0].attrs['FreePhysicalMemorySize']}
 	  @code{total = result.results['os'].results[0].attrs['TotalPhysicalMemorySize']}
       "free": @{free},
       "total": @{total},
-      "used": @{((total - free) * 100) / total}
+      "used": @{free != 0 ? ((total - free) * 100) / total : -1}
     },
     "swap": {
 	  @code{free = result.results['os'].results[0].attrs['FreeSwapSpaceSize']}
 	  @code{total = result.results['os'].results[0].attrs['TotalSwapSpaceSize']}
       "free": @{free},
       "total": @{total},
-      "used": @{((total - free) * 100) / total}
+      "used": @{free != 0 ? ((total - free) * 100) / total : -1}
     }@if{result.results['filesystem'] != null},
     "filesystem": {
 	  @code{free = result.results['filesystem'].results[0].attrs['FreeSpace']}
 	  @code{total = result.results['filesystem'].results[0].attrs['TotalSpace']}
       "free": @{free},
       "total": @{total},
-      "used": @{((total - free) * 100) / total}
+      "used": @{free != 0 ? ((total - free) * 100) / total : -1}
     }@end{}
   },
   "load": {
