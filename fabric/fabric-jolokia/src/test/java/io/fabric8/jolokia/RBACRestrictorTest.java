@@ -22,6 +22,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.management.InstanceNotFoundException;
 import javax.management.ObjectName;
 import java.lang.management.ManagementFactory;
 import java.util.Arrays;
@@ -64,6 +65,7 @@ public class RBACRestrictorTest {
         assertThat(restrictor.isOperationAllowed(new ObjectName("fabric:type=Test"), "allowed()"), is(true));
         assertThat(restrictor.isOperationAllowed(new ObjectName("fabric:type=Test"), "notAllowed()"), is(false));
         assertThat(restrictor.isOperationAllowed(new ObjectName("fabric:type=Test"), "error()"), is(false));
+        assertThat(restrictor.isOperationAllowed(new ObjectName("fabric:type=NoSuchType"), "noInstance()"), is(false));
 
         assertThat(restrictor.isOperationAllowed(new ObjectName("fabric:type=Test"), "allowed(boolean,long,java.lang.String)"), is(true));
         assertThat(restrictor.isOperationAllowed(new ObjectName("fabric:type=Test"), "notAllowed(boolean,long,java.lang.String)"), is(false));
@@ -94,32 +96,37 @@ public class RBACRestrictorTest {
     private class JMXSecurity implements JMXSecurityMBean {
         @Override
         public boolean canInvoke(String objectName, String methodName) throws Exception {
-            LOG.debug("{}, {}", objectName, methodName);
-            if ("fabric:type=Test".equals(objectName) && "allowed".equals(methodName)) {
-                return true;
-            }
-            if ("fabric:type=Test".equals(objectName) && "error".equals(methodName)) {
-                throw new Exception();
-            }
-            if ("java.lang:type=Runtime".equals(objectName) && "getVmName".equals(methodName)) {
-                return true;
-            }
-            if ("java.lang:type=Memory".equals(objectName) && "isVerbose".equals(methodName)) {
-                return true;
-            }
             return false;
         }
 
         @Override
         public boolean canInvoke(String objectName, String methodName, String[] argTypes) throws Exception {
             LOG.debug("{}, {}, {}", objectName, methodName, Arrays.asList(argTypes));
-            if ("fabric:type=Test".equals(objectName) && "allowed".equals(methodName) && argTypes.length == 3
-                    && "boolean".equals(argTypes[0]) && "long".equals(argTypes[1]) && "java.lang.String".equals(argTypes[2])) {
-                return true;
-            }
-            if ("java.lang:type=Memory".equals(objectName) && "setVerbose".equals(methodName) && argTypes.length == 1
-                    && "boolean".equals(argTypes[0])) {
-                return true;
+            if (argTypes.length == 0) {
+                if ("fabric:type=Test".equals(objectName) && "allowed".equals(methodName)) {
+                    return true;
+                }
+                if ("fabric:type=Test".equals(objectName) && "error".equals(methodName)) {
+                    throw new Exception();
+                }
+                if ("fabric:type=NoSuchType".equals(objectName) && "noInstance".equals(methodName)) {
+                    throw new InstanceNotFoundException(objectName);
+                }
+                if ("java.lang:type=Runtime".equals(objectName) && "getVmName".equals(methodName)) {
+                    return true;
+                }
+                if ("java.lang:type=Memory".equals(objectName) && "isVerbose".equals(methodName)) {
+                    return true;
+                }
+            } else {
+                if ("fabric:type=Test".equals(objectName) && "allowed".equals(methodName) && argTypes.length == 3
+                        && "boolean".equals(argTypes[0]) && "long".equals(argTypes[1]) && "java.lang.String".equals(argTypes[2])) {
+                    return true;
+                }
+                if ("java.lang:type=Memory".equals(objectName) && "setVerbose".equals(methodName) && argTypes.length == 1
+                        && "boolean".equals(argTypes[0])) {
+                    return true;
+                }
             }
             return false;
         }

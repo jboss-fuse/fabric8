@@ -27,7 +27,9 @@ import org.jolokia.util.RequestType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.management.InstanceNotFoundException;
 import javax.management.MBeanAttributeInfo;
+import javax.management.MBeanException;
 import javax.management.MBeanInfo;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
@@ -100,7 +102,7 @@ public class RBACRestrictor implements Restrictor {
             chosen = mbeans.iterator().next();
         } else if (mbeans.size() > 1) {
             for (ObjectName mbean : mbeans) {
-                String name = mbean.getCanonicalName();
+                String name = mbean.toString();
                 if (!name.contains("HawtioDummy") && !name.contains("rank=")) {
                     chosen = mbean;
                     break;
@@ -136,16 +138,23 @@ public class RBACRestrictor implements Restrictor {
         }
         List<String> argTypes = new ArrayList<>();
         String opName = parseOperation(operation, argTypes);
-        Object[] params;
-        String[] signature;
-        if (argTypes.isEmpty()) {
-            params = new Object[] { objectName.getCanonicalName(), opName };
-            signature = new String[] { String.class.getName(), String.class.getName() };
-        } else {
-            params = new Object[] { objectName.getCanonicalName(), opName, argTypes.toArray(new String[0]) };
-            signature = new String[] { String.class.getName(), String.class.getName(), String[].class.getName() };
+        // The order of properties in an object name is critical for Karaf, so we cannot use
+        // ObjectName.getCanonicalName() to get the object name string here
+        // See: https://issues.apache.org/jira/browse/KARAF-4600
+        Object[] params = new Object[] { objectName.toString(), opName, argTypes.toArray(new String[0]) };
+        String[] signature = new String[] { String.class.getName(), String.class.getName(), String[].class.getName() };
+        try {
+            return (boolean) mBeanServer.invoke(securityMBean, "canInvoke", params, signature);
+        } catch (InstanceNotFoundException e) {
+            LOG.info("Instance not found: {}", e.getMessage());
+            return false;
+        } catch (MBeanException e) {
+            if (e.getCause() instanceof InstanceNotFoundException) {
+                LOG.info("Instance not found: {}", e.getCause().getMessage());
+                return false;
+            }
+            throw e;
         }
-        return (boolean) mBeanServer.invoke(securityMBean, "canInvoke", params, signature);
     }
 
     private String parseOperation(String operation, List<String> argTypes) {
