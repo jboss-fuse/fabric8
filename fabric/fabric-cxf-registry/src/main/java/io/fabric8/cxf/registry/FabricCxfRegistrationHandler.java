@@ -72,7 +72,7 @@ import org.slf4j.LoggerFactory;
 @Service({ ConnectionStateListener.class })
 public final class FabricCxfRegistrationHandler extends AbstractComponent implements ConnectionStateListener, NodeCacheExtendedListener {
 
-    public static final String CXF_API_ENDPOINT_MBEAN_NAME = "io.fabric8.cxf:*";
+    public static final String CXF_API_ENDPOINT_MBEAN_NAME = "org.apache.cxf:*";
     private static final ObjectName CXF_OBJECT_NAME =  objectNameFor(CXF_API_ENDPOINT_MBEAN_NAME);
 
     private NodeCacheExtended versionNodeMonitor;
