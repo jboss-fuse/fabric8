@@ -326,7 +326,14 @@ public class InterProcessSemaphoreV2
         try {
             closeable.close();
         } catch (IOException e) {
-            log.warn("IOException thrown while closing Closeable.", e);
+            if(e.getCause() instanceof IllegalStateException ){
+                IllegalStateException cause = (IllegalStateException) e.getCause();
+                if("Client is not started".equals(cause.getMessage())){
+                    log.debug("IOException thrown while closing Closeable.", e);
+                }
+            }else{
+                log.warn("IOException thrown while closing Closeable.", e);
+            }
         }
 
     }
