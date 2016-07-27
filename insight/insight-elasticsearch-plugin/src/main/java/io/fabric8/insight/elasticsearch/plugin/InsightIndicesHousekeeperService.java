@@ -112,7 +112,8 @@ public class InsightIndicesHousekeeperService extends AbstractLifecycleComponent
 
                 ClusterStateResponse state = clusterAdminClient.state(clusterAdminClient.prepareState().request()).actionGet();
 
-                if (!state.getState().nodes().getLocalNode().isMasterNode()) {
+                if ( (state == null || state.getState() == null || state.getState().nodes() == null || state.getState().nodes().getLocalNode() == null) ||
+                        !state.getState().nodes().getLocalNode().isMasterNode()) {
                     return;
                 }
 
