@@ -58,7 +58,7 @@ public final class FabricValidations {
 
     public static void validateContainerName(String containerName) {
         if (!isValidContainerName(containerName)) {
-            throw new IllegalArgumentException("Container name '" + containerName + "' is invalid. Container name must be: lower-case letters, numbers, and _ or - characters");
+            throw new IllegalArgumentException("Container name '" + containerName + "' is invalid. Container name must be: letters, numbers, and _ or - characters");
         }
     }
 
