@@ -170,7 +170,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     @Property(name = Constants.GIT_REMOTE_URL, label = "External Git Repository URL", description = "The URL to a fixed external git repository")
     private String gitRemoteUrl;
     @Property(name = "gitTimeout", label = "Timeout", description = "Timeout connecting to remote git server (value in seconds)")
-    private int gitTimeout = 5;
+    private int gitTimeout = 40;
     @Property(name = "importDir", label = "Import Directory", description = "Directory to import additional profiles", value = "fabric")
     private String importDir = "fabric";
     @Property(name = "gitRemotePollInterval", label = "Remote poll Interval", description = "The interval between remote repo polling operations")
