@@ -17,16 +17,28 @@ package io.fabric8.mq.fabric;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URL;
+import java.util.ArrayList;
 import java.util.Properties;
 import java.util.Random;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import javax.jms.JMSException;
+
+import io.fabric8.groups.Group;
+import io.fabric8.groups.GroupListener;
+import io.fabric8.groups.NodeState;
+import io.fabric8.groups.internal.ZooKeeperGroup;
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.broker.BrokerService;
+import org.apache.activemq.util.SocketProxy;
 import org.apache.activemq.transport.TransportListener;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -52,6 +64,7 @@ public class ServiceFactoryTest {
     ActiveMQServiceFactory underTest;
     Random random = new Random();
     ZooKeeperServer server;
+    int zkPort;
 
     @Before
     public void infraUp() throws Exception {
@@ -61,7 +74,7 @@ public class ServiceFactoryTest {
 
         server = new ZooKeeperServer(dir, dir, tickTime);
         standaloneServerFactory = createFactory(0, numConnections);
-        int zkPort = standaloneServerFactory.getLocalPort();
+        zkPort = standaloneServerFactory.getLocalPort();
 
         System.setProperty("zookeeper.url","localhost:"+zkPort);
         standaloneServerFactory.startup(server);
@@ -332,6 +345,138 @@ public class ServiceFactoryTest {
             underTest.destroy();
             underTest2.destroy();
         }
+    }
+
+
+    @Test
+    public void testThreadsOnTimeout() throws Exception {
+
+        curator.close();
+
+        SocketProxy socketProxy = new SocketProxy(new URI("tcp://localhost:" + zkPort));
+        final CuratorFramework proxyCurator = CuratorFrameworkFactory.builder()
+                .connectString("localhost:" + socketProxy.getUrl().getPort())
+                .sessionTimeoutMs(5000)
+                .connectionTimeoutMs(3000)
+                .retryPolicy(new RetryNTimes(10, 1000))
+                .build();
+        proxyCurator.start();
+
+
+        proxyCurator.getZookeeperClient().blockUntilConnectedOrTimedOut();
+        LOG.info("curator is go: " + proxyCurator);
+
+
+        final String path = "/singletons/test/threads" + System.currentTimeMillis() + "**";
+        final ArrayList<Runnable> members = new ArrayList<Runnable>();
+        final int nThreads = 1;
+
+        class GroupRunnable implements Runnable, GroupListener<NodeState> {
+            final int id;
+            final private BlockingQueue<Integer> jobQueue = new LinkedBlockingDeque<Integer>();
+
+            ZooKeeperGroup<NodeState> group;
+            NodeState nodeState;
+
+            public GroupRunnable(int id) {
+                this.id = id;
+                members.add(this);
+                nodeState = new NodeState("foo" + id);
+            }
+
+            @Override
+            public void run() {
+                group = new ZooKeeperGroup<NodeState>(proxyCurator, path, NodeState.class);
+                group.add(this);
+                LOG.info("run: Added: " + this);
+
+                try {
+                    while (true) {
+                        switch (jobQueue.take()) {
+                            case 0:
+                                LOG.info("run: close: " + this);
+                                try {
+                                    group.close();
+                                } catch (IOException ignored) {
+                                }
+                                return;
+                            case 1:
+                                LOG.info("run: start: " + this);
+                                group.start();
+                                group.update(nodeState);
+                                break;
+                            case 2:
+                                LOG.info("run: update: " + this);
+                                nodeState.setId(nodeState.getId() + id);
+                                group.update(nodeState);
+                                break;
+
+                        }
+                    }
+                } catch (InterruptedException exit) {
+                }
+            }
+
+            @Override
+            public void groupEvent(Group<NodeState> group, GroupEvent event) {
+
+            }
+        };
+
+        ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
+        for (int i=0;i<nThreads;i++) {
+            executorService.execute(new GroupRunnable(i));
+        }
+
+        for (Runnable r : members) {
+            GroupRunnable groupRunnable = (GroupRunnable) r;
+            groupRunnable.jobQueue.offer(1);
+
+            // wait for registration
+            while (groupRunnable.group == null || groupRunnable.group.getId() == null) {
+                TimeUnit.MILLISECONDS.sleep(100);
+            }
+        }
+
+        boolean firsStartedIsMaster = ((GroupRunnable) members.get(0)).group.isMaster();
+
+        assertTrue("first started is master", firsStartedIsMaster);
+        LOG.info("got master...");
+
+        // lets see how long they take to notice a no responses to heart beats
+        socketProxy.pause();
+
+        // splash in an update
+        for (Runnable r : members) {
+            GroupRunnable groupRunnable = (GroupRunnable) r;
+            groupRunnable.jobQueue.offer(2);
+        }
+
+        boolean hasMaster = true;
+        while (hasMaster) {
+            for (Runnable r : members) {
+                GroupRunnable groupRunnable = (GroupRunnable) r;
+                hasMaster &= groupRunnable.group.isMaster();
+            }
+            if (hasMaster) {
+                LOG.info("Waiting for no master state on proxy pause");
+                TimeUnit.SECONDS.sleep(1);
+            }
+        }
+
+
+        for (Runnable r : members) {
+            GroupRunnable groupRunnable = (GroupRunnable) r;
+            groupRunnable.jobQueue.offer(0);
+        }
+
+        executorService.shutdown();
+        // at a min when the session has expired
+        boolean allThreadComplete = executorService.awaitTermination(6, TimeUnit.SECONDS);
+        proxyCurator.close();
+        socketProxy.close();
+        assertTrue("all threads complete", allThreadComplete);
+
     }
 
     private void waitForClientsToConnect(BrokerService broker, int clientCount) throws Exception {
