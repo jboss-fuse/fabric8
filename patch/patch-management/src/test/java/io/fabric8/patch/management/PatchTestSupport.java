@@ -119,8 +119,11 @@ public abstract class PatchTestSupport {
                 String path = Utils.relative(includeParentDirectory ? patchDirectory.getParentFile() : patchDirectory, file);
                 ZipArchiveEntry entry = new ZipArchiveEntry(path);
                 try {
-                    Set<PosixFilePermission> permissions = Files.getPosixFilePermissions(file.toPath());
-                    entry.setUnixMode(Utils.getUnixModeFromPermissions(file, permissions));
+                    try {
+                        Set<PosixFilePermission> permissions = Files.getPosixFilePermissions(file.toPath());
+                        entry.setUnixMode(Utils.getUnixModeFromPermissions(file, permissions));
+                    } catch (UnsupportedOperationException ignoredOnWindows) {
+                    }
                     byte[] bytes = FileUtils.readFileToByteArray(file);
                     zos1.putArchiveEntry(entry);
                     zos1.write(bytes, 0, bytes.length);
