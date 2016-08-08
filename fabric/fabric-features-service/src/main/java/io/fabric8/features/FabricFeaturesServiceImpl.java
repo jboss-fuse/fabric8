@@ -123,7 +123,7 @@ public final class FabricFeaturesServiceImpl extends AbstractComponent implement
                 installedRepositories.addAll(listInstalledRepositories);
                 installedFeatures.addAll(listInstalledFeatures);
                 updated = true;
-                LOGGER.info("Features confguration correctly set");
+                LOGGER.info("Features configuration correctly set");
             } catch (IllegalStateException | InvalidComponentException e){
                 interruptibleThreadSleep(5000L);
             }
