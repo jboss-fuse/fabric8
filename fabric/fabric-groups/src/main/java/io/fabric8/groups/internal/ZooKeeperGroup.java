@@ -238,7 +238,9 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
         if (state == null) {
             if (id != null) {
                 try {
-                    client.delete().guaranteed().forPath(id);
+                    if (isConnected()) {
+                        client.delete().guaranteed().forPath(id);
+                    }
                 } catch (KeeperException.NoNodeException e) {
                     // Ignore
                 } finally {

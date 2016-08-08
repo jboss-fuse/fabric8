@@ -141,6 +141,15 @@
             <artifactId>slf4j-log4j12</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- for socket proxy in ServiceFactoryTest -->
+        <dependency>
+            <groupId>org.apache.activemq</groupId>
+            <artifactId>activemq-broker</artifactId>
+            <version>${activemq-version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+
 
     </dependencies>
 
