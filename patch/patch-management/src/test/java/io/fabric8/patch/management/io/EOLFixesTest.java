@@ -29,7 +29,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 public class EOLFixesTest {
 
-    private File target = new File("target/karaf");
+    private File target = new File("target/karaf-eol");
 
     @Before
     public void init() throws IOException {

@@ -19,9 +19,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.List;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -81,40 +83,44 @@ public class ConflictResolutionTest {
     public void resolveProperties() throws Exception {
         PropertiesFileResolver resolver = (PropertiesFileResolver) cr.getResolver("a.properties");
 
-        String resolved1 = resolver.resolve(
+        String resolved1String = resolver.resolve(
                 new File("src/test/resources/conflicts/example2/file.patched.properties"),
                 new File("src/test/resources/conflicts/example2/file.base.properties"),
                 new File("src/test/resources/conflicts/example2/file.custom.properties"),
                 true
         );
-        String expected1 = FileUtils.readFileToString(new File("src/test/resources/conflicts/example2/file.expected-first.properties"));
+        List<String> resolved1 = IOUtils.readLines(new StringReader(resolved1String));
+        List<String> expected1 = FileUtils.readLines(new File("src/test/resources/conflicts/example2/file.expected-first.properties"));
         assertThat(resolved1, equalTo(expected1));
 
-        String resolved2 = resolver.resolve(
+        String resolved2String = resolver.resolve(
                 new File("src/test/resources/conflicts/example2/file.patched.properties"),
                 new File("src/test/resources/conflicts/example2/file.base.properties"),
                 new File("src/test/resources/conflicts/example2/file.custom.properties"),
                 false
         );
-        String expected2 = FileUtils.readFileToString(new File("src/test/resources/conflicts/example2/file.expected-second.properties"));
+        List<String> resolved2 = IOUtils.readLines(new StringReader(resolved2String));
+        List<String> expected2 = FileUtils.readLines(new File("src/test/resources/conflicts/example2/file.expected-second.properties"));
         assertThat(resolved2, equalTo(expected2));
 
-        String resolved3 = resolver.resolve(
+        String resolved3String = resolver.resolve(
                 new File("src/test/resources/conflicts/example2/file.custom.properties"),
                 new File("src/test/resources/conflicts/example2/file.base.properties"),
                 new File("src/test/resources/conflicts/example2/file.patched.properties"),
                 true
         );
-        String expected3 = FileUtils.readFileToString(new File("src/test/resources/conflicts/example2/file.expected2-first.properties"));
+        List<String> resolved3 = IOUtils.readLines(new StringReader(resolved3String));
+        List<String> expected3 = FileUtils.readLines(new File("src/test/resources/conflicts/example2/file.expected2-first.properties"));
         assertThat(resolved3, equalTo(expected3));
 
-        String resolved4 = resolver.resolve(
+        String resolved4String = resolver.resolve(
                 new File("src/test/resources/conflicts/example2/file.custom.properties"),
                 new File("src/test/resources/conflicts/example2/file.base.properties"),
                 new File("src/test/resources/conflicts/example2/file.patched.properties"),
                 false
         );
-        String expected4 = FileUtils.readFileToString(new File("src/test/resources/conflicts/example2/file.expected2-second.properties"));
+        List<String> resolved4 = IOUtils.readLines(new StringReader(resolved4String));
+        List<String> expected4 = FileUtils.readLines(new File("src/test/resources/conflicts/example2/file.expected2-second.properties"));
         assertThat(resolved4, equalTo(expected4));
     }
 
@@ -128,13 +134,14 @@ public class ConflictResolutionTest {
     public void resolveFeatureProperties() throws Exception {
         PropertiesFileResolver resolver = (PropertiesFileResolver) cr.getResolver("etc/org.apache.karaf.features.cfg");
 
-        String resolved1 = resolver.resolve(
+        String resolved1String = resolver.resolve(
                 new File("src/test/resources/conflicts/example3/org.apache.karaf.features.patched.cfg"),
                 new File("src/test/resources/conflicts/example3/org.apache.karaf.features.base.cfg"),
                 new File("src/test/resources/conflicts/example3/org.apache.karaf.features.after-create.cfg"),
                 false
         );
-        String expected1 = FileUtils.readFileToString(new File("src/test/resources/conflicts/example3/org.apache.karaf.features.expected.cfg"));
+        List<String> resolved1 = IOUtils.readLines(new StringReader(resolved1String));
+        List<String> expected1 = FileUtils.readLines(new File("src/test/resources/conflicts/example3/org.apache.karaf.features.expected.cfg"));
         assertThat(resolved1, equalTo(expected1));
     }
 
