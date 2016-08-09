@@ -71,7 +71,7 @@ public class GitPatchManagementServiceForStandaloneChildContainersTest extends P
         super.init(false, false);
 
         properties.setProperty("karaf.name", "child");
-        properties.setProperty("karaf.instances", properties.getProperty("karaf.home") + "/instances");
+        properties.setProperty("karaf.instances", properties.getProperty("karaf.home") + File.separatorChar + "instances");
     }
 
     @After

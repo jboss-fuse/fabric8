@@ -58,7 +58,7 @@ public class UtilsTest {
 
     @Test
     public void relativePaths() {
-        assertThat(relative(new File("target/karaf/patches"), new File("target/karaf/other")), equalTo("../other"));
+        assertThat(relative(new File("target/karaf/patches"), new File("target/karaf/other")), equalTo(".." + File.separatorChar + "other"));
         assertThat(relative(new File("target/karaf/patches"), new File("target/karaf/patches")), equalTo(""));
         assertThat(relative(new File("target/karaf/patches"), new File("target/karaf/patches/x")), equalTo("x"));
     }
