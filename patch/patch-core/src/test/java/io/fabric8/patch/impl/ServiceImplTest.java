@@ -210,8 +210,7 @@ public class ServiceImplTest {
                 .andReturn(storage.toString()).anyTimes();
         expect(repository.getManagedPatch(anyString())).andReturn(null).anyTimes();
         expect(repository.findOrCreateMainGitRepository()).andReturn(null).anyTimes();
-        expect(sysBundleContext.getProperty("karaf.default.repository"))
-                .andReturn(karaf.getCanonicalPath() + "/system").anyTimes();
+        expect(sysBundleContext.getProperty("karaf.default.repository")).andReturn("system").anyTimes();
         expect(sysBundleContext.getProperty("karaf.home"))
                 .andReturn(karaf.getCanonicalPath()).anyTimes();
         expect(sysBundleContext.getProperty("karaf.base"))
@@ -342,8 +341,7 @@ public class ServiceImplTest {
         expect(sysBundle.getBundleContext()).andReturn(sysBundleContext).anyTimes();
         expect(sysBundleContext.getProperty(Service.NEW_PATCH_LOCATION))
                 .andReturn(patches.toString()).anyTimes();
-        expect(sysBundleContext.getProperty("karaf.default.repository"))
-                .andReturn(patches.getParent() + "/system").anyTimes();
+        expect(sysBundleContext.getProperty("karaf.default.repository")).andReturn("system").anyTimes();
         expect(sysBundleContext.getProperty("karaf.data")).andReturn(patches.getParent() + "/data").anyTimes();
         try {
             expect(repository.getManagedPatch(anyString())).andReturn(null).anyTimes();
@@ -402,8 +400,7 @@ public class ServiceImplTest {
                 .andReturn(storage.toString()).anyTimes();
         expect(repository.getManagedPatch(anyString())).andReturn(null).anyTimes();
         expect(repository.findOrCreateMainGitRepository()).andReturn(null).anyTimes();
-        expect(sysBundleContext.getProperty("karaf.default.repository"))
-                .andReturn(karaf.getCanonicalPath() + "/system").anyTimes();
+        expect(sysBundleContext.getProperty("karaf.default.repository")).andReturn("system").anyTimes();
         expect(sysBundleContext.getProperty("karaf.home"))
                 .andReturn(karaf.getCanonicalPath()).anyTimes();
         expect(sysBundleContext.getProperty("karaf.base"))
@@ -459,8 +456,7 @@ public class ServiceImplTest {
         expect(bsl.getStartLevel()).andReturn(30).anyTimes();
         expect(bundle.adapt(BundleStartLevel.class)).andReturn(bsl).anyTimes();
         expect(bundle.getState()).andReturn(1);
-        expect(sysBundleContext.getProperty("karaf.default.repository"))
-                .andReturn(karaf.getCanonicalPath() + "/system").anyTimes();
+        expect(sysBundleContext.getProperty("karaf.default.repository")).andReturn("system").anyTimes();
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, bsl);
 
         PatchResult result = service.install(patch, true);
@@ -488,8 +484,7 @@ public class ServiceImplTest {
                 .andReturn("root").anyTimes();
         expect(sysBundleContext.getProperty("karaf.instances"))
                 .andReturn(karaf.getCanonicalPath() + "/instances").anyTimes();
-        expect(sysBundleContext.getProperty("karaf.default.repository"))
-                .andReturn(karaf.getCanonicalPath() + "/system").anyTimes();
+        expect(sysBundleContext.getProperty("karaf.default.repository")).andReturn("system").anyTimes();
         expect(repository.getManagedPatch(anyString())).andReturn(null).anyTimes();
         expect(repository.findOrCreateMainGitRepository()).andReturn(null).anyTimes();
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository, bsl);
@@ -533,8 +528,7 @@ public class ServiceImplTest {
         expect(bsl.getStartLevel()).andReturn(30).anyTimes();
         expect(sysBundleContext.getBundle(0)).andReturn(sysBundle);
         expect(sysBundle.adapt(FrameworkWiring.class)).andReturn(wiring);
-        expect(sysBundleContext.getProperty("karaf.default.repository"))
-                .andReturn(karaf.getCanonicalPath() + "/system").anyTimes();
+        expect(sysBundleContext.getProperty("karaf.default.repository")).andReturn("system").anyTimes();
         bundle.start();
         wiring.refreshBundles(eq(asSet(bundle)), anyObject(FrameworkListener[].class));
         expectLastCall().andAnswer(new IAnswer<Object>() {
@@ -572,8 +566,7 @@ public class ServiceImplTest {
                 .andReturn("root").anyTimes();
         expect(sysBundleContext.getProperty("karaf.instances"))
                 .andReturn(karaf.getCanonicalPath() + "/instances").anyTimes();
-        expect(sysBundleContext.getProperty("karaf.default.repository"))
-                .andReturn(karaf.getCanonicalPath() + "/system").anyTimes();
+        expect(sysBundleContext.getProperty("karaf.default.repository")).andReturn("system").anyTimes();
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, repository);
 
         service = new ServiceImpl();
@@ -641,8 +634,7 @@ public class ServiceImplTest {
                 .andReturn(storage.toString()).anyTimes();
         expect(repository.getManagedPatch(anyString())).andReturn(null).anyTimes();
         expect(repository.findOrCreateMainGitRepository()).andReturn(null).anyTimes();
-        expect(sysBundleContext.getProperty("karaf.default.repository"))
-                .andReturn(karaf.getCanonicalPath() + "/system").anyTimes();
+        expect(sysBundleContext.getProperty("karaf.default.repository")).andReturn("system").anyTimes();
         expect(sysBundleContext.getProperty("karaf.home"))
                 .andReturn(karaf.getCanonicalPath()).anyTimes();
         expect(sysBundleContext.getProperty("karaf.base"))
@@ -689,8 +681,7 @@ public class ServiceImplTest {
         expect(bsl.getStartLevel()).andReturn(30).anyTimes();
         expect(bundle.adapt(BundleStartLevel.class)).andReturn(bsl).anyTimes();
         expect(bundle.getState()).andReturn(1);
-        expect(sysBundleContext.getProperty("karaf.default.repository"))
-                .andReturn(karaf.getCanonicalPath() + "/system").anyTimes();
+        expect(sysBundleContext.getProperty("karaf.default.repository")).andReturn("system").anyTimes();
         replay(componentContext, sysBundleContext, sysBundle, bundleContext, bundle, bsl);
 
         PatchResult result = service.install(patch, true);

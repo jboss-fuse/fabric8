@@ -18,6 +18,7 @@ package io.fabric8.patch.management;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -49,8 +50,8 @@ public class GitPatchRepositoryTest {
 
     @Before
     public void init() throws IOException, GitAPIException {
-        karafHome = new File("target/karaf");
-        karafData = new File("target/karaf/data");
+        karafHome = new File("target/karaf-" + (new Date()).getTime());
+        karafData = new File(karafHome, "data");
         FileUtils.deleteQuietly(karafHome);
         patchesHome = new File(karafHome, "patches");
         File patchRepositoryLocation = new File(patchesHome, GitPatchRepositoryImpl.MAIN_GIT_REPO_LOCATION);
