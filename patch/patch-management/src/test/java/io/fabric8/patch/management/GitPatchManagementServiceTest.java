@@ -27,6 +27,7 @@ import io.fabric8.patch.management.impl.GitPatchManagementService;
 import io.fabric8.patch.management.impl.GitPatchManagementServiceImpl;
 import io.fabric8.patch.management.impl.GitPatchRepository;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.SystemUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ListBranchCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -378,7 +379,8 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
         assertThat(baselineCommit.getId(), equalTo(baselineCommitFromTag.getId()));
 
         List<DiffEntry> patchDiff = repository.diff(fork, baselineCommit, patchCommit);
-        assertThat("patch-4 should lead to 8 changes", patchDiff.size(), equalTo(9));
+        int changes = SystemUtils.IS_OS_WINDOWS ? 8 : 9;
+        assertThat("patch-4 should lead to " + changes + " changes", patchDiff.size(), equalTo(changes));
         for (Iterator<DiffEntry> iterator = patchDiff.iterator(); iterator.hasNext(); ) {
             DiffEntry de = iterator.next();
             if ("bin/start".equals(de.getNewPath()) && de.getChangeType() == DiffEntry.ChangeType.MODIFY) {
@@ -387,7 +389,7 @@ public class GitPatchManagementServiceTest extends PatchTestSupport {
             if ("bin/stop".equals(de.getNewPath()) && de.getChangeType() == DiffEntry.ChangeType.MODIFY) {
                 iterator.remove();
             }
-            if ("bin/setenv".equals(de.getNewPath()) && de.getChangeType() == DiffEntry.ChangeType.MODIFY) {
+            if (!SystemUtils.IS_OS_WINDOWS && "bin/setenv".equals(de.getNewPath()) && de.getChangeType() == DiffEntry.ChangeType.MODIFY) {
                 iterator.remove();
             }
             if ("etc/startup.properties".equals(de.getNewPath()) && de.getChangeType() == DiffEntry.ChangeType.MODIFY) {

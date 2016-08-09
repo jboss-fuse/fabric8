@@ -96,7 +96,7 @@ public class DefaultEnvService implements EnvService {
         String karafHome = systemContext.getProperty("karaf.home");
         String karafBase = systemContext.getProperty("karaf.base");
         if (!karafBase.equals(karafHome)) {
-            if ((karafInstances + "/" + karafName).equals(karafBase)) {
+            if ((karafInstances + File.separatorChar + karafName).equals(karafBase)) {
                 return true;
             }
         }
