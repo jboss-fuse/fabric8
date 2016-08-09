@@ -31,6 +31,7 @@ import org.jboss.shrinkwrap.api.*;
 import org.jboss.shrinkwrap.api.asset.Asset;
 import org.jboss.shrinkwrap.api.exporter.ZipExporter;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.osgi.framework.Bundle;
@@ -51,6 +52,7 @@ import static org.junit.Assert.fail;
  * Integration tests for patching the patch-core bundle itself.
  */
 @RunWith(Arquillian.class)
+@Ignore("Patch bundles are updated not by patch:install, but simply by uninstalling/installing features")
 public class PatchThePatchServiceTest extends AbstractPatchCommandIntegrationTest {
 
     // Bundle-SymbolicName of the bundle we're patching
