@@ -287,7 +287,7 @@
         <lucene-version>4.9.0</lucene-version>
         <maven-fab-plugin-version>1.32</maven-fab-plugin-version>
         <maven-version>3.3.3</maven-version>
-        <maven-shared-version>2.1.1</maven-shared-version>
+        <maven-shared-version>2.2</maven-shared-version>
         <maven-dependency-analyzer-version>1.6</maven-dependency-analyzer-version>
         <maven-dependency-tree-version>2.2</maven-dependency-tree-version>
         <maven-dependency-plugin-version>2.8</maven-dependency-plugin-version>
