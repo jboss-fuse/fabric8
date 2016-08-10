@@ -1,3 +1,4 @@
 id=file-01
-file.0=etc/patched.cfg
+file.0=etc/patched.txt
 file.count=1
+bundle.count=0
