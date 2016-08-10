@@ -377,6 +377,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             try {
                 zf = new ZipFile(patchFile);
             } catch (IOException ignored) {
+                if (!FilenameUtils.getExtension(url.getFile()).equals("patch")) {
+                    throw new PatchException("Patch should be ZIP file or *.patch descriptor");
+                }
             }
 
             // patchFile may "be" a patch descriptor or be a ZIP file containing descriptor
@@ -573,6 +576,10 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         try {
             inputStream = new FileInputStream(patchDescriptor);
             properties.load(inputStream);
+            boolean ok = properties.containsKey("id") && properties.containsKey("bundle.count");
+            if (!ok) {
+                throw new PatchException("Patch descriptor is not valid");
+            }
             return PatchData.load(properties);
         } finally {
             IOUtils.closeQuietly(inputStream);
