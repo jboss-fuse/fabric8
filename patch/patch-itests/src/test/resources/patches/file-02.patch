@@ -1,3 +1,4 @@
 id=file-02
 file.0=etc/patched2.txt
 file.count=1
+bundle.count=0
