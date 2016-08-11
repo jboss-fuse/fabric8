@@ -120,6 +120,32 @@
         </dependency>
     </dependencies>
 
+    <profiles>
+        <profile>
+            <id>fabric8.patch.windows.excludes</id>
+            <activation>
+                <os>
+                    <family>Windows</family>
+                </os>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <excludes combine.children="append">
+                                <exclude>**/PatchBundlesIntegrationTest.*</exclude>
+                                <exclude>**/PatchFilesIntegrationTest.*</exclude>
+                                <exclude>**/PatchBundlesCommandIntegrationTest.*</exclude>
+                            </excludes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+
+        </profile>
+    </profiles>
+
     <build>
         <testResources>
             <testResource>
