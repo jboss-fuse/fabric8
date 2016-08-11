@@ -28,7 +28,7 @@ import org.apache.felix.gogo.commands.Command;
 public final class ContainerStopAction extends AbstractContainerLifecycleAction {
 	
 	private long pollingInterval = 5000L;
-	private int attemptNumber = 6;
+	private int attemptNumber = 12;
 
     ContainerStopAction(FabricService fabricService) {
         super(fabricService);
