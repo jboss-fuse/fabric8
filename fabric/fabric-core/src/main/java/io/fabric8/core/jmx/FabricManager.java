@@ -430,10 +430,20 @@ public final class FabricManager implements FabricManagerMBean {
     }
 
     @Override
-    public void applyVersionToContainers(String version, List<String> containers) {
-        Version v = profileService.getVersion(version);
-        for (String container : containers) {
-            fabricService.getContainer(container).setVersion(v);
+    public void applyVersionToContainers(String targetVersion, List<String> containerIds) {
+        Version version = profileService.getVersion(targetVersion);
+        for (String containerId : containerIds) {
+            Container container = fabricService.getContainer(containerId);
+            List<Profile> profiles = Arrays.asList(container.getProfiles());
+            for (Profile profile : profiles) {
+                if (!profileService.hasProfile(version.getId(), profile.getId())) {
+                    String noVersionForProfile = String.format("Can't upgrade container %s since profile %s does not have version %s",
+                            containerId, profile.getId(), version.getId());
+                    throw new IllegalStateException(noVersionForProfile);
+                }
+            }
+
+            container.setVersion(version);
         }
     }
 
