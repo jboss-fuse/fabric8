@@ -92,7 +92,10 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     private final Watcher childrenWatcher = new Watcher() {
         @Override
         public void process(WatchedEvent event) {
-            offerOperation(new RefreshOperation(ZooKeeperGroup.this, RefreshMode.STANDARD));
+            if (event.getType() != Event.EventType.None) {
+                // only interested in real change events, eg no refresh on Keeper.Disconnect
+                offerOperation(new RefreshOperation(ZooKeeperGroup.this, RefreshMode.STANDARD));
+            }
         }
     };
 
