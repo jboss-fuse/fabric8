@@ -237,7 +237,7 @@ public class ServiceFactoryTest {
 
         LOG.info("Zk close all done!");
 
-        assertTrue("was connected", connected.await(25, TimeUnit.SECONDS));
+        assertTrue("was connected", connected.await(15, TimeUnit.SECONDS));
 
         for (int i = 0; i < 30; i++) {
             LOG.info("Checking for connection...");

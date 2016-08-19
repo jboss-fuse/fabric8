@@ -29,8 +29,8 @@ public class Constants {
 
     public static final int DEFAULT_CONNECTION_TIMEOUT_MS = 15000;
     public static final int DEFAULT_SESSION_TIMEOUT_MS = 60000;
-    public static final int MAX_RETRIES_LIMIT = 15;
-    public static final int DEFAULT_RETRY_INTERVAL = 20000;;
+    public static final int MAX_RETRIES_LIMIT = 3;
+    public static final int DEFAULT_RETRY_INTERVAL = 500;;
 
 
 
