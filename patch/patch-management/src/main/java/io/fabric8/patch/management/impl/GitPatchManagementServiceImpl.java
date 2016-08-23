@@ -1414,7 +1414,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             Resolver resolver = conflictResolver.getResolver(entry.getKey());
             // resolved version - either by custom resolved or using automatic algorithm
             String resolved = null;
-            if (resolver != null) {
+            if (resolver != null && entry.getValue()[0] != null && entry.getValue()[2] != null) {
                 // custom conflict resolution (don't expect DELETED_BY_X kind of conflict, only BOTH_MODIFIED)
                 String message = String.format(" - %s (%s): %s", entry.getKey(), conflicts.get(entry.getKey()), "Using " + resolver.getClass().getName() + " to resolve the conflict");
                 Activator.log2(LogService.LOG_INFO, message);
@@ -1492,7 +1492,6 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             if (resolved == null) {
                 // automatic conflict resolution
                 String message = String.format(" - %s (%s): Choosing %s", entry.getKey(), conflicts.get(entry.getKey()), choose);
-                Activator.log2(LogService.LOG_INFO, message);
 
                 ObjectLoader loader = null;
                 ObjectLoader loaderForBackup = null;
@@ -1505,7 +1504,12 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             loaderForBackup = objectReader.open(entry.getValue()[0]);
                             break;
                         case BOTH_DELETED:
+                            break;
                         case DELETED_BY_THEM:
+                            // ENTESB-6003: special case: when R patch removes something and we've modified it
+                            // let's preserve our version
+                            message = String.format(" - %s (%s): Keeping custom change", entry.getKey(), conflicts.get(entry.getKey()));
+                            loader = objectReader.open(entry.getValue()[0]);
                             break;
                         case DELETED_BY_US:
                             loader = objectReader.open(entry.getValue()[2]);
@@ -1526,6 +1530,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             break;
                     }
                 }
+
+                Activator.log2(LogService.LOG_WARNING, message);
 
                 if (loader != null) {
                     try (FileOutputStream fos = new FileOutputStream(new File(fork.getRepository().getWorkTree(), entry.getKey()))) {
@@ -3104,8 +3110,19 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
             File src = new File(patch.getPatchData().getPatchDirectory(), "fabric/import/fabric/profiles");
             File dst = new File(git.getRepository().getWorkTree(), "fabric/profiles");
+
+            // ENTESB-6003:
+            // let's clean the target directory first, so we can detect file removals in patches (like moving
+            // jmx.* and org.apache.karaf.command.* PIDs from jboss-fuse-full to acls profile)
+            FileUtils.deleteDirectory(dst);
+            dst.mkdir();
+
             ProfileFileUtils.copyDirectory(src, dst, strategy);
             git.add().addFilepattern(".").call();
+            // remove the deletes
+            for (String missing : git.status().call().getMissing()) {
+                git.rm().addFilepattern(missing).call();
+            }
 
             // commit profile changes in patch branch - ultimate commit will be the merge commit
             git.commit()
