@@ -343,12 +343,30 @@ public final class ProfileServiceImpl extends AbstractProtectedComponent<Profile
 
         private void fillParentProfiles(Profile profile, List<Profile> profiles) {
             if (!profiles.contains(profile)) {
+                List<Profile> circularRelationship = new ArrayList<>();
                 for (String parentId : profile.getParentIds()) {
                     Profile parent = version.getRequiredProfile(parentId);
-                    fillParentProfiles(parent, profiles);
+                    if ( !isCircularRelationship(profile, parent)){
+                        fillParentProfiles(parent, profiles);
+                    } else {
+                        circularRelationship.add(parent);
+                    }
                 }
                 profiles.add(profile);
+                for(Profile p: circularRelationship){
+                    fillParentProfiles(p, profiles);
+                }
             }
+        }
+
+        boolean isCircularRelationship(Profile a, Profile b){
+            boolean result = false;
+            List<String> aParents = a.getParentIds();
+            List<String> bParents = b.getParentIds();
+            if(a.getParentIds().contains(b.getId()) && b.getParentIds().contains(a.getId())){
+                result = true;
+            }
+            return result;
         }
 
         private void supplement(Profile profile, Map<String, SupplementControl> aggregate) throws Exception {
