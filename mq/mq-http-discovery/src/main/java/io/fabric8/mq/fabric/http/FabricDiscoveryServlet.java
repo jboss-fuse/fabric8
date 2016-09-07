@@ -16,6 +16,8 @@
 package io.fabric8.mq.fabric.http;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.curator.framework.CuratorFramework;
 import io.fabric8.groups.NodeState;
 import io.fabric8.groups.internal.ZooKeeperGroup;
@@ -35,6 +37,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class FabricDiscoveryServlet extends HttpServlet {
 
     private static final Logger LOG = LoggerFactory.getLogger(FabricDiscoveryServlet.class);
+    public final ObjectMapper MAPPER = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
     volatile CuratorFramework curator = null;
     long cacheTimeout = 1000;
@@ -84,7 +87,7 @@ public class FabricDiscoveryServlet extends HttpServlet {
             if (cacheEntry == null || cacheEntry.timestamp + cacheTimeout < now) {
 
                 try {
-                    Map<String, ActiveMQNode> members = ZooKeeperGroup.members(curator, "/fabric/registry/clusters/amq/" + groupName, ActiveMQNode.class);
+                    Map<String, ActiveMQNode> members = ZooKeeperGroup.members(MAPPER, curator, "/fabric/registry/clusters/amq/" + groupName, ActiveMQNode.class);
                     HashSet<String> masters = new HashSet<String>();
                     StringBuilder buff = new StringBuilder();
 
