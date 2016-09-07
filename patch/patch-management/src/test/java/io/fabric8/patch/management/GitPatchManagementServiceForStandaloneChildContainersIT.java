@@ -42,7 +42,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
-public class GitPatchManagementServiceForStandaloneChildContainersTest extends PatchTestSupport {
+public class GitPatchManagementServiceForStandaloneChildContainersIT extends PatchTestSupport {
 
     private GitPatchManagementService pm;
     private BundleStartLevel bsl;

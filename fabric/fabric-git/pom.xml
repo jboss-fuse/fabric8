@@ -198,6 +198,24 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <classpathDependencyExcludes>
+                        <classpathDependencyExclude>org.eclipse.jgit:org.eclipse.jgit</classpathDependencyExclude>
+                    </classpathDependencyExcludes>
+                    <additionalClasspathElements>
+                        <additionalClasspathElement>${project.build.directory}/${project.build.finalName}.jar</additionalClasspathElement>
+                    </additionalClasspathElements>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 

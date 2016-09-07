@@ -61,7 +61,7 @@ import static org.powermock.api.mockito.PowerMockito.mockStatic;
  */
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(ZooKeeperUtils.class)
-public class GitDataStoreImplProfilesTest {
+public class GitDataStoreImplProfilesIT {
 
     // mocked
     private DataStore dataStore;
