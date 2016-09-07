@@ -69,7 +69,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
 
-    static public final ObjectMapper MAPPER = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+    public ObjectMapper MAPPER = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
     static private final Logger LOG = LoggerFactory.getLogger(ZooKeeperGroup.class);
 
@@ -200,6 +200,8 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
                 handleException(e);
             }
             listeners.clear();
+            MAPPER.getTypeFactory().clearCache();
+            MAPPER = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
             client.clearWatcherReferences(childrenWatcher);
             client.clearWatcherReferences(dataWatcher);
@@ -240,7 +242,10 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     }
 
     protected void doUpdate(T state) throws Exception {
-        LOG.trace(this + " doUpdate, state:" + state + " id:" + id);
+        if (LOG.isTraceEnabled()) {
+            // state.toString() invokes Jackson ObjectMapper serialization
+            LOG.trace(this + " doUpdate, state:" + state + " id:" + id);
+        }
         if (state == null) {
             if (id != null) {
                 try {
@@ -275,7 +280,10 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
         String pathId = client.create().creatingParentsIfNeeded()
             .withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
             .forPath(path + "/0", encode(state));
-        LOG.trace(this + ", state:" + state + ", new ephemeralSequential path:" + pathId);
+        if (LOG.isTraceEnabled()) {
+            // state.toString() invokes Jackson ObjectMapper serialization
+            LOG.trace(this + ", state:" + state + ", new ephemeralSequential path:" + pathId);
+        }
         prunePartialState(state, pathId);
         state.uuid = null;
         return pathId;
@@ -603,12 +611,12 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
 //        operations.remove(operation);   // avoids herding for refresh operations
     }
 
-    public static <T> Map<String, T> members(CuratorFramework curator, String path, Class<T> clazz) throws Exception {
+    public static <T> Map<String, T> members(ObjectMapper mapper, CuratorFramework curator, String path, Class<T> clazz) throws Exception {
         Map<String, T> map = new TreeMap<String, T>();
         List<String> nodes = curator.getChildren().forPath(path);
         for (String node : nodes) {
             byte[] data = curator.getData().forPath(path + "/" + node);
-            T val = MAPPER.readValue(data, clazz);
+            T val = mapper.readValue(data, clazz);
             map.put(node, val);
         }
         return map;

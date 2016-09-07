@@ -18,6 +18,9 @@ package io.fabric8.groups.internal;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
+
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.fabric8.groups.NodeState;
 
 import java.io.ByteArrayOutputStream;
@@ -72,7 +75,7 @@ public class ZooKeeperGroupTest {
     private static void putChildData(ZooKeeperGroup<NodeState> group, String path, String container) throws Exception {
         NodeState node = new NodeState("test", container);
         ByteArrayOutputStream data = new ByteArrayOutputStream();
-        ZooKeeperGroup.MAPPER.writeValue(data, node);
+        new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).writeValue(data, node);
         ChildData<NodeState> child = new ChildData<>(path, new Stat(), data.toByteArray(), node);
         group.currentData.put(path, child);
     }

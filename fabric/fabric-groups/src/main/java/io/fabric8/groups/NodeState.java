@@ -16,7 +16,8 @@
 package io.fabric8.groups;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.fabric8.groups.internal.ZooKeeperGroup;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.UUID;
 
@@ -61,7 +62,7 @@ public class NodeState {
     @Override
     public String toString() {
         try {
-            return ZooKeeperGroup.MAPPER.writeValueAsString(this);
+            return new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).writeValueAsString(this);
         } catch (Exception e) {
             return super.toString();
         }
