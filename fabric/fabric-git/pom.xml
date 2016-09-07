@@ -177,6 +177,7 @@
                         <configuration>
                             <specVersion>1.2</specVersion>
                             <strictMode>false</strictMode>
+                            <sourceExcludes>org/eclipse/jgit/**</sourceExcludes>
                         </configuration>
                     </execution>
                 </executions>
