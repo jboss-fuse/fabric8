@@ -45,7 +45,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
-public class GitPatchManagementServiceTest extends PatchTestSupport {
+public class GitPatchManagementServiceIT extends PatchTestSupport {
 
     private GitPatchManagementService pm;
     private BundleStartLevel bsl;

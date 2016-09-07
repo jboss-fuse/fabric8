@@ -51,7 +51,7 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class GitConflictResolutionTest extends PatchTestSupport {
+public class GitConflictResolutionIT extends PatchTestSupport {
 
     private GitPatchManagementService pm;
     private BundleStartLevel bsl;
