@@ -192,6 +192,9 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
                 handleException(e);
             }
             listeners.clear();
+
+            client.clearWatcherReferences(childrenWatcher);
+            client.clearWatcherReferences(dataWatcher);
         }
     }
 
