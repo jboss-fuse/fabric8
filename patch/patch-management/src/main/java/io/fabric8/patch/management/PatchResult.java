@@ -238,7 +238,9 @@ public class PatchResult {
                     String childId = pathname.getName().substring(0, pathname.getName().length() - suffix.length());
                     childId = childId.substring(prefix.length());
                     try {
-                        result.addChildResult(childId, load(patchData, new FileInputStream(pathname), false));
+                        PatchResult childResult = load(patchData, new FileInputStream(pathname), false);
+                        childResult.setParent(result);
+                        result.addChildResult(childId, childResult);
                     } catch (IOException e) {
                         Activator.log2(LogService.LOG_WARNING, "Can't load patch result from \"" + pathname + "\"");
                     }
@@ -353,6 +355,10 @@ public class PatchResult {
 
     public PatchResult getParent() {
         return parent;
+    }
+
+    public void setParent(PatchResult parent) {
+        this.parent = parent;
     }
 
     public boolean isSimulation() {

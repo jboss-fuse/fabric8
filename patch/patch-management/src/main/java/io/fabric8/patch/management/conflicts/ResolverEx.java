@@ -29,10 +29,12 @@ public interface ResolverEx extends Resolver {
      * @param base common ancestor of merged files (like current state of file)
      * @param secondChange change with higher priority
      * @param useFirstChangeAsBase if <code>true</code> then even if data (for example property values) is taken
+     * @param rollback whether conflict resolution is performed during patch installation (<code>false</code>,
+     * default) or rollback (when <code>true</code>)
      * from <code>secondChange</code>, layout of the file comes from <code>firstChange</code> (important
      * for property/config files)
      * @return
      */
-    String resolve(File firstChange, File base, File secondChange, boolean useFirstChangeAsBase);
+    String resolve(File firstChange, File base, File secondChange, boolean useFirstChangeAsBase, boolean rollback/*=false*/);
 
 }

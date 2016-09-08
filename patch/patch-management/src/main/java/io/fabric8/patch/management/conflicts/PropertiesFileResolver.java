@@ -35,11 +35,11 @@ public class PropertiesFileResolver implements ResolverEx {
 
     @Override
     public String resolve(File firstChange, File base, File secondChange) {
-        return resolve(firstChange, base, secondChange, true);
+        return resolve(firstChange, base, secondChange, true, false);
     }
 
     @Override
-    public String resolve(File firstChange, File base, File secondChange, boolean useFirstChangeAsBase) {
+    public String resolve(File firstChange, File base, File secondChange, boolean useFirstChangeAsBase, boolean rollback/*=false*/) {
         try {
             Properties baseProperties = new Properties(false);
             if (base != null) {
@@ -74,14 +74,14 @@ public class PropertiesFileResolver implements ResolverEx {
                         // can't happen in this loop
                         break;
                     case BOTH_ADDED:
-                        result.put(key, specialPropertyMerge(key, firstProperties, secondProperties));
+                        result.put(key, specialPropertyMerge(key, firstProperties, secondProperties, rollback));
                         break;
                     case BOTH_MODIFIED:
                         // may mean also that we have change vs. removal
                         if (secondProperties.getProperty(key) == null) {
                             result.remove(key);
                         } else {
-                            result.put(key, specialPropertyMerge(key, firstProperties, secondProperties));
+                            result.put(key, specialPropertyMerge(key, firstProperties, secondProperties, rollback));
                         }
                         break;
                     case DELETED_BY_THEM:
@@ -141,10 +141,11 @@ public class PropertiesFileResolver implements ResolverEx {
      * @param key
      * @param firstProperties
      * @param secondProperties
+     * @param rollback
      * @return
      */
-    protected String specialPropertyMerge(String key, Properties firstProperties, Properties secondProperties) {
-        return secondProperties.get(key);
+    protected String specialPropertyMerge(String key, Properties firstProperties, Properties secondProperties, boolean rollback) {
+        return rollback ? firstProperties.get(key) : secondProperties.get(key);
     }
 
     /**

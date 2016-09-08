@@ -35,10 +35,11 @@ public class KarafFeaturesPropertiesFileResolver extends PropertiesFileResolver 
      * @param key
      * @param firstProperties
      * @param secondProperties
+     * @param rollback
      * @return
      */
     @Override
-    protected String specialPropertyMerge(String key, Properties firstProperties, Properties secondProperties) {
+    protected String specialPropertyMerge(String key, Properties firstProperties, Properties secondProperties, boolean rollback) {
         if ("featuresBoot".equals(key)) {
             String featuresFromPatch = firstProperties.get(key);
             Set<String> featureNamesFromPatch = new LinkedHashSet<>(Arrays.asList(featuresFromPatch.split("\\s*,\\s*")));
@@ -59,20 +60,39 @@ public class KarafFeaturesPropertiesFileResolver extends PropertiesFileResolver 
             List<String> currentUriStrings = Arrays.asList(currentRepositories.split("\\s*,\\s*"));
             Map<String, Artifact> currentUris = uris(currentUriStrings);
             StringBuilder sw = new StringBuilder();
-            for (String ga : urisFromPatch.keySet()) {
-                Artifact a1 = urisFromPatch.get(ga);
-                Artifact a2 = currentUris.get(ga);
-                Version v1 = Utils.getOsgiVersion(a1.getVersion());
-                Version v2 = Utils.getOsgiVersion(a2.getVersion());
-                String uri = String.format("mvn:%s/%s/%s/%s/%s",
-                        a1.getGroupId(), a1.getArtifactId(),
-                        v1.compareTo(v2) < 0 ? v2.toString() : v1.toString(),
-                        a1.getType(),
-                        a1.getClassifier());
-                sw.append(",").append(uri);
-            }
-            for (String ga : currentUris.keySet()) {
-                if (!urisFromPatch.containsKey(ga)) {
+            if (!rollback) {
+                // during installation - go for newer versions
+                for (String ga : urisFromPatch.keySet()) {
+                    Artifact a1 = urisFromPatch.get(ga);
+                    Artifact a2 = currentUris.get(ga);
+                    if (a2 == null) {
+                        a2 = a1;
+                    }
+                    Version v1 = Utils.getOsgiVersion(a1.getVersion());
+                    Version v2 = Utils.getOsgiVersion(a2.getVersion());
+                    String uri = String.format("mvn:%s/%s/%s/%s/%s",
+                            a1.getGroupId(), a1.getArtifactId(),
+                            v1.compareTo(v2) < 0 ? v2.toString() : v1.toString(),
+                            a1.getType(),
+                            a1.getClassifier());
+                    sw.append(",").append(uri);
+                }
+                for (String ga : currentUris.keySet()) {
+                    if (!urisFromPatch.containsKey(ga)) {
+                        Artifact a2 = currentUris.get(ga);
+                        String uri = String.format("mvn:%s/%s/%s/%s/%s",
+                                a2.getGroupId(), a2.getArtifactId(),
+                                a2.getVersion(),
+                                a2.getType(),
+                                a2.getClassifier());
+                        sw.append(",").append(uri);
+                    }
+                }
+                return sw.toString().length() > 0 ? sw.toString().substring(1) : "";
+            } else {
+                // during rollback - choose older and watch out for missing repositories
+                // take currentUris which is the base we're rolling back to
+                for (String ga : currentUris.keySet()) {
                     Artifact a2 = currentUris.get(ga);
                     String uri = String.format("mvn:%s/%s/%s/%s/%s",
                             a2.getGroupId(), a2.getArtifactId(),
@@ -81,10 +101,21 @@ public class KarafFeaturesPropertiesFileResolver extends PropertiesFileResolver 
                             a2.getClassifier());
                     sw.append(",").append(uri);
                 }
+                for (String ga : urisFromPatch.keySet()) {
+                    if (!currentUris.containsKey(ga)) {
+                        Artifact a1 = urisFromPatch.get(ga);
+                        String uri = String.format("mvn:%s/%s/%s/%s/%s",
+                                a1.getGroupId(), a1.getArtifactId(),
+                                a1.getVersion(),
+                                a1.getType(),
+                                a1.getClassifier());
+                        sw.append(",").append(uri);
+                    }
+                }
+                return sw.toString().length() > 0 ? sw.toString().substring(1) : "";
             }
-            return sw.toString().length() > 0 ? sw.toString().substring(1) : "";
         }
-        return super.specialPropertyMerge(key, firstProperties, secondProperties);
+        return super.specialPropertyMerge(key, firstProperties, secondProperties, rollback);
     }
 
     /**
