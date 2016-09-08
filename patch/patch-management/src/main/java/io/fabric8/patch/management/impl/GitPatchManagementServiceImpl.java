@@ -868,7 +868,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
                         // if there's conflict here, prefer patch version (which is "ours" (first) in this case)
                         handleCherryPickConflict(patch.getPatchData().getPatchDirectory(), fork, result, userChange,
-                                false, PatchKind.ROLLUP, prefix, true);
+                                false, PatchKind.ROLLUP, prefix, true, false);
 
                         // always commit even empty changes - to be able to restore user changes when rolling back
                         // rollup patch.
@@ -916,7 +916,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             .setNoCommit(true)
                             .call();
                     handleCherryPickConflict(patch.getPatchData().getPatchDirectory(), fork, result, commit,
-                            true, PatchKind.NON_ROLLUP, null, true);
+                            true, PatchKind.NON_ROLLUP, null, true, false);
 
                     // there are several files in ${karaf.home} that need to be changed together with patch
                     // commit, to make them reference updated bundles (paths, locations, ...)
@@ -1188,7 +1188,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         // this time prefer user change on top of previous baseline - this change shouldn't be
                         // conflicting, because when rolling back, patch change was preferred over user change
                         handleCherryPickConflict(patchData.getPatchDirectory(), fork, cpr, userChange,
-                                true, PatchKind.ROLLUP, null, false);
+                                true, PatchKind.ROLLUP, null, false, true);
 
                         // restore backed up content from the reapplied user change
                         String[] commitMessage = userChange.getFullMessage().split("\n\n");
@@ -1337,7 +1337,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             // here we handle only R patch and we're merging patch branch into current version branch.
             // that's why:
             // patch branch == "theirs" == "3" in `git ls-files -u` == DirCacheEntry.STAGE_3 == threeWayMerge[2]
-            handleConflict(null, fork, true, null, false, "change from patch", null);
+            handleConflict(null, fork, true, null, false, "change from patch", null, false);
         }
     }
 
@@ -1354,9 +1354,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * @param kind
      * @param cpPrefix prefix for a cherry-pick to have nice backup directory names.
      * @param performBackup if <code>true</code>, we backup rejected version (should be false during rollback of patches)
+     * @param rollback is the resolution performed during patch rollback?
      */
     protected void handleCherryPickConflict(File patchDirectory, Git fork, CherryPickResult result, RevCommit commit,
-                                            boolean preferNew, PatchKind kind, String cpPrefix, boolean performBackup)
+                                            boolean preferNew, PatchKind kind, String cpPrefix, boolean performBackup,
+                                            boolean rollback)
             throws GitAPIException, IOException {
         if (result.getStatus() == CherryPickResult.CherryPickStatus.CONFLICTING) {
             Activator.log2(LogService.LOG_WARNING, "Problem with applying the change " + commit.getName() + ":");
@@ -1373,11 +1375,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     break;
             }
 
-            handleConflict(patchDirectory, fork, preferNew, cpPrefix, performBackup, choose, backup);
+            handleConflict(patchDirectory, fork, preferNew, cpPrefix, performBackup, choose, backup, rollback);
         }
     }
 
-    private void handleConflict(File patchDirectory, Git fork, boolean preferNew, String cpPrefix, boolean performBackup, String choose, String backup) throws GitAPIException, IOException {
+    private void handleConflict(File patchDirectory, Git fork, boolean preferNew, String cpPrefix, boolean performBackup, String choose, String backup, boolean rollback) throws GitAPIException, IOException {
         Map<String, IndexDiff.StageState> conflicts = fork.status().call().getConflictingStageState();
         DirCache cache = fork.getRepository().readDirCache();
         // path -> [oursObjectId, baseObjectId, theirsObjectId]
@@ -1469,9 +1471,13 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             // by user - comments, layout, ...)
                             // files in e.g., fabric/import/fabric/profiles are "for Fuse", so we use patch version
                             // as base
-                            useFirstChangeAsBase = false;
+                            if (rollback) {
+                                useFirstChangeAsBase = true;
+                            } else {
+                                useFirstChangeAsBase = false;
+                            }
                         }
-                        resolved = ((ResolverEx)resolver).resolve(first, base, second, useFirstChangeAsBase);
+                        resolved = ((ResolverEx)resolver).resolve(first, base, second, useFirstChangeAsBase, rollback);
                     } else {
                         resolved = resolver.resolve(first, base, second);
                     }
@@ -2612,7 +2618,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     .setNoCommit(true)
                     .call();
             // no backup (!?)
-            handleCherryPickConflict(null, fork, result, userChange, false, PatchKind.ROLLUP, null, false);
+            handleCherryPickConflict(null, fork, result, userChange, false, PatchKind.ROLLUP, null, false, false);
 
             gitPatchRepository.prepareCommit(fork, userChange.getFullMessage()).call();
 

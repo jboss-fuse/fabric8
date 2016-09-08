@@ -113,6 +113,8 @@ public class PatchDataTest {
         assertThat(res2.getVersions().get(0), equalTo("1.0"));
         assertThat(res2.getChildPatches().get("c1").getVersions().get(0), equalTo("2.0"));
         assertThat(res2.getChildPatches().get("c2").getVersions().get(1), equalTo("3.1"));
+        assertThat(res2.getChildPatches().get("c1").getParent(), equalTo(res2));
+        assertThat(res2.getChildPatches().get("c2").getParent(), equalTo(res2));
     }
 
     @Test
