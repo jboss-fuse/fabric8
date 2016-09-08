@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import io.fabric8.patch.management.Utils;
 import org.apache.commons.io.FileUtils;
@@ -139,20 +140,38 @@ public class EOLFixingFileUtils {
         FileInputStream fis = null;
         EOLFixingFileOutputStream eolFixingFos = null;
         OutputStream os = null;
+        boolean skip = false;
         try {
             fis = new FileInputStream(srcFile);
-            eolFixingFos = new EOLFixingFileOutputStream(destDir, destFile);
-            os = new BufferedOutputStream(eolFixingFos);
-            IOUtils.copyLarge(fis, os);
+            try {
+                eolFixingFos = new EOLFixingFileOutputStream(destDir, destFile);
+            } catch (FileNotFoundException e) {
+                // ENTESB-6011: we may be getting "The process cannot access the file because it is being used by another process"
+                // on Windows
+                String path = Utils.relative(destDir, destFile);
+                String[] tab = path.split(Pattern.quote(File.separator));
+                if (tab.length >= 2 && "bin".equals(tab[0])/* && "contrib".equals(tab[1])*/) {
+                    // ok - just skip the file
+                    skip = true;
+                } else {
+                    throw e;
+                }
+            }
+            if (!skip) {
+                os = new BufferedOutputStream(eolFixingFos);
+                IOUtils.copyLarge(fis, os);
+            }
         } finally {
             IOUtils.closeQuietly(os);
             IOUtils.closeQuietly(fis);
         }
 
-        if (srcFile.length() + eolFixingFos.additionalBytesWritten() != destFile.length()) {
-            throw new IOException("Failed to copy full contents from '" + srcFile + "' to '" + destFile + "'");
+        if (!skip) {
+            if (srcFile.length() + eolFixingFos.additionalBytesWritten() != destFile.length()) {
+                throw new IOException("Failed to copy full contents from '" + srcFile + "' to '" + destFile + "'");
+            }
+            destFile.setLastModified(srcFile.lastModified());
         }
-        destFile.setLastModified(srcFile.lastModified());
     }
 
 }
