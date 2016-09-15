@@ -1,11 +1,14 @@
 package org.fusesource.camel.component.sap.util;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
@@ -13,6 +16,7 @@ import org.eclipse.emf.ecore.EClassifier;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EPackage;
 import org.eclipse.emf.ecore.EReference;
+import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.emf.ecore.ETypedElement;
 import org.eclipse.emf.ecore.EcoreFactory;
 import org.eclipse.emf.ecore.EcorePackage;
@@ -35,13 +39,16 @@ import com.sap.conn.idoc.IDocDocumentIterator;
 import com.sap.conn.idoc.IDocDocumentList;
 import com.sap.conn.idoc.IDocFactory;
 import com.sap.conn.idoc.IDocMetaDataUnavailableException;
+import com.sap.conn.idoc.IDocRecord;
 import com.sap.conn.idoc.IDocRecordMetaData;
 import com.sap.conn.idoc.IDocRepository;
 import com.sap.conn.idoc.IDocSegment;
 import com.sap.conn.idoc.IDocSegmentMetaData;
 import com.sap.conn.idoc.IDocSyntaxException;
+import com.sap.conn.idoc.IDocDatatype;
 import com.sap.conn.idoc.jco.JCoIDoc;
 import com.sap.conn.jco.JCoDestination;
+
 import com.sap.conn.jco.JCoException;
 
 import static org.fusesource.camel.component.sap.model.idoc.IdocPackage.eNS_URI;
@@ -267,6 +274,21 @@ public class IDocUtil extends Util {
 	 * field.
 	 */
 	public static final String IDocNS_POSITION_KEY = "position";
+	
+	/**
+	 * Array mapping ordinal values to IDocDatatyes.
+	 */
+	private static final IDocDatatype[] idocDatatypes = IDocDatatype.values();
+	
+	/**
+	 * Formatter for ABAP Date strings.
+	 */
+	public static final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("yyyyMMdd"); 
+
+	/**
+	 * Formatter for ABAP Time strings.
+	 */
+	public static final SimpleDateFormat TIME_FORMATTER = new SimpleDateFormat("HHmmss"); 
 
 	/**
 	 * Send <code>document</code> to <code>destination</code>.
@@ -609,16 +631,16 @@ public class IDocUtil extends Util {
 			LOG.warn("IDoc Segment '" + idocSegment + "' not filled from segment '" + segment + "'");
 			return;
 		}
-
+		
 		// Fill segment fields
 		Iterator<String> it = segment.keySet().iterator();
 		while (it.hasNext()) {
 			String fieldName = it.next();
 			Object value = segment.get(fieldName);
 			try {
-				idocSegment.setValue(fieldName, value);
+				setIdocFieldValue(fieldName, segment, idocSegment);
 			} catch (Exception e) {
-				LOG.warn("Failed to fill '" + fieldName + "' attribute with value '" + value + "' of IDoc Document");
+				LOG.warn("Failed to fill '" + fieldName + "' attribute with value '" + value + "' of IDoc Document", e);
 			}
 		}
 
@@ -732,10 +754,9 @@ public class IDocUtil extends Util {
 		while (it.hasNext()) {
 			String fieldName = it.next();
 			try {
-				Object value = idocSegment.getValue(fieldName);
-				setValue(segment, fieldName, value);
+				setSegmentFieldValue(fieldName, segment, idocSegment);
 			} catch (Exception e) {
-				LOG.warn("Failed to extract value from field '" + fieldName + "' from IDoc segment to segment");
+				LOG.warn("Failed to extract value from field '" + fieldName + "' from IDoc segment to segment", e);
 			}
 		}
 
@@ -1113,7 +1134,7 @@ public class IDocUtil extends Util {
 		addAnnotation(eClass, eNS_URI, IDocNS_RECORD_LENGTH_KEY, Integer.toString(idocRecordMetaData.getRecordLength()));
 		for (int i = 0; i < idocRecordMetaData.getNumFields(); i++) {
 			EAttribute attribute = ecoreFactory.createEAttribute();
-			attribute.setEType(getEDataType(idocRecordMetaData.getType(i)));
+			attribute.setEType(getEDataTypeForField(idocRecordMetaData.getDatatype(i).ordinal()));
 			attribute.setName(idocRecordMetaData.getName(i));
 			addAnnotation(attribute, GenNS_URI, GenNS_DOCUMENTATION_KEY, idocRecordMetaData.getDescription(i));
 			addAnnotation(attribute, eNS_URI, IDocNS_CLASS_NAME_OF_FIELD_KEY, getClassName(idocRecordMetaData.getType(i)));
@@ -1312,51 +1333,142 @@ public class IDocUtil extends Util {
 	}
 
 	/**
-	 * Return the {@link EClassifier} corresponding to the given IDoc Segment
-	 * Field Type.
+	 * Return the {@link EClassifier} corresponding to the given IDoc Data Type.
 	 * 
-	 * @param segmentFieldType
-	 *            - the IDoc Segment Field Type.
-	 * @return the {@link EClassifier} corresponding to the given IDoc Segment
-	 *         Field Type.
+	 * @param idocDatatypeOrdinal
+	 *            - the ordinal of the IDoc Data Type.
+	 * @return the {@link EClassifier} corresponding to the given IDoc Data
+	 *         Type.
 	 */
-	public static EClassifier getEDataType(int segmentFieldType) {
-		switch (segmentFieldType) {
+	public static EClassifier getEDataTypeForField(int idocDatatypeOrdinal) {
+		switch (idocDatatypes[idocDatatypeOrdinal]) {
 
-		case IDocRecordMetaData.TYPE_INT:
-		case IDocRecordMetaData.TYPE_INT1:
-		case IDocRecordMetaData.TYPE_INT2:
-			return EcorePackage.Literals.EINT;
-
-		case IDocRecordMetaData.TYPE_CHAR:
+		case STRING:
 			return EcorePackage.Literals.ESTRING;
 
-		case IDocRecordMetaData.TYPE_NUM:
+		case NUMERIC:
 			return EcorePackage.Literals.ESTRING;
 
-		case IDocRecordMetaData.TYPE_BCD:
+		case INTEGER:
+			return EcorePackage.Literals.EBIG_INTEGER;
+
+		case DECIMAL:
 			return EcorePackage.Literals.EBIG_DECIMAL;
 
-		case IDocRecordMetaData.TYPE_DATE:
+		case DATE:
 			return EcorePackage.Literals.EDATE;
 
-		case IDocRecordMetaData.TYPE_TIME:
+		case TIME:
 			return EcorePackage.Literals.EDATE;
 
-		case IDocRecordMetaData.TYPE_FLOAT:
-			return EcorePackage.Literals.EDOUBLE;
-
-		case IDocRecordMetaData.TYPE_BYTE:
-			return EcorePackage.Literals.EBYTE_ARRAY;
-
-		case IDocRecordMetaData.TYPE_STRING:
-			return EcorePackage.Literals.ESTRING;
-
-		case IDocRecordMetaData.TYPE_XSTRING:
+		case BINARY:
 			return EcorePackage.Literals.EBYTE_ARRAY;
 
 		default:
 			return EcorePackage.Literals.EBYTE_ARRAY;
+		}
+	}
+	
+	public static void setSegmentFieldValue(String fieldName, Segment segment, IDocSegment idocSegment) {
+		EStructuralFeature feature = segment.eClass().getEStructuralFeature(fieldName);
+		try {
+			if (feature != null) {
+				switch(feature.getEType().getClassifierID()) {
+				case EcorePackage.ESTRING:
+					segment.put(fieldName, idocSegment.getString(fieldName));
+					return;
+				case EcorePackage.EBIG_INTEGER:
+					String bigIntString = idocSegment.getString(fieldName).trim();
+					segment.put(fieldName, new BigInteger(bigIntString));
+					return;
+				case EcorePackage.EBIG_DECIMAL:
+					String bigDecString = idocSegment.getString(fieldName).trim();
+					segment.put(fieldName, new BigDecimal(bigDecString));
+					return;
+				case EcorePackage.EDATE:
+					IDocDatatype fieldDataType =idocSegment.getRecordMetaData().getDatatype(fieldName);
+					switch (fieldDataType) {
+					case DATE:
+						String dateString = idocSegment.getString(fieldName);
+						segment.put(fieldName, DATE_FORMATTER.parse(dateString));
+						return;
+					case TIME:
+						String timeString = idocSegment.getString(fieldName);
+						segment.put(fieldName, TIME_FORMATTER.parse(timeString));
+						return;
+					}
+					return;
+				case EcorePackage.EBYTE_ARRAY:
+					String hexString = idocSegment.getString(fieldName);
+					segment.put(fieldName, hexToBytes(hexString));
+					return;
+				}
+			}
+		} catch (Exception e) {
+			LOG.warn("Failed to set value", e);
+		}
+	}
+	
+	public static void setIdocFieldValue(String fieldName, Segment segment, IDocSegment idocSegment) {
+		EStructuralFeature feature = segment.eClass().getEStructuralFeature(fieldName);
+		try {
+			if (feature != null) {
+				switch(feature.getEType().getClassifierID()) {
+				case EcorePackage.ESTRING:
+					idocSegment.setValue(fieldName, (String) segment.get(fieldName));
+					return;
+
+				case EcorePackage.EBIG_INTEGER:
+				{
+					int fieldLength = idocSegment.getRecordMetaData().getLength(fieldName);
+					String bigIntString = ((BigInteger) segment.get(fieldName)).toString();
+					if (bigIntString.length() > fieldLength) {
+						// Truncate string to low order digits of BigInteger value.
+						bigIntString = bigIntString.substring(bigIntString.length() - fieldLength, bigIntString.length());
+					}
+					idocSegment.setValue(fieldName, bigIntString);
+					return;
+				}
+				
+				case EcorePackage.EBIG_DECIMAL:
+				{
+					int fieldLength = idocSegment.getRecordMetaData().getLength(fieldName);
+					String bigDecString = ((BigDecimal) segment.get(fieldName)).toString();
+					if (bigDecString.length() > fieldLength) {
+						// Truncate string to low order digits of BigDecimal value.
+						bigDecString = bigDecString.substring(bigDecString.length() - fieldLength, bigDecString.length());
+					}
+					idocSegment.setValue(fieldName, bigDecString);
+					return;
+				}
+				
+				case EcorePackage.EDATE:
+					IDocDatatype fieldDataType =idocSegment.getRecordMetaData().getDatatype(fieldName);
+					switch (fieldDataType) {
+					case DATE:
+						String date = DATE_FORMATTER.format((Date)segment.get(fieldName));
+						idocSegment.setValue(fieldName, date);
+						return;
+					case TIME:
+						String time = TIME_FORMATTER.format((Date)segment.get(fieldName));
+						idocSegment.setValue(fieldName, time);
+						return;
+					default:
+						return;
+					}
+
+				case EcorePackage.EBYTE_ARRAY:
+					byte[] bytes = (byte[]) segment.get(fieldName);
+					idocSegment.setValue(fieldName, bytesToHex(bytes));
+					return;
+
+				default:
+					return;
+				
+				}
+			}
+		} catch (Exception e) {
+			LOG.warn("Failed to set value", e);
 		}
 	}
 
@@ -1455,5 +1567,27 @@ public class IDocUtil extends Util {
 				readReferences((EObject) value, preventCycles, rootList);
 			}
 		}
+	}
+	
+	final private static char[] hexArray = "0123456789ABCDEF".toCharArray();
+	
+	public static String bytesToHex(byte[] bytes) {
+	    char[] hexChars = new char[bytes.length * 2];
+	    for ( int j = 0; j < bytes.length; j++ ) {
+	        int v = bytes[j] & 0xFF;
+	        hexChars[j * 2] = hexArray[v >>> 4];
+	        hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+	    }
+	    return new String(hexChars);
+	}
+	
+	public static byte[] hexToBytes(String hexString) {
+	    int len = hexString.length();
+	    byte[] data = new byte[len / 2];
+	    for (int i = 0; i < len; i += 2) {
+	        data[i / 2] = (byte) ((Character.digit(hexString.charAt(i), 16) << 4)
+	                             + Character.digit(hexString.charAt(i+1), 16));
+	    }
+	    return data;		
 	}
 }

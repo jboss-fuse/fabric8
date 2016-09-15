@@ -67,7 +67,7 @@ import com.sap.conn.jco.server.JCoServerTIDHandler;
  */
 public class ServerTIDHandler implements JCoServerTIDHandler {
 
-	private static final Logger LOG = LoggerFactory.getLogger(SapSynchronousRfcServerComponent.class);
+	private static final Logger LOG = LoggerFactory.getLogger(ServerTIDHandler.class);
 
 	TIDStore availableTIDs = RfcFactory.eINSTANCE.createTIDStore();
 
