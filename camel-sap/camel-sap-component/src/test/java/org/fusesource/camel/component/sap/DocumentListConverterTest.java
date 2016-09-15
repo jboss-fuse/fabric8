@@ -5,6 +5,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.Date;
 
 import org.fusesource.camel.component.sap.converter.DocumentListConverter;
 import org.fusesource.camel.component.sap.model.idoc.Document;
@@ -27,6 +30,7 @@ import com.sap.conn.jco.ext.Environment;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.number.BigDecimalCloseTo.closeTo;
 import static org.mockito.Mockito.when;
 
 @RunWith(PowerMockRunner.class)
@@ -35,22 +39,22 @@ import static org.mockito.Mockito.when;
 public class DocumentListConverterTest extends SapIDocTestSupport {
 
 	public static final String DOCUMENT_LIST_STRING = 
-			"<?xml version=\"1.0\" encoding=\"ASCII\"?>" +
+			"<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
 			"<idoc:DocumentList xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:TEST_IDOC_TYPE-TEST_IDOC_TYPE_EXTENSION-TEST_SYSTEM_RELEASE-TEST_APPLICATION_RELEASE=\"http://sap.fusesource.org/idoc/TEST_REPOSITORY/TEST_IDOC_TYPE/TEST_IDOC_TYPE_EXTENSION/TEST_SYSTEM_RELEASE/TEST_APPLICATION_RELEASE\" xmlns:idoc=\"http://sap.fusesource.org/idoc\">" +
 			  "<document archiveKey=\"archiveKeyValue\" client=\"clientValue\" creationDate=\"1861-04-12T18:52:06.937-0500\" creationTime=\"2014-07-29T16:30:15.940-0400\" direction=\"directionValue\" EDIMessage=\"ediMessageValue\" EDIMessageGroup=\"editMessageGroupValue\" EDIMessageType=\"editMessageTypeValue\" EDIStandardFlag=\"ediStandardFlagValue\" EDIStandardVersion=\"ediStandardVersionValue\" EDITransmissionFile=\"ediTransmissionFileValue\" iDocCompoundType=\"idocCompoundTypeValue\" iDocNumber=\"idocNumberValue\" iDocSAPRelease=\"idocSAPReleaseValue\" iDocType=\"idocTypeValue\" iDocTypeExtension=\"idocTypeExtensionValue\" messageCode=\"messageCodeValue\" messageFunction=\"messageFunctionValue\" messageType=\"messageTypeValue\" outputMode=\"outputModeValue\" recipientAddress=\"recipientAddressValue\" recipientLogicalAddress=\"recipientLogicalAddressValue\" recipientPartnerFunction=\"recipientPartnerFunctionValue\" recipientPartnerNumber=\"recipientPartnerNumberValue\" recipientPartnerType=\"recipientPartnerTypeValue\" recipientPort=\"recipientPortValue\" senderAddress=\"senderAddressValue\" senderLogicalAddress=\"senderLogicalAddressValue\" senderPartnerFunction=\"senderPartnerFunctionValue\" senderPartnerNumber=\"senderPartnerNumberValue\" senderPartnerType=\"senderPartnerTypeValue\" senderPort=\"senderPortValue\" serialization=\"serializationValue\" status=\"statusValue\" testFlag=\"testFlagValue\">" +
-			    "<rootSegment xsi:type=\"TEST_IDOC_TYPE-TEST_IDOC_TYPE_EXTENSION-TEST_SYSTEM_RELEASE-TEST_APPLICATION_RELEASE:ROOT\" document=\"//@document.0\">" +
-			      "<segmentChildren parent=\"//@document.0/@rootSegment\">" +
-			        "<LEVEL1 parent=\"//@document.0/@rootSegment\" document=\"//@document.0\" FIELD0=\"FIELD0_VALUE\" FIELD1=\"FIELD1_VALUE\" FIELD2=\"FIELD2_VALUE\" FIELD3=\"FIELD3_VALUE\" FIELD4=\"FIELD4_VALUE\" FIELD5=\"FIELD5_VALUE\" FIELD6=\"FIELD6_VALUE\" FIELD7=\"FIELD7_VALUE\" FIELD8=\"FIELD8_VALUE\" FIELD9=\"FIELD9_VALUE\" FIELD10=\"FIELD10_VALUE\" FIELD11=\"FIELD11_VALUE\" FIELD12=\"FIELD12_VALUE\" FIELD13=\"FIELD13_VALUE\" FIELD14=\"FIELD14_VALUE\" FIELD15=\"FIELD15_VALUE\" FIELD16=\"FIELD16_VALUE\" FIELD17=\"FIELD17_VALUE\" FIELD18=\"FIELD18_VALUE\" FIELD19=\"FIELD19_VALUE\" FIELD20=\"FIELD20_VALUE\">" +
-			          "<segmentChildren parent=\"//@document.0/@rootSegment/@segmentChildren/@LEVEL1.0\">" +
-			            "<LEVEL2 parent=\"//@document.0/@rootSegment/@segmentChildren/@LEVEL1.0\" document=\"//@document.0\" FIELD0=\"FIELD0_VALUE\" FIELD1=\"FIELD1_VALUE\" FIELD2=\"FIELD2_VALUE\" FIELD3=\"FIELD3_VALUE\" FIELD4=\"FIELD4_VALUE\" FIELD5=\"FIELD5_VALUE\" FIELD6=\"FIELD6_VALUE\" FIELD7=\"FIELD7_VALUE\" FIELD8=\"FIELD8_VALUE\" FIELD9=\"FIELD9_VALUE\" FIELD10=\"FIELD10_VALUE\" FIELD11=\"FIELD11_VALUE\" FIELD12=\"FIELD12_VALUE\" FIELD13=\"FIELD13_VALUE\" FIELD14=\"FIELD14_VALUE\" FIELD15=\"FIELD15_VALUE\" FIELD16=\"FIELD16_VALUE\" FIELD17=\"FIELD17_VALUE\" FIELD18=\"FIELD18_VALUE\" FIELD19=\"FIELD19_VALUE\" FIELD20=\"FIELD20_VALUE\">" +
-			              "<segmentChildren parent=\"//@document.0/@rootSegment/@segmentChildren/@LEVEL1.0/@segmentChildren/@LEVEL2.0\">" +
-			                "<LEVEL3 parent=\"//@document.0/@rootSegment/@segmentChildren/@LEVEL1.0/@segmentChildren/@LEVEL2.0\" document=\"//@document.0\" FIELD0=\"FIELD0_VALUE\" FIELD1=\"FIELD1_VALUE\" FIELD2=\"FIELD2_VALUE\" FIELD3=\"FIELD3_VALUE\" FIELD4=\"FIELD4_VALUE\" FIELD5=\"FIELD5_VALUE\" FIELD6=\"FIELD6_VALUE\" FIELD7=\"FIELD7_VALUE\" FIELD8=\"FIELD8_VALUE\" FIELD9=\"FIELD9_VALUE\" FIELD10=\"FIELD10_VALUE\" FIELD11=\"FIELD11_VALUE\" FIELD12=\"FIELD12_VALUE\" FIELD13=\"FIELD13_VALUE\" FIELD14=\"FIELD14_VALUE\" FIELD15=\"FIELD15_VALUE\" FIELD16=\"FIELD16_VALUE\" FIELD17=\"FIELD17_VALUE\" FIELD18=\"FIELD18_VALUE\" FIELD19=\"FIELD19_VALUE\" FIELD20=\"FIELD20_VALUE\"/>" +
-			              "</segmentChildren>" +
-			            "</LEVEL2>" +
-			          "</segmentChildren>" +
-			        "</LEVEL1>" +
-			      "</segmentChildren>" +
-			    "</rootSegment>" +
+				"  <rootSegment xsi:type=\"TEST_IDOC_TYPE-TEST_IDOC_TYPE_EXTENSION-TEST_SYSTEM_RELEASE-TEST_APPLICATION_RELEASE:ROOT\" document=\"//@document.0\">" +
+				"    <segmentChildren parent=\"//@document.0/@rootSegment\">" +
+				"      <LEVEL1 parent=\"//@document.0/@rootSegment\" document=\"//@document.0\" CHAR_FIELD=\"1234ABCDEF\" QUAN_FIELD=\"1234567890123456789\" UNIT_FIELD=\"LBS\" NUMC_FIELD=\"1234567890\" DATS_FIELD=\"1863-07-03T00:00:00.000-0500\" TIMS_FIELD=\"1970-01-01T12:15:30.000-0500\" CURR_FIELD=\"1234567890123456789\" CUKY_FIELD=\"USD\" LANG_FIELD=\"EN\" CLNT_FIELD=\"100\" INT1_FIELD=\"255\" INT2_FIELD=\"65535\" INT4_FIELD=\"4294967295\" FLTP_FIELD=\"2.5E+14\" ACCP_FIELD=\"186307\" PREC_FIELD=\"12\" LRAW_FIELD=\"0F0E0D0C0B0A09080706050403020100\" DEC_FIELD=\"1234567890\" RAW_FIELD=\"0F0E0D0C0B0A09080706050403020100\" STRING_FIELD=\"01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\" RAWSTRING_FIELD=\"0F0E0D0C0B0A09080706050403020100\">" +
+				"        <segmentChildren parent=\"//@document.0/@rootSegment/@segmentChildren/@LEVEL1.0\">" +
+				"          <LEVEL2 parent=\"//@document.0/@rootSegment/@segmentChildren/@LEVEL1.0\" document=\"//@document.0\" CHAR_FIELD=\"1234ABCDEF\" QUAN_FIELD=\"1234567890123456789\" UNIT_FIELD=\"LBS\" NUMC_FIELD=\"1234567890\" DATS_FIELD=\"1863-07-03T00:00:00.000-0500\" TIMS_FIELD=\"1970-01-01T12:15:30.000-0500\" CURR_FIELD=\"1234567890123456789\" CUKY_FIELD=\"USD\" LANG_FIELD=\"EN\" CLNT_FIELD=\"100\" INT1_FIELD=\"255\" INT2_FIELD=\"65535\" INT4_FIELD=\"4294967295\" FLTP_FIELD=\"2.5E+14\" ACCP_FIELD=\"186307\" PREC_FIELD=\"12\" LRAW_FIELD=\"0F0E0D0C0B0A09080706050403020100\" DEC_FIELD=\"1234567890\" RAW_FIELD=\"0F0E0D0C0B0A09080706050403020100\" STRING_FIELD=\"01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\" RAWSTRING_FIELD=\"0F0E0D0C0B0A09080706050403020100\">" +
+				"            <segmentChildren parent=\"//@document.0/@rootSegment/@segmentChildren/@LEVEL1.0/@segmentChildren/@LEVEL2.0\">" +
+				"              <LEVEL3 parent=\"//@document.0/@rootSegment/@segmentChildren/@LEVEL1.0/@segmentChildren/@LEVEL2.0\" document=\"//@document.0\" CHAR_FIELD=\"1234ABCDEF\" QUAN_FIELD=\"1234567890123456789\" UNIT_FIELD=\"LBS\" NUMC_FIELD=\"1234567890\" DATS_FIELD=\"1863-07-03T00:00:00.000-0500\" TIMS_FIELD=\"1970-01-01T12:15:30.000-0500\" CURR_FIELD=\"1234567890123456789\" CUKY_FIELD=\"USD\" LANG_FIELD=\"EN\" CLNT_FIELD=\"100\" INT1_FIELD=\"255\" INT2_FIELD=\"65535\" INT4_FIELD=\"4294967295\" FLTP_FIELD=\"2.5E+14\" ACCP_FIELD=\"186307\" PREC_FIELD=\"12\" LRAW_FIELD=\"0F0E0D0C0B0A09080706050403020100\" DEC_FIELD=\"1234567890\" RAW_FIELD=\"0F0E0D0C0B0A09080706050403020100\" STRING_FIELD=\"01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\" RAWSTRING_FIELD=\"0F0E0D0C0B0A09080706050403020100\"/>" +
+				"            </segmentChildren>" +
+				"          </LEVEL2>" +
+				"        </segmentChildren>" +
+				"      </LEVEL1>" +
+				"    </segmentChildren>" +
+				"  </rootSegment>" +
 			  "</document>" +
 			"</idoc:DocumentList>";
 
@@ -98,7 +102,7 @@ public class DocumentListConverterTest extends SapIDocTestSupport {
 		//
 		File file = new File("data/testRegistry.ecore");
 		Util.loadRegistry(file);
-		ByteArrayInputStream bais = new ByteArrayInputStream(DOCUMENT_LIST_STRING.getBytes());
+		ByteArrayInputStream bais = new ByteArrayInputStream(DOCUMENT_LIST_STRING.getBytes("UTF-8"));
 		
 		//
 		// When
@@ -128,7 +132,7 @@ public class DocumentListConverterTest extends SapIDocTestSupport {
 		// When
 		//
 		
-		DocumentList documentList = DocumentListConverter.toDocumentList(DOCUMENT_LIST_STRING.getBytes());
+		DocumentList documentList = DocumentListConverter.toDocumentList(DOCUMENT_LIST_STRING.getBytes("UTF-8"));
 
 		//
 		// Then
@@ -293,27 +297,27 @@ public class DocumentListConverterTest extends SapIDocTestSupport {
 		assertThat("level1Segment.isMandatory() returned unexpected value", level1Segment.isMandatory(), is(true));
 		assertThat("level1Segment.isQualified() returned unexpected value", level1Segment.isQualified(), is(false));
 		assertThat("level1Segment.getNumFields() returned unexpected value", level1Segment.getNumFields(), is(21));
-		assertThat("level1Segment.get(FIELD0) returned unexpected value", (String) level1Segment.get(FIELD0), is(FIELD0_VALUE));
-		assertThat("level1Segment.get(FIELD1) returned unexpected value", (String) level1Segment.get(FIELD1), is(FIELD1_VALUE));
-		assertThat("level1Segment.get(FIELD2) returned unexpected value", (String) level1Segment.get(FIELD2), is(FIELD2_VALUE));
-		assertThat("level1Segment.get(FIELD3) returned unexpected value", (String) level1Segment.get(FIELD3), is(FIELD3_VALUE));
-		assertThat("level1Segment.get(FIELD4) returned unexpected value", (String) level1Segment.get(FIELD4), is(FIELD4_VALUE));
-		assertThat("level1Segment.get(FIELD5) returned unexpected value", (String) level1Segment.get(FIELD5), is(FIELD5_VALUE));
-		assertThat("level1Segment.get(FIELD6) returned unexpected value", (String) level1Segment.get(FIELD6), is(FIELD6_VALUE));
-		assertThat("level1Segment.get(FIELD7) returned unexpected value", (String) level1Segment.get(FIELD7), is(FIELD7_VALUE));
-		assertThat("level1Segment.get(FIELD8) returned unexpected value", (String) level1Segment.get(FIELD8), is(FIELD8_VALUE));
-		assertThat("level1Segment.get(FIELD9) returned unexpected value", (String) level1Segment.get(FIELD9), is(FIELD9_VALUE));
-		assertThat("level1Segment.get(FIELD10) returned unexpected value", (String) level1Segment.get(FIELD10), is(FIELD10_VALUE));
-		assertThat("level1Segment.get(FIELD11) returned unexpected value", (String) level1Segment.get(FIELD11), is(FIELD11_VALUE));
-		assertThat("level1Segment.get(FIELD12) returned unexpected value", (String) level1Segment.get(FIELD12), is(FIELD12_VALUE));
-		assertThat("level1Segment.get(FIELD13) returned unexpected value", (String) level1Segment.get(FIELD13), is(FIELD13_VALUE));
-		assertThat("level1Segment.get(FIELD14) returned unexpected value", (String) level1Segment.get(FIELD14), is(FIELD14_VALUE));
-		assertThat("level1Segment.get(FIELD15) returned unexpected value", (String) level1Segment.get(FIELD15), is(FIELD15_VALUE));
-		assertThat("level1Segment.get(FIELD16) returned unexpected value", (String) level1Segment.get(FIELD16), is(FIELD16_VALUE));
-		assertThat("level1Segment.get(FIELD17) returned unexpected value", (String) level1Segment.get(FIELD17), is(FIELD17_VALUE));
-		assertThat("level1Segment.get(FIELD18) returned unexpected value", (String) level1Segment.get(FIELD18), is(FIELD18_VALUE));
-		assertThat("level1Segment.get(FIELD19) returned unexpected value", (String) level1Segment.get(FIELD19), is(FIELD19_VALUE));
-		assertThat("level1Segment.get(FIELD20) returned unexpected value", (String) level1Segment.get(FIELD20), is(FIELD20_VALUE));
+		assertThat("level1Segment.get(CHAR_FIELD) returned unexpected value", (String) level1Segment.get(CHAR_FIELD), is(CHAR_FIELD_VALUE));
+		assertThat("level1Segment.get(QUAN_FIELD) returned unexpected value", (BigDecimal) level1Segment.get(QUAN_FIELD), is(closeTo(QUAN_FIELD_VALUE, new BigDecimal(1))));
+		assertThat("level1Segment.get(UNIT_FIELD) returned unexpected value", (String) level1Segment.get(UNIT_FIELD), is(UNIT_FIELD_VALUE));
+		assertThat("level1Segment.get(NUMC_FIELD) returned unexpected value", (String) level1Segment.get(NUMC_FIELD), is(NUMC_FIELD_VALUE));
+		assertThat("level1Segment.get(DATS_FIELD) returned unexpected value", (Date) level1Segment.get(DATS_FIELD), is(DATS_FIELD_VALUE));
+		assertThat("level1Segment.get(TIMS_FIELD) returned unexpected value", (Date) level1Segment.get(TIMS_FIELD), is(TIMS_FIELD_VALUE));
+		assertThat("level1Segment.get(CURR_FIELD) returned unexpected value", (BigDecimal) level1Segment.get(CURR_FIELD), is(closeTo(CURR_FIELD_VALUE, new BigDecimal(1))));
+		assertThat("level1Segment.get(CUKY_FIELD) returned unexpected value", (String) level1Segment.get(CUKY_FIELD), is(CUKY_FIELD_VALUE));
+		assertThat("level1Segment.get(LANG_FIELD) returned unexpected value", (String) level1Segment.get(LANG_FIELD), is(LANG_FIELD_VALUE));
+		assertThat("level1Segment.get(CLNT_FIELD) returned unexpected value", (String) level1Segment.get(CLNT_FIELD), is(CLNT_FIELD_VALUE));
+		assertThat("level1Segment.get(INT1_FIELD) returned unexpected value", (BigInteger) level1Segment.get(INT1_FIELD), is(INT1_FIELD_VALUE));
+		assertThat("level1Segment.get(INT2_FIELD) returned unexpected value", (BigInteger) level1Segment.get(INT2_FIELD), is(INT2_FIELD_VALUE));
+		assertThat("level1Segment.get(INT4_FIELD) returned unexpected value", (BigInteger) level1Segment.get(INT4_FIELD), is(INT4_FIELD_VALUE));
+		assertThat("level1Segment.get(FLTP_FIELD) returned unexpected value", (BigDecimal) level1Segment.get(FLTP_FIELD), is(closeTo(FLTP_FIELD_VALUE, new BigDecimal(1))));
+		assertThat("level1Segment.get(ACCP_FIELD) returned unexpected value", (String) level1Segment.get(ACCP_FIELD), is(ACCP_FIELD_VALUE));
+		assertThat("level1Segment.get(PREC_FIELD) returned unexpected value", (String) level1Segment.get(PREC_FIELD), is(PREC_FIELD_VALUE));
+		assertThat("level1Segment.get(LRAW_FIELD) returned unexpected value", (byte[]) level1Segment.get(LRAW_FIELD), is(LRAW_FIELD_VALUE));
+		assertThat("level1Segment.get(DEC_FIELD) returned unexpected value", (BigDecimal) level1Segment.get(DEC_FIELD), is(closeTo(DEC_FIELD_VALUE, new BigDecimal(1))));
+		assertThat("level1Segment.get(RAW_FIELD) returned unexpected value", (byte[]) level1Segment.get(RAW_FIELD), is(RAW_FIELD_VALUE));
+		assertThat("level1Segment.get(STRING_FIELD) returned unexpected value", (String) level1Segment.get(STRING_FIELD), is(STRING_FIELD_VALUE));
+		assertThat("level1Segment.get(RAWSTRING_FIELD) returned unexpected value", (byte[]) level1Segment.get(RAWSTRING_FIELD), is(RAWSTRING_FIELD_VALUE));
 
 		Segment level2Segment = level1Segment.getChildren().get(0);
 		assertThat("level2Segment.getChildren().get(0) returned unexpected null value", level2Segment, notNullValue());
@@ -330,27 +334,27 @@ public class DocumentListConverterTest extends SapIDocTestSupport {
 		assertThat("level2Segment.isMandatory() returned unexpected value", level2Segment.isMandatory(), is(true));
 		assertThat("level2Segment.isQualified() returned unexpected value", level2Segment.isQualified(), is(false));
 		assertThat("level2Segment.getNumFields() returned unexpected value", level2Segment.getNumFields(), is(21));
-		assertThat("level2Segment.get(FIELD0) returned unexpected value", (String) level2Segment.get(FIELD0), is(FIELD0_VALUE));
-		assertThat("level2Segment.get(FIELD1) returned unexpected value", (String) level2Segment.get(FIELD1), is(FIELD1_VALUE));
-		assertThat("level2Segment.get(FIELD2) returned unexpected value", (String) level2Segment.get(FIELD2), is(FIELD2_VALUE));
-		assertThat("level2Segment.get(FIELD3) returned unexpected value", (String) level2Segment.get(FIELD3), is(FIELD3_VALUE));
-		assertThat("level2Segment.get(FIELD4) returned unexpected value", (String) level2Segment.get(FIELD4), is(FIELD4_VALUE));
-		assertThat("level2Segment.get(FIELD5) returned unexpected value", (String) level2Segment.get(FIELD5), is(FIELD5_VALUE));
-		assertThat("level2Segment.get(FIELD6) returned unexpected value", (String) level2Segment.get(FIELD6), is(FIELD6_VALUE));
-		assertThat("level2Segment.get(FIELD7) returned unexpected value", (String) level2Segment.get(FIELD7), is(FIELD7_VALUE));
-		assertThat("level2Segment.get(FIELD8) returned unexpected value", (String) level2Segment.get(FIELD8), is(FIELD8_VALUE));
-		assertThat("level2Segment.get(FIELD9) returned unexpected value", (String) level2Segment.get(FIELD9), is(FIELD9_VALUE));
-		assertThat("level2Segment.get(FIELD10) returned unexpected value", (String) level2Segment.get(FIELD10), is(FIELD10_VALUE));
-		assertThat("level2Segment.get(FIELD11) returned unexpected value", (String) level2Segment.get(FIELD11), is(FIELD11_VALUE));
-		assertThat("level2Segment.get(FIELD12) returned unexpected value", (String) level2Segment.get(FIELD12), is(FIELD12_VALUE));
-		assertThat("level2Segment.get(FIELD13) returned unexpected value", (String) level2Segment.get(FIELD13), is(FIELD13_VALUE));
-		assertThat("level2Segment.get(FIELD14) returned unexpected value", (String) level2Segment.get(FIELD14), is(FIELD14_VALUE));
-		assertThat("level2Segment.get(FIELD15) returned unexpected value", (String) level2Segment.get(FIELD15), is(FIELD15_VALUE));
-		assertThat("level2Segment.get(FIELD16) returned unexpected value", (String) level2Segment.get(FIELD16), is(FIELD16_VALUE));
-		assertThat("level2Segment.get(FIELD17) returned unexpected value", (String) level2Segment.get(FIELD17), is(FIELD17_VALUE));
-		assertThat("level2Segment.get(FIELD18) returned unexpected value", (String) level2Segment.get(FIELD18), is(FIELD18_VALUE));
-		assertThat("level2Segment.get(FIELD19) returned unexpected value", (String) level2Segment.get(FIELD19), is(FIELD19_VALUE));
-		assertThat("level2Segment.get(FIELD20) returned unexpected value", (String) level2Segment.get(FIELD20), is(FIELD20_VALUE));
+		assertThat("level2Segment.get(CHAR_FIELD) returned unexpected value", (String) level2Segment.get(CHAR_FIELD), is(CHAR_FIELD_VALUE));
+		assertThat("level2Segment.get(QUAN_FIELD) returned unexpected value", (BigDecimal) level2Segment.get(QUAN_FIELD), is(closeTo(QUAN_FIELD_VALUE, new BigDecimal(1))));
+		assertThat("level2Segment.get(UNIT_FIELD) returned unexpected value", (String) level2Segment.get(UNIT_FIELD), is(UNIT_FIELD_VALUE));
+		assertThat("level2Segment.get(NUMC_FIELD) returned unexpected value", (String) level2Segment.get(NUMC_FIELD), is(NUMC_FIELD_VALUE));
+		assertThat("level2Segment.get(DATS_FIELD) returned unexpected value", (Date) level2Segment.get(DATS_FIELD), is(DATS_FIELD_VALUE));
+		assertThat("level2Segment.get(TIMS_FIELD) returned unexpected value", (Date) level2Segment.get(TIMS_FIELD), is(TIMS_FIELD_VALUE));
+		assertThat("level2Segment.get(CURR_FIELD) returned unexpected value", (BigDecimal) level2Segment.get(CURR_FIELD), is(closeTo(CURR_FIELD_VALUE, new BigDecimal(1))));
+		assertThat("level2Segment.get(CUKY_FIELD) returned unexpected value", (String) level2Segment.get(CUKY_FIELD), is(CUKY_FIELD_VALUE));
+		assertThat("level2Segment.get(LANG_FIELD) returned unexpected value", (String) level2Segment.get(LANG_FIELD), is(LANG_FIELD_VALUE));
+		assertThat("level2Segment.get(CLNT_FIELD) returned unexpected value", (String) level2Segment.get(CLNT_FIELD), is(CLNT_FIELD_VALUE));
+		assertThat("level2Segment.get(INT1_FIELD) returned unexpected value", (BigInteger)  level2Segment.get(INT1_FIELD), is(INT1_FIELD_VALUE));
+		assertThat("level2Segment.get(INT2_FIELD) returned unexpected value", (BigInteger)  level2Segment.get(INT2_FIELD), is(INT2_FIELD_VALUE));
+		assertThat("level2Segment.get(INT4_FIELD) returned unexpected value", (BigInteger)  level2Segment.get(INT4_FIELD), is(INT4_FIELD_VALUE));
+		assertThat("level2Segment.get(FLTP_FIELD) returned unexpected value", (BigDecimal) level2Segment.get(FLTP_FIELD), is(closeTo(FLTP_FIELD_VALUE, new BigDecimal(1))));
+		assertThat("level2Segment.get(ACCP_FIELD) returned unexpected value", (String) level2Segment.get(ACCP_FIELD), is(ACCP_FIELD_VALUE));
+		assertThat("level2Segment.get(PREC_FIELD) returned unexpected value", (String) level2Segment.get(PREC_FIELD), is(PREC_FIELD_VALUE));
+		assertThat("level2Segment.get(LRAW_FIELD) returned unexpected value", (byte[]) level2Segment.get(LRAW_FIELD), is(LRAW_FIELD_VALUE));
+		assertThat("level2Segment.get(DEC_FIELD) returned unexpected value", (BigDecimal) level2Segment.get(DEC_FIELD), is(closeTo(DEC_FIELD_VALUE, new BigDecimal(1))));
+		assertThat("level2Segment.get(RAW_FIELD) returned unexpected value", (byte[]) level2Segment.get(RAW_FIELD), is(RAW_FIELD_VALUE));
+		assertThat("level2Segment.get(STRING_FIELD) returned unexpected value", (String) level2Segment.get(STRING_FIELD), is(STRING_FIELD_VALUE));
+		assertThat("level2Segment.get(RAWSTRING_FIELD) returned unexpected value", (byte[]) level2Segment.get(RAWSTRING_FIELD), is(RAWSTRING_FIELD_VALUE));
 
 		Segment level3Segment = level2Segment.getChildren().get(0);
 		assertThat("level3Segment.getChildren().get(0) returned unexpected null value", level3Segment, notNullValue());
@@ -367,27 +371,27 @@ public class DocumentListConverterTest extends SapIDocTestSupport {
 		assertThat("level3Segment.isMandatory() returned unexpected value", level3Segment.isMandatory(), is(true));
 		assertThat("level3Segment.isQualified() returned unexpected value", level3Segment.isQualified(), is(false));
 		assertThat("level3Segment.getNumFields() returned unexpected value", level3Segment.getNumFields(), is(21));
-		assertThat("level3Segment.get(FIELD0) returned unexpected value", (String) level3Segment.get(FIELD0), is(FIELD0_VALUE));
-		assertThat("level3Segment.get(FIELD1) returned unexpected value", (String) level3Segment.get(FIELD1), is(FIELD1_VALUE));
-		assertThat("level3Segment.get(FIELD2) returned unexpected value", (String) level3Segment.get(FIELD2), is(FIELD2_VALUE));
-		assertThat("level3Segment.get(FIELD3) returned unexpected value", (String) level3Segment.get(FIELD3), is(FIELD3_VALUE));
-		assertThat("level3Segment.get(FIELD4) returned unexpected value", (String) level3Segment.get(FIELD4), is(FIELD4_VALUE));
-		assertThat("level3Segment.get(FIELD5) returned unexpected value", (String) level3Segment.get(FIELD5), is(FIELD5_VALUE));
-		assertThat("level3Segment.get(FIELD6) returned unexpected value", (String) level3Segment.get(FIELD6), is(FIELD6_VALUE));
-		assertThat("level3Segment.get(FIELD7) returned unexpected value", (String) level3Segment.get(FIELD7), is(FIELD7_VALUE));
-		assertThat("level3Segment.get(FIELD8) returned unexpected value", (String) level3Segment.get(FIELD8), is(FIELD8_VALUE));
-		assertThat("level3Segment.get(FIELD9) returned unexpected value", (String) level3Segment.get(FIELD9), is(FIELD9_VALUE));
-		assertThat("level3Segment.get(FIELD10) returned unexpected value", (String) level3Segment.get(FIELD10), is(FIELD10_VALUE));
-		assertThat("level3Segment.get(FIELD11) returned unexpected value", (String) level3Segment.get(FIELD11), is(FIELD11_VALUE));
-		assertThat("level3Segment.get(FIELD12) returned unexpected value", (String) level3Segment.get(FIELD12), is(FIELD12_VALUE));
-		assertThat("level3Segment.get(FIELD13) returned unexpected value", (String) level3Segment.get(FIELD13), is(FIELD13_VALUE));
-		assertThat("level3Segment.get(FIELD14) returned unexpected value", (String) level3Segment.get(FIELD14), is(FIELD14_VALUE));
-		assertThat("level3Segment.get(FIELD15) returned unexpected value", (String) level3Segment.get(FIELD15), is(FIELD15_VALUE));
-		assertThat("level3Segment.get(FIELD16) returned unexpected value", (String) level3Segment.get(FIELD16), is(FIELD16_VALUE));
-		assertThat("level3Segment.get(FIELD17) returned unexpected value", (String) level3Segment.get(FIELD17), is(FIELD17_VALUE));
-		assertThat("level3Segment.get(FIELD18) returned unexpected value", (String) level3Segment.get(FIELD18), is(FIELD18_VALUE));
-		assertThat("level3Segment.get(FIELD19) returned unexpected value", (String) level3Segment.get(FIELD19), is(FIELD19_VALUE));
-		assertThat("level3Segment.get(FIELD20) returned unexpected value", (String) level3Segment.get(FIELD20), is(FIELD20_VALUE));
+		assertThat("level3Segment.get(CHAR_FIELD) returned unexpected value", (String) level3Segment.get(CHAR_FIELD), is(CHAR_FIELD_VALUE));
+		assertThat("level3Segment.get(QUAN_FIELD) returned unexpected value", (BigDecimal) level3Segment.get(QUAN_FIELD), is(closeTo(QUAN_FIELD_VALUE, new BigDecimal(1))));
+		assertThat("level3Segment.get(UNIT_FIELD) returned unexpected value", (String) level3Segment.get(UNIT_FIELD), is(UNIT_FIELD_VALUE));
+		assertThat("level3Segment.get(NUMC_FIELD) returned unexpected value", (String) level3Segment.get(NUMC_FIELD), is(NUMC_FIELD_VALUE));
+		assertThat("level3Segment.get(DATS_FIELD) returned unexpected value", (Date) level3Segment.get(DATS_FIELD), is(DATS_FIELD_VALUE));
+		assertThat("level3Segment.get(TIMS_FIELD) returned unexpected value", (Date) level3Segment.get(TIMS_FIELD), is(TIMS_FIELD_VALUE));
+		assertThat("level3Segment.get(CURR_FIELD) returned unexpected value", (BigDecimal) level3Segment.get(CURR_FIELD), is(closeTo(CURR_FIELD_VALUE, new BigDecimal(1))));
+		assertThat("level3Segment.get(CUKY_FIELD) returned unexpected value", (String) level3Segment.get(CUKY_FIELD), is(CUKY_FIELD_VALUE));
+		assertThat("level3Segment.get(LANG_FIELD) returned unexpected value", (String) level3Segment.get(LANG_FIELD), is(LANG_FIELD_VALUE));
+		assertThat("level3Segment.get(CLNT_FIELD) returned unexpected value", (String) level3Segment.get(CLNT_FIELD), is(CLNT_FIELD_VALUE));
+		assertThat("level3Segment.get(INT1_FIELD) returned unexpected value", (BigInteger) level3Segment.get(INT1_FIELD), is(INT1_FIELD_VALUE));
+		assertThat("level3Segment.get(INT2_FIELD) returned unexpected value", (BigInteger) level3Segment.get(INT2_FIELD), is(INT2_FIELD_VALUE));
+		assertThat("level3Segment.get(INT4_FIELD) returned unexpected value", (BigInteger) level3Segment.get(INT4_FIELD), is(INT4_FIELD_VALUE));
+		assertThat("level3Segment.get(FLTP_FIELD) returned unexpected value", (BigDecimal) level3Segment.get(FLTP_FIELD), is(closeTo(FLTP_FIELD_VALUE, new BigDecimal(1))));
+		assertThat("level3Segment.get(ACCP_FIELD) returned unexpected value", (String) level3Segment.get(ACCP_FIELD), is(ACCP_FIELD_VALUE));
+		assertThat("level3Segment.get(PREC_FIELD) returned unexpected value", (String) level3Segment.get(PREC_FIELD), is(PREC_FIELD_VALUE));
+		assertThat("level3Segment.get(LRAW_FIELD) returned unexpected value", (byte[]) level3Segment.get(LRAW_FIELD), is(LRAW_FIELD_VALUE));
+		assertThat("level3Segment.get(DEC_FIELD) returned unexpected value", (BigDecimal) level3Segment.get(DEC_FIELD), is(closeTo(DEC_FIELD_VALUE, new BigDecimal(1))));
+		assertThat("level3Segment.get(RAW_FIELD) returned unexpected value", (byte[]) level3Segment.get(RAW_FIELD), is(RAW_FIELD_VALUE));
+		assertThat("level3Segment.get(STRING_FIELD) returned unexpected value", (String) level3Segment.get(STRING_FIELD), is(STRING_FIELD_VALUE));
+		assertThat("level3Segment.get(RAWSTRING_FIELD) returned unexpected value", (byte[]) level3Segment.get(RAWSTRING_FIELD), is(RAWSTRING_FIELD_VALUE));
 
 		
 	}

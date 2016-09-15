@@ -180,6 +180,7 @@ public class DestinationRfcTransactionHandler extends SynchronizationAdapter {
 	 */
 	@Override
 	public void onFailure(Exchange exchange) {
+		// TODO Test that this done() should be removed. This call may prevent the proper retry of transactional requests. 
 		done();
 	}
 	
