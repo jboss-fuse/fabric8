@@ -23,7 +23,7 @@
            http://www.osgi.org/xmlns/blueprint/v1.0.0
            http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd
            http://camel.apache.org/schema/blueprint/cxf
-           http://camel.apache.org/schema/blueprint/cxf/camel-cxf.xsd">
+           http://camel.apache.org/schema/cxf/camel-cxf-blueprint.xsd">
 
     <cm:property-placeholder id="placeholder" persistent-id="io.fabric8.examples.camel.cxf" update-strategy="reload">
         <cm:default-properties>
