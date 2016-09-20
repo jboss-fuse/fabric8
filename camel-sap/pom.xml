@@ -20,7 +20,7 @@
 
 	<groupId>org.fusesource</groupId>
 	<artifactId>camel-sap-parent</artifactId>
-	<version>6.3.0.redhat-SNAPSHOT</version>
+	<version>7.0.0.redhat-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<name>JBoss Fuse :: Components :: SAP JCO</name>
@@ -35,7 +35,7 @@
 		<maven.compiler.source>1.7</maven.compiler.source>
 		<maven-surefire-plugin-version>2.19</maven-surefire-plugin-version>
 		<camel-version>2.17.0.redhat-630133</camel-version>
-		<camel.sap.plugin.version>6.3.0-SNAPSHOT</camel.sap.plugin.version>
+		<camel.sap.plugin.version>7.0.0-SNAPSHOT</camel.sap.plugin.version>
 
 		
         <!-- OSGi bundles properties -->
