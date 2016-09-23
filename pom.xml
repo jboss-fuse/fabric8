@@ -290,7 +290,7 @@
         <mina-version>2.0.9</mina-version>
         <mockserver-version>3.4</mockserver-version>
         <mongo-java-driver-version>2.12.3</mongo-java-driver-version>
-        <mvel-version>2.2.6.Final</mvel-version>
+        <mvel-version>2.3.1.Final</mvel-version>
         <netty.version>4.0.27.Final</netty.version>
         <openshift.client.groupId>com.openshift</openshift.client.groupId>
         <openshift.client.version>2.5.0.Final</openshift.client.version>
