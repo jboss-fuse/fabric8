@@ -200,27 +200,10 @@ public class FabricDiscoveryAgent implements DiscoveryAgent, Callable {
     synchronized public void start() throws Exception {
         if( startCounter.addAndGet(1)==1 ) {
             running.set(true);
-
-            if (curator != null) {
-                managedZkClient = false;
-            }
-
-            getGroup().add(new GroupListener<ActiveMQNode>() {
-                @Override
-                public void groupEvent(Group<ActiveMQNode> group, GroupEvent event) {
-                    Map<String, ActiveMQNode> masters = new HashMap<String, ActiveMQNode>();
-                    for (ActiveMQNode node : group.members().values()) {
-                        if (!masters.containsKey(node.id)) {
-                            masters.put(node.id, node);
-                        }
-                    }
-                    update(masters.values());
-                }
-            });
             if( id!=null ) {
-                group.update(createState());
+                getGroup().update(createState());
             }
-            group.start();
+            getGroup().start();
         }
     }
 
@@ -320,13 +303,35 @@ public class FabricDiscoveryAgent implements DiscoveryAgent, Callable {
     }
 
     public MultiGroup<ActiveMQNode> getGroup() throws Exception {
-        if (group == null) {
-            factory = ManagedGroupFactoryBuilder.create(curator, getClass().getClassLoader(), this);
-            group = (MultiGroup)factory.createMultiGroup("/fabric/registry/clusters/amq/" + groupName, ActiveMQNode.class, new NamedThreadFactory("zkgroup-fabric-mq-discovery"));
-            curator = factory.getCurator();
+        if (curator == null) {
+            initGroupFactory();
         }
-
+        if (group == null) {
+            initGroup();
+        }
         return group;
+    }
+
+    private synchronized void initGroup() throws Exception {
+        group = (MultiGroup)factory.createMultiGroup("/fabric/registry/clusters/amq/" + groupName, ActiveMQNode.class, new NamedThreadFactory("zkgroup-fabric-mq-discovery"));
+        group.add(new GroupListener<ActiveMQNode>() {
+            @Override
+            public void groupEvent(Group<ActiveMQNode> group, GroupEvent event) {
+                LOG.debug("Event: " + event);
+                Map<String, ActiveMQNode> masters = new HashMap<String, ActiveMQNode>();
+                for (ActiveMQNode node : group.members().values()) {
+                    if (!masters.containsKey(node.id)) {
+                        masters.put(node.id, node);
+                    }
+                }
+                update(masters.values());
+            }
+        });
+    }
+
+    private synchronized void initGroupFactory() throws Exception {
+        factory = ManagedGroupFactoryBuilder.create(curator, getClass().getClassLoader(), this);
+        this.curator = factory.getCurator();
     }
 
     @Override
@@ -354,8 +359,26 @@ public class FabricDiscoveryAgent implements DiscoveryAgent, Callable {
         return curator;
     }
 
-    public void setCurator(CuratorFramework curator) {
-        this.curator = curator;
+    public void setCurator(CuratorFramework curator) throws Exception {
+        updateCurator(curator);
+    }
+
+    public void updateCurator(CuratorFramework curator) throws Exception {
+        LOG.debug("Update curator: " + this.curator + ", with:" + curator);
+        if (curator != this.curator) {
+            if (group != null) {
+                group.close();
+                group = null;
+            }
+            this.curator = curator;
+            initGroupFactory();
+
+            // leave group to lazy init if not running such that groupName can be set late
+            // when osgi service is eagerly ready
+            if (running.get()) {
+                getGroup().start();
+            }
+        }
     }
 
     public String getAgent() {
