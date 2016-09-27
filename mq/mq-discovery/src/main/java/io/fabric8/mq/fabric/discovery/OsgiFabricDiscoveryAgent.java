@@ -35,7 +35,16 @@ public class OsgiFabricDiscoveryAgent extends FabricDiscoveryAgent implements Se
 
     public OsgiFabricDiscoveryAgent() {
         // Given we're a fragment, we need to use the host bundle context
-        context = findBundleContextToUse();
+        init(findBundleContextToUse());
+    }
+
+    // for testing
+    public OsgiFabricDiscoveryAgent(BundleContext context) {
+        init(context);
+    }
+
+    private void init(BundleContext context) {
+        this.context = context;
         tracker = new ServiceTracker(context, CuratorFramework.class.getName(), this);
         tracker.open();
     }
@@ -67,16 +76,23 @@ public class OsgiFabricDiscoveryAgent extends FabricDiscoveryAgent implements Se
 
     @Override
     public Object addingService(ServiceReference serviceReference) {
-        curator = (CuratorFramework) context.getService(serviceReference);
+        LOG.debug("tracker - addingService, this=" + this  + ", curator:" + getCurator());
+        try {
+            updateCurator((CuratorFramework) context.getService(serviceReference));
+        } catch (Exception e) {
+            LOG.error("Error on updateCurator on service addition with: " + serviceReference, e);
+        }
         return curator;
     }
 
     @Override
     public void modifiedService(ServiceReference serviceReference, Object o) {
+        LOG.debug("tracker - modifiedService, this=" + this);
     }
 
     @Override
     public void removedService(ServiceReference serviceReference, Object o) {
+        LOG.debug("tracker - removedService, ref=" + o + ", this=" + this + ", curator:" + getCurator());
     }
 
     @Override
@@ -84,7 +100,7 @@ public class OsgiFabricDiscoveryAgent extends FabricDiscoveryAgent implements Se
         super.stop();
 
         if (tracker != null) {
-            LOG.info("closing tracker");
+            LOG.debug("closing tracker");
             tracker.close();
         }
     }
