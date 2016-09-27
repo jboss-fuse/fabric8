@@ -209,7 +209,7 @@ public final class ChildContainerProvider extends AbstractComponent implements C
                             if(container.getId().equals(o.get("Name"))){
                                 if(o.containsKey("JavaOpts")){
                                     String oldJavaOpts = (String) o.get("JavaOpts");
-                                    StringBuilder stringBuilder = ChildContainerProvider.buildJvmOpts(createOptions);
+                                    StringBuilder stringBuilder = ChildContainerProvider.buildJvmOpts(createOptions, fabricService.get());
                                     String extendendJvmOpts = stringBuilder.toString();
                                     if (jvmOpts != null && !extendendJvmOpts.equals(oldJavaOpts)){
                                         adminService.changeJavaOpts(container.getId(), extendendJvmOpts);
@@ -253,7 +253,7 @@ public final class ChildContainerProvider extends AbstractComponent implements C
                                                        CreateChildContainerOptions options,
                                                        CreationStateListener listener,
                                                        final Container parent) throws Exception {
-        StringBuilder jvmOptsBuilder = ChildContainerProvider.buildJvmOpts(options);
+        StringBuilder jvmOptsBuilder = ChildContainerProvider.buildJvmOpts(options, fabricService.get());
 
         DataStore dataStore = fabricService.get().adapt(DataStore.class);
         ProfileService profileService = fabricService.get().adapt(ProfileService.class);
@@ -342,14 +342,14 @@ public final class ChildContainerProvider extends AbstractComponent implements C
         return metadata;
     }
 
-    private static StringBuilder buildJvmOpts(CreateChildContainerOptions options) {
+    private static StringBuilder buildJvmOpts(CreateChildContainerOptions options, FabricService fabricService) {
         StringBuilder jvmOptsBuilder = new StringBuilder();
 
         String zkPasswordEncode = System.getProperty("zookeeper.password.encode", "true");
         jvmOptsBuilder.append("-server -Dcom.sun.management.jmxremote -Dorg.jboss.gravia.repository.storage.dir=data/repository")
-                .append(options.getZookeeperUrl() != null ? " -Dzookeeper.url=\"" + options.getZookeeperUrl() + "\"" : "")
+                .append(options.getZookeeperUrl() != null ? " -Dzookeeper.url=\"" + fabricService.getZookeeperUrl() + "\"" : "")
                 .append(zkPasswordEncode != null ? " -Dzookeeper.password.encode=\"" + zkPasswordEncode + "\"" : "")
-                .append(options.getZookeeperPassword() != null ? " -Dzookeeper.password=\"" + options.getZookeeperPassword() + "\"" : "");
+                .append(options.getZookeeperPassword() != null ? " -Dzookeeper.password=\"" + fabricService.getZookeeperPassword() + "\"" : "");
 
 
         if (options.getJvmOpts() == null || !options.getJvmOpts().contains("-Xmx")) {

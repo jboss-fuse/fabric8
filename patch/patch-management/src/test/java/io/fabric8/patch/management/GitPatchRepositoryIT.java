@@ -40,7 +40,7 @@ import org.junit.Test;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.*;
 
-public class GitPatchRepositoryTest {
+public class GitPatchRepositoryIT {
 
     private File karafHome;
     private File karafData;

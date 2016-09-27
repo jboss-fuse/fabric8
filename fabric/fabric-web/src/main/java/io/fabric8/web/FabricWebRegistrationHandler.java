@@ -200,6 +200,11 @@ public final class FabricWebRegistrationHandler extends AbstractComponent implem
             String bundleVersion = servletEvent.getBundle().getVersion().toString();
             clearJolokiaUrl(container, bundleName);
 
+            Map<String, ServletEvent> events = servletEvents.get(servletEvent.getBundle());
+            if (events != null) {
+                events.remove(servletEvent.getAlias());
+            }
+
             String id = container.getId();
             //We don't want to register / it's fabric-redirect for hawtio
             if (!servletEvent.getAlias().equals("/")) {
@@ -249,6 +254,8 @@ public final class FabricWebRegistrationHandler extends AbstractComponent implem
         try {
             String name = webEvent.getBundle().getSymbolicName();
             clearJolokiaUrl(container, name);
+
+            webEvents.remove(webEvent.getBundle());
 
             delete(curator.get(), ZkPath.WEBAPPS_CONTAINER.getPath(name, webEvent.getBundle().getVersion().toString(), container.getId()));
         } catch (KeeperException.NoNodeException e) {

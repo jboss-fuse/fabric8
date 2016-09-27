@@ -868,7 +868,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
                         // if there's conflict here, prefer patch version (which is "ours" (first) in this case)
                         handleCherryPickConflict(patch.getPatchData().getPatchDirectory(), fork, result, userChange,
-                                false, PatchKind.ROLLUP, prefix, true);
+                                false, PatchKind.ROLLUP, prefix, true, false);
 
                         // always commit even empty changes - to be able to restore user changes when rolling back
                         // rollup patch.
@@ -916,7 +916,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             .setNoCommit(true)
                             .call();
                     handleCherryPickConflict(patch.getPatchData().getPatchDirectory(), fork, result, commit,
-                            true, PatchKind.NON_ROLLUP, null, true);
+                            true, PatchKind.NON_ROLLUP, null, true, false);
 
                     // there are several files in ${karaf.home} that need to be changed together with patch
                     // commit, to make them reference updated bundles (paths, locations, ...)
@@ -1188,7 +1188,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         // this time prefer user change on top of previous baseline - this change shouldn't be
                         // conflicting, because when rolling back, patch change was preferred over user change
                         handleCherryPickConflict(patchData.getPatchDirectory(), fork, cpr, userChange,
-                                true, PatchKind.ROLLUP, null, false);
+                                true, PatchKind.ROLLUP, null, false, true);
 
                         // restore backed up content from the reapplied user change
                         String[] commitMessage = userChange.getFullMessage().split("\n\n");
@@ -1196,6 +1196,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             // we have original commit (that had conflicts) stored in this commit's full message
                             String ref = commitMessage[commitMessage.length - 1];
                             File backupDir = new File(patchesDir, patchData.getId() + ".backup");
+                            if (isStandaloneChild()) {
+                                backupDir = new File(patchesDir, patchData.getId() + "." + System.getProperty("karaf.name") + ".backup");
+                            }
                             backupDir = new File(backupDir, ref);
                             if (backupDir.exists() && backupDir.isDirectory()) {
                                 Activator.log2(LogService.LOG_DEBUG, String.format("Restoring content of %s", backupDir.getCanonicalPath()));
@@ -1334,7 +1337,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             // here we handle only R patch and we're merging patch branch into current version branch.
             // that's why:
             // patch branch == "theirs" == "3" in `git ls-files -u` == DirCacheEntry.STAGE_3 == threeWayMerge[2]
-            handleConflict(null, fork, true, null, false, "change from patch", null);
+            handleConflict(null, fork, true, null, false, "change from patch", null, false);
         }
     }
 
@@ -1351,9 +1354,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * @param kind
      * @param cpPrefix prefix for a cherry-pick to have nice backup directory names.
      * @param performBackup if <code>true</code>, we backup rejected version (should be false during rollback of patches)
+     * @param rollback is the resolution performed during patch rollback?
      */
     protected void handleCherryPickConflict(File patchDirectory, Git fork, CherryPickResult result, RevCommit commit,
-                                            boolean preferNew, PatchKind kind, String cpPrefix, boolean performBackup)
+                                            boolean preferNew, PatchKind kind, String cpPrefix, boolean performBackup,
+                                            boolean rollback)
             throws GitAPIException, IOException {
         if (result.getStatus() == CherryPickResult.CherryPickStatus.CONFLICTING) {
             Activator.log2(LogService.LOG_WARNING, "Problem with applying the change " + commit.getName() + ":");
@@ -1370,11 +1375,11 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     break;
             }
 
-            handleConflict(patchDirectory, fork, preferNew, cpPrefix, performBackup, choose, backup);
+            handleConflict(patchDirectory, fork, preferNew, cpPrefix, performBackup, choose, backup, rollback);
         }
     }
 
-    private void handleConflict(File patchDirectory, Git fork, boolean preferNew, String cpPrefix, boolean performBackup, String choose, String backup) throws GitAPIException, IOException {
+    private void handleConflict(File patchDirectory, Git fork, boolean preferNew, String cpPrefix, boolean performBackup, String choose, String backup, boolean rollback) throws GitAPIException, IOException {
         Map<String, IndexDiff.StageState> conflicts = fork.status().call().getConflictingStageState();
         DirCache cache = fork.getRepository().readDirCache();
         // path -> [oursObjectId, baseObjectId, theirsObjectId]
@@ -1414,7 +1419,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             Resolver resolver = conflictResolver.getResolver(entry.getKey());
             // resolved version - either by custom resolved or using automatic algorithm
             String resolved = null;
-            if (resolver != null) {
+            if (resolver != null && entry.getValue()[0] != null && entry.getValue()[2] != null) {
                 // custom conflict resolution (don't expect DELETED_BY_X kind of conflict, only BOTH_MODIFIED)
                 String message = String.format(" - %s (%s): %s", entry.getKey(), conflicts.get(entry.getKey()), "Using " + resolver.getClass().getName() + " to resolve the conflict");
                 Activator.log2(LogService.LOG_INFO, message);
@@ -1466,9 +1471,13 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             // by user - comments, layout, ...)
                             // files in e.g., fabric/import/fabric/profiles are "for Fuse", so we use patch version
                             // as base
-                            useFirstChangeAsBase = false;
+                            if (rollback) {
+                                useFirstChangeAsBase = true;
+                            } else {
+                                useFirstChangeAsBase = false;
+                            }
                         }
-                        resolved = ((ResolverEx)resolver).resolve(first, base, second, useFirstChangeAsBase);
+                        resolved = ((ResolverEx)resolver).resolve(first, base, second, useFirstChangeAsBase, rollback);
                     } else {
                         resolved = resolver.resolve(first, base, second);
                     }
@@ -1492,7 +1501,6 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             if (resolved == null) {
                 // automatic conflict resolution
                 String message = String.format(" - %s (%s): Choosing %s", entry.getKey(), conflicts.get(entry.getKey()), choose);
-                Activator.log2(LogService.LOG_INFO, message);
 
                 ObjectLoader loader = null;
                 ObjectLoader loaderForBackup = null;
@@ -1505,7 +1513,12 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             loaderForBackup = objectReader.open(entry.getValue()[0]);
                             break;
                         case BOTH_DELETED:
+                            break;
                         case DELETED_BY_THEM:
+                            // ENTESB-6003: special case: when R patch removes something and we've modified it
+                            // let's preserve our version
+                            message = String.format(" - %s (%s): Keeping custom change", entry.getKey(), conflicts.get(entry.getKey()));
+                            loader = objectReader.open(entry.getValue()[0]);
                             break;
                         case DELETED_BY_US:
                             loader = objectReader.open(entry.getValue()[2]);
@@ -1527,6 +1540,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     }
                 }
 
+                Activator.log2(LogService.LOG_WARNING, message);
+
                 if (loader != null) {
                     try (FileOutputStream fos = new FileOutputStream(new File(fork.getRepository().getWorkTree(), entry.getKey()))) {
                         loader.copyTo(fos);
@@ -1540,6 +1555,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     // the other entry should be backed up
                     if (loaderForBackup != null) {
                         File target = new File(patchDirectory.getParent(), patchDirectory.getName() + ".backup");
+                        if (isStandaloneChild()) {
+                            target = new File(patchDirectory.getParent(), patchDirectory.getName() + "." + System.getProperty("karaf.name") + ".backup");
+                        }
                         if (cpPrefix != null) {
                             target = new File(target, cpPrefix);
                         }
@@ -2600,7 +2618,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     .setNoCommit(true)
                     .call();
             // no backup (!?)
-            handleCherryPickConflict(null, fork, result, userChange, false, PatchKind.ROLLUP, null, false);
+            handleCherryPickConflict(null, fork, result, userChange, false, PatchKind.ROLLUP, null, false, false);
 
             gitPatchRepository.prepareCommit(fork, userChange.getFullMessage()).call();
 
@@ -2986,11 +3004,27 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 Pending what = Pending.valueOf(FileUtils.readFileToString(pending));
                 final String prefix = what == Pending.ROLLUP_INSTALLATION ? "install" : "rollback";
 
-                File patchFile = new File(pending.getParentFile(), pending.getName().replaceFirst("\\.pending$", ""));
+                String name = pending.getName().replaceFirst("\\.pending$", "");
+                if (isStandaloneChild()) {
+                    if (name.endsWith("." + System.getProperty("karaf.name") + ".patch")) {
+                        name = name.replaceFirst("\\." + System.getProperty("karaf.name"), "");
+                    } else {
+                        continue;
+                    }
+                }
+                File patchFile = new File(pending.getParentFile(), name);
+                if (!patchFile.isFile()) {
+                    Activator.log(LogService.LOG_INFO, "Ignoring patch result file: " + patchFile.getName());
+                    continue;
+                }
                 PatchData patchData = PatchData.load(new FileInputStream(patchFile));
                 Patch patch = loadPatch(new PatchDetailsRequest(patchData.getId()));
 
-                final File dataFilesBackupDir = new File(pending.getParentFile(), patchData.getId() + ".datafiles");
+                String dataFilesName = patchData.getId() + ".datafiles";
+                if (isStandaloneChild()) {
+                    dataFilesName = patchData.getId() + "." + System.getProperty("karaf.name") + ".datafiles";
+                }
+                final File dataFilesBackupDir = new File(pending.getParentFile(), dataFilesName);
                 final Properties backupProperties = new Properties();
                 FileInputStream inStream = new FileInputStream(new File(dataFilesBackupDir, "backup-" + prefix + ".properties"));
                 backupProperties.load(inStream);
@@ -3104,8 +3138,19 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
             File src = new File(patch.getPatchData().getPatchDirectory(), "fabric/import/fabric/profiles");
             File dst = new File(git.getRepository().getWorkTree(), "fabric/profiles");
+
+            // ENTESB-6003:
+            // let's clean the target directory first, so we can detect file removals in patches (like moving
+            // jmx.* and org.apache.karaf.command.* PIDs from jboss-fuse-full to acls profile)
+            FileUtils.deleteDirectory(dst);
+            dst.mkdir();
+
             ProfileFileUtils.copyDirectory(src, dst, strategy);
             git.add().addFilepattern(".").call();
+            // remove the deletes
+            for (String missing : git.status().call().getMissing()) {
+                git.rm().addFilepattern(missing).call();
+            }
 
             // commit profile changes in patch branch - ultimate commit will be the merge commit
             git.commit()

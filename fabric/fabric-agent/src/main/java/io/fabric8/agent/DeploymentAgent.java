@@ -202,6 +202,12 @@ public class DeploymentAgent implements ManagedService {
             mavenRepoURIs = service.getMavenRepoURIs();
             // one time operation - after this, we have httpUrl and mavenRepoURIs
             fabricServiceAvailable.countDown();
+            LOGGER.info("Maven repository configuration correctly updated: httpUrl=[{}], mavenRepoURIs=[{}]", httpUrl, mavenRepoURIs);
+        } catch (RuntimeException e) {
+            LOGGER.info("It's been impossible to correctly update maven repositories configuration");
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("Detailed Exception", e);
+            }
         } finally {
             fabricServiceOperations.unlock();
         }

@@ -35,14 +35,16 @@ public class PropertiesFileResolver implements ResolverEx {
 
     @Override
     public String resolve(File firstChange, File base, File secondChange) {
-        return resolve(firstChange, base, secondChange, true);
+        return resolve(firstChange, base, secondChange, true, false);
     }
 
     @Override
-    public String resolve(File firstChange, File base, File secondChange, boolean useFirstChangeAsBase) {
+    public String resolve(File firstChange, File base, File secondChange, boolean useFirstChangeAsBase, boolean rollback/*=false*/) {
         try {
             Properties baseProperties = new Properties(false);
-            baseProperties.load(base);
+            if (base != null) {
+                baseProperties.load(base);
+            }
             Properties firstProperties = new Properties(false);
             firstProperties.load(firstChange);
             Properties secondProperties = new Properties(secondChange, false);
@@ -72,14 +74,14 @@ public class PropertiesFileResolver implements ResolverEx {
                         // can't happen in this loop
                         break;
                     case BOTH_ADDED:
-                        result.put(key, secondProperties.getProperty(key));
+                        result.put(key, specialPropertyMerge(key, firstProperties, secondProperties, rollback));
                         break;
                     case BOTH_MODIFIED:
                         // may mean also that we have change vs. removal
                         if (secondProperties.getProperty(key) == null) {
                             result.remove(key);
                         } else {
-                            result.put(key, secondProperties.getProperty(key));
+                            result.put(key, specialPropertyMerge(key, firstProperties, secondProperties, rollback));
                         }
                         break;
                     case DELETED_BY_THEM:
@@ -130,6 +132,20 @@ public class PropertiesFileResolver implements ResolverEx {
             Activator.log(LogService.LOG_ERROR, null, "Problem resolving conflict: " + e.getMessage(), e, true);
         }
         return null;
+    }
+
+    /**
+     * Special handling of particular key. By default we just pick value from <em>more important</em> set
+     * of properties
+     * Subclasses ay override this method.
+     * @param key
+     * @param firstProperties
+     * @param secondProperties
+     * @param rollback
+     * @return
+     */
+    protected String specialPropertyMerge(String key, Properties firstProperties, Properties secondProperties, boolean rollback) {
+        return rollback ? firstProperties.get(key) : secondProperties.get(key);
     }
 
     /**

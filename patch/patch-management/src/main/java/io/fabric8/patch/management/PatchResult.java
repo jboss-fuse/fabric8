@@ -16,19 +16,25 @@
 package io.fabric8.patch.management;
 
 import java.io.File;
+import java.io.FileFilter;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
+import io.fabric8.patch.management.impl.Activator;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.ParseException;
+import org.osgi.service.log.LogService;
 
 /**
  * Information about installed patch. This information is generated and stored to <code>*.patch.result</code> file
@@ -75,12 +81,22 @@ public class PatchResult {
     private List<String> versions = new LinkedList<>();
     private List<String> karafBases = new LinkedList<>();
 
+    // transient
+    private Map<String, PatchResult> childPatches = new HashMap<>();
+    private PatchResult parent;
+
     public PatchResult(PatchData patchData) {
         this.patchData = patchData;
     }
 
     public PatchResult(PatchData patchData, boolean simulation, long date,
                        List<BundleUpdate> bundleUpdates, List<FeatureUpdate> featureUpdates) {
+        this(patchData, simulation, date, bundleUpdates, featureUpdates, null);
+    }
+
+    public PatchResult(PatchData patchData, boolean simulation, long date,
+                       List<BundleUpdate> bundleUpdates, List<FeatureUpdate> featureUpdates,
+                       PatchResult parent) {
         this.patchData = patchData;
         this.simulation = simulation;
         this.date = date;
@@ -90,6 +106,7 @@ public class PatchResult {
         if (featureUpdates != null) {
             this.featureUpdates.addAll(featureUpdates);
         }
+        this.parent = parent;
     }
 
     /**
@@ -101,10 +118,23 @@ public class PatchResult {
      * @throws IOException
      */
     public static PatchResult load(PatchData patchData, InputStream inputStream) throws IOException {
+        return load(patchData, inputStream, true);
+    }
+
+    /**
+     * Static constructor of PatchResult object that takes initialization data from {@link java.io.InputStream}.
+     * {@link InputStream} is closed after reading.
+     * @param patchData patch data this result relates to
+     * @param inputStream
+     * @param processChildren
+     * @return
+     * @throws IOException
+     */
+    public static PatchResult load(PatchData patchData, InputStream inputStream, boolean processChildren) throws IOException {
         Properties props = new Properties();
         props.load(inputStream);
         IOUtils.closeQuietly(inputStream);
-        return load(patchData, props);
+        return load(patchData, props, processChildren);
     }
 
     /**
@@ -115,6 +145,18 @@ public class PatchResult {
      * @throws IOException
      */
     public static PatchResult load(PatchData patchData, Properties props) {
+        return load(patchData, props, true);
+    }
+
+    /**
+     * Static constructor of PatchResult object that takes initialization data from {@link Properties} file.
+     * @param patchData
+     * @param props
+     * @param processChildren
+     * @return
+     * @throws IOException
+     */
+    public static PatchResult load(final PatchData patchData, Properties props, final boolean processChildren) {
         long date = Long.parseLong(props.getProperty(DATE));
 
         List<BundleUpdate> bupdates = new ArrayList<>();
@@ -171,9 +213,41 @@ public class PatchResult {
             karafBases.add(props.getProperty(KARAF_BASE + "." + Integer.toString(i)));
         }
 
-        PatchResult result = new PatchResult(patchData, false, date, bupdates, fupdates);
+        final PatchResult result = new PatchResult(patchData, false, date, bupdates, fupdates);
         result.getVersions().addAll(versions);
         result.getKarafBases().addAll(karafBases);
+
+        // load child patch results
+        if (processChildren) {
+            patchData.getPatchLocation().listFiles(new FileFilter() {
+                @Override
+                public boolean accept(File pathname) {
+                    if (!pathname.isFile()) {
+                        return false;
+                    }
+                    String prefix = patchData.getId() + ".";
+                    String suffix = ".patch.result";
+                    if (pathname.getName().equals(patchData.getId() + suffix)) {
+                        // it's a result from root container
+                        return false;
+                    }
+                    if (!pathname.getName().startsWith(prefix) || !pathname.getName().endsWith(suffix)) {
+                        // it's not correct patch result
+                        return false;
+                    }
+                    String childId = pathname.getName().substring(0, pathname.getName().length() - suffix.length());
+                    childId = childId.substring(prefix.length());
+                    try {
+                        PatchResult childResult = load(patchData, new FileInputStream(pathname), false);
+                        childResult.setParent(result);
+                        result.addChildResult(childId, childResult);
+                    } catch (IOException e) {
+                        Activator.log2(LogService.LOG_WARNING, "Can't load patch result from \"" + pathname + "\"");
+                    }
+                    return false;
+                }
+            });
+        }
 
         return result;
     }
@@ -185,6 +259,17 @@ public class PatchResult {
         fos.close();
         if (pending != null) {
             FileUtils.write(new File(patchData.getPatchLocation(), patchData.getId() + ".patch.pending"), pending.toString());
+        }
+
+        for (String child : childPatches.keySet()) {
+            PatchResult pr = childPatches.get(child);
+            fos = new FileOutputStream(new File(patchData.getPatchLocation(),
+                    patchData.getId() + "." + child + ".patch.result"));
+            pr.storeTo(fos);
+            fos.close();
+            if (pr.pending != null) {
+                FileUtils.write(new File(patchData.getPatchLocation(), patchData.getId() + "." + child + ".patch.pending"), pr.pending.toString());
+            }
         }
     }
 
@@ -252,6 +337,28 @@ public class PatchResult {
         }
 
         pw.close();
+    }
+
+    /**
+     * Each patch in standalone mode may be installed for root container and <code>admin:create</code>-based
+     * child containers.
+     * @param instance
+     * @param childResult
+     */
+    public void addChildResult(String instance, PatchResult childResult) {
+        childPatches.put(instance, childResult);
+    }
+
+    public Map<String, PatchResult> getChildPatches() {
+        return childPatches;
+    }
+
+    public PatchResult getParent() {
+        return parent;
+    }
+
+    public void setParent(PatchResult parent) {
+        this.parent = parent;
     }
 
     public boolean isSimulation() {

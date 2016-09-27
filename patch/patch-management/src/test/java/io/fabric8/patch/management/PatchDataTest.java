@@ -66,6 +66,7 @@ public class PatchDataTest {
     @Test
     public void persistPatchResult() throws IOException {
         PatchData pd = new PatchData("otherid");
+        pd.setPatchLocation(new File("target"));
         PatchResult res = new PatchResult(pd, false, 42L, null, null);
         res.getVersions().add("1.0");
         res.getVersions().add("1.1");
@@ -84,8 +85,42 @@ public class PatchDataTest {
     }
 
     @Test
+    public void persistPatchResultWithChildren() throws IOException {
+        PatchData pd = new PatchData("otherid");
+        pd.setPatchLocation(new File("target"));
+        pd.setPatchLocation(new File("target"));
+        PatchResult res = new PatchResult(pd, false, 42L, null, null);
+        res.getVersions().add("1.0");
+        res.getVersions().add("1.1");
+        PatchResult resa = new PatchResult(pd, false, 42L, null, null, res);
+        resa.getVersions().add("2.0");
+        resa.getVersions().add("2.1");
+        PatchResult resb = new PatchResult(pd, false, 42L, null, null, res);
+        resb.getVersions().add("3.0");
+        resb.getVersions().add("3.1");
+        res.addChildResult("c1", resa);
+        res.addChildResult("c2", resb);
+
+        res.store();
+
+        Properties props = new Properties();
+        File result = new File("target/otherid.patch.result");
+        props.load(new FileInputStream(result));
+        assertThat(Integer.parseInt(props.getProperty("version.count")), equalTo(2));
+        assertThat(Integer.parseInt(props.getProperty("update.count")), equalTo(0));
+
+        PatchResult res2 = PatchResult.load(pd, props);
+        assertThat(res2.getVersions().get(0), equalTo("1.0"));
+        assertThat(res2.getChildPatches().get("c1").getVersions().get(0), equalTo("2.0"));
+        assertThat(res2.getChildPatches().get("c2").getVersions().get(1), equalTo("3.1"));
+        assertThat(res2.getChildPatches().get("c1").getParent(), equalTo(res2));
+        assertThat(res2.getChildPatches().get("c2").getParent(), equalTo(res2));
+    }
+
+    @Test
     public void persistPatchResultOnWindows() throws IOException {
         PatchData pd = new PatchData("otherid");
+        pd.setPatchLocation(new File("target"));
         PatchResult res = new PatchResult(pd, false, 42L, null, null);
         BundleUpdate bu = new BundleUpdate("C__Dev_jboss-fuse", null, null, "6.2.1", "wrap:jardir:C:\\Dev\\jboss-fuse-6.2.1.redhat-076\\etc\\auth$Bundle-SymbolicName=C:\\Dev\\jboss-fuse&Bundle-Version=6.2.1");
         res.getBundleUpdates().add(bu);
