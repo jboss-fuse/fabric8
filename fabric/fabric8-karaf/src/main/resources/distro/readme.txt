@@ -8,7 +8,7 @@ Get Started
 --------
 
 * Getting Started Guide for how to run fabric8 on your local computer:
-   http://fabric8.io/gitbook/getStarted.html
+   https://access.redhat.com/documentation/en-US/Red_Hat_JBoss_Fuse/6.2/html/Fabric_Guide/GetStart.html
 
 * Run fabric8 on OpenShift for using fabric8 on the open hybrid cloud:
    https://www.openshift.com/quickstarts/jboss-fuse-61
