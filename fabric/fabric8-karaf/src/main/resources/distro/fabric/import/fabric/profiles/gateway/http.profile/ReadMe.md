@@ -1,4 +1,4 @@
-Provides a HTTP based [gateway](http://fabric8.io/gitbook/gateway.html) between HTTP clients and web services, RESTful endpoints and web applications running on the fabric with automatic load balancing and failover.
+Provides a HTTP based [gateway](https://access.redhat.com/documentation/en-US/Red_Hat_JBoss_Fuse/6.2/html/Fabric_Guide/Gateway.html) between HTTP clients and web services, RESTful endpoints and web applications running on the fabric with automatic load balancing and failover.
 
 The gateway acts as a [reverse proxy server](http://en.wikipedia.org/wiki/Reverse_proxy); so that the clients think the gateway is the server implementing the various web applications and services.
 

@@ -21,5 +21,5 @@
 
 #### Documentation
 
-* [documentation](http://fabric8.io/gitbook/index.html) to access the documentation from the Fabric website
+* [documentation](https://access.redhat.com/documentation/en-US/Red_Hat_JBoss_Fuse/6.2/html/Fabric_Guide/) to access the documentation from the Red Hat website
 
