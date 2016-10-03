@@ -2,7 +2,7 @@ This command provisions the container as follows:
 
 1. Logs into the specified SSH host, using either the provided username and password or using the provided username and private key.
 
-2. Runs a script on the remote host that that downloads the container runtime to the remote host. The runtime files are downloaded through a Maven proxy server. By default, the script uses the oldest Maven proxy server in the current ensemble (every ensemble container has a Maven proxy server deployed in it). You can optionally override the default Maven proxy by specifying the --proxy-uri option. The script would then use the specified Maven proxy server to download the container runtime.
+2. Runs a script on the remote host that downloads the container runtime to the remote host. The runtime files are downloaded through a Maven proxy server. By default, the script uses the oldest Maven proxy server in the current ensemble (every ensemble container has a Maven proxy server deployed in it). You can optionally override the default Maven proxy by specifying the --proxy-uri option. The script would then use the specified Maven proxy server to download the container runtime.
 Note: The ability to override the Maven proxy is important in certain cases (for example, in a cloud deployment) where the remote host might not be able to access the default Maven proxy server.
 
 3. Starts up the newly installed container (or containers) and installs the specified fabric profile (or profiles).
