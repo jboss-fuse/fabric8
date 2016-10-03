@@ -2928,7 +2928,7 @@
                 <module>website</module>
             </modules>
         </profile>
-<!--        <profile>
+        <profile>
             <id>release</id>
             <build>
                 <plugins>
@@ -2955,12 +2955,6 @@
                     </plugin>
                 </plugins>
             </build>
-        </profile>-->
-        <profile>
-            <id>hawtio-snapshot</id>
-            <properties>
-                <hawtio-version>1.4.redhat-630193</hawtio-version>
-            </properties>
         </profile>
         <profile>
             <!--
