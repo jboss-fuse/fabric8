@@ -2957,12 +2957,6 @@
             </build>
         </profile>
         <profile>
-            <id>hawtio-snapshot</id>
-            <properties>
-                <hawtio-version>1.4.redhat-630193</hawtio-version>
-            </properties>
-        </profile>
-        <profile>
             <!--
                 Do a license check by running:
                     mvn -Psite,ts.all,docker,ts.autoscale,license com.mycila:license-maven-plugin:check
