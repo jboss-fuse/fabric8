@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.maven.settings.Settings;
+import org.ops4j.util.property.PropertyResolver;
 
 /**
  * Handler configuration.
@@ -132,5 +133,24 @@ public interface MavenConfiguration {
     Settings getSettings();
     
     String getSecuritySettings();
+
+    PropertyResolver getPropertyResolver();
+
+    /**
+     * Returns generic property by name.
+     *
+     * @param name
+     * @param defaultValue
+     * @param clazz
+     * @return
+     */
+    <T> T getProperty(String name, T defaultValue, Class<T> clazz);
+
+    /**
+     * Returns PID for properties used by this configuration. It's used as prefix for properties in
+     * associated {@link PropertyResolver}
+     * @return
+     */
+    String getPid();
 
 }

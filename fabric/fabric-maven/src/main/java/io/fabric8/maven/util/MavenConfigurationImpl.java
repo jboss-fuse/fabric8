@@ -24,10 +24,13 @@ import java.net.PasswordAuthentication;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import io.fabric8.common.util.NullArgumentException;
 import io.fabric8.maven.url.ServiceConstants;
@@ -71,7 +74,7 @@ public class MavenConfigurationImpl extends PropertyStore implements MavenConfig
     /**
      * Use a default timeout of 5 seconds.
      */
-    private final String DEFAULT_TIMEOUT = "5000";
+    private final static String DEFAULT_TIMEOUT = "5000";
 
     /**
      * Configuration PID. Cannot be null or empty.
@@ -99,6 +102,11 @@ public class MavenConfigurationImpl extends PropertyStore implements MavenConfig
         m_propertyResolver = propertyResolver;
         settings = buildSettings(getLocalRepoPath(propertyResolver), getSettingsPath(),
             useFallbackRepositories());
+    }
+
+    @Override
+    public PropertyResolver getPropertyResolver() {
+        return m_propertyResolver;
     }
 
     public boolean isValid() {
@@ -242,7 +250,7 @@ public class MavenConfigurationImpl extends PropertyStore implements MavenConfig
                 String init = (repositoriesProp == null) ? "" : repositoriesProp.substring(1);
                 StringBuilder builder = new StringBuilder(init);
                 Map<String, Profile> profiles = settings.getProfilesAsMap();
-                for (String activeProfile : settings.getActiveProfiles()) {
+                for (String activeProfile : getActiveProfiles(true)) {
                     Profile profile = profiles.get(activeProfile);
                     if (profile == null) {
                         continue;
@@ -299,6 +307,25 @@ public class MavenConfigurationImpl extends PropertyStore implements MavenConfig
             return set(m_pid + ServiceConstants.PROPERTY_REPOSITORIES, repositoriesProperty);
         }
         return get(m_pid + ServiceConstants.PROPERTY_REPOSITORIES);
+    }
+
+    /**
+     * Returns active profile names from current settings
+     * @param alsoActiveByDefault if <code>true</code>, also return these profile names that are
+     * <code>&lt;activeByDefault&gt;</code>
+     * @return
+     */
+    private Collection<String> getActiveProfiles(boolean alsoActiveByDefault) {
+        Set<String> profileNames = new LinkedHashSet<String>(settings.getActiveProfiles());
+        if (alsoActiveByDefault) {
+            for (Profile profile : settings.getProfiles()) {
+                if (profile.getActivation() != null && profile.getActivation().isActiveByDefault()) {
+                    // TODO: check other activations - file/jdk/os/property?
+                    profileNames.add(profile.getId());
+                }
+            }
+        }
+        return profileNames;
     }
 
     public String getGlobalUpdatePolicy() {
@@ -640,4 +667,43 @@ public class MavenConfigurationImpl extends PropertyStore implements MavenConfig
         }
         return get(key);
     }
+
+    @Override
+    public <T> T getProperty(String name, T defaultValue, Class<T> clazz) {
+        if (!contains(m_pid + name)) {
+            String value = m_propertyResolver.get(m_pid + name);
+            return set(m_pid + name, value == null ? defaultValue : convert(value, clazz));
+        }
+        return get(m_pid + name);
+    }
+
+    @Override
+    public String getPid() {
+        return m_pid;
+    }
+
+    /**
+     * Supports String to [ Integer, Long, String, Boolean ] conversion
+     * @param value
+     * @param clazz
+     * @param <T>
+     * @return
+     */
+    @SuppressWarnings("unchecked")
+    private <T> T convert(String value, Class<T> clazz) {
+        if (String.class == clazz) {
+            return (T) value;
+        }
+        if (Integer.class == clazz) {
+            return (T) Integer.valueOf(value);
+        }
+        if (Long.class == clazz) {
+            return (T) Long.valueOf(value);
+        }
+        if (Boolean.class == clazz) {
+            return (T) Boolean.valueOf("true".equals(value));
+        }
+        throw new IllegalArgumentException("Can't convert \"" + value + "\" to " + clazz + ".");
+    }
+
 }

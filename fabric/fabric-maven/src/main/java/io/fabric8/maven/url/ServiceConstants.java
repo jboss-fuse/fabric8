@@ -112,7 +112,7 @@ public interface ServiceConstants
      * Option to mark repository as allowing snapshots.
      */
     String OPTION_ALLOW_SNAPSHOTS = "snapshots";
-    
+
     /**
      * Option to configure the default timeout; use a default timeout of
      * 5 secs by default.
@@ -123,7 +123,7 @@ public interface ServiceConstants
      * Option to set maven offline.
      */
     String PROPERTY_OFFLINE = "offline";
-    
+
     /**
      * Option to mark repository as not allowing releases.
      */
@@ -168,5 +168,52 @@ public interface ServiceConstants
     String OPTION_RELEASES_CHECKSUM = "releasesChecksum";
 
     String OPTION_SNAPSHOTS_CHECKSUM = "snapshotsChecksum";
+
+    /**
+     * Configure {@link java.net.SocketOptions#SO_TIMEOUT}.
+     * If not specified, generic {@link #PROPERTY_TIMEOUT} is used.
+     */
+    String PROPERTY_SOCKET_SO_TIMEOUT = "socket.readTimeout";
+
+    /**
+     * Configure {@link java.net.SocketOptions#SO_KEEPALIVE}. Defaults to <code>false</code>
+     */
+    String PROPERTY_SOCKET_SO_KEEPALIVE = "socket.keepAlive";
+
+    /**
+     * Configure {@link java.net.SocketOptions#SO_LINGER}. Defaults to <code>-1</code>.
+     */
+    String PROPERTY_SOCKET_SO_LINGER = "socket.linger";
+
+    /**
+     * Configure {@link java.net.SocketOptions#SO_REUSEADDR}. Defaults to <code>false</code>
+     */
+    String PROPERTY_SOCKET_SO_REUSEADDRESS = "socket.reuseAddress";
+
+    /**
+     * Configure {@link java.net.SocketOptions#TCP_NODELAY}. Defaults to <code>true</code>
+     */
+    String PROPERTY_SOCKET_TCP_NODELAY = "socket.tcpNoDelay";
+
+    /**
+     * Configure connection timeout value for <code>java.net.Socket#connect(SocketAddress, int)</code> operation.
+     * If not specified, generic {@link #PROPERTY_TIMEOUT} is used.
+     */
+    String PROPERTY_SOCKET_CONNECTION_TIMEOUT = "socket.connectionTimeout";
+
+    /**
+     * Configure buffer size for HTTP connections in:<ul>
+     *     <li>org.apache.http.impl.io.SessionInputBufferImpl#buffer</li>
+     *     <li>org.apache.http.impl.io.SessionOutputBufferImpl#buffer</li>
+     * </ul>
+     * Defaults to <code>8192</code>.
+     */
+    String PROPERTY_CONNECTION_BUFFER_SIZE = "connection.bufferSize";
+
+    /**
+     * Configure httpclient's <code>org.apache.http.impl.client.DefaultHttpRequestRetryHandler</code>.
+     * Default value is <code>3</code>
+     */
+    String PROPERTY_CONNECTION_RETRY_COUNT = "connection.retryCount";
 
 }

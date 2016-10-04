@@ -15,6 +15,7 @@
  */
 package io.fabric8.maven;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -29,7 +30,7 @@ import org.eclipse.aether.graph.DependencyNode;
 import org.eclipse.aether.repository.LocalRepository;
 import org.eclipse.aether.repository.RemoteRepository;
 
-public interface MavenResolver {
+public interface MavenResolver extends Closeable {
 
     /**
      * Access to the RepositorySystem

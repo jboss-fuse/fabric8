@@ -64,19 +64,19 @@ public class Activator extends AbstractURLStreamHandlerService
     /**
      * Protocol handler specific configuration.
      */
-    private volatile MavenResolver m_resolver;
+    private volatile AtomicReference<MavenResolver> m_resolver = new AtomicReference<>();
     /**
      * Handler service registration. Used for cleanup.
      */
-    private ServiceRegistration m_handlerReg;
+    private ServiceRegistration<URLStreamHandlerService> m_handlerReg;
     /**
      * Managed service registration. Used for cleanup.
      */
-    private ServiceRegistration m_managedServiceReg;
+    private ServiceRegistration<ManagedService> m_managedServiceReg;
     /**
      * Managed service registration. Used for cleanup.
      */
-    private final AtomicReference<ServiceRegistration> m_resolverReg = new AtomicReference<>();
+    private final AtomicReference<ServiceRegistration<MavenResolver>> m_resolverReg = new AtomicReference<>();
 
     /**
      * Registers Handler as a wrap: protocol stream handler service and as a configuration managed service if
@@ -114,10 +114,18 @@ public class Activator extends AbstractURLStreamHandlerService
             m_managedServiceReg.unregister();
             m_managedServiceReg = null;
         }
-        ServiceRegistration registration = m_resolverReg.getAndSet(null);
+        ServiceRegistration<MavenResolver> registration = m_resolverReg.getAndSet(null);
         if ( registration != null )
         {
             registration.unregister();
+        }
+        MavenResolver resolver = m_resolver.getAndSet(null);
+        if (resolver != null) {
+            try {
+                resolver.close();
+            } catch (IOException e) {
+                // Ignore
+            }
         }
         m_bundleContext = null;
         LOG.debug( "Handler for protocols " + PROTOCOL + " stopped" );
@@ -131,11 +139,10 @@ public class Activator extends AbstractURLStreamHandlerService
         final Dictionary<String, Object> props = new Hashtable<>();
         props.put( URLConstants.URL_HANDLER_PROTOCOL, PROTOCOL );
         m_handlerReg = m_bundleContext.registerService(
-                URLStreamHandlerService.class.getName(),
+                URLStreamHandlerService.class,
                 this,
                 props
         );
-
     }
 
     /**
@@ -146,7 +153,7 @@ public class Activator extends AbstractURLStreamHandlerService
         final Dictionary<String, String> props = new Hashtable<>();
         props.put(Constants.SERVICE_PID, PID);
         m_managedServiceReg = m_bundleContext.registerService(
-                ManagedService.class.getName(),
+                ManagedService.class,
                 this,
                 props
         );
@@ -166,9 +173,9 @@ public class Activator extends AbstractURLStreamHandlerService
         }
         MavenConfiguration mavenConfig = new MavenConfigurationImpl(propertyResolver, PID);
         MavenResolver resolver = new AetherBasedResolver(mavenConfig);
-        m_resolver = resolver;
-        ServiceRegistration registration = m_bundleContext.registerService(
-                MavenResolver.class.getName(),
+        MavenResolver oldResolver = m_resolver.getAndSet(resolver);
+        ServiceRegistration<MavenResolver> registration = m_bundleContext.registerService(
+                MavenResolver.class,
                 resolver,
                 null
         );
@@ -176,13 +183,20 @@ public class Activator extends AbstractURLStreamHandlerService
         if (registration != null) {
             registration.unregister();
         }
+        if (oldResolver != null) {
+            try {
+                oldResolver.close();
+            } catch (IOException e) {
+                // Ignore
+            }
+        }
     }
 
     @Override
     public URLConnection openConnection( final URL url )
             throws IOException
     {
-        return new Connection( url, m_resolver );
+        return new Connection(url, m_resolver.get());
     }
 
 }

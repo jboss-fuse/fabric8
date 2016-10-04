@@ -48,10 +48,12 @@ import io.fabric8.maven.StaticWagonProvider;
 import io.fabric8.common.util.Filter;
 import io.fabric8.common.util.Filters;
 import io.fabric8.common.util.IOHelpers;
+import io.fabric8.maven.url.ServiceConstants;
 import io.fabric8.maven.util.MavenConfiguration;
 import io.fabric8.maven.util.MavenRepositoryURL;
 import io.fabric8.maven.util.Parser;
 import io.fabric8.maven.util.decrypt.MavenSettingsDecrypter;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.maven.model.Model;
 import org.apache.maven.repository.internal.MavenRepositorySystemUtils;
 import org.apache.maven.settings.Mirror;
@@ -151,6 +153,7 @@ public class AetherBasedResolver implements MavenResolver {
     final private MavenConfiguration m_config;
     final private MirrorSelector m_mirrorSelector;
     final private ProxySelector m_proxySelector;
+    final private CloseableHttpClient m_client;
     private Settings m_settings;
     private SettingsDecrypter decrypter;
 
@@ -184,6 +187,7 @@ public class AetherBasedResolver implements MavenResolver {
      * @param configuration (must be not null)
      */
     public AetherBasedResolver( final MavenConfiguration configuration, final Mirror mirror, final RepositorySystem repositorySystem ) {
+        m_client = HttpClients.createClient(configuration.getPropertyResolver(), configuration.getPid());
         m_config = configuration;
         m_settings = configuration.getSettings();
         if (repositorySystem == null) {
@@ -200,22 +204,36 @@ public class AetherBasedResolver implements MavenResolver {
     private RepositorySystem newRepositorySystem() {
         DefaultServiceLocator locator = MavenRepositorySystemUtils.newServiceLocator();
 
-        locator.addService( RepositoryConnectorFactory.class, BasicRepositoryConnectorFactory.class );
-        locator.addService( TransporterProvider.class, DefaultTransporterProvider.class );
-        locator.addService( TransporterFactory.class, WagonTransporterFactory.class );
-        locator.setServices( WagonProvider.class, new StaticWagonProvider(m_config.getTimeout()) );
-        locator.addService( org.eclipse.aether.spi.log.LoggerFactory.class, Slf4jLoggerFactory.class );
+        locator.addService(RepositoryConnectorFactory.class, BasicRepositoryConnectorFactory.class);
+        locator.addService(TransporterProvider.class, DefaultTransporterProvider.class);
+        locator.addService(TransporterFactory.class, WagonTransporterFactory.class);
 
-        decrypter = new MavenSettingsDecrypter( m_config.getSecuritySettings() );
-        locator.setServices( SettingsDecrypter.class, decrypter );
+        // default timeout (both connection and read timeouts)
+        int defaultTimeout = m_config.getTimeout();
+        // connection timeout
+        int connectionTimeout = m_config.getProperty(ServiceConstants.PROPERTY_SOCKET_CONNECTION_TIMEOUT, defaultTimeout, Integer.class);
+        // read timeout
+        int soTimeout = m_config.getProperty(ServiceConstants.PROPERTY_SOCKET_SO_TIMEOUT, defaultTimeout, Integer.class);
+        locator.setServices(WagonProvider.class, new StaticWagonProvider(m_client, soTimeout, connectionTimeout));
+
+        locator.addService(org.eclipse.aether.spi.log.LoggerFactory.class, Slf4jLoggerFactory.class);
+
+        decrypter = new MavenSettingsDecrypter(m_config.getSecuritySettings());
+        locator.setServices(SettingsDecrypter.class, decrypter);
+
         return locator.getService(RepositorySystem.class);
+    }
+
+    @Override
+    public void close() throws IOException {
+        m_client.close();
     }
 
     private void decryptSettings()
     {
         SettingsDecryptionRequest request = new DefaultSettingsDecryptionRequest( m_settings );
         SettingsDecryptionResult result = decrypter.decrypt( request );
-        m_settings.setProxies(result.getProxies());
+        m_settings.setProxies( result.getProxies() );
         m_settings.setServers( result.getServers() );
     }
 
@@ -271,7 +289,7 @@ public class AetherBasedResolver implements MavenResolver {
                 addRepo( list, r );
             }
         }
-        
+
         return list;
     }
 
@@ -536,14 +554,14 @@ public class AetherBasedResolver implements MavenResolver {
             return resolved;
         }
         catch( ArtifactResolutionException e ) {
-            /**
-             * Do not add root exception to avoid NotSerializableException on DefaultArtifact. To
-             * avoid loosing information log the root cause. We can remove this again as soon as
-             * DefaultArtifact is serializeable. See http://team.ops4j.org/browse/PAXURL-206
-             */
-            LOG.warn( "Error resolving artifact " + artifact.toString() + ":" + e.getMessage(), e );
+            // we know there's one ArtifactResult, because there was one ArtifactRequest
+            List<String> messages = new ArrayList<>(e.getResult().getExceptions().size());
+            for (Exception ex : e.getResult().getExceptions()) {
+                messages.add(ex.getMessage() == null ? ex.getClass().getName() : ex.getMessage());
+            }
+            LOG.warn( "Error resolving artifact " + artifact.toString() + ": " + messages, e );
             throw new IOException( "Error resolving artifact " + artifact.toString() + ": "
-                    + e.getMessage() );
+                    + e.getMessage(), e );
         }
         catch( RepositoryException e ) {
             throw new IOException( "Error resolving artifact " + artifact.toString(), e );
@@ -668,6 +686,19 @@ public class AetherBasedResolver implements MavenResolver {
                 addServerConfig(session, server);
             }
         }
+
+        // org.eclipse.aether.transport.wagon.WagonTransporter.connectWagon() sets connection timeout
+        // as max of connection timeout and request timeout taken from aether session config
+        // but on the other hand, request timeout is used in org.eclipse.aether.connector.basic.PartialFile.Factory
+        //
+        // because real socket read timeout is used again (correctly) in
+        // org.ops4j.pax.url.mvn.internal.wagon.ConfigurableHttpWagon.execute() - directly from wagon configuration
+        // (from org.apache.maven.wagon.AbstractWagon.getReadTimeout()), we explicitly configure aether session
+        // config with: PartialFile.Factory timeout == connection timeout
+        int defaultTimeut = m_config.getTimeout();
+        Integer timeout = m_config.getProperty( ServiceConstants.PROPERTY_SOCKET_CONNECTION_TIMEOUT, defaultTimeut, Integer.class );
+        session.setConfigProperty( ConfigurationProperties.CONNECT_TIMEOUT, timeout );
+        session.setConfigProperty( ConfigurationProperties.REQUEST_TIMEOUT, timeout );
 
         session.setOffline( m_config.isOffline() );
 

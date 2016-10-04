@@ -15,20 +15,27 @@
  */
 package io.fabric8.maven;
 
+import io.fabric8.maven.url.internal.wagon.ConfigurableHttpWagon;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.maven.wagon.Wagon;
 import org.apache.maven.wagon.providers.file.FileWagon;
 import org.apache.maven.wagon.providers.http.HttpWagon;
 import org.eclipse.aether.transport.wagon.WagonProvider;
 
 public class StaticWagonProvider implements WagonProvider {
-    private int timeout;
 
-    public StaticWagonProvider() {
-        this(10000);
+    private CloseableHttpClient client;
+    private int readTimeout;
+    private int connectionTimeout;
+
+    public StaticWagonProvider(CloseableHttpClient client, int readTimeout) {
+        this(client, readTimeout, readTimeout);
     }
 
-    public StaticWagonProvider(int timeout) {
-        this.timeout = timeout;
+    public StaticWagonProvider(CloseableHttpClient client, int readTimeout, int connectionTimeout) {
+        this.client = client;
+        this.readTimeout = readTimeout;
+        this.connectionTimeout = connectionTimeout;
     }
 
     public Wagon lookup(String roleHint) throws Exception {
@@ -36,13 +43,12 @@ public class StaticWagonProvider implements WagonProvider {
             return new FileWagon();
         }
         if ("http".equals(roleHint) || "https".equals(roleHint)) {
-            HttpWagon wagon = new HttpWagon();
-            wagon.setTimeout(timeout);
-            return wagon;
+            return new ConfigurableHttpWagon(client, readTimeout, connectionTimeout);
         }
         return null;
     }
 
     public void release(Wagon wagon) {
     }
+
 }
