@@ -554,14 +554,17 @@ public class AetherBasedResolver implements MavenResolver {
             return resolved;
         }
         catch( ArtifactResolutionException e ) {
+            LOG.warn("Error resolving artifact " + artifact.toString());
             // we know there's one ArtifactResult, because there was one ArtifactRequest
-            List<String> messages = new ArrayList<>(e.getResult().getExceptions().size());
             for (Exception ex : e.getResult().getExceptions()) {
-                messages.add(ex.getMessage() == null ? ex.getClass().getName() : ex.getMessage());
+                if (LOG.isDebugEnabled()) {
+                    LOG.warn(" - " + ex.getMessage(), ex);
+                } else {
+                    LOG.warn(" - " + ex.getMessage());
+                }
             }
-            LOG.warn( "Error resolving artifact " + artifact.toString() + ": " + messages, e );
-            throw new IOException( "Error resolving artifact " + artifact.toString() + ": "
-                    + e.getMessage(), e );
+            throw new IOException("Error resolving artifact " + artifact.toString() + ": "
+                    + e.getMessage(), e);
         }
         catch( RepositoryException e ) {
             throw new IOException( "Error resolving artifact " + artifact.toString(), e );
