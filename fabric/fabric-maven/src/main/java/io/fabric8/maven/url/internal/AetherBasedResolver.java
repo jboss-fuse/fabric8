@@ -30,7 +30,6 @@ import java.util.Deque;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -521,28 +520,29 @@ public class AetherBasedResolver implements MavenResolver {
         }
 
         if (previousException != null) {
+            // we'll try using previous repositories, without these that will fail again anyway
             List<RemoteRepository> altered = new LinkedList<>();
-            Map<String, RemoteRepository> temp = new LinkedHashMap<>();
-            for (RemoteRepository rr : remoteRepos) {
-                temp.put(rr.getUrl(), rr);
-            }
             RepositoryException repositoryException = findAetherException(previousException);
             if (repositoryException instanceof ArtifactResolutionException) {
                 // check only this aggregate exception and assume it's related to current artifact
                 ArtifactResult result = ((ArtifactResolutionException) repositoryException).getResult();
                 if (result != null && result.getRequest() != null && result.getRequest().getArtifact().equals(artifact)) {
+                    // one exception per repository checked
                     for (Exception exception : result.getExceptions()) {
                         RepositoryException singleException = findAetherException(exception);
-                        if (singleException instanceof ArtifactNotFoundException) {
-                            RemoteRepository repository = ((ArtifactNotFoundException) singleException).getRepository();
-                            LOG.debug("Removing {} from list of repositories, previous exception: {}: {}",
-                                    repository, singleException.getClass().getName(), singleException.getMessage());
-                            temp.remove(repository.getUrl());
+                        if (singleException != null) {
+                            RemoteRepository repository = ((ArtifactTransferException) singleException).getRepository();
+                            RetryChance chance = isRetryableException(singleException);
+                            if (chance == RetryChance.NEVER) {
+                                LOG.debug("Removing " + repository + " from list of repositories, previous exception: " +
+                                        singleException.getClass().getName() + ": " + singleException.getMessage());
+                            } else {
+                                altered.add(repository);
+                            }
                         }
                     }
 
                     // swap list of repos now
-                    altered.addAll(temp.values());
                     remoteRepos = altered;
                 }
             }
