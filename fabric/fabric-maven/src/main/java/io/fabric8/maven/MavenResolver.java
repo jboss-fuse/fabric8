@@ -53,9 +53,21 @@ public interface MavenResolver extends Closeable {
     File download(String url) throws IOException;
 
     /**
+     * Resolve and download a maven based url
+     * Specifying <code>previousException</code> is a hint to resolver.
+     */
+    File download(String url, Exception previousException) throws IOException;
+
+    /**
      * Resolve and download an artifact
      */
     File resolveFile(Artifact artifact) throws IOException;
+
+    /**
+     * Resolve and download an artifact
+     * Specifying <code>previousException</code> is a hint to resolver.
+     */
+    File resolveFile(Artifact artifact, Exception previousException) throws IOException;
 
     /**
      * Build a tree of dependencies for the specified jar file
@@ -67,5 +79,36 @@ public interface MavenResolver extends Closeable {
      * @return
      */
     File getLocalRepository();
+
+    /**
+     * Returns a hint about possible retry of operation that ended with <code>exception</code>
+     * @param exception
+     * @return
+     */
+    RetryChance isRetryableException(Exception exception);
+
+    /**
+     * Enumeration of retry hints that may be used by client code when trying to repeat failed resolution attempt
+     */
+    enum RetryChance {
+        NEVER(0),
+        LOW(1),
+        HIGH(2),
+        UNKNOWN(Integer.MAX_VALUE);
+
+        private int chance;
+
+        RetryChance(int chance) {
+            this.chance = chance;
+        }
+
+        /**
+         * Ordering information for {@link RetryChance chances of retry}
+         * @return
+         */
+        public int chance() {
+            return chance;
+        }
+    }
 
 }
