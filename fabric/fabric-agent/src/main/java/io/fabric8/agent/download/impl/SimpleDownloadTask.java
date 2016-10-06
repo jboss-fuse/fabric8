@@ -53,7 +53,7 @@ public class SimpleDownloadTask extends AbstractRetryableDownloadTask {
     }
 
     @Override
-    protected File download() throws Exception {
+    protected File download(Exception previousExceptionNotUsed) throws Exception {
         LOG.trace("Downloading [" + url + "]");
 
         // we should skip fab: from the url, as we do not want to trigger fab: url handler to kick-in during download
@@ -131,4 +131,11 @@ public class SimpleDownloadTask extends AbstractRetryableDownloadTask {
         }
         return tmpFile;
     }
+
+    @Override
+    protected Retry isRetryable(IOException e) {
+        // TODO: check http errors, etc.
+        return super.isRetryable(e);
+    }
+
 }

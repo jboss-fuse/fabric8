@@ -30,6 +30,8 @@ public abstract class AbstractRetryableDownloadTask extends AbstractDownloadTask
     private long scheduleDelay = 250;
     private int scheduleNbRun = 0;
 
+    private Exception previousException = null;
+
     public AbstractRetryableDownloadTask(ScheduledExecutorService executorService, String url) {
         super(executorService, url);
     }
@@ -37,12 +39,14 @@ public abstract class AbstractRetryableDownloadTask extends AbstractDownloadTask
     public void run() {
         try {
             try {
-                File file = download();
+                File file = download(previousException);
                 setFile(file);
             } catch (IOException e) {
-                if (++scheduleNbRun < 9) {
+                Retry retry = isRetryable(e);
+                if (++scheduleNbRun < retry.getAttempts()) {
+                    previousException = e;
                     long delay = (long)(scheduleDelay * 3 / 2 + Math.random() * scheduleDelay / 2);
-                    LOGGER.debug("Error downloading " + url + ": " + e.getMessage() + ". Retrying in approx " + delay + " ms.");
+                    LOGGER.debug("Error downloading " + url + ": " + e.getMessage() + ". " + retry + " in approx " + delay + " ms.");
                     executorService.schedule(this, delay, TimeUnit.MILLISECONDS);
                     scheduleDelay *= 2;
                 } else {
@@ -54,6 +58,42 @@ public abstract class AbstractRetryableDownloadTask extends AbstractDownloadTask
         }
     }
 
-    protected abstract File download() throws Exception;
+    protected Retry isRetryable(IOException e) {
+        return Retry.DEFAULT_RETRY;
+    }
+
+    /**
+     * Abstract download operation that may use <em>previous exception</em> as hint for optimized retry
+     * @param previousException
+     * @return
+     * @throws Exception
+     */
+    protected abstract File download(Exception previousException) throws Exception;
+
+    /**
+     * What kind of retry may be attempted
+     */
+    protected enum Retry {
+        /** Each retry would lead to the same result */
+        NO_RETRY(0),
+        /** It's ok to retry 2, 3 times, but no more */
+        QUICK_RETRY(3),
+        /** Retry with high expectation of success at some point */
+        DEFAULT_RETRY(9);
+
+        private int attempts;
+
+        private Retry(int attempts) {
+            this.attempts = attempts;
+        }
+
+        /**
+         * Returns number of <em>suggested</em> attempts.
+         * @return
+         */
+        public int getAttempts() {
+            return attempts;
+        }
+    }
 
 }
