@@ -249,6 +249,9 @@ public class AetherBasedResolver implements MavenResolver {
     private ProxySelector selectProxies() {
         DefaultProxySelector proxySelector = new DefaultProxySelector();
         for( org.apache.maven.settings.Proxy proxy : m_settings.getProxies() ) {
+            if (!proxy.isActive()) {
+                continue;
+            }
             String nonProxyHosts = proxy.getNonProxyHosts();
             Proxy proxyObj = new Proxy( proxy.getProtocol(), proxy.getHost(), proxy.getPort(),
                     getAuthentication( proxy ) );
