@@ -618,7 +618,7 @@ public class AetherBasedResolver implements MavenResolver {
             for (Exception ex : suppressed) {
                 exception.addSuppressed(ex);
             }
-            LOG.warn( exception.getMessage() + ": " + messages, exception );
+            LOG.warn( exception.getMessage(), exception );
             for (Exception ex : suppressed) {
                 LOG.warn(" - " + ex.getMessage());
             }
