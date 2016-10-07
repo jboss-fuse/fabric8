@@ -47,6 +47,8 @@ import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.zookeeper.CreateMode;
+import org.osgi.service.cm.Configuration;
+import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.http.HttpContext;
 import org.osgi.service.http.HttpService;
 import org.slf4j.Logger;
@@ -79,6 +81,8 @@ public final class MavenProxyRegistrationHandler extends AbstractComponent imple
     private final ValidatingReference<ProjectDeployer> projectDeployer = new ValidatingReference<ProjectDeployer>();
     @Reference(referenceInterface = MavenResolver.class)
     private final ValidatingReference<MavenResolver> mavenResolver = new ValidatingReference<>();
+    @Reference(referenceInterface = ConfigurationAdmin.class)
+    private final ValidatingReference<ConfigurationAdmin> configAdmin = new ValidatingReference<>();
 
     private final Map<String, Set<String>> registeredProxies;
 
@@ -117,9 +121,27 @@ public final class MavenProxyRegistrationHandler extends AbstractComponent imple
             uploadRepository = runtimeProperties.get().getProperty("runtime.data") + "/maven/upload";
         }
 
-        this.mavenDownloadProxyServlet = new MavenDownloadProxyServlet(mavenResolver.get(), runtimeProperties.get(), projectDeployer.get(), threadMaximumPoolSize);
+        int timeout = -1;
+        if (configAdmin.getOptional() != null) {
+            ConfigurationAdmin ca = configAdmin.get();
+            Configuration c = ca.getConfiguration("io.fabric8.agent", null);
+            if (c != null && c.getProperties() != null) {
+                String t = (String) c.getProperties().get("org.ops4j.pax.url.mvn.socket.readTimeout");
+                if (t == null) {
+                    t = (String) c.getProperties().get("org.ops4j.pax.url.mvn.timeout");
+                }
+                if (t != null) {
+                    try {
+                        timeout = Integer.parseInt(t);
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+            }
+        }
+
+        this.mavenDownloadProxyServlet = new MavenDownloadProxyServlet(mavenResolver.get(), runtimeProperties.get(), projectDeployer.get(), threadMaximumPoolSize, timeout);
         this.mavenDownloadProxyServlet.start();
-        this.mavenUploadProxyServlet = new MavenUploadProxyServlet(mavenResolver.get(), runtimeProperties.get(), projectDeployer.get(), new File(uploadRepository));
+        this.mavenUploadProxyServlet = new MavenUploadProxyServlet(mavenResolver.get(), runtimeProperties.get(), projectDeployer.get(), new File(uploadRepository), timeout);
         this.mavenUploadProxyServlet.start();
         try {
             HttpContext base = httpService.get().createDefaultHttpContext();
@@ -254,6 +276,14 @@ public final class MavenProxyRegistrationHandler extends AbstractComponent imple
 
     void unbindConfigurer(Configurer configurer) {
         this.configurer.unbind(configurer);
+    }
+
+    void bindConfigAdmin(ConfigurationAdmin configAdmin) {
+        this.configAdmin.bind(configAdmin);
+    }
+
+    void unbindConfigAdmin(ConfigurationAdmin configAdmin) {
+        this.configAdmin.unbind(configAdmin);
     }
 
 }

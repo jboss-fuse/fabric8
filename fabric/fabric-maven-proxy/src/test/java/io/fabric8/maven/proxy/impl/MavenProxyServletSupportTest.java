@@ -177,13 +177,13 @@ public class MavenProxyServletSupportTest {
 
     @Test(timeout=30000, expected = InvalidMavenArtifactRequest.class)
     public void testConvertNullPath() throws InvalidMavenArtifactRequest {
-        MavenDownloadProxyServlet servlet = new MavenDownloadProxyServlet(createResolver(), runtimeProperties, projectDeployer, 5);
+        MavenDownloadProxyServlet servlet = new MavenDownloadProxyServlet(createResolver(), runtimeProperties, projectDeployer, 5, 0);
         servlet.convertToMavenUrl(null);
     }
 
     @Test(timeout=30000)
     public void testConvertNormalPath() throws InvalidMavenArtifactRequest {
-        MavenDownloadProxyServlet servlet = new MavenDownloadProxyServlet(createResolver(), runtimeProperties, projectDeployer, 5);
+        MavenDownloadProxyServlet servlet = new MavenDownloadProxyServlet(createResolver(), runtimeProperties, projectDeployer, 5, 0);
 
         assertEquals("groupId:artifactId:extension:version",servlet.convertToMavenUrl("groupId/artifactId/version/artifactId-version.extension"));
         assertEquals("group.id:artifactId:extension:version",servlet.convertToMavenUrl("group/id/artifactId/version/artifactId-version.extension"));
@@ -204,7 +204,7 @@ public class MavenProxyServletSupportTest {
 
     @Test(timeout=30000)
     public void testConvertNormalPathWithClassifier() throws InvalidMavenArtifactRequest {
-        MavenDownloadProxyServlet servlet = new MavenDownloadProxyServlet(createResolver(), runtimeProperties, projectDeployer, 5);
+        MavenDownloadProxyServlet servlet = new MavenDownloadProxyServlet(createResolver(), runtimeProperties, projectDeployer, 5, 0);
 
         assertEquals("groupId:artifactId:extension:classifier:version",servlet.convertToMavenUrl("groupId/artifactId/version/artifactId-version-classifier.extension"));
         assertEquals("group.id:artifactId:extension:classifier:version",servlet.convertToMavenUrl("group/id/artifactId/version/artifactId-version-classifier.extension"));
@@ -233,7 +233,7 @@ public class MavenProxyServletSupportTest {
         System.setProperty("karaf.data", new File("target").getCanonicalPath());
         try {
             MavenResolver resolver = createResolver();
-            MavenDownloadProxyServlet servlet = new MavenDownloadProxyServlet(resolver, runtimeProperties, projectDeployer, 5);
+            MavenDownloadProxyServlet servlet = new MavenDownloadProxyServlet(resolver, runtimeProperties, projectDeployer, 5, 0);
             servlet.start();
         } finally {
             if (old != null) {
@@ -416,7 +416,7 @@ public class MavenProxyServletSupportTest {
             RuntimeProperties props = new MockRuntimeProperties();
             // TODO: local repo should point to target/tmp
             MavenResolver resolver = createResolver("target/tmp", remoteRepos, "http", "localhost", localPort, "fuse", "fuse", null);
-            MavenDownloadProxyServlet servlet = new MavenDownloadProxyServlet(resolver, props, projectDeployer, 5);
+            MavenDownloadProxyServlet servlet = new MavenDownloadProxyServlet(resolver, props, projectDeployer, 5, 0);
 
             AsyncContext context = EasyMock.createMock(AsyncContext.class);
             EasyMock.makeThreadSafe(context, true);
@@ -549,7 +549,7 @@ public class MavenProxyServletSupportTest {
             RuntimeProperties props = new MockRuntimeProperties();
             // TODO: local repo should point to target/tmp
             MavenResolver resolver = createResolver("target/tmp", remoteRepos, "http", "localhost", localPort, "fuse", "fuse", null);
-            MavenDownloadProxyServlet servlet = new MavenDownloadProxyServlet(resolver, props, projectDeployer, 5);
+            MavenDownloadProxyServlet servlet = new MavenDownloadProxyServlet(resolver, props, projectDeployer, 5, 0);
 
             AsyncContext context = EasyMock.createMock(AsyncContext.class);
             EasyMock.makeThreadSafe(context, true);
@@ -798,7 +798,7 @@ public class MavenProxyServletSupportTest {
 
         RuntimeProperties props = new MockRuntimeProperties();
         MavenResolver resolver = EasyMock.createMock(MavenResolver.class);
-        MavenUploadProxyServlet servlet = new MavenUploadProxyServlet(resolver, props, projectDeployer, new File("target/upload"));
+        MavenUploadProxyServlet servlet = new MavenUploadProxyServlet(resolver, props, projectDeployer, new File("target/upload"), 0);
         servlet.setFileItemFactory(new DiskFileItemFactory(0, new File("target/maven/proxy/tmp/multipart")));
 
         HttpServletRequest request = EasyMock.createMock(HttpServletRequest.class);
@@ -917,7 +917,7 @@ public class MavenProxyServletSupportTest {
             List<String> remoteRepos = Arrays.asList("http://relevant.not/maven2@id=central");
             RuntimeProperties props = new MockRuntimeProperties();
             MavenResolver resolver = createResolver("target/tmp", remoteRepos, "http", "localhost", localPort, "fuse", "fuse", null);
-            MavenUploadProxyServlet servlet = new MavenUploadProxyServlet(resolver, props, projectDeployer, new File("target/upload"));
+            MavenUploadProxyServlet servlet = new MavenUploadProxyServlet(resolver, props, projectDeployer, new File("target/upload"), 0);
 
             HttpServletRequest request = EasyMock.createMock(HttpServletRequest.class);
             EasyMock.expect(request.getPathInfo()).andReturn(path);

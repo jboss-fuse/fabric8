@@ -21,7 +21,6 @@ import io.fabric8.deployer.dto.DeployResults;
 import io.fabric8.deployer.dto.ProjectRequirements;
 import io.fabric8.maven.MavenResolver;
 import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.FileUpload;
 import org.apache.commons.fileupload.FileUploadBase;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
@@ -42,8 +41,8 @@ public class MavenUploadProxyServlet extends MavenDownloadProxyServlet {
     protected File tmpMultipartFolder = new File(tmpFolder, "multipart");
     private DiskFileItemFactory fileItemFactory = new DiskFileItemFactory(DiskFileItemFactory.DEFAULT_SIZE_THRESHOLD, tmpMultipartFolder);
 
-    public MavenUploadProxyServlet(MavenResolver resolver, RuntimeProperties runtimeProperties, ProjectDeployer projectDeployer, File uploadRepository) {
-        super(resolver, runtimeProperties, projectDeployer, uploadRepository, 0);
+    public MavenUploadProxyServlet(MavenResolver resolver, RuntimeProperties runtimeProperties, ProjectDeployer projectDeployer, File uploadRepository, int timeout) {
+        super(resolver, runtimeProperties, projectDeployer, uploadRepository, 0, timeout);
     }
 
     @Override

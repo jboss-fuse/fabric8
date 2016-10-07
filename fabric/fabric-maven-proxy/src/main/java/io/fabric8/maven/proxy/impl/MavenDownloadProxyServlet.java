@@ -31,7 +31,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.servlet.AsyncContext;
 import javax.servlet.AsyncEvent;
 import javax.servlet.AsyncListener;
-import javax.servlet.DispatcherType;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -53,15 +52,18 @@ public class MavenDownloadProxyServlet extends MavenProxyServletSupport {
 
     private final ConcurrentMap<String, ArtifactDownloadFuture> requestMap = new ConcurrentHashMap<>();
     private final int threadMaximumPoolSize;
+    // timeout used for async context timeout - based on timeout configuration for AetherBasedResolver
+    private int timeout;
     private ThreadPoolExecutor executorService;
 
-    public MavenDownloadProxyServlet(MavenResolver resolver, RuntimeProperties runtimeProperties, ProjectDeployer projectDeployer, int threadMaximumPoolSize) {
-        this(resolver, runtimeProperties, projectDeployer, null, threadMaximumPoolSize);
+    public MavenDownloadProxyServlet(MavenResolver resolver, RuntimeProperties runtimeProperties, ProjectDeployer projectDeployer, int threadMaximumPoolSize, int timeout) {
+        this(resolver, runtimeProperties, projectDeployer, null, threadMaximumPoolSize, timeout);
     }
 
-    protected MavenDownloadProxyServlet(MavenResolver resolver, RuntimeProperties runtimeProperties, ProjectDeployer projectDeployer, File uploadRepository, int threadMaximumPoolSize) {
+    protected MavenDownloadProxyServlet(MavenResolver resolver, RuntimeProperties runtimeProperties, ProjectDeployer projectDeployer, File uploadRepository, int threadMaximumPoolSize, int timeout) {
         super(resolver, runtimeProperties, projectDeployer, uploadRepository);
         this.threadMaximumPoolSize = threadMaximumPoolSize;
+        this.timeout = timeout;
     }
 
     @Override
@@ -71,6 +73,12 @@ public class MavenDownloadProxyServlet extends MavenProxyServletSupport {
         int nbThreads = threadMaximumPoolSize > 0 ? threadMaximumPoolSize : 8;
         executorService = new ThreadPoolExecutor(0, nbThreads, 60, TimeUnit.SECONDS,
                 new LinkedBlockingQueue<Runnable>(), new ThreadFactory("MavenDownloadProxyServlet"));
+
+        if (this.timeout <= 0) {
+            // default
+            this.timeout = 5000;
+        }
+        LOGGER.info("Starting maven download servlet. Using async timeout value: " + this.timeout + "ms");
 
         super.start();
     }
@@ -116,7 +124,7 @@ public class MavenDownloadProxyServlet extends MavenProxyServletSupport {
         final AsyncContext asyncContext = req.startAsync();
         // timeout higher than the one set in:
         // org.eclipse.aether.DefaultRepositorySystemSession.setConfigProperty("aether.connector.requestTimeout", N)
-        asyncContext.setTimeout(TimeUnit.MINUTES.toMillis(6));
+        asyncContext.setTimeout(this.timeout);
 
         asyncContext.addListener(new AsyncListener() {
             @Override
