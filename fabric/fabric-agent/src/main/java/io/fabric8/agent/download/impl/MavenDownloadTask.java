@@ -48,17 +48,22 @@ public class MavenDownloadTask extends AbstractRetryableDownloadTask {
      */
     @Override
     protected Retry isRetryable(IOException e) {
-        // convert fabric-maven "retry" to fabric-agent "retry"
-        switch (resolver.isRetryableException(e)) {
-            case NEVER:
-                return Retry.NO_RETRY;
-            case LOW:
-            case HIGH:
-                // no need to repeat many times
-                return Retry.QUICK_RETRY;
-            case UNKNOWN:
-            default:
-                return Retry.DEFAULT_RETRY;
+        try {
+            // convert fabric-maven "retry" to fabric-agent "retry"
+            switch (resolver.isRetryableException(e)) {
+                case NEVER:
+                    return Retry.NO_RETRY;
+                case LOW:
+                case HIGH:
+                    // no need to repeat many times
+                    return Retry.QUICK_RETRY;
+                case UNKNOWN:
+                default:
+                    return Retry.DEFAULT_RETRY;
+            }
+        } catch (NoSuchMethodError error) {
+            // handle R patch, where agent is updated, but still wired to old fabric-maven.
+            return Retry.DEFAULT_RETRY;
         }
     }
 
