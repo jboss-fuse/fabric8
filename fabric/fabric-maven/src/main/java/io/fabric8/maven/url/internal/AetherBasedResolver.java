@@ -528,16 +528,21 @@ public class AetherBasedResolver implements MavenResolver {
                 ArtifactResult result = ((ArtifactResolutionException) repositoryException).getResult();
                 if (result != null && result.getRequest() != null && result.getRequest().getArtifact().equals(artifact)) {
                     // one exception per repository checked
+                    // consider only ArtifactTransferException:
+                    //  - they may be recoverable
+                    //  - these exceptions contain repository that was checked
                     for (Exception exception : result.getExceptions()) {
                         RepositoryException singleException = findAetherException(exception);
-                        if (singleException != null) {
+                        if (singleException instanceof ArtifactTransferException) {
                             RemoteRepository repository = ((ArtifactTransferException) singleException).getRepository();
-                            RetryChance chance = isRetryableException(singleException);
-                            if (chance == RetryChance.NEVER) {
-                                LOG.debug("Removing " + repository + " from list of repositories, previous exception: " +
-                                        singleException.getClass().getName() + ": " + singleException.getMessage());
-                            } else {
-                                altered.add(repository);
+                            if (repository != null) {
+                                RetryChance chance = isRetryableException(singleException);
+                                if (chance == RetryChance.NEVER) {
+                                    LOG.debug("Removing " + repository + " from list of repositories, previous exception: " +
+                                            singleException.getClass().getName() + ": " + singleException.getMessage());
+                                } else {
+                                    altered.add(repository);
+                                }
                             }
                         }
                     }
