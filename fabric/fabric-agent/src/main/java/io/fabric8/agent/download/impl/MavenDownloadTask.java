@@ -32,7 +32,12 @@ public class MavenDownloadTask extends AbstractRetryableDownloadTask {
 
     @Override
     protected File download(Exception previousException) throws Exception {
-        return resolver.download(url, previousException);
+        try {
+            return resolver.download(url, previousException);
+        } catch (NoSuchMethodError error) {
+            // handle R patch, where agent is updated, but still wired to old fabric-maven.
+            return resolver.download(url);
+        }
     }
 
     /**
