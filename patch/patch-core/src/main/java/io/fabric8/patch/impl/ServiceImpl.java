@@ -731,7 +731,12 @@ public class ServiceImpl implements Service {
                 updateNotRequired.put(stripSymbolicName(b.getSymbolicName()), b);
             }
 //            allBundleVersions.put(stripSymbolicName(b.getSymbolicName()), b.getVersion());
-            locationsOfBundleKeys.put(b.getLocation(), key);
+            String location = b.getLocation();
+            if (location != null && location.startsWith("mvn:") && location.contains("//")) {
+                // special case for mvn:org.ops4j.pax.url/pax-url-wrap/2.4.7//uber
+                location = location.replace("//", "/jar/");
+            }
+            locationsOfBundleKeys.put(location, key);
         }
 
         // let's prepare a set of bundle keys that are part of features that will be updated/reinstalled - those
@@ -745,13 +750,13 @@ public class ServiceImpl implements Service {
                     String fVersion = featureUpdate.getPreviousVersion();
                     Feature f = featuresService.getFeature(fName, fVersion);
                     for (BundleInfo bundleInfo : f.getBundles()) {
-                        if (!bundleInfo.isDependency() && locationsOfBundleKeys.containsKey(bundleInfo.getLocation())) {
+                        if (/*!bundleInfo.isDependency() && */locationsOfBundleKeys.containsKey(bundleInfo.getLocation())) {
                             bundleKeysFromFeatures.add(locationsOfBundleKeys.get(bundleInfo.getLocation()));
                         }
                     }
                     for (Conditional cond : f.getConditional()) {
                         for (BundleInfo bundleInfo : cond.getBundles()) {
-                            if (!bundleInfo.isDependency() && locationsOfBundleKeys.containsKey(bundleInfo.getLocation())) {
+                            if (/*!bundleInfo.isDependency() && */locationsOfBundleKeys.containsKey(bundleInfo.getLocation())) {
                                 bundleKeysFromFeatures.add(locationsOfBundleKeys.get(bundleInfo.getLocation()));
                             }
                         }
