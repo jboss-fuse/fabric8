@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -54,7 +53,6 @@ import io.fabric8.agent.service.State;
 import io.fabric8.api.Container;
 import io.fabric8.api.CuratorComplete;
 import io.fabric8.api.FabricService;
-import io.fabric8.api.InvalidComponentException;
 import io.fabric8.api.Profile;
 import io.fabric8.common.util.ChecksumUtils;
 import io.fabric8.common.util.Files;
@@ -142,8 +140,6 @@ public class DeploymentAgent implements ManagedService {
     // and service.getMavenRepoURIs()
     // see ENTESB-2370: OSE Maven artifacts uploaded to fabric proxy cannot be resolved by containers
     private Lock fabricServiceOperations = new ReentrantLock();
-    // after this latch goes to 0, we *should* have httpUrl and mavenRepoURIs available
-    private CountDownLatch fabricServiceAvailable = new CountDownLatch(1);
 
     private final State state = new State();
 
@@ -212,8 +208,6 @@ public class DeploymentAgent implements ManagedService {
             fabricServiceOperations.lock();
             httpUrl = this.fabricService.getService().getCurrentContainer().getHttpUrl();
             mavenRepoURIs = this.fabricService.getService().getMavenRepoURIs();
-            // one time operation - after this, we have httpUrl and mavenRepoURIs
-            fabricServiceAvailable.countDown();
             LOGGER.info("Maven repository configuration correctly updated: httpUrl=[{}], mavenRepoURIs=[{}]", httpUrl, mavenRepoURIs);
         } catch (RuntimeException e){
             LOGGER.info("It's been impossible to correctly update maven repositories configuration");
@@ -417,7 +411,6 @@ public class DeploymentAgent implements ManagedService {
 
         // Building configuration
         curatorCompleteService.waitForService(TimeUnit.SECONDS.toMillis(30));
-        fabricServiceAvailable.await(30, TimeUnit.SECONDS);
         String httpUrl;
         List<URI> mavenRepoURIs;
 
