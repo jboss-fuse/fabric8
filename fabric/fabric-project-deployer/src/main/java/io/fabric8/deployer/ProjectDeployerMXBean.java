@@ -22,4 +22,10 @@ import io.fabric8.deployer.dto.DeployResults;
  */
 public interface ProjectDeployerMXBean {
     DeployResults deployProjectJson(String requirementsJson) throws Exception;
+
+    /**
+     * 
+     * @param appendProfileBundles  When false and a matching Profile exists, the existing bundle list will be overridden and not appended
+     */
+    DeployResults deployProjectJson(String requirementsJson, boolean appendProfileBundles) throws Exception;
 }

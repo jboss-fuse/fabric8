@@ -48,6 +48,7 @@ import org.apache.maven.artifact.repository.DefaultArtifactRepository;
 import org.apache.maven.artifact.repository.MavenArtifactRepository;
 import org.apache.maven.artifact.repository.layout.DefaultRepositoryLayout;
 import org.apache.maven.artifact.resolver.ArtifactResolutionRequest;
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Component;
@@ -128,6 +129,9 @@ public class DeployToProfileMojo extends AbstractProfileMojo {
 
     @VisibleForTesting
     Server fabricServer;
+
+    @Component
+    private MavenSession mavenSession;
 
     private boolean customUsernameAndPassword;
 
@@ -600,7 +604,9 @@ public class DeployToProfileMojo extends AbstractProfileMojo {
         getLog().info("About to invoke mbean " + mbeanName + " on jolokia URL: " + jolokiaUrl + " with user: " + fabricServer.getUsername());
         getLog().debug("JSON: " + json);
         try {
-            J4pExecRequest request = new J4pExecRequest(mbeanName, "deployProjectJson", json);
+            // Append bundles to existing profile bundles if we're not running the plugin at project root 
+            Boolean appendBundles = !mavenSession.getExecutionRootDirectory().equalsIgnoreCase(project.getBasedir().toString());
+            J4pExecRequest request = new J4pExecRequest(mbeanName, "deployProjectJson(java.lang.String,boolean)", json,appendBundles);
             J4pResponse<J4pExecRequest> response = client.execute(request, "POST");
             Object value = response.getValue();
             if (value == null) {
