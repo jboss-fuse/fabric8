@@ -54,6 +54,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -158,6 +159,13 @@ public final class ProjectDeployerImpl extends AbstractComponent implements Proj
     }
 
     @Override
+    public DeployResults deployProjectJson(String requirementsJson, boolean appendProfileBundles) throws Exception {
+        ProjectRequirements requirements = DtoHelper.getMapper().readValue(requirementsJson, ProjectRequirements.class);
+        Objects.notNull(requirements, "ProjectRequirements");
+        return deployProject(requirements, appendProfileBundles);
+    }
+
+    @Override
     public DeployResults deployProject(ProjectRequirements requirements) throws Exception {
         return deployProject(requirements, false);
     }
@@ -181,7 +189,7 @@ public final class ProjectDeployerImpl extends AbstractComponent implements Proj
         ProjectRequirements oldRequirements = writeRequirementsJson(requirements, profile, builder);
         updateProfileConfiguration(version, profile, requirements, oldRequirements, builder, merge);
 
-        return resolveProfileDeployments(requirements, fabricService.get(), profile, builder);
+        return resolveProfileDeployments(requirements, fabricService.get(), profile, builder,merge);
     }
 
     /**
@@ -189,7 +197,7 @@ public final class ProjectDeployerImpl extends AbstractComponent implements Proj
      */
     private void updateProfileConfiguration(Version version, Profile profile, ProjectRequirements requirements, ProjectRequirements oldRequirements, ProfileBuilder builder, boolean merge) {
         List<String> parentProfiles = Lists.mutableList(profile.getParentIds());
-        List<String> bundles = Lists.mutableList(profile.getBundles());
+        List<String> bundles = merge ? Lists.mutableList(profile.getBundles()) : Collections.EMPTY_LIST;
         List<String> features = Lists.mutableList(profile.getFeatures());
         List<String> repositories = Lists.mutableList(profile.getRepositories());
         if (!merge && oldRequirements != null) {
@@ -262,7 +270,7 @@ public final class ProjectDeployerImpl extends AbstractComponent implements Proj
         }
     }
 
-    private DeployResults resolveProfileDeployments(ProjectRequirements requirements, FabricService fabric, Profile profile, ProfileBuilder builder) throws Exception {
+    private DeployResults resolveProfileDeployments(ProjectRequirements requirements, FabricService fabric, Profile profile, ProfileBuilder builder, boolean append) throws Exception {
         DependencyDTO rootDependency = requirements.getRootDependency();
         ProfileService profileService = fabricService.get().adapt(ProfileService.class);
 
@@ -276,7 +284,10 @@ public final class ProjectDeployerImpl extends AbstractComponent implements Proj
             LOG.info("Using resolver to add extra features and bundles on " + bundleUrl);
 
             List<String> features = new ArrayList<String>();
-            List<String> bundles = new ArrayList<String>(profile.getBundles());
+            List<String> bundles = new ArrayList<String>();
+            if(append){
+               bundles.addAll(profile.getBundles()); 
+            }
             List<String> optionals = new ArrayList<String>();
 
             if (requirements.getFeatures() != null) {
