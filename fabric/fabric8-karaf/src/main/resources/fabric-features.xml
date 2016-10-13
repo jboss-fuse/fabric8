@@ -470,6 +470,16 @@
         <bundle>mvn:io.fabric8.insight/insight-camel/${project.version}</bundle>
     </feature>
 
+    <feature name="insight-activemq" version="${project.version}" resolver="(obr)">
+        <feature version="${project.version}">mq-fabric</feature>
+        <feature version="${activemq-version}">activemq-client</feature>
+        <feature version="${project.version}">insight-elasticsearch-log-storage</feature>
+        <bundle dependency="true">mvn:org.mvel/mvel2/${mvel-version}</bundle>
+        <bundle>mvn:org.codehaus.jackson/jackson-mapper-asl/${jackson-version}</bundle>
+        <bundle>mvn:org.codehaus.jackson/jackson-core-asl/${jackson-version}</bundle>
+        <bundle>mvn:io.fabric8.insight/insight-activemq/${project.version}</bundle>
+    </feature>
+
     <feature name="fabric-ldap-apacheds" version="${project.version}" resolver="(obr)">
         <configfile finalname="/data/ldap/default/fabric.ldif">mvn:io.fabric8/fabric-ldap/${project.version}/ldif/default</configfile>
         <configfile finalname="/etc/fabric-ldap-apacheds-${project.version}.xml">mvn:io.fabric8/fabric-ldap/${project.version}/xml/apacheds</configfile>

@@ -1,0 +1,1 @@
+The insight-activemq profile adds ActiveMQ message audit logging to [ElasticSearch](http://www.elasticsearch.org/)
