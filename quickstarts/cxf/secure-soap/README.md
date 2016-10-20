@@ -7,6 +7,15 @@ Summary: This quickstart demonstrates how to create a secure SOAP Web service wi
 Target Product: Fuse  
 Source: <https://github.com/jboss-fuse/quickstarts>  
 
+### How and What is secured
+
+In this example we will be adding two interceptors to the inbound interceptor chain:
+   - the CXF WSS4J interceptor to support WS-Security for passing along the credentials
+   - a reference to the the JAAS authentication interceptor defined as a separate bean later on
+     this will ensure that the credentials are being authenticated in the JAAS realm defined there ('karaf')
+
+You can see the first interceptor [here](https://github.com/jboss-fuse/fabric8/blob/1.2.0.redhat-6-3-x/quickstarts/cxf/secure-soap/src/main/resources/OSGI-INF/blueprint/blueprint.xml#L42-L62) and the second [here](https://github.com/jboss-fuse/fabric8/blob/1.2.0.redhat-6-3-x/quickstarts/cxf/secure-soap/src/main/resources/OSGI-INF/blueprint/blueprint.xml#L72-L81). In this example the password is a simple PasswordText and this is not a good practice, don't try this in your environment production.
+
 ### Building this example
 
 The example comes as source code and pre-built binaries with the fabric8 distribution. 
