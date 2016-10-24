@@ -22,7 +22,6 @@ import io.fabric8.maven.MavenResolvers;
 import io.fabric8.maven.url.ServiceConstants;
 import org.apache.felix.utils.version.VersionRange;
 import org.easymock.EasyMock;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
@@ -45,7 +44,6 @@ import static org.easymock.EasyMock.*;
 
 public class AgentTest {
 
-    @Ignore("ENTESB-6204")
     @Test
     public void testAgent() throws Exception {
         System.setProperty("karaf.data", new File("target/karaf/data").getAbsolutePath());
