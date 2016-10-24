@@ -39,7 +39,6 @@ import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,7 +109,6 @@ public class DownloadManagerTest {
     }
 
     @Test
-    @Ignore("https://issues.apache.org/jira/browse/HTTPCLIENT-1652")
     public void testDownloadUsingAuthenticatedProxy() throws Exception {
         Server server = new Server(0);
         server.setHandler(new AbstractHandler() {
