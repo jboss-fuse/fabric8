@@ -157,4 +157,37 @@ public class ConflictResolutionTest {
         assertThat(resolved1, equalTo(expected1));
     }
 
+    /**
+     * Tests for resolving conflicts inside <code>io.fabric8.agent.properties</code> and <code>attribute.parents</code>
+     * property.
+     * The rule here is: take patch version and add custom parents at the end of <code>attribute.parents</code>.
+     * @throws Exception
+     */
+    @Test
+    public void resolveAgentProperties() throws Exception {
+        PropertiesFileResolver resolver = (PropertiesFileResolver) cr.getResolver("io.fabric8.agent.properties");
+
+        // installation
+        String resolved1String = resolver.resolve(
+                new File("src/test/resources/conflicts/example4/io.fabric8.agent.patched.properties"),
+                new File("src/test/resources/conflicts/example4/io.fabric8.agent.base.properties"),
+                new File("src/test/resources/conflicts/example4/io.fabric8.agent.edited.properties"),
+                true, false
+        );
+        List<String> resolved1 = IOUtils.readLines(new StringReader(resolved1String));
+        List<String> expected1 = FileUtils.readLines(new File("src/test/resources/conflicts/example4/io.fabric8.agent.expected.properties"));
+        assertThat(resolved1, equalTo(expected1));
+
+        // rollback
+        resolved1String = resolver.resolve(
+                new File("src/test/resources/conflicts/example4/io.fabric8.agent.edited.properties"),
+                new File("src/test/resources/conflicts/example4/io.fabric8.agent.patched.properties"),
+                new File("src/test/resources/conflicts/example4/io.fabric8.agent.base.properties"),
+                false, true
+        );
+        resolved1 = IOUtils.readLines(new StringReader(resolved1String));
+        expected1 = FileUtils.readLines(new File("src/test/resources/conflicts/example4/io.fabric8.agent.expected-after-rollback.properties"));
+        assertThat(resolved1, equalTo(expected1));
+    }
+
 }
