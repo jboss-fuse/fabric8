@@ -36,6 +36,7 @@ import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -134,7 +135,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     };
 
     private static final Pattern VERSION_PATTERN =
-            Pattern.compile("patch-management-(\\d+\\.\\d+\\.\\d+(?:\\.[^\\.]+)?)\\.jar");
+            Pattern.compile("patch-management-(\\d+\\.\\d+\\.\\d+(?:\\.[^.]+)?)\\.jar");
 
     private static final String MARKER_BASELINE_COMMIT_PATTERN = "[PATCH/baseline] Installing baseline-%s";
     private static final String MARKER_BASELINE_ROOT_COMMIT_PATTERN = "[PATCH/baseline] Installing baseline-%s";
@@ -151,7 +152,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     private static final String MARKER_R_PATCH_RESET_OVERRIDES_PATTERN = "[PATCH] Rollup patch %s - resetting etc/overrides.properties";
 
     /* Patterns for non-rollup patch installation */
-    private static final String MARKER_P_PATCH_INSTALLATION_PATTERN = "[PATCH] Installing patch %s";
+    private static final String MARKER_P_PATCH_INSTALLATION_PREFIX = "[PATCH] Installing patch ";
+    private static final String MARKER_P_PATCH_INSTALLATION_PATTERN = MARKER_P_PATCH_INSTALLATION_PREFIX + "%s";
 
     /** A pattern of commit message when installing patch-management (this) bundle in etc/startup.properties */
     private static final String MARKER_PATCH_MANAGEMENT_INSTALLATION_COMMIT_PATTERN
@@ -781,11 +783,21 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     ObjectId to = fork.getRepository().resolve(gitPatchRepository.getMainBranchName() + "^{commit}");
                     Iterable<RevCommit> mainChanges = fork.log().addRange(since, to).call();
                     List<RevCommit> userChanges = new LinkedList<>();
+                    // gather lines of HF patches - patches that have *only* bundle updates
+                    // if any of HF patches provide newer version of artifact than currently installed R patch,
+                    // we will leave the relevant line in etc/overrides.properties
+                    List<String> hfChanges = new LinkedList<>();
                     for (RevCommit rc : mainChanges) {
                         if (isUserChangeCommit(rc)) {
                             userChanges.add(rc);
+                        } else {
+                            String hfPatchId = isHfChangeCommit(rc);
+                            if (hfPatchId != null) {
+                                hfChanges.addAll(gatherOverrides(hfPatchId, patch));
+                            }
                         }
                     }
+
 
                     String patchRef = patch.getManagedPatch().getCommitId();
                     if (env == EnvType.STANDALONE_CHILD) {
@@ -836,7 +848,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     // next commit - reset overrides.properties - this is 2nd step of installing rollup patch
                     // we are doing it even if the commit is going to be empty - this is the same step as after
                     // creating initial baseline
-                    resetOverrides(fork.getRepository().getWorkTree());
+                    resetOverrides(fork.getRepository().getWorkTree(), hfChanges);
                     fork.add().addFilepattern("etc/overrides.properties").call();
                     RevCommit c = gitPatchRepository.prepareCommit(fork,
                             String.format(MARKER_R_PATCH_RESET_OVERRIDES_PATTERN, patch.getPatchData().getId())).call();
@@ -869,8 +881,12 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         // mechanism
                         File overrides = new File(fork.getRepository().getWorkTree(), "etc/overrides.properties");
                         if (overrides.isFile()) {
-                            overrides.delete();
-                            fork.rm().addFilepattern("etc/overrides.properties").call();
+                            // ENTESB-5849: if installing R patch after P patch that is HotFix and has newer
+                            // version of some bundles, overrides.properties should be kept
+                            if (!(hfChanges.size() > 0 && overrides.length() > 0)) {
+                                overrides.delete();
+                                fork.rm().addFilepattern("etc/overrides.properties").call();
+                            }
                         }
 
                         // if there's conflict here, prefer patch version (which is "ours" (first) in this case)
@@ -1026,12 +1042,15 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * @param karafHome
      * @throws IOException
      */
-    private void resetOverrides(File karafHome) throws IOException {
+    private void resetOverrides(File karafHome, List<String> overridesToKeep) throws IOException {
         File overrides = new File(karafHome, "etc/overrides.properties");
         if (overrides.isFile()) {
             overrides.delete();
         }
         overrides.createNewFile();
+        if (overridesToKeep != null && overridesToKeep.size() > 0) {
+            FileUtils.writeLines(overrides, overridesToKeep);
+        }
     }
 
     @Override
@@ -1745,6 +1764,76 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      */
     protected boolean isUserChangeCommit(RevCommit rc) {
         return MARKER_USER_CHANGES_COMMIT.equals(rc.getShortMessage());
+    }
+
+    /**
+     * Checks whether the commit is related to HotFix patch installation.
+     * Such patches are P patches that update <strong>only</strong> bundles.
+     * @param rc
+     * @return patchId of HF patch if one is detected
+     */
+    private String isHfChangeCommit(RevCommit rc) {
+        String msg = rc.getShortMessage();
+        boolean pPatch = msg != null && msg.startsWith(MARKER_P_PATCH_INSTALLATION_PREFIX);
+        if (pPatch) {
+            String patchId = msg.length() > MARKER_P_PATCH_INSTALLATION_PREFIX.length() ? msg.substring(MARKER_P_PATCH_INSTALLATION_PREFIX.length()) : null;
+            if (patchId != null) {
+                Patch p = loadPatch(new PatchDetailsRequest(patchId));
+                if (p != null && p.getPatchData() != null) {
+                    try {
+                        boolean hfPatch = p.getPatchData().getBundles().size() > 0;
+                        hfPatch &= p.getPatchData().getFeatureFiles().size() == 0;
+                        hfPatch &= p.getPatchData().getFiles().size() == 0;
+                        hfPatch &= p.getPatchData().getOtherArtifacts().size() == 0;
+                        return patchId;
+                    } catch (Exception e) {
+                        return null;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Returns list of bundle updates (maven coordinates) from HF/P patch that should be preserved during
+     * installation of R patch
+     * @param hfPatchId ID of patch that was detected to be HF patch
+     * @param patch currently installed R patch
+     * @return
+     */
+    private List<String> gatherOverrides(String hfPatchId, Patch patch) {
+        Patch hf = loadPatch(new PatchDetailsRequest(hfPatchId));
+        List<String> result = new LinkedList<>();
+
+        if (hf != null && hf.getPatchData() != null) {
+            result.addAll(hf.getPatchData().getBundles());
+
+            // leave only these artifacts that are in newer version than in R patch being installed
+            if (patch != null && patch.getPatchData() != null) {
+                Map<String, Artifact> cache = new HashMap<>();
+                for (String bu : patch.getPatchData().getBundles()) {
+                    Artifact rPatchArtifact = Utils.mvnurlToArtifact(bu, true);
+                    if (rPatchArtifact != null) {
+                        cache.put(String.format("%s:%s", rPatchArtifact.getGroupId(), rPatchArtifact.getArtifactId()), rPatchArtifact);
+                    }
+                }
+
+                for (String bu : hf.getPatchData().getBundles()) {
+                    Artifact hfPatchArtifact = Utils.mvnurlToArtifact(bu, true);
+                    String key = String.format("%s:%s", hfPatchArtifact.getGroupId(), hfPatchArtifact.getArtifactId());
+                    if (cache.containsKey(key)) {
+                        Version hfVersion = Utils.getOsgiVersion(hfPatchArtifact.getVersion());
+                        Version rVersion = Utils.getOsgiVersion(cache.get(key).getVersion());
+                        if (rVersion.compareTo(hfVersion) >= 0) {
+                            result.remove(bu);
+                        }
+                    }
+                }
+            }
+        }
+
+        return result;
     }
 
     /**
@@ -2556,7 +2645,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         // patch installation - no P-patch should ADD overrides.properties - they have to only MODIFY it because
         // it's easier to revert such modification (in case P-patch is rolled back - probably in different order
         // than it was installed)
-        resetOverrides(git.getRepository().getWorkTree());
+        resetOverrides(git.getRepository().getWorkTree(), Collections.<String>emptyList());
         git.add().addFilepattern("etc/overrides.properties").call();
         return gitPatchRepository.prepareCommit(git,
                 String.format(MARKER_BASELINE_RESET_OVERRIDES_PATTERN, version)).call();

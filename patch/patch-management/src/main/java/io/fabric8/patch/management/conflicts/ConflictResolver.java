@@ -35,6 +35,7 @@ public class ConflictResolver {
         builtInResolvers.put("etc/org.apache.karaf.features.cfg", new KarafFeaturesPropertiesFileResolver());
         builtInResolvers.put("bin/setenv", new ChooseUserVersionResolver());
         builtInResolvers.put("bin/setenv.bat", new ChooseUserVersionResolver());
+        builtInResolvers.put("io.fabric8.agent.properties", new Fabric8AgentPropertiesFileResolver());
         PropertiesFileResolver resolver = new PropertiesFileResolver();
         builtInResolvers.put("*.properties", resolver);
         builtInResolvers.put("*.cfg", resolver);
@@ -42,15 +43,19 @@ public class ConflictResolver {
 
     /**
      * If there's dedicated resolver for a path relative to <code>${karaf.home}</code>, return it. If there's no
-     * resolver for path, we try resolver by extension.
+     * resolver for path, we try resolver by name and then by extension.
      * @param path
      * @return
      */
     public Resolver getResolver(String path) {
         Resolver resolver = builtInResolvers.get(path);
         if (resolver == null) {
-            String ext = FilenameUtils.getExtension(path);
-            resolver = builtInResolvers.get("*." + ext);
+            String name = FilenameUtils.getName(path);
+            resolver = builtInResolvers.get(name);
+            if (resolver == null) {
+                String ext = FilenameUtils.getExtension(path);
+                resolver = builtInResolvers.get("*." + ext);
+            }
         }
         return resolver;
     }

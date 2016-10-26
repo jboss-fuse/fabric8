@@ -124,9 +124,10 @@ public final class DefaultProfileBuilder extends AbstractBuilder<ProfileBuilder>
 
     private void updateParentsAttribute(Collection<String> parentIds) {
         Map<String, String> config = getConfigurationInternal(Constants.AGENT_PID);
-        config.remove(PARENTS_ATTRIBUTE_KEY);
         if (parentIds.size() > 0) {
             config.put(PARENTS_ATTRIBUTE_KEY, parentsAttributeValue(parentIds));
+        } else {
+            config.remove(PARENTS_ATTRIBUTE_KEY);
         }
         addConfiguration(Constants.AGENT_PID, config);
     }
