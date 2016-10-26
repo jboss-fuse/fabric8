@@ -335,6 +335,71 @@ public class GitPatchManagementServiceIT extends PatchTestSupport {
     }
 
     /**
+     * Installation of R patch <strong>may</strong> leave P patches installed when they provide <strong>only</strong>
+     * bundles and the bundles are at higher version
+     * @throws IOException
+     * @throws GitAPIException
+     */
+    @Test
+    public void installPPatchHotFixPPatchAndThenRPatch() throws IOException, GitAPIException {
+        initializationPerformedBaselineDistributionFoundInSystem();
+
+        // prepare some ZIP patches
+        preparePatchZip("src/test/resources/content/patch1", "target/karaf/patches/source/patch-1.zip", false);
+        preparePatchZip("src/test/resources/content/patch2", "target/karaf/patches/source/patch-2.zip", false);
+        preparePatchZip("src/test/resources/content/patch4", "target/karaf/patches/source/patch-4.zip", false);
+
+        GitPatchRepository repository = ((GitPatchManagementServiceImpl) pm).getGitPatchRepository();
+
+        PatchManagement service = (PatchManagement) pm;
+        PatchData patchData1 = service.fetchPatches(new File("target/karaf/patches/source/patch-1.zip").toURI().toURL()).get(0);
+        Patch patch1 = service.trackPatch(patchData1);
+        PatchData patchData2 = service.fetchPatches(new File("target/karaf/patches/source/patch-2.zip").toURI().toURL()).get(0);
+        Patch patch2 = service.trackPatch(patchData2);
+        PatchData patchData4 = service.fetchPatches(new File("target/karaf/patches/source/patch-4.zip").toURI().toURL()).get(0);
+        Patch patch4 = service.trackPatch(patchData4);
+
+        String tx = service.beginInstallation(PatchKind.NON_ROLLUP);
+        service.install(tx, patch1, null);
+        service.commitInstallation(tx);
+
+        tx = service.beginInstallation(PatchKind.NON_ROLLUP);
+        service.install(tx, patch2, null);
+        service.commitInstallation(tx);
+
+        assertTrue("There should be etc/overrides.properties after installing non-rollup patches",
+                new File(karafHome, "etc/overrides.properties").exists());
+        // overrides.properties as after installing P patches with new mechanism
+        String etcOverridesProperties = FileUtils.readFileToString(new File(karafHome, "etc/overrides.properties"));
+        assertThat(etcOverridesProperties, equalTo("mvn:io.fabric8/fabric-tranquility/1.2.5\n"));
+
+        Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
+
+        assertTrue(repository.containsTag(fork, "patch-my-patch-1"));
+        assertTrue(repository.containsTag(fork, "patch-my-patch-2"));
+        assertFalse(repository.containsTag(fork, "baseline-6.2.0.redhat-002"));
+
+        repository.closeRepository(fork, true);
+
+        tx = service.beginInstallation(PatchKind.ROLLUP);
+        service.install(tx, patch4, null);
+        service.commitInstallation(tx);
+
+        fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
+        assertFalse(repository.containsTag(fork, "patch-my-patch-1"));
+        assertFalse(repository.containsTag(fork, "patch-my-patch-2"));
+        assertTrue(repository.containsTag(fork, "baseline-6.2.0.redhat-002"));
+
+        assertTrue("There still should be etc/overrides.properties after installing rollup patch",
+                new File(karafHome, "etc/overrides.properties").exists());
+        // overrides.properties as after installing R patch with new mechanism
+        etcOverridesProperties = FileUtils.readFileToString(new File(karafHome, "etc/overrides.properties"));
+        assertThat(etcOverridesProperties, equalTo("mvn:io.fabric8/fabric-tranquility/1.2.5\n"));
+
+        repository.closeRepository(fork, true);
+    }
+
+    /**
      * Patch 4 is rollup patch (doesn't contain descriptor, contains default.profile/io.fabric8.version.properties)
      * Adding it is not different that adding non-rollup patch. Installation is different
      * @throws IOException
