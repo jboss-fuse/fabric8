@@ -2,6 +2,8 @@
 
 * [beginner quickstarts](/fabric/profiles/quickstarts/karaf/beginner) is recommended for first time users of Fabric to get you started
 * [quickstarts](/fabric/profiles/quickstarts) and [examples](/fabric/profiles/example) to get you started using Fabric
+* [quickstarts](/fabric/profiles/quickstarts) and [examples](/fabric/profiles/example) are not included by default. To include them as default uncomment the property
+`importProfileURLs` in the `io.fabric8.import.profiles.properties` file
 
 #### Products
 
