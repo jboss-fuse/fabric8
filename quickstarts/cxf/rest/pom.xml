@@ -21,12 +21,12 @@
   <parent>
     <groupId>io.fabric8.quickstarts</groupId>
     <artifactId>fabric8-quickstarts-cxf-parent</artifactId>
-    <version>1.2.0-SNAPSHOT</version>
+    <version>1.2.0.redhat-621172</version>
   </parent>
 
     <groupId>io.fabric8.quickstarts</groupId>
     <artifactId>cxf-rest</artifactId>
-    <version>1.2.0-SNAPSHOT</version>
+    <version>1.2.0.redhat-621172</version>
     <packaging>bundle</packaging>
     <name>JBoss Fuse Quickstart: rest</name>
     <description>RESTful WebService Example using JAX-RS with JBoss Fuse</description>
@@ -78,13 +78,13 @@
     <version.maven-bundle-plugin>2.3.7</version.maven-bundle-plugin>
     <maven-resources-plugin-version>2.6</maven-resources-plugin-version>
     <build-helper-maven-plugin-version>1.9.1</build-helper-maven-plugin-version>
-    <cxf-version>3.0.2</cxf-version>
+    <cxf-version>3.0.4.redhat-621172</cxf-version>
     <skipTests>true</skipTests>
 
 
     <!-- the version of the BOM, defining all the dependency versions -->
-    <fabric8.bom.version>1.2.0-SNAPSHOT</fabric8.bom.version>
-    <fabric.version>1.2.0-SNAPSHOT</fabric.version>
+    <fabric8.bom.version>1.2.0.redhat-621172</fabric8.bom.version>
+    <fabric.version>1.2.0.redhat-621172</fabric.version>
 
     <!-- fabric8 deploy profile configuration -->
     <fabric8.profile>quickstarts-cxf-rest</fabric8.profile>
