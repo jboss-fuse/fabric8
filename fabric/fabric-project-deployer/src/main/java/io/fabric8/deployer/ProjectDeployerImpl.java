@@ -159,7 +159,7 @@ public final class ProjectDeployerImpl extends AbstractComponent implements Proj
     }
 
     @Override
-    public DeployResults deployProjectJson(String requirementsJson, boolean appendProfileBundles) throws Exception {
+    public DeployResults deployProjectJsonMergeOption(String requirementsJson, boolean appendProfileBundles) throws Exception {
         ProjectRequirements requirements = DtoHelper.getMapper().readValue(requirementsJson, ProjectRequirements.class);
         Objects.notNull(requirements, "ProjectRequirements");
         return deployProject(requirements, appendProfileBundles);
@@ -197,7 +197,7 @@ public final class ProjectDeployerImpl extends AbstractComponent implements Proj
      */
     private void updateProfileConfiguration(Version version, Profile profile, ProjectRequirements requirements, ProjectRequirements oldRequirements, ProfileBuilder builder, boolean merge) {
         List<String> parentProfiles = Lists.mutableList(profile.getParentIds());
-        List<String> bundles = merge ? Lists.mutableList(profile.getBundles()) : Collections.EMPTY_LIST;
+        List<String> bundles = merge ? Lists.mutableList(profile.getBundles()) : new ArrayList<String>();
         List<String> features = Lists.mutableList(profile.getFeatures());
         List<String> repositories = Lists.mutableList(profile.getRepositories());
         if (!merge && oldRequirements != null) {
