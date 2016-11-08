@@ -16,7 +16,7 @@ The example is implemented using the following two Camel routes
 
 The routes is illustrated in the following diagram
 
-![Camel EIPs diagram](https://raw.githubusercontent.com/fabric8io/fabric8/master/docs/images/camel-errorhandler-diagram.jpg)
+![Camel EIPs diagram](https://raw.githubusercontent.com/jboss-fuse/fabric8/1.2.0.redhat-6-3-x/docs/images/camel-errorhandler-diagram.jpg)
 
 The entry is the mainRoute which pickup incoming order files. The files is processed and validated by Java beans. If any of the orders is invalid an exception is thrown.
 
