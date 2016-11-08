@@ -606,7 +606,7 @@ public class DeployToProfileMojo extends AbstractProfileMojo {
         try {
             // Append bundles to existing profile bundles if we're not running the plugin at project root 
             Boolean appendBundles = !mavenSession.getExecutionRootDirectory().equalsIgnoreCase(project.getBasedir().toString());
-            J4pExecRequest request = new J4pExecRequest(mbeanName, "deployProjectJson(java.lang.String,boolean)", json,appendBundles);
+            J4pExecRequest request = new J4pExecRequest(mbeanName, "deployProjectJsonMergeOption(java.lang.String,boolean)", json, appendBundles);
             J4pResponse<J4pExecRequest> response = client.execute(request, "POST");
             Object value = response.getValue();
             if (value == null) {
