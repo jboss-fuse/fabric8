@@ -25,7 +25,9 @@ public interface ProjectDeployerMXBean {
 
     /**
      * 
+     * This method was added with a different name than {@link ProjectDeployerMXBean#deployProjectJson(String)} to preserve backward compatibility.
+     * 
      * @param appendProfileBundles  When false and a matching Profile exists, the existing bundle list will be overridden and not appended
      */
-    DeployResults deployProjectJson(String requirementsJson, boolean appendProfileBundles) throws Exception;
+    DeployResults deployProjectJsonMergeOption(String requirementsJson, boolean appendProfileBundles) throws Exception;
 }
