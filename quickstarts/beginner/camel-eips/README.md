@@ -18,7 +18,7 @@ The example is implemented using the following four Camel routes
 
 The routes is illustrated in the following diagram
 
-![Camel EIPs diagram](https://raw.githubusercontent.com/fabric8io/fabric8/master/docs/images/camel-eips-diagram.jpg)
+![Camel EIPs diagram](https://raw.githubusercontent.com/jboss-fuse/fabric8/1.2.0.redhat-6-3-x/docs/images/camel-eips-diagram.jpg)
 
 
 ### Building this example

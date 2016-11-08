@@ -11,7 +11,7 @@ This example is implemented using solely the XML DSL (there is no Java code). Th
 
 This example pickup incoming XML files, and depending on the content of the XML files, they are routed to different endpoints, as shown in figure below.
 
-![Camel CBR diagram](https://raw.githubusercontent.com/fabric8io/fabric8/master/docs/images/camel-cbr-diagram.jpg)
+![Camel CBR diagram](https://raw.githubusercontent.com/jboss-fuse/fabric8/1.2.0.redhat-6-3-x/docs/images/camel-cbr-diagram.jpg)
 
 The example comes with sample data, making it easy to try the example yourself.
 
