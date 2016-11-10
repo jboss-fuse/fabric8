@@ -15,13 +15,6 @@
  */
 package io.fabric8.service;
 
-import static io.fabric8.zookeeper.utils.ZooKeeperUtils.createDefault;
-import static io.fabric8.zookeeper.utils.ZooKeeperUtils.deleteSafe;
-import static io.fabric8.zookeeper.utils.ZooKeeperUtils.exists;
-import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getChildren;
-import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getStringData;
-import static io.fabric8.zookeeper.utils.ZooKeeperUtils.setData;
-
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -48,6 +41,8 @@ import io.fabric8.api.scr.ValidatingReference;
 import io.fabric8.zookeeper.ZkPath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static io.fabric8.zookeeper.utils.ZooKeeperUtils.*;
 
 @ThreadSafe
 @Component(name = "io.fabric8.portservice.zookeeper", label = "Fabric8 ZooKeeper Port Service", metatype = false)
@@ -115,6 +110,7 @@ public final class ZookeeperPortService extends AbstractComponent implements Por
         assertValid();
         String portAsString = String.valueOf(port);
         String containerPortsPath = ZkPath.PORTS_CONTAINER_PID_KEY.getPath(container.getId(), pid, key);
+        String reservedPortsPath = ZkPath.PORTS_CONTAINER_RESERVED_PORTS.getPath(container.getId());
 
         String ip = container.getIp();
         assertValidIp(container, ip);
@@ -130,10 +126,16 @@ public final class ZookeeperPortService extends AbstractComponent implements Por
                 createDefault(curator.get(), containerPortsPath, portAsString);
                 createDefault(curator.get(), ipPortsPath, portAsString);
 
+
                 setData(curator.get(), containerPortsPath, portAsString);
                 String existingPorts = getStringData(curator.get(), ipPortsPath);
                 if (!existingPorts.contains(portAsString)) {
                     setData(curator.get(), ipPortsPath, existingPorts + " " + portAsString);
+                    createDefault(curator.get(), reservedPortsPath, portAsString);
+                    String reservedPortsPerContainer = getStringData(curator.get(), reservedPortsPath);
+                    if (!reservedPortsPerContainer.contains(portAsString)) {
+                        setData(curator.get(), reservedPortsPath, reservedPortsPerContainer + " " + portAsString);
+                    }
                 }
             } else {
                 throw new FabricException("Could not acquire port lock for pid " + pid);
@@ -176,9 +178,9 @@ public final class ZookeeperPortService extends AbstractComponent implements Por
         String ip = container.getIp();
         assertValidIp(container, ip);
         String ipPortsPath = ZkPath.PORTS_IP.getPath(ip);
-	Lease lease = null;        
-	try {
-            if(existingLease != null){
+        Lease lease = null;
+        try {
+            if (existingLease != null) {
                 lease = existingLease;
             } else {
                 lease = interProcessLock.acquire(60, TimeUnit.SECONDS);
@@ -190,17 +192,9 @@ public final class ZookeeperPortService extends AbstractComponent implements Por
                     deleteSafe(curator.get(), containerPortsPidKeyPath);
 
                     Set<Integer> allPorts = findUsedPortByHost(container, lease);
+
                     allPorts.remove(port);
-                    StringBuilder sb = new StringBuilder();
-                    boolean first = true;
-                    for (Integer p : allPorts) {
-                        if (first) {
-                            sb.append(p);
-                            first = false;
-                        } else {
-                            sb.append(" ").append(p);
-                        }
-                    }
+                    StringBuilder sb = buildPortsString(allPorts);
                     setData(curator.get(), ipPortsPath, sb.toString());
                 }
             } else {
@@ -217,6 +211,20 @@ public final class ZookeeperPortService extends AbstractComponent implements Por
             }
         }
 
+    }
+
+    private StringBuilder buildPortsString(Set<Integer> allPorts) {
+        StringBuilder sb = new StringBuilder();
+        boolean first = true;
+        for (Integer p : allPorts) {
+            if (first) {
+                sb.append(p);
+                first = false;
+            } else {
+                sb.append(" ").append(p);
+            }
+        }
+        return sb;
     }
 
     @Override
@@ -266,6 +274,10 @@ public final class ZookeeperPortService extends AbstractComponent implements Por
     public void unregisterPort(Container container) {
         assertValid();
         String containerPortsPath = ZkPath.PORTS_CONTAINER.getPath(container.getId());
+        String reservedPortsPath = ZkPath.PORTS_CONTAINER_RESERVED_PORTS.getPath(container.getId());
+        String ip = container.getIp();
+        String ipPortsPath = ZkPath.PORTS_IP.getPath(ip);
+
         Lease lease = null;
         try {
             lease = interProcessLock.acquire(60, TimeUnit.SECONDS);
@@ -273,7 +285,20 @@ public final class ZookeeperPortService extends AbstractComponent implements Por
                 if (exists(curator.get(), containerPortsPath) != null) {
                     for (String pid : getChildren(curator.get(), containerPortsPath)) {
                         unregisterPort(container, pid, lease);
+
+                        if (exists(curator.get(), reservedPortsPath) != null) {
+                            Set<Integer> allPorts = findUsedPortByHost(container, lease);
+                            String reservedPortsPerContainer = getStringData(curator.get(), reservedPortsPath);
+                            String[] split = reservedPortsPerContainer.split(" ");
+                            for(String p : split){
+                                allPorts.remove(Integer.valueOf(p));
+                            }
+
+                            StringBuilder sb = buildPortsString(allPorts);
+                            setData(curator.get(), ipPortsPath, sb.toString() );
+                        }
                     }
+                    deleteSafe(curator.get(), reservedPortsPath);
                     deleteSafe(curator.get(), containerPortsPath);
                 }
             } else {
