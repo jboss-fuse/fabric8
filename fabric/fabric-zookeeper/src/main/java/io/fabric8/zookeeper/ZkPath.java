@@ -146,6 +146,7 @@ public enum ZkPath {
     PORTS                          ("/fabric/registry/ports"),
     PORTS_LOCK                     ("/fabric/registry/ports/lock"),
     PORTS_CONTAINER                ("/fabric/registry/ports/containers/{container}"),
+    PORTS_CONTAINER_RESERVED_PORTS ("/fabric/registry/ports/containers/{container}/reserved_ports"),
     PORTS_CONTAINER_PID            ("/fabric/registry/ports/containers/{container}/{pid}"),
     PORTS_CONTAINER_PID_KEY        ("/fabric/registry/ports/containers/{container}/{pid}/{key}"),
     PORTS_IP                       ("/fabric/registry/ports/ip/{address}"),
