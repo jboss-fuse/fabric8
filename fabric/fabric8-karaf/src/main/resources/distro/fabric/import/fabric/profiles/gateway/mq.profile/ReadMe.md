@@ -1,3 +1,3 @@
-Provides a single port TCP [gateway](https://access.redhat.com/documentation/en-US/Red_Hat_JBoss_Fuse/6.2/html/Fabric_Guide/Gateway.html) between http and messaging clients and services running in the Fabric with automatic load balancing and failover.
+Provides a single port TCP [gateway](https://access.redhat.com/documentation/en/red-hat-jboss-fuse/6.3/single/fabric-guide#Gateway) between http and messaging clients and services running in the Fabric with automatic load balancing and failover.
 
 The gateway handles detecting the client protocol.  If it's an HTTP client, the connection will be routed to the HTTP gateway.  If it's a messaging client, it will use any supplied host information provided by the client to route the connection to a broker Fabric group.

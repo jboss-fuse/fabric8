@@ -23,5 +23,5 @@
 
 #### Documentation
 
-* [documentation](https://access.redhat.com/documentation/en-US/Red_Hat_JBoss_Fuse/6.2/html/Fabric_Guide/) to access the documentation from the Red Hat website
+* [documentation](https://access.redhat.com/documentation/en/red-hat-jboss-fuse/6.3/single/fabric-guide) to access the documentation from the Red Hat website
 
