@@ -15,6 +15,7 @@
  */
 package io.fabric8.service;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.Map;
 
@@ -23,8 +24,12 @@ import io.fabric8.api.FabricService;
 import io.fabric8.api.PlaceholderResolver;
 import io.fabric8.api.jcip.ThreadSafe;
 import io.fabric8.api.scr.AbstractComponent;
+import io.fabric8.api.scr.ValidatingReference;
 import io.fabric8.utils.PasswordEncoder;
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.cache.ChildData;
+import org.apache.curator.framework.recipes.cache.NodeCacheExtended;
+import org.apache.curator.framework.recipes.cache.NodeCacheExtendedListener;
 import org.apache.felix.cm.PersistenceManager;
 import org.apache.felix.cm.file.EncryptingPersistenceManager;
 import org.apache.felix.cm.impl.ConfigurationManager;
@@ -34,6 +39,7 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Properties;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.Service;
 import org.jasypt.encryption.pbe.PBEStringEncryptor;
 import org.jasypt.encryption.pbe.StandardPBEStringEncryptor;
@@ -52,7 +58,7 @@ import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getStringData;
 @Component(name = "io.fabric8.placholder.resolver.crypt", label = "Fabric8 Encrypted Property Placeholder Resolver", metatype = false)
 @Service({ PlaceholderResolver.class, EncryptedPropertyResolver.class })
 @Properties({ @Property(name = "scheme", value = EncryptedPropertyResolver.RESOLVER_SCHEME) })
-public final class EncryptedPropertyResolver extends AbstractComponent implements PlaceholderResolver {
+public final class EncryptedPropertyResolver extends AbstractComponent implements PlaceholderResolver, NodeCacheExtendedListener {
 
     public static Logger LOG = LoggerFactory.getLogger(EncryptedPropertyResolver.class);
     public static final String RESOLVER_SCHEME = "crypt";
@@ -63,6 +69,11 @@ public final class EncryptedPropertyResolver extends AbstractComponent implement
 //    private ServiceRegistration<?> pmRegistration;
     private PersistenceManager encryptingPersistenceManager;
     private PersistenceManager originalPersistenceManager;
+
+    private FabricService fabricService ;
+
+    NodeCacheExtended passwordNodeCache;
+    NodeCacheExtended alogrithmNodeCache;
 
     @Reference
     private ConfigurationAdmin configAdmin;
@@ -76,9 +87,6 @@ public final class EncryptedPropertyResolver extends AbstractComponent implement
     @Deactivate
     void deactivate() {
         deactivateComponent();
-//        if (pmRegistration != null) {
-//            pmRegistration.unregister();
-//        }
         if (originalPersistenceManager != null) {
             inject(configAdmin, originalPersistenceManager);
         }
@@ -86,6 +94,16 @@ public final class EncryptedPropertyResolver extends AbstractComponent implement
             seRegistration.unregister();
         }
         encryptor = null;
+        try {
+            alogrithmNodeCache.close();
+            passwordNodeCache.close();
+        } catch (IOException e) {
+            LOG.warn("Exception while closing node caches.");
+            if(LOG.isTraceEnabled()){
+                LOG.trace("", e);
+            }
+        }
+
     }
 
     /**
@@ -93,6 +111,7 @@ public final class EncryptedPropertyResolver extends AbstractComponent implement
      * @param fabricService
      */
     public void initialize(FabricService fabricService) {
+        this.fabricService = fabricService;
         encryptor = getEncryptor(fabricService);
         if (bundleContext != null) {
             seRegistration = bundleContext.registerService(PBEStringEncryptor.class, encryptor, null);
@@ -100,13 +119,17 @@ public final class EncryptedPropertyResolver extends AbstractComponent implement
             encryptingPersistenceManager = new EncryptingPersistenceManager(
                     context, context.getProperty(ConfigurationManager.CM_CONFIG_DIR),
                     encryptor);
-//            Hashtable<String, Object> props = new Hashtable<>();
-//            props.put(Constants.SERVICE_PID, fpm.getClass().getName());
-//            props.put(Constants.SERVICE_DESCRIPTION, "Encrypting Filesystem Persistence Manager");
-//            props.put(Constants.SERVICE_RANKING, Integer.MAX_VALUE);
-//            props.put("encrypting", "true");
-//            pmRegistration = bundleContext.registerService(PersistenceManager.class, fpm, props);
             originalPersistenceManager = inject(configAdmin, encryptingPersistenceManager);
+            passwordNodeCache = new NodeCacheExtended(fabricService.adapt(CuratorFramework.class), AUTHENTICATION_CRYPT_PASSWORD.getPath());
+            passwordNodeCache.getListenable().addListener(this);
+            alogrithmNodeCache = new NodeCacheExtended(fabricService.adapt(CuratorFramework.class), AUTHENTICATION_CRYPT_ALGORITHM.getPath());
+            alogrithmNodeCache.getListenable().addListener(this);
+            try {
+                passwordNodeCache.start();
+                alogrithmNodeCache.start();
+            } catch (Exception e) {
+                throw new FabricException(e);
+            }
         }
     }
 
@@ -190,5 +213,10 @@ public final class EncryptedPropertyResolver extends AbstractComponent implement
         } catch (Exception e) {
             throw FabricException.launderThrowable(e);
         }
+    }
+
+    @Override
+    public void nodeChanged(ChildData previousData, ChildData newData) throws Exception {
+        encryptor = getEncryptor(fabricService);
     }
 }
