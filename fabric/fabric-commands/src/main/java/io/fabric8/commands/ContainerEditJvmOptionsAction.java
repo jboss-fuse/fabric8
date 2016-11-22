@@ -36,6 +36,7 @@ import javax.management.remote.JMXServiceURL;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 
 import static io.fabric8.utils.FabricValidations.validateContainerName;
 
@@ -176,7 +177,8 @@ public class ContainerEditJvmOptionsAction extends AbstractAction {
             username = null;
             password = null;
             promptForJmxCredentialsIfNeeded();
-            connector = JMXConnectorFactory.connect(target, env);
+            Map<String,String[]> newEnv = prepareAuthenticationData();
+            connector = JMXConnectorFactory.connect(target, newEnv);
         }
         return connector;
     }
