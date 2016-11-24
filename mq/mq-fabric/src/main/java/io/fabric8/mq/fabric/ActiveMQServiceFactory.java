@@ -39,12 +39,16 @@ import io.fabric8.mq.fabric.discovery.FabricDiscoveryAgent;
 import io.fabric8.utils.NamedThreadFactory;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.broker.BrokerService;
+import org.apache.activemq.broker.BrokerStoppedException;
+import org.apache.activemq.broker.LockableServiceSupport;
 import org.apache.activemq.broker.TransportConnector;
 import org.apache.activemq.network.DiscoveryNetworkConnector;
 import org.apache.activemq.network.NetworkConnector;
 import org.apache.activemq.spring.SpringBrokerContext;
 import org.apache.activemq.spring.Utils;
+import org.apache.activemq.store.PersistenceAdapter;
 import org.apache.activemq.util.IntrospectionSupport;
+import org.apache.activemq.util.ServiceSupport;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.xbean.classloader.MultiParentClassLoader;
 import org.apache.xbean.spring.context.ResourceXmlApplicationContext;
@@ -451,13 +455,15 @@ public class ActiveMQServiceFactory  {
                                     lastModified = server.getResource().lastModified();
                                 }
                                 started = true;
+                            } catch (BrokerStoppedException expected) {
+                                break;
                             } catch (Throwable e) {
                                 if (start_future.isCancelled() || Thread.currentThread().isInterrupted()) {
                                     info("Broker %s interrupted while starting", name);
                                     break;
                                 }
-                                info("Broker %s failed to start.  Will try again in 10 seconds", name);
-                                LOG.error("Exception on start: " + e.getMessage(), e);
+                                LOG.info("Broker " + name + " failed to start.  Will try again in 10 seconds");
+                                LOG.error("Exception on start: " + e, e);
                                 try {
                                     Thread.sleep(1000 * 10);
                                 } catch (InterruptedException ignore) {
@@ -628,16 +634,29 @@ public class ActiveMQServiceFactory  {
         private void interruptAndWaitForStart() throws ExecutionException, InterruptedException {
             if (start_future != null && !start_future.isDone()) {
                 start_future.cancel(false);
+                long timeOutSeconds = SHUTDOWN_TIMEOUT_IN_SECONDS;
                 if (server != null && server.broker != null) {
-                    // slave blocked on store lock
+                    // slave possibly blocked on store lock, wait for store locker start before calling stop
                     try {
-                        server.broker.stop();
+                        PersistenceAdapter persistenceAdapter = server.broker.getPersistenceAdapter();
+                        if (persistenceAdapter != null && persistenceAdapter instanceof LockableServiceSupport) {
+                            LockableServiceSupport lockableServiceSupport = (LockableServiceSupport) persistenceAdapter;
+                            if (lockableServiceSupport.isUseLock() && lockableServiceSupport.getLocker() instanceof ServiceSupport) {
+                                ServiceSupport lockService = ((ServiceSupport)lockableServiceSupport.getLocker());
+                                while (!lockService.isStarted() && timeOutSeconds > 0) {
+                                    TimeUnit.SECONDS.sleep(1);
+                                    timeOutSeconds--;
+                                }
+                                LOG.info("broker stop on active async start, blocked on store lock:" + lockService.isStarted());
+                                server.broker.stop();
+                            }
+                        }
                     } catch (Exception e) {
                         LOG.warn("Call to stop failed with exception:" + e.getLocalizedMessage());
                     }
                 }
                 try {
-                   start_future.get(SHUTDOWN_TIMEOUT_IN_SECONDS, TimeUnit.SECONDS);
+                   start_future.get(timeOutSeconds, TimeUnit.SECONDS);
                 } catch (TimeoutException e) {
                     LOG.error("Unable to cancel startup ActiveMQ in the allotted {} seconds.", SHUTDOWN_TIMEOUT_IN_SECONDS);
                 } catch (CancellationException ignore) {

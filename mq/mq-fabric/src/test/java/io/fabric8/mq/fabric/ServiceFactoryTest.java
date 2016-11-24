@@ -141,21 +141,32 @@ public class ServiceFactoryTest {
 
     @Test
     public void testZkDisconnectFastReconnect() throws Exception {
-        doTestZkDisconnectFastReconnect(false);
+        for (int i=0;i<10;i++) {
+            LOG.info("testZkDisconnectFastReconnect - Iteration:" + i);
+            doTestZkDisconnectFastReconnect(false, "amq.xml");
+        }
+    }
+
+    @Test
+    public void testZkDisconnectFastReconnectDiskLock() throws Exception {
+        for (int i=0;i<10;i++) {
+            LOG.info("testZkDisconnectFastReconnectDiskLock - Iteration:" + i);
+            doTestZkDisconnectFastReconnect(false, "amq-disk-lock.xml");
+        }
     }
 
     @Test
     public void testZkDisconnectFastReconnectAfterStart() throws Exception {
-        doTestZkDisconnectFastReconnect(true);
+        doTestZkDisconnectFastReconnect(true, "amq.xml");
     }
 
-    private void doTestZkDisconnectFastReconnect(final boolean waitForInitalconnect) throws Exception {
+    private void doTestZkDisconnectFastReconnect(final boolean waitForInitalconnect, String xmlConfig) throws Exception {
 
         underTest = new ActiveMQServiceFactory();
         underTest.curator = curator;
 
         Properties props = new Properties();
-        props.put("config", "amq.xml");
+        props.put("config", xmlConfig);
         props.put("broker-name", "amq");
         props.put("connectors", "openwire");
 
