@@ -212,15 +212,15 @@ public final class FabricConfigAdminBridge extends AbstractComponent implements 
                 old.putAll(c);
                 c = old;
             }
+
+            if (felix_file_install_name != null && !c.containsKey(FELIX_FILE_INSTALL_FILE_NAME)) {
+                c.put(FELIX_FILE_INSTALL_FILE_NAME, felix_file_install_name);
+            }
             config.update(c);
         } else {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("Ignoring configuration {} (no changes)", config.getPid());
             }
-        }
-
-        if(felix_file_install_name !=  null && !c.containsKey(FELIX_FILE_INSTALL_FILE_NAME)){
-            c.put(FELIX_FILE_INSTALL_FILE_NAME, felix_file_install_name);
         }
     }
 
