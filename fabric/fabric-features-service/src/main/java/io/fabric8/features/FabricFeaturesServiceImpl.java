@@ -125,6 +125,10 @@ public final class FabricFeaturesServiceImpl extends AbstractComponent implement
                 updated = true;
                 LOGGER.info("Features configuration correctly set");
             } catch (IllegalStateException | InvalidComponentException e){
+                if (!isValid()) {
+                    LOGGER.info("FeaturesService was deactivated");
+                    break;
+                }
                 interruptibleThreadSleep(5000L);
             }
             if(!updated) {
