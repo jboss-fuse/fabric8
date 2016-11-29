@@ -242,6 +242,7 @@
         <jasypt-version>1.9.3.redhat_3</jasypt-version>
         <javassist-version>3.19.0-GA</javassist-version>
         <javax.inject.bundle.version>1_2</javax.inject.bundle.version>
+        <javax.mail.version>1.5.5</javax.mail.version>
         <jaxb-api-version>2.1</jaxb-api-version>
         <jaxb-version>2.2.11</jaxb-version>
         <jaxb-smx-version>2.2.11_1</jaxb-smx-version>

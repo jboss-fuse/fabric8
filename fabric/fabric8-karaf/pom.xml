@@ -610,6 +610,25 @@
                                   <echo message="Copying .gitattributes"/>
                                   <copy file="${basedir}/src/main/resources/distro/fabric/import/fabric/profiles/.gitattributes"
                                     todir="${dest.profiles}"/>
+
+                                  <!-- ACL alignment -->
+                                  <echo message="Aligning ACL configuration"/>
+                                  <copy todir="target/dependencies/unix/apache-karaf-${karaf-version}/etc" overwrite="true">
+                                    <fileset dir="target/classes/distro/fabric/import/fabric/profiles/acls.profile">
+                                      <include name="org.apache.karaf.command.acl.config.properties" />
+                                      <include name="org.apache.karaf.command.acl.features.properties" />
+                                      <include name="org.apache.karaf.command.acl.jaas.properties" />
+                                      <include name="org.apache.karaf.command.acl.osgi.properties" />
+                                      <include name="org.apache.karaf.command.acl.scope_bundle.properties" />
+                                      <include name="org.apache.karaf.command.acl.shell.properties" />
+                                      <include name="jmx.acl.java.lang.Memory.properties" />
+                                      <include name="jmx.acl.org.apache.karaf.bundle.properties" />
+                                      <include name="jmx.acl.org.apache.karaf.config.properties" />
+                                      <include name="jmx.acl.org.apache.karaf.security.jmx.properties" />
+                                      <include name="jmx.acl.osgi.compendium.cm.properties" />
+                                    </fileset>
+                                    <globmapper from="*.properties" to="*.cfg" />
+                                  </copy>
                                </target>
                            </configuration>
                        </execution>
