@@ -17,6 +17,7 @@ package io.fabric8.insight.elasticsearch.storage.metrics.impl;
 
 import io.fabric8.api.scr.ValidatingReference;
 import io.fabric8.insight.elasticsearch.AbstractElasticsearchStorage;
+import io.fabric8.insight.elasticsearch.impl.ElasticsearchNode;
 import io.fabric8.insight.metrics.model.MetricsStorageService;
 import org.apache.felix.scr.annotations.*;
 import org.elasticsearch.node.Node;
@@ -40,20 +41,20 @@ public class ElasticsearchMetricsStorage extends AbstractElasticsearchStorage {
         }
     }
 
-    @Reference(name = "node", referenceInterface = org.elasticsearch.node.Node.class, target = "(cluster.name=insight)")
-    private final ValidatingReference<Node> node = new ValidatingReference<>();
+    @Reference(name = "node", referenceInterface = io.fabric8.insight.elasticsearch.impl.ElasticsearchNode.class, target = "(cluster.name=insight)")
+    private final ValidatingReference<ElasticsearchNode> node = new ValidatingReference<>();
 
-    private void bindNode(Node node) {
+    private void bindNode(ElasticsearchNode node) {
         this.node.bind(node);
     }
 
-    private void unbindNode(Node node) {
+    private void unbindNode(ElasticsearchNode node) {
         this.node.unbind(node);
     }
 
     @Override
     public Node getNode() {
-        return node.get();
+        return node.get().getDelegateNode();
     }
 
 }

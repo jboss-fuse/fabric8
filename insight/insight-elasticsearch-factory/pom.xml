@@ -35,10 +35,13 @@
       *;resolution:=optional
     </fuse.osgi.import.additional>
     <fuse.osgi.capabilities.provide>
-      osgi.service;effective:=active;cluster.name=elasticsearch;objectClass=org.elasticsearch.node.Node,
-      osgi.service;effective:=active;cluster.name=insight;objectClass=org.elasticsearch.node.Node
+      osgi.service;effective:=active;cluster.name=elasticsearch;objectClass=io.fabric8.insight.elasticsearch.impl.ElasticsearchNode,
+      osgi.service;effective:=active;cluster.name=insight;objectClass=io.fabric8.insight.elasticsearch.impl.ElasticsearchNode
     </fuse.osgi.capabilities.provide>
-    <fuse.osgi.export>io.fabric8.insight.elasticsearch</fuse.osgi.export>
+    <fuse.osgi.export>
+    io.fabric8.insight.elasticsearch,
+    io.fabric8.insight.elasticsearch.impl
+    </fuse.osgi.export>
     <fuse.osgi.require.bundle>org.apache.servicemix.bundles.elasticsearch</fuse.osgi.require.bundle>
   </properties>
 
