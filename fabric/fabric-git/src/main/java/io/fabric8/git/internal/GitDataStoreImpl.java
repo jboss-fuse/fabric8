@@ -72,6 +72,7 @@ import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -183,6 +184,9 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     
     private final LoadingCache<String, Version> versionCache = CacheBuilder.newBuilder().build(new VersionCacheLoader());
     private final Set<String> versions = new HashSet<String>();
+
+    // ENTESB-6336: This latch will be triggerred after versionCache contains some sane data
+    private final CountDownLatch initialVersionsAvailable = new CountDownLatch(1);
 
     @Activate
     @VisibleForExternal
@@ -477,6 +481,10 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                     }
                     versions.clear();
                     versions.addAll(answer);
+                    if (answer.size() > 0) {
+                        LOGGER.info("Initial versions cached");
+                        initialVersionsAvailable.countDown();
+                    }
                     return answer;
                 }
             };
@@ -521,6 +529,12 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     }
 
     private Version getVersionFromCacheRW(String versionId, String profileId){
+        try {
+            initialVersionsAvailable.await(15, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            LOGGER.warn("Waiting for initial versions failed");
+        }
+
         LockHandle writeLock = aquireWriteLock();
         try {
             assertValid();
@@ -977,6 +991,9 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         Path importBase = Paths.get(importPath);
         importExportHandler.importFromFileSystem(importBase);
         importExportHandler.importZipAndArtifacts(importBase.getParent());
+
+        LOGGER.info("Profiles imported from " + importPath);
+        initialVersionsAvailable.countDown();
     }
 
     @Override
@@ -1405,6 +1422,10 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                             config.save();
 
                             doPullInternal(context, getCredentialsProvider(), false);
+
+                            if (currentUrl == null) {
+                                initialVersionsAvailable.countDown();
+                            }
                         }
                         return null;
                     }
