@@ -77,7 +77,7 @@ public class AgentTest {
                 "mvn:org.apache.aries.proxy/org.apache.aries.proxy.api/1.0.1",
                 "mvn:org.apache.aries.proxy/org.apache.aries.proxy.impl/1.0.5",
                 "mvn:org.apache.aries/org.apache.aries.util/1.1.0",
-                "mvn:org.apache.felix/org.apache.felix.configadmin/1.8.12",
+                "mvn:org.apache.felix/org.apache.felix.configadmin/1.8.4",
                 "mvn:org.apache.karaf.jaas/org.apache.karaf.jaas.command/" + karafVersion,
                 "mvn:org.apache.karaf.jaas/org.apache.karaf.jaas.config/" + karafVersion,
                 "mvn:org.apache.karaf.jaas/org.apache.karaf.jaas.modules/" + karafVersion,
@@ -91,8 +91,8 @@ public class AgentTest {
                 "mvn:org.apache.mina/mina-core/2.0.13",
                 "mvn:org.apache.sshd/sshd-core/0.14.0",
                 "mvn:org.ow2.asm/asm-all/5.0.4",
-                "mvn:org.ops4j.pax.logging/pax-logging-api/1.9.1",
-                "mvn:org.ops4j.pax.logging/pax-logging-service/1.9.1",
+                "mvn:org.ops4j.pax.logging/pax-logging-api/1.8.4",
+                "mvn:org.ops4j.pax.logging/pax-logging-service/1.8.4",
         };
         for (String bundleUri : bundles) {
             File file = mavenResolver.download(bundleUri);
@@ -133,9 +133,9 @@ public class AgentTest {
                 Collections.<String>emptySet(),
                 Collections.<String>emptySet(),
                 new HashSet<>(Arrays.asList(
-                        "mvn:org.ops4j.pax.logging/pax-logging-api/1.9.1",
-                        "mvn:org.ops4j.pax.logging/pax-logging-service/1.9.1",
-                        "mvn:org.apache.felix/org.apache.felix.configadmin/1.8.12"
+                        "mvn:org.ops4j.pax.logging/pax-logging-api/1.8.4",
+                        "mvn:org.ops4j.pax.logging/pax-logging-service/1.8.4",
+                        "mvn:org.apache.felix/org.apache.felix.configadmin/1.8.4"
                 )),
                 Collections.<String, Map<VersionRange, Map<String, String>>>emptyMap()
         );
