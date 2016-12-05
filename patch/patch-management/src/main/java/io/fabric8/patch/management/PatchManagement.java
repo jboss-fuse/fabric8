@@ -16,6 +16,7 @@
 package io.fabric8.patch.management;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.ProtocolException;
 import java.net.URI;
 import java.net.URL;
@@ -24,6 +25,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.transport.PushResult;
 
 /**
  * <p>Interface to an OSGi service that can handle low-level patch management operations.</p>
@@ -164,6 +168,18 @@ public interface PatchManagement {
      * @return
      */
     boolean isStandaloneChild();
+
+    /**
+     * Pushes data from <em>patch git repository</em> to <em>fabric git repository</em>
+     */
+    void pushPatchInfo() throws IOException, GitAPIException;
+
+    /**
+     * Logs information about <strong>push</strong> operation
+     * @param results
+     * @param repository
+     */
+    void logPushResult(Iterable<PushResult> results, Repository repository) throws IOException;
 
     /**
      * Callback to be passed to method that uploads content of retrieved patches to remote repository.

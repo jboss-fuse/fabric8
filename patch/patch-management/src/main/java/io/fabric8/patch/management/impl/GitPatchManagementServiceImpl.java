@@ -104,12 +104,15 @@ import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevObject;
 import org.eclipse.jgit.revwalk.RevTag;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.transport.FetchResult;
+import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.transport.RefSpec;
+import org.eclipse.jgit.transport.RemoteRefUpdate;
 import org.eclipse.jgit.transport.TagOpt;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
@@ -3343,6 +3346,41 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     @Override
     public boolean isStandaloneChild() {
         return env == EnvType.STANDALONE_CHILD;
+    }
+
+    @Override
+    public void pushPatchInfo() throws IOException, GitAPIException {
+        Git mainRepository = gitPatchRepository.findOrCreateMainGitRepository();
+        String local = mainRepository.getRepository().getDirectory().getCanonicalPath();
+        if (mainRepository.getRepository().getConfig() != null) {
+            String remote = mainRepository.getRepository().getConfig().getString("remote", "origin", "url");
+            if (remote != null) {
+                Iterable<PushResult> results = mainRepository.push()
+                        .setRemote("origin")
+                        .setPushAll()
+                        .setPushTags()
+                        .call();
+                logPushResult(results, mainRepository.getRepository());
+                return;
+            }
+        }
+        Activator.log2(LogService.LOG_WARNING, String.format("Can't push from %s. No remote repository defined.", local));
+    }
+
+    @Override
+    public void logPushResult(Iterable<PushResult> results, Repository repository) throws IOException {
+        String local = repository.getDirectory().getCanonicalPath();
+
+        for (PushResult result : results) {
+            Activator.log(LogService.LOG_INFO, String.format("Pushed from %s to %s:", local, result.getURI()));
+            Map<String, RemoteRefUpdate> map = new TreeMap<>();
+            for (RemoteRefUpdate update : result.getRemoteUpdates()) {
+                map.put(update.getSrcRef(), update);
+            }
+            for (RemoteRefUpdate update : map.values()) {
+                Activator.log(LogService.LOG_INFO, String.format(" - %s (%s)", update.getSrcRef(), update.getStatus()));
+            }
+        }
     }
 
     @Override

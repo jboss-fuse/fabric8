@@ -23,10 +23,10 @@ import java.net.URLConnection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import io.fabric8.api.FabricService;
 import io.fabric8.api.GitContext;
-import io.fabric8.api.Profile;
 import io.fabric8.api.ProfileRegistry;
 import io.fabric8.api.ProfileService;
 import io.fabric8.api.RuntimeProperties;
@@ -52,17 +52,24 @@ import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.felix.utils.version.VersionTable;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.transport.PushResult;
+import org.eclipse.jgit.transport.RemoteRefUpdate;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleException;
 import org.osgi.framework.Version;
 import org.osgi.service.component.ComponentContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static io.fabric8.patch.management.Utils.stripSymbolicName;
 
 @Component(immediate = true, metatype = false)
 @Service(FabricPatchService.class)
 public class FabricPatchServiceImpl implements FabricPatchService {
+
+    public static Logger LOG = LoggerFactory.getLogger(FabricPatchServiceImpl.class);
 
     @Reference(referenceInterface = PatchManagement.class, cardinality = ReferenceCardinality.MANDATORY_UNARY, policy = ReferencePolicy.STATIC)
     private PatchManagement patchManagement;
@@ -217,6 +224,9 @@ public class FabricPatchServiceImpl implements FabricPatchService {
     @Override
     public String synchronize() throws Exception {
         final String[] remoteUrl = new String[] { null };
+
+        patchManagement.pushPatchInfo();
+
         GitOperation operation = new GitOperation() {
             @Override
             public Object call(Git git, GitContext context) throws Exception {
@@ -232,11 +242,13 @@ public class FabricPatchServiceImpl implements FabricPatchService {
                     username = ZooKeeperUtils.getContainerLogin(runtimeProperties);
                     password = ZooKeeperUtils.generateContainerToken(runtimeProperties, curator);
                 }
-                git.push()
+                Iterable<PushResult> results = git.push()
                         .setCredentialsProvider(new UsernamePasswordCredentialsProvider(username, password))
                         .setPushTags()
                         .setPushAll()
                         .call();
+
+                logPushResult(results, git.getRepository());
 
                 remoteUrl[0] = git.getRepository().getConfig().getString("remote", "origin", "url");
                 return null;
@@ -244,6 +256,21 @@ public class FabricPatchServiceImpl implements FabricPatchService {
         };
         gitDataStore.gitOperation(new GitContext(), operation, null);
         return remoteUrl[0];
+    }
+
+    public void logPushResult(Iterable<PushResult> results, Repository repository) throws IOException {
+        String local = repository.getDirectory().getCanonicalPath();
+
+        for (PushResult result : results) {
+            LOG.info(String.format("Pushed from %s to %s:", local, result.getURI()));
+            Map<String, RemoteRefUpdate> map = new TreeMap<>();
+            for (RemoteRefUpdate update : result.getRemoteUpdates()) {
+                map.put(update.getSrcRef(), update);
+            }
+            for (RemoteRefUpdate update : map.values()) {
+                LOG.info(String.format(" - %s (%s)", update.getSrcRef(), update.getStatus()));
+            }
+        }
     }
 
 }
