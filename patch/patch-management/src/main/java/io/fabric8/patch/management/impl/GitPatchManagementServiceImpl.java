@@ -2006,10 +2006,12 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * @param restartFileInstall
      * @param requireTags whether the tags should be present when baseline is non current (we don't require this in fabric
      * mode, when the verification is not performed from agent)
+     * @return <code>true</code> if there was switch of baselines. <code>false</code> is returned when there's no change
+     * or when there was first alignment performed
      * @throws GitAPIException
      * @throws IOException
      */
-    private void handleNonCurrentBaseline(Git fork, String currentProductVersion, String tagName,
+    private boolean handleNonCurrentBaseline(Git fork, String currentProductVersion, String tagName,
                                           boolean restartFileInstall, boolean requireTags) throws GitAPIException, IOException {
         RevTag tag = gitPatchRepository.findCurrentBaseline(fork);
 
@@ -2023,18 +2025,22 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 fork.getRepository().getConfig().getString("remote", "origin", "url");
                 Activator.log(LogService.LOG_INFO, "Tag \"" + tagName + "\" is not available" + location +
                         ", alignment will be performed later.");
-                return;
+                return false;
             }
         }
         if (tag == null) {
             ensureCorrectContainerHistory(fork, currentProductVersion);
             applyUserChanges(fork);
             applyChanges(fork, restartFileInstall);
+            return false;
         } else if (!tagName.equals(tag.getTagName())) {
             applyUserChanges(fork);
             ensureCorrectContainerHistory(fork, currentProductVersion);
             applyChanges(fork, restartFileInstall);
+            return true;
         }
+
+        return false;
     }
 
     /**
@@ -3405,7 +3411,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         return false;
                     }
 
-                    handleNonCurrentBaseline(fork, version, tagName, false, true);
+                    boolean baselineSwitched = handleNonCurrentBaseline(fork, version, tagName, false, true);
 
                     if (localMavenRepository != null) {
                         try {
@@ -3438,7 +3444,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             Activator.log(LogService.LOG_ERROR, null, e.getMessage(), e, false);
                         }
                     }
-                    return true;
+
+                    return baselineSwitched;
                 } catch (Exception e) {
                     throw new PatchException(e.getMessage(), e);
                 } finally {
