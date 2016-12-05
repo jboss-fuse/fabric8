@@ -32,9 +32,9 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import io.fabric8.utils.NamedThreadFactory;
@@ -100,22 +100,30 @@ public final class FabricConfigAdminBridge extends AbstractComponent implements 
     }
 
     private void submitUpdateJob() {
-        executor.submit(new Runnable() {
-            @Override
-            public void run() {
-                if (isValid()) {
-                    try {
-                        updateInternal();
-                    } catch (Throwable th) {
-                        if (isValid()) {
-                            LOGGER.warn("Exception when tracking configurations. This exception will be ignored.", th);
-                        } else {
-                            LOGGER.debug("Exception when tracking configurations. This exception will be ignored because services have been unbound in the mean time.", th);
+        try {
+            executor.submit(new Runnable() {
+                @Override
+                public void run() {
+                    if (isValid()) {
+                        try {
+                            updateInternal();
+                        } catch (Throwable th) {
+                            if (isValid()) {
+                                LOGGER.warn("Exception when tracking configurations. This exception will be ignored.", th);
+                            } else {
+                                LOGGER.debug("Exception when tracking configurations. This exception will be ignored because services have been unbound in the mean time.", th);
+                            }
                         }
                     }
                 }
+            });
+        } catch (RejectedExecutionException e) {
+            if (!executor.isShutdown()) {
+                throw e;
+            } else {
+                LOGGER.debug("Update task wasn't submitted, component is no longer active");
             }
-        });
+        }
     }
 
     /**
