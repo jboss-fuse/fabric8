@@ -170,12 +170,6 @@ public class DeploymentAgent implements ManagedService {
                 if (provisioningStatus != null) {
                     updateStatus(service, provisioningStatus, provisioningError, true);
                 }
-                if (service != null) {
-                    if (LOGGER.isDebugEnabled()) {
-                        LOGGER.debug("FabricService found, getting httpUrl and repositoryURIs");
-                    }
-                    updateMavenRepositoryConfiguration();
-                }
                 return service;
             }
 
@@ -183,12 +177,6 @@ public class DeploymentAgent implements ManagedService {
             public void modifiedService(ServiceReference<FabricService> reference, FabricService service) {
                 if (provisioningStatus != null) {
                     updateStatus(service, provisioningStatus, provisioningError, true);
-                }
-                if (service != null) {
-                    if (LOGGER.isDebugEnabled()) {
-                        LOGGER.debug("FabricService modified, getting httpUrl and repositoryURIs");
-                    }
-                    updateMavenRepositoryConfiguration();
                 }
             }
 
@@ -202,12 +190,12 @@ public class DeploymentAgent implements ManagedService {
         curatorCompleteService.open();
     }
 
-    private void updateMavenRepositoryConfiguration() {
+    private void updateMavenRepositoryConfiguration(FabricService service) {
         LOGGER.info("Updating Maven Repository Configuration");
         try {
             fabricServiceOperations.lock();
-            httpUrl = this.fabricService.getService().getCurrentContainer().getHttpUrl();
-            mavenRepoURIs = this.fabricService.getService().getMavenRepoURIs();
+            httpUrl = service.getCurrentContainer().getHttpUrl();
+            mavenRepoURIs = service.getMavenRepoURIs();
             LOGGER.info("Maven repository configuration correctly updated: httpUrl=[{}], mavenRepoURIs=[{}]", httpUrl, mavenRepoURIs);
         } catch (RuntimeException e){
             LOGGER.info("It's been impossible to correctly update maven repositories configuration");
@@ -416,7 +404,7 @@ public class DeploymentAgent implements ManagedService {
 
         //force reading of updated informations from ZK
         if (!fabricService.isEmpty()) {
-            updateMavenRepositoryConfiguration();
+            updateMavenRepositoryConfiguration(fabricService.getService());
         }
 
         try {
