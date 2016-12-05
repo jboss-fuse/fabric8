@@ -51,6 +51,8 @@ import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
 import java.util.regex.Matcher;
@@ -187,6 +189,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
     // latched when git repository is initialized
     private CountDownLatch initialized = new CountDownLatch(1);
+
+    // synchronization of "ensuring" operation, where git repository status is verified and (possibly) changed
+    private Lock ensuringLock = new ReentrantLock();
 
     /* patch installation support */
 
@@ -1880,6 +1885,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         try {
             Git mainRepository = gitPatchRepository.findOrCreateMainGitRepository();
 
+            ensuringLock.lock();
+
             if (env.isFabric()) {
                 // let's fetch from origin to check if someone else already does fabric patch management
                 mainRepository.fetch()
@@ -1924,7 +1931,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     // that's just being created
 
                     // do standalone history initialization. We're in root Fuse/AMQ container
-                    String currentFuseVersion = determineVersion("fuse");
+                    String currentFuseVersion = determineVersion(karafHome, "fuse");
 
                     // one of the steps may return a commit that has to be tagged as first baseline
                     RevCommit baselineCommit = null;
@@ -1961,35 +1968,15 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 String currentKarafVersion = determineVersion(karafBase, "karaf");
                 String tagName = String.format(env.getBaselineTagFormat(), currentKarafVersion);
 
-                RevTag tag = gitPatchRepository.findCurrentBaseline(fork);
-                if (tag == null) {
-                    // this means that containe's history was *never* on correct baseline - we're actually
-                    // initializing container's history
-                    // technically - we can't create first commit with user changes, because we'll have problems
-                    // cherry picking them on correct first baseline - we'll have BOTH_ADDED conflict
-                    // that's why we have to put first baseline-related commit to container's history
-                    ensureCorrectContainerHistory(fork, currentKarafVersion);
-                    // now a commit with current user changes
-                    applyUserChanges(fork);
-                    applyChanges(fork, true);
-                } else if (!tagName.equals(tag.getTagName())) {
-                    // history branch for this standalone child container is not correctly (re)based
-                    // on relevant baseline, but it's not the first time we do it
-                    applyUserChanges(fork);
-                    ensureCorrectContainerHistory(fork, currentKarafVersion);
-                    applyChanges(fork, true);
-                }
+                handleNonCurrentBaseline(fork, currentKarafVersion, tagName, true, true);
             } else {
                 // do fabric history branch initialization
                 // each container has to make sure their private history branch is created and that it contains
                 // tag related to the "version" of container (child: karaf, ssh: fabric8 or fuse, root: fuse or amq)
-                String tagName = String.format(env.getBaselineTagFormat(), determineVersion(karafBase, env.getProductId()));
+                String currentKarafVersion = determineVersion(karafBase, env.getProductId());
+                String tagName = String.format(env.getBaselineTagFormat(), currentKarafVersion);
 
-                RevTag tag = gitPatchRepository.findCurrentBaseline(fork);
-                if (tag == null || !tagName.equals(tag.getTagName())) {
-                    ensureCorrectContainerHistory(fork, null);
-                    applyUserChanges(fork);
-                }
+                handleNonCurrentBaseline(fork, currentKarafVersion, tagName, true, false);
             }
 
             // remove pending patches listeners
@@ -1999,6 +1986,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         } catch (GitAPIException | IOException e) {
             Activator.log(LogService.LOG_ERROR, null, e.getMessage(), e, true);
         } finally {
+            ensuringLock.unlock();
             initialized.countDown();
             if (fork != null) {
                 gitPatchRepository.closeRepository(fork, true);
@@ -2007,12 +1995,46 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     /**
-     * Return version of product (Fuse, Fabric8) used.
-     * @param product
-     * @return
+     * <p>Called to check if product has current baseline - if not, some alignment is performed - different for initial
+     * rebase and consecutive rebase</p>
+     * <p>In fabric mode we may have parallel <em>ensurement</em> of baselines - from patch-management activator
+     * and from agent finishing the provisioning operation. In this case it's the agent that should perform
+     * rebasing on proper baseline.</p>
+     * @param fork
+     * @param currentProductVersion
+     * @param tagName
+     * @param restartFileInstall
+     * @param requireTags whether the tags should be present when baseline is non current (we don't require this in fabric
+     * mode, when the verification is not performed from agent)
+     * @throws GitAPIException
+     * @throws IOException
      */
-    private String determineVersion(String product) {
-        return determineVersion(karafHome, product);
+    private void handleNonCurrentBaseline(Git fork, String currentProductVersion, String tagName,
+                                          boolean restartFileInstall, boolean requireTags) throws GitAPIException, IOException {
+        RevTag tag = gitPatchRepository.findCurrentBaseline(fork);
+
+        if (tag == null || !tagName.equals(tag.getTagName())) {
+            if (!requireTags && !gitPatchRepository.containsTag(fork, tagName)) {
+                String location = "";
+                if (fork.getRepository().getConfig() != null
+                        && fork.getRepository().getConfig().getString("remote", "origin", "url") != null) {
+                    location = " in " + fork.getRepository().getConfig().getString("remote", "origin", "url");
+                }
+                fork.getRepository().getConfig().getString("remote", "origin", "url");
+                Activator.log(LogService.LOG_INFO, "Tag \"" + tagName + "\" is not available" + location +
+                        ", alignment will be performed later.");
+                return;
+            }
+        }
+        if (tag == null) {
+            ensureCorrectContainerHistory(fork, currentProductVersion);
+            applyUserChanges(fork);
+            applyChanges(fork, restartFileInstall);
+        } else if (!tagName.equals(tag.getTagName())) {
+            applyUserChanges(fork);
+            ensureCorrectContainerHistory(fork, currentProductVersion);
+            applyChanges(fork, restartFileInstall);
+        }
     }
 
     /**
@@ -2084,8 +2106,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      */
     private RevCommit trackBaselineRepository(Git git) throws IOException, GitAPIException {
         // initialize repo with baseline version and push to reference repo
-        String currentFuseVersion = determineVersion("fuse");
-        String currentFabricVersion = determineVersion("fabric");
+        String currentFuseVersion = determineVersion(karafHome, "fuse");
+        String currentFabricVersion = determineVersion(karafHome, "fabric");
 
         // check what product are we in
         File systemRepo = getSystemRepository(karafHome, systemContext);
@@ -2482,8 +2504,8 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         }
 
         File systemRepo = getSystemRepository(karafHome, systemContext);
-        String currentFuseVersion = determineVersion("fuse");
-        String currentFabricVersion = determineVersion("fabric");
+        String currentFuseVersion = determineVersion(karafHome, "fuse");
+        String currentFabricVersion = determineVersion(karafHome, "fabric");
 
         // Fuse distros first
         File[] versionDirs = new File(systemRepo, "org/jboss/fuse/jboss-fuse-full").listFiles();
@@ -2645,7 +2667,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     /**
-     * Update private history tracking branch in fabric env or for standalone child container - genreally
+     * Update private history tracking branch in fabric env or for standalone child container - generally
      * when patch management is done in another container. This method is called when it's needed, not every time
      * patch-management bundle is started/stopped/updated.
      * Method <strong>always</strong> changes private history branch and align current version
@@ -2670,11 +2692,6 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         }
 
         // we may still be on the baseline from the time before fabric:create!
-
-        if (version == null) {
-            // align to version determined from environment
-            version = determineVersion(env.getProductId());
-        }
 
         // user changes in history
         ObjectId since = fork.getRepository().resolve("patch-management^{commit}");
@@ -3362,6 +3379,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             if (env.isFabric()) {
                 Git fork = null;
                 try {
+                    ensuringLock.lock();
                     String version = versions.get(env.getProductId());
                     String tagName = String.format(env.getBaselineTagFormat(), version);
                     // we have to be at that tag
@@ -3387,9 +3405,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         return false;
                     }
 
-                    applyUserChanges(fork);
-                    ensureCorrectContainerHistory(fork, version);
-                    applyChanges(fork, false);
+                    handleNonCurrentBaseline(fork, version, tagName, false, true);
 
                     if (localMavenRepository != null) {
                         try {
@@ -3426,6 +3442,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 } catch (Exception e) {
                     throw new PatchException(e.getMessage(), e);
                 } finally {
+                    ensuringLock.unlock();
                     if (fork != null) {
                         gitPatchRepository.closeRepository(fork, true);
                     }

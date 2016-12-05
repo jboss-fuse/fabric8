@@ -42,25 +42,28 @@ public class DefaultEnvService implements EnvService {
         }
 
         File localGitRepository = new File(systemContext.getProperty("karaf.data"), "git/local/fabric");
+        // TODO: maybe check if .git/config contains remote "origin" ending with "/git/fabric/"?
+        boolean isFabricGitInitialized = localGitRepository.isDirectory()
+                && new File(localGitRepository, ".git").isDirectory()
+                && hasBranch(localGitRepository, "master")
+                && hasBranch(localGitRepository, "1.0");
+        boolean hasZookeeperUrlAtStartup = System.getProperty("zookeeper.url") != null;
         boolean isChild = isChild(systemContext);
-        if (localGitRepository.isDirectory() && new File(localGitRepository, ".git").isDirectory()) {
-            // we have git repository of current container - is it initalized?
-            // TODO: maybe check if .git/config contains remote "origin" ending with "/git/fabric/"?
-            if (hasBranch(localGitRepository, "master") && hasBranch(localGitRepository, "1.0")) {
-                if (isChild) {
-                    return EnvType.FABRIC_CHILD;
-                } else {
-                    // is it enough?
-                    if (new File(karafHome, "bin/fuse").isFile()
-                            || new File(karafHome, "bin/fuse.bat").isFile()) {
-                        return EnvType.FABRIC_FUSE;
-                    } else if (new File(karafHome, "bin/amq").isFile()
-                            || new File(karafHome, "bin/amq.bat").isFile()) {
-                        return EnvType.FABRIC_AMQ;
-                    } else if (new File(karafHome, "bin/fabric8").isFile()
-                            || new File(karafHome, "bin/fabric8.bat").isFile()) {
-                        return EnvType.FABRIC_FABRIC8;
-                    }
+
+        if (isFabricGitInitialized || hasZookeeperUrlAtStartup) {
+            if (isChild) {
+                return EnvType.FABRIC_CHILD;
+            } else {
+                // is it enough?
+                if (new File(karafHome, "bin/fuse").isFile()
+                        || new File(karafHome, "bin/fuse.bat").isFile()) {
+                    return EnvType.FABRIC_FUSE;
+                } else if (new File(karafHome, "bin/amq").isFile()
+                        || new File(karafHome, "bin/amq.bat").isFile()) {
+                    return EnvType.FABRIC_AMQ;
+                } else if (new File(karafHome, "bin/fabric8").isFile()
+                        || new File(karafHome, "bin/fabric8.bat").isFile()) {
+                    return EnvType.FABRIC_FABRIC8;
                 }
             }
         }
