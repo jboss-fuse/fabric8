@@ -108,6 +108,7 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevObject;
 import org.eclipse.jgit.revwalk.RevTag;
 import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.transport.FetchResult;
 import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.TagOpt;
 import org.osgi.framework.Bundle;
@@ -1889,11 +1890,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
 
             if (env.isFabric()) {
                 // let's fetch from origin to check if someone else already does fabric patch management
-                mainRepository.fetch()
-                        .setRemote("origin")
-                        .setRefSpecs(new RefSpec("+refs/heads/*:refs/remotes/origin/*"))
-                        .setTagOpt(TagOpt.FETCH_TAGS)
-                        .call();
+                fetchFabricPatchData(mainRepository);
 
                 if (env == EnvType.FABRIC_FUSE || env == EnvType.FABRIC_AMQ) {
                     // I think it's enough to compare the main HEADs. if there are no remote branches
@@ -3390,6 +3387,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                     String tagName = String.format(env.getBaselineTagFormat(), version);
                     // we have to be at that tag
                     Git mainRepository = gitPatchRepository.findOrCreateMainGitRepository();
+
+                    fetchFabricPatchData(mainRepository);
+
                     fork = gitPatchRepository.cloneRepository(mainRepository, true);
                     gitPatchRepository.checkout(fork)
                             .setName(gitPatchRepository.getMainBranchName())
@@ -3459,6 +3459,38 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             return false;
         } finally {
             aligning.set(false);
+        }
+    }
+
+    /**
+     * Fetches all refs from "fabric git repo" to "patch git repo" - very important operation that keeps
+     * both repositories synchronized.
+     * @param mainRepository
+     * @throws GitAPIException
+     */
+    private void fetchFabricPatchData(Git mainRepository) throws GitAPIException {
+        if (mainRepository.getRepository().getConfig() != null) {
+            String url = mainRepository.getRepository().getConfig().getString("remote", "origin", "url");
+            if (url != null) {
+                Activator.log(LogService.LOG_INFO, "Fetching data from " + url);
+
+                // let's fetch from origin to check if someone else already does fabric patch management
+                FetchResult result = mainRepository.fetch()
+                        .setRemote("origin")
+                        .setRefSpecs(new RefSpec("+refs/heads/*:refs/remotes/origin/*"))
+                        .setTagOpt(TagOpt.FETCH_TAGS)
+                        .call();
+
+                Set<String> tags = new TreeSet<>();
+                for (Ref ref : result.getAdvertisedRefs()) {
+                    if (ref.getName().startsWith("refs/tags/baseline")) {
+                        tags.add(ref.getName().substring("refs/tags/".length()));
+                    }
+                }
+                Activator.log(LogService.LOG_INFO, "Available tags: " + tags);
+            } else {
+                Activator.log(LogService.LOG_WARNING, "Repository " + mainRepository.getRepository().getWorkTree() + " is not connected with Fabric git repository");
+            }
         }
     }
 
