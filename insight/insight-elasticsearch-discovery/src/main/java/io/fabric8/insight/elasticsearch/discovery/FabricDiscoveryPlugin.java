@@ -15,14 +15,10 @@
  */
 package io.fabric8.insight.elasticsearch.discovery;
 
-import org.elasticsearch.common.collect.Lists;
-import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.plugins.AbstractPlugin;
+import org.elasticsearch.plugins.Plugin;
 
-import java.util.Collection;
-
-public class FabricDiscoveryPlugin extends AbstractPlugin {
+public class FabricDiscoveryPlugin extends Plugin {
 
     private final Settings settings;
 

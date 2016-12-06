@@ -20,6 +20,7 @@ import io.fabric8.insight.metrics.model.QueryResult;
 import io.fabric8.insight.metrics.mvel.MetricsStorageServiceImpl;
 import io.fabric8.insight.storage.StorageService;
 import org.elasticsearch.action.ActionRequest;
+import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateAction;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequestBuilder;
 import org.elasticsearch.action.bulk.BulkItemResponse;
@@ -58,7 +59,7 @@ public abstract class AbstractElasticsearchStorage implements StorageService, Me
 
         String templateText = new Scanner(AbstractElasticsearchStorage.class.getResourceAsStream("/elasticsearch-index-template.json"), "UTF-8").useDelimiter("\\A").next();
 
-        PutIndexTemplateRequest putInsightTemplateRequest = new PutIndexTemplateRequestBuilder(indicesAdminClient, "insight")
+        PutIndexTemplateRequest putInsightTemplateRequest = new PutIndexTemplateRequestBuilder(indicesAdminClient, PutIndexTemplateAction.INSTANCE, "insight")
                 .setSource(templateText)
                 .request();
 

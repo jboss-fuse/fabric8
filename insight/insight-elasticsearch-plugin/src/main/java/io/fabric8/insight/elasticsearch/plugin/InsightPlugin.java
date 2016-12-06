@@ -15,15 +15,16 @@
  */
 package io.fabric8.insight.elasticsearch.plugin;
 
-import org.elasticsearch.common.collect.Lists;
+
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.plugins.AbstractPlugin;
+import org.elasticsearch.plugins.Plugin;
+import com.google.common.collect.Lists;
 
 import java.util.Collection;
 
-public class InsightPlugin extends AbstractPlugin {
+public class InsightPlugin extends Plugin {
 
     private final Settings settings;
 
@@ -41,7 +42,6 @@ public class InsightPlugin extends AbstractPlugin {
         return "Manages Insight indices, performing configurable housekeeping of data";
     }
 
-    @Override
     public Collection<Class<? extends LifecycleComponent>> services() {
         Collection<Class<? extends LifecycleComponent>> services = Lists.newArrayList();
         services.add(InsightIndicesHousekeeperService.class);

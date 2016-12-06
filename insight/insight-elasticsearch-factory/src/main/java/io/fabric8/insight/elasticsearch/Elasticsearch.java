@@ -16,6 +16,8 @@
 package io.fabric8.insight.elasticsearch;
 
 import io.fabric8.common.util.JMXUtils;
+import io.fabric8.insight.elasticsearch.impl.ElasticsearchNode;
+
 import org.apache.felix.scr.annotations.*;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
@@ -37,7 +39,7 @@ public class Elasticsearch implements ElasticsearchMBean {
     @Reference
     private MBeanServer mbeanServer;
 
-    @Reference(name = "node", policy = ReferencePolicy.DYNAMIC, referenceInterface = org.elasticsearch.node.Node.class, cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE)
+    @Reference(name = "node", policy = ReferencePolicy.DYNAMIC, referenceInterface = io.fabric8.insight.elasticsearch.impl.ElasticsearchNode.class, cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE)
     private final Map<String, Set<Node>> nodesClusterMap = new ConcurrentHashMap<String, Set<Node>>();
 
     @Activate
@@ -86,21 +88,21 @@ public class Elasticsearch implements ElasticsearchMBean {
         return null;
     }
 
-    public void bindNode(Node node) {
-        String clusterName = node.settings().get("cluster.name");
+    public void bindNode(ElasticsearchNode node) {
+        String clusterName = node.getDelegateNode().settings().get("cluster.name");
         Set<Node> nodeSet = nodesClusterMap.get(clusterName);
         if (nodeSet == null) {
             nodeSet = new HashSet<Node>();
             nodesClusterMap.put(clusterName, nodeSet);
         }
-        nodeSet.add(node);
+        nodeSet.add(node.getDelegateNode());
     }
 
-    public void unbindNode(Node node) {
-        String clusterName = node.settings().get("cluster.name");
+    public void unbindNode(ElasticsearchNode node) {
+        String clusterName = node.getDelegateNode().settings().get("cluster.name");
         Set<Node> nodeSet = nodesClusterMap.get(clusterName);
         if (nodeSet != null) {
-            nodeSet.remove(node);
+            nodeSet.remove(node.getDelegateNode());
             if (nodeSet.isEmpty()) {
                 nodesClusterMap.remove(clusterName);
             }

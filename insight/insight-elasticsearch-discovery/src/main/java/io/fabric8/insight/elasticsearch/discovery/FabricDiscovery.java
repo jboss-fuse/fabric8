@@ -29,18 +29,19 @@ import io.fabric8.groups.NodeState;
 import io.fabric8.groups.internal.ZooKeeperGroupFactory;
 import org.apache.curator.framework.CuratorFramework;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ElasticsearchIllegalStateException;
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ProcessedClusterStateUpdateTask;
+import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeService;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.routing.RoutingService;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.common.Base64;
 import org.elasticsearch.common.Priority;
@@ -54,6 +55,7 @@ import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.discovery.DiscoverySettings;
 import org.elasticsearch.discovery.InitialStateDiscoveryListener;
+import org.elasticsearch.discovery.Discovery.AckListener;
 import org.elasticsearch.discovery.zen.DiscoveryNodesProvider;
 import org.elasticsearch.discovery.zen.publish.PublishClusterStateAction;
 import org.elasticsearch.node.service.NodeService;
@@ -68,7 +70,13 @@ import org.osgi.util.tracker.ServiceTrackerCustomizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -99,7 +107,7 @@ public class FabricDiscovery extends AbstractLifecycleComponent<Discovery>
     private final CopyOnWriteArrayList<InitialStateDiscoveryListener> initialStateListeners = new CopyOnWriteArrayList<InitialStateDiscoveryListener>();
     @Nullable
     private NodeService nodeService;
-    private AllocationService allocationService;
+    private RoutingService routingService;
     private volatile DiscoveryNodes latestDiscoNodes;
     private final PublishClusterStateAction publishClusterState;
     private volatile Group<ESNode> singleton;
@@ -132,7 +140,13 @@ public class FabricDiscovery extends AbstractLifecycleComponent<Discovery>
         Map<String, String> nodeAttributes = discoveryNodeService.buildAttributes();
         // note, we rely on the fact that its a new id each time we start, see FD and "kill -9" handling
         String nodeId = UUID.randomUUID().toString();
-        String host = settings.get("discovery.publish.host");
+        InetAddress host = null;
+		try {
+			host = InetAddress.getByName(settings.get("discovery.publish.host"));
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
         String port = settings.get("discovery.publish.port");
         if (host != null && port != null) {
             TransportAddress address = new InetSocketTransportAddress(host, Integer.parseInt(port));
@@ -183,22 +197,6 @@ public class FabricDiscovery extends AbstractLifecycleComponent<Discovery>
     @Override
     public void setNodeService(@Nullable NodeService nodeService) {
         this.nodeService = nodeService;
-    }
-
-    @Override
-    public void setAllocationService(AllocationService allocationService) {
-        this.allocationService = allocationService;
-    }
-
-    @Override
-    public void publish(ClusterState clusterState, AckListener ackListener) {
-        logger.debug("Publishing cluster state");
-        if (!singleton.isMaster()) {
-            throw new ElasticsearchIllegalStateException("Shouldn't publish state when not master");
-        }
-        latestDiscoNodes = clusterState.nodes();
-        publishClusterState.publish(clusterState, ackListener);
-        logger.debug("Cluster state published");
     }
 
     @Override
@@ -275,7 +273,7 @@ public class FabricDiscovery extends AbstractLifecycleComponent<Discovery>
                 }
                 logger.debug("Updating cluster: master {}, slaves {}", master, slaves);
             }
-            clusterService.submitStateUpdateTask("fabric-discovery-master", Priority.URGENT, new ProcessedClusterStateUpdateTask() {
+            clusterService.submitStateUpdateTask("fabric-discovery-master", new ClusterStateUpdateTask() {
                 @Override
                 public ClusterState execute(ClusterState currentState) {
                     // Rebuild state
@@ -297,7 +295,7 @@ public class FabricDiscovery extends AbstractLifecycleComponent<Discovery>
                     }
                     // update the fact that we are the master...
                     if (!localNode().id().equals(currentState.nodes().masterNodeId())) {
-                        ClusterBlocks clusterBlocks = ClusterBlocks.builder().blocks(currentState.blocks()).removeGlobalBlock(NO_MASTER_BLOCK).build();
+                        ClusterBlocks clusterBlocks = ClusterBlocks.builder().blocks(currentState.blocks()).removeGlobalBlock(DiscoverySettings.NO_MASTER_BLOCK_ALL).build();
                         stateBuilder.blocks(clusterBlocks);
                     }
                     return stateBuilder.build();
@@ -357,7 +355,7 @@ public class FabricDiscovery extends AbstractLifecycleComponent<Discovery>
                 }
                 final ProcessClusterState processClusterState = new ProcessClusterState(newState, newStateProcessed);
                 processNewClusterStates.add(processClusterState);
-                clusterService.submitStateUpdateTask("fabric-discovery-slave", new ProcessedClusterStateUpdateTask() {
+                clusterService.submitStateUpdateTask("fabric-discovery-slave", new ClusterStateUpdateTask() {
                     @Override
                     public ClusterState execute(ClusterState currentState) {
                         // we already processed it in a previous event
@@ -413,8 +411,8 @@ public class FabricDiscovery extends AbstractLifecycleComponent<Discovery>
                             // if its not the same version, only copy over new indices or ones that changed the version
                             MetaData.Builder metaDataBuilder = MetaData.builder(updatedState.metaData()).removeAllIndices();
                             for (IndexMetaData indexMetaData : updatedState.metaData()) {
-                                IndexMetaData currentIndexMetaData = currentState.metaData().index(indexMetaData.index());
-                                if (currentIndexMetaData == null || currentIndexMetaData.version() != indexMetaData.version()) {
+                                IndexMetaData currentIndexMetaData = currentState.metaData().index(indexMetaData.getIndex());
+                                if (currentIndexMetaData == null || currentIndexMetaData.getVersion() != indexMetaData.getVersion()) {
                                     metaDataBuilder.put(indexMetaData, false);
                                 } else {
                                     metaDataBuilder.put(currentIndexMetaData, false);
@@ -495,7 +493,10 @@ public class FabricDiscovery extends AbstractLifecycleComponent<Discovery>
                 jgen.writeStringField(entry.getKey(), entry.getValue());
             }
             jgen.writeEndObject();
-            jgen.writeStringField("binary", Base64.encodeObject(value.getNode()));
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            ObjectOutputStream os = new ObjectOutputStream(out);
+            os.writeObject(value.getNode());
+            jgen.writeStringField("binary", Base64.encodeBytes(out.toByteArray()));
             jgen.writeEndObject();
         }
     }
@@ -507,13 +508,31 @@ public class FabricDiscovery extends AbstractLifecycleComponent<Discovery>
             try {
                 Map map = jp.readValueAs(Map.class);
                 String id = map.get("id").toString();
-                DiscoveryNode node = (DiscoveryNode) Base64.decodeToObject(map.get("binary").toString(), Base64.NO_OPTIONS, DiscoveryNode.class.getClassLoader());
-                return new ESNode(id, node, false);
+                byte[] bytes = Base64.decode(map.get("binary").toString(), Base64.NO_OPTIONS);
+                ByteArrayInputStream in = new ByteArrayInputStream(bytes);
+                ObjectInputStream is = new ObjectInputStream(in);
+                return new ESNode(id, (DiscoveryNode) is.readObject(), false);
             } catch (ClassNotFoundException e) {
                 throw new IllegalStateException(e);
             }
         }
 
     }
+
+	@Override
+	public void setRoutingService(RoutingService routingService) {
+		this.routingService = routingService;		
+	}
+
+	@Override
+	public void publish(ClusterChangedEvent clusterChangedEvent, AckListener ackListener) {
+        logger.debug("Publishing cluster state");
+        if (!clusterChangedEvent.state().getNodes().localNodeMaster()) {
+            throw new ElasticsearchException("Shouldn't publish state when not master");
+        }
+        publishClusterState.publish(clusterChangedEvent, ackListener);
+        logger.debug("Cluster state published");
+		
+	}
 
 }

@@ -24,13 +24,14 @@ import org.elasticsearch.client.ClusterAdminClient;
 import org.elasticsearch.client.IndicesAdminClient;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.hppc.cursors.ObjectObjectCursor;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.joda.time.Days;
-import org.elasticsearch.common.joda.time.LocalDate;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.joda.time.Days;
+import org.joda.time.LocalDate;
+
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -71,7 +72,7 @@ public class InsightIndicesHousekeeperService extends AbstractLifecycleComponent
         daysClosed = this.settings.getAsInt("closed", 14);
         daysStored = this.settings.getAsInt("stored", 0);
 
-        interval = TimeValue.parseTimeValue(settings.get("interval"), TimeValue.timeValueHours(1));
+        interval = TimeValue.parseTimeValue(settings.get("interval"), TimeValue.timeValueHours(1), indicesPrefix);
 
         logger.info("Initialized {}", getClass().getSimpleName());
     }
@@ -80,7 +81,7 @@ public class InsightIndicesHousekeeperService extends AbstractLifecycleComponent
     protected void doStart() throws ElasticsearchException {
         logger.info("Starting {}", getClass().getSimpleName());
 
-        TimeValue interval = TimeValue.parseTimeValue(settings.get("initial"), TimeValue.timeValueHours(1));
+        TimeValue interval = TimeValue.parseTimeValue(settings.get("initial"), TimeValue.timeValueHours(1), indicesPrefix);
         future = threadPool.schedule(interval, ThreadPool.Names.GENERIC, new Task());
     }
 
@@ -121,7 +122,7 @@ public class InsightIndicesHousekeeperService extends AbstractLifecycleComponent
                 Set<String> toDelete = new HashSet<>();
 
                 // Compute things to do
-                LocalDate now = new LocalDate();
+                LocalDate now = org.joda.time.LocalDate.now();
                 for (ObjectObjectCursor<String, IndexMetaData> it : state.getState().metaData().indices()) {
                     String index = it.value.getIndex();
                     Matcher matcher = pattern.matcher(index);

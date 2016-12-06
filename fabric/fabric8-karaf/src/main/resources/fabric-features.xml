@@ -435,7 +435,18 @@
             # See the License for the specific language governing permissions and
             # limitations under the License.
             #
-          cluster.name=insight
+            cluster.name=insight
+            http.enabled=true
+            path.data=elasticsearch
+            path.home=elasticsearch
+  
+            network.host=localhost
+
+            cluster.routing.schedule: 50ms
+            http.cors.enabled=true
+            http.cors.allow-origin=/.*/
+
+            index.max_result_window=2147483647
         </config>
         <feature>eventadmin</feature>
         <feature>insight-log</feature>
@@ -446,6 +457,10 @@
         <bundle dependency="true">mvn:com.google.guava/guava/${guava-version}</bundle>
         <bundle>mvn:io.fabric8.insight/insight-storage/${project.version}</bundle>
         <bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.elasticsearch/${elasticsearch-smx4-bundle.version}</bundle>
+        <bundle>mvn:com.fasterxml.jackson.dataformat/jackson-dataformat-smile/${jackson2-version}</bundle>
+        <bundle>mvn:com.fasterxml.jackson.dataformat/jackson-dataformat-yaml/${jackson2-version}</bundle>
+        <bundle>mvn:com.ning/compress-lzf/${compress-lzf.version}</bundle>
+        <bundle>mvn:io.netty/netty/${netty3.version}</bundle>
         <bundle>mvn:io.fabric8.insight/insight-elasticsearch-plugin/${project.version}</bundle>
         <bundle>mvn:io.fabric8.insight/insight-elasticsearch-discovery/${project.version}</bundle>
         <bundle>mvn:io.fabric8.insight/insight-elasticsearch-factory/${project.version}</bundle>
