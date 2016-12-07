@@ -52,6 +52,11 @@
     <module>insight-elasticsearch-discovery</module>
     <module>insight-elasticsearch-log-storage</module>
     <module>insight-elasticsearch-metrics-storage</module>
+    <module>insight-elasticsearch2-factory</module>
+    <module>insight-elasticsearch2-plugin</module>
+    <module>insight-elasticsearch2-discovery</module>
+    <module>insight-elasticsearch2-log-storage</module>
+    <module>insight-elasticsearch2-metrics-storage</module>
   </modules>
 
   <dependencies>
