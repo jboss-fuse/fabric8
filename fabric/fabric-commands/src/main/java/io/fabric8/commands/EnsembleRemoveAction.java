@@ -22,6 +22,7 @@ import io.fabric8.boot.commands.support.EnsembleCommandSupport;
 import io.fabric8.common.util.Strings;
 import io.fabric8.utils.FabricValidations;
 
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 
@@ -118,8 +119,8 @@ public class EnsembleRemoveAction extends AbstractAction {
         int currentInitLimit = Integer.parseInt(currentConfig.get("initLimit"));
         int currentSyncLimit = Integer.parseInt(currentConfig.get("syncLimit"));
         String currentDataDir = currentConfig.get("dataDir");
-        if (currentDataDir.contains("/")) {
-            currentDataDir = currentDataDir.substring(0, currentDataDir.lastIndexOf("/"));
+        if (currentDataDir.contains(File.separator)){
+            currentDataDir = currentDataDir.substring(0, currentDataDir.lastIndexOf(File.separator));
         }
         zooKeeperTickTime = zooKeeperTickTime != 0 ? zooKeeperTickTime : currentTickTime;
         zooKeeperInitLimit = zooKeeperInitLimit != 0 ? zooKeeperInitLimit : currentInitLimit;
