@@ -63,6 +63,9 @@ import io.fabric8.patch.management.PatchManagement;
 import io.fabric8.utils.NamedThreadFactory;
 import org.apache.felix.utils.properties.Properties;
 import org.apache.felix.utils.version.VersionRange;
+import org.apache.zookeeper.data.Stat;
+import org.eclipse.jgit.api.errors.TransportException;
+import org.eclipse.jgit.errors.RemoteRepositoryException;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
@@ -711,7 +714,7 @@ public class DeploymentAgent implements ManagedService {
                                     FabricPatchService fps = systemBundleContext.getService(srFps);
                                     if (fps != null) {
                                         try {
-                                            fps.synchronize();
+                                            fps.synchronize(false);
                                         } catch (Exception e) {
                                             LOGGER.error(e.getMessage(), e);
                                         }

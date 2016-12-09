@@ -171,15 +171,16 @@ public interface PatchManagement {
 
     /**
      * Pushes data from <em>patch git repository</em> to <em>fabric git repository</em>
+     * @param verbose
      */
-    void pushPatchInfo() throws IOException, GitAPIException;
+    void pushPatchInfo(boolean verbose) throws IOException, GitAPIException;
 
     /**
      * Logs information about <strong>push</strong> operation
      * @param results
      * @param repository
      */
-    void logPushResult(Iterable<PushResult> results, Repository repository) throws IOException;
+    void logPushResult(Iterable<PushResult> results, Repository repository, boolean verbose) throws IOException;
 
     /**
      * Callback to be passed to method that uploads content of retrieved patches to remote repository.

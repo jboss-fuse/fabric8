@@ -46,6 +46,6 @@ public interface FabricPatchService {
      * Pushes all patch-tracking branches to cluster git server
      * @return URL to which the push was made
      */
-    String synchronize() throws Exception;
+    String synchronize(boolean verbose) throws Exception;
 
 }
