@@ -68,6 +68,7 @@ public class ContainerStartupTest {
                 builder.addBundleSymbolicName(archive.getName());
                 builder.addBundleVersion("1.0.0");
                 builder.addImportPackages(ServiceLocator.class, FabricService.class);
+                builder.addImportPackages("io.fabric8.git");
                 builder.addImportPackages(ConfigurationAdmin.class, ServiceTracker.class, Logger.class);
                 return builder.openStream();
             }

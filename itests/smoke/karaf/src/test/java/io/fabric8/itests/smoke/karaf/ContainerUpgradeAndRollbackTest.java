@@ -63,6 +63,7 @@ public class ContainerUpgradeAndRollbackTest {
                 builder.addBundleSymbolicName(archive.getName());
                 builder.addBundleVersion("1.0.0");
                 builder.addImportPackages(ServiceLocator.class, FabricService.class);
+                builder.addImportPackages("io.fabric8.git");
                 builder.addImportPackages(AbstractCommand.class, Action.class);
                 builder.addImportPackage("org.apache.felix.service.command;status=provisional");
                 builder.addImportPackages(ConfigurationAdmin.class, ServiceTracker.class, Logger.class);
@@ -90,7 +91,7 @@ public class ContainerUpgradeAndRollbackTest {
         ServiceProxy<FabricService> fabricProxy = ServiceProxy.createServiceProxy(moduleContext, FabricService.class);
         try {
             FabricService fabricService = fabricProxy.getService();
-            Set<Container> containers = ContainerBuilder.create().withName("smoke_camel").withProfiles("feature-camel").assertProvisioningResult().build(fabricService);
+            Set<Container> containers = null;
             try {
                 CommandSupport.executeCommand("fabric:version-create --parent 1.0 1.1");
 
@@ -100,6 +101,9 @@ public class ContainerUpgradeAndRollbackTest {
                 Assert.assertTrue(latch.await(5, TimeUnit.SECONDS));
 
                 CommandSupport.executeCommand("fabric:profile-display --version 1.1 feature-camel");
+
+                containers = ContainerBuilder.create().withName("smoke_camel").withProfiles("feature-camel").assertProvisioningResult().build(fabricService);
+
                 CommandSupport.executeCommand("fabric:container-upgrade --all 1.1");
                 ProvisionSupport.provisioningSuccess(containers, ProvisionSupport.PROVISION_TIMEOUT);
                 CommandSupport.executeCommand("fabric:container-list");

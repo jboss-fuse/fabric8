@@ -47,6 +47,8 @@ public class WaitForAliveTask implements Callable<Boolean> {
             isAlive = isAlive(container);
             if (isAlive != alive) {
                 Thread.sleep(2000L);
+            } else {
+                break;
             }
         }
         return isAlive == alive;
