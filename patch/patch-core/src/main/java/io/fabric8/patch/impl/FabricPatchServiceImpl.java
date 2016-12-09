@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import io.fabric8.api.FabricException;
 import io.fabric8.api.FabricService;
 import io.fabric8.api.GitContext;
 import io.fabric8.api.ProfileRegistry;
@@ -52,6 +53,7 @@ import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.felix.utils.version.VersionTable;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.errors.TransportException;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.transport.RemoteRefUpdate;
@@ -222,10 +224,10 @@ public class FabricPatchServiceImpl implements FabricPatchService {
     }
 
     @Override
-    public String synchronize() throws Exception {
+    public String synchronize(final boolean verbose) throws Exception {
         final String[] remoteUrl = new String[] { null };
 
-        patchManagement.pushPatchInfo();
+        patchManagement.pushPatchInfo(verbose);
 
         GitOperation operation = new GitOperation() {
             @Override
@@ -242,33 +244,49 @@ public class FabricPatchServiceImpl implements FabricPatchService {
                     username = ZooKeeperUtils.getContainerLogin(runtimeProperties);
                     password = ZooKeeperUtils.generateContainerToken(runtimeProperties, curator);
                 }
+
+                remoteUrl[0] = git.getRepository().getConfig().getString("remote", "origin", "url");
+
                 Iterable<PushResult> results = git.push()
                         .setCredentialsProvider(new UsernamePasswordCredentialsProvider(username, password))
                         .setPushTags()
                         .setPushAll()
                         .call();
 
-                logPushResult(results, git.getRepository());
+                logPushResult(results, git.getRepository(), verbose);
 
-                remoteUrl[0] = git.getRepository().getConfig().getString("remote", "origin", "url");
                 return null;
             }
         };
-        gitDataStore.gitOperation(new GitContext(), operation, null);
+        try {
+            gitDataStore.gitOperation(new GitContext(), operation, null);
+        } catch (FabricException e) {
+            if (e.getCause() != null && e.getCause() instanceof TransportException) {
+                LOG.warn("Problem when synchronizing patch information: " + e.getCause().getMessage());
+            } else {
+                throw e;
+            }
+        }
         return remoteUrl[0];
     }
 
-    public void logPushResult(Iterable<PushResult> results, Repository repository) throws IOException {
+    public void logPushResult(Iterable<PushResult> results, Repository repository, boolean verbose) throws IOException {
         String local = repository.getDirectory().getCanonicalPath();
 
         for (PushResult result : results) {
-            LOG.info(String.format("Pushed from %s to %s:", local, result.getURI()));
             Map<String, RemoteRefUpdate> map = new TreeMap<>();
             for (RemoteRefUpdate update : result.getRemoteUpdates()) {
-                map.put(update.getSrcRef(), update);
+                if (verbose || update.getStatus() != RemoteRefUpdate.Status.UP_TO_DATE) {
+                    map.put(update.getSrcRef(), update);
+                }
             }
-            for (RemoteRefUpdate update : map.values()) {
-                LOG.info(String.format(" - %s (%s)", update.getSrcRef(), update.getStatus()));
+            if (map.size() > 0) {
+                LOG.info(String.format("Pushed from %s to %s:", local, result.getURI()));
+                for (RemoteRefUpdate update : map.values()) {
+                    LOG.info(String.format(" - %s (%s)", update.getSrcRef(), update.getStatus()));
+                }
+            } else {
+                LOG.info(String.format("Pushed from %s to %s - no reference was updated", local, result.getURI()));
             }
         }
     }

@@ -3356,7 +3356,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     @Override
-    public void pushPatchInfo() throws IOException, GitAPIException {
+    public void pushPatchInfo(boolean verbose) throws IOException, GitAPIException {
         Git mainRepository = gitPatchRepository.findOrCreateMainGitRepository();
         String local = mainRepository.getRepository().getDirectory().getCanonicalPath();
         if (mainRepository.getRepository().getConfig() != null) {
@@ -3367,7 +3367,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                         .setPushAll()
                         .setPushTags()
                         .call();
-                logPushResult(results, mainRepository.getRepository());
+                logPushResult(results, mainRepository.getRepository(), verbose);
                 return;
             }
         }
@@ -3375,17 +3375,23 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
     }
 
     @Override
-    public void logPushResult(Iterable<PushResult> results, Repository repository) throws IOException {
+    public void logPushResult(Iterable<PushResult> results, Repository repository, boolean verbose) throws IOException {
         String local = repository.getDirectory().getCanonicalPath();
 
         for (PushResult result : results) {
-            Activator.log(LogService.LOG_INFO, String.format("Pushed from %s to %s:", local, result.getURI()));
             Map<String, RemoteRefUpdate> map = new TreeMap<>();
             for (RemoteRefUpdate update : result.getRemoteUpdates()) {
-                map.put(update.getSrcRef(), update);
+                if (verbose || update.getStatus() != RemoteRefUpdate.Status.UP_TO_DATE) {
+                    map.put(update.getSrcRef(), update);
+                }
             }
-            for (RemoteRefUpdate update : map.values()) {
-                Activator.log(LogService.LOG_INFO, String.format(" - %s (%s)", update.getSrcRef(), update.getStatus()));
+            if (map.size() > 0) {
+                Activator.log(LogService.LOG_INFO, String.format("Pushed from %s to %s:", local, result.getURI()));
+                for (RemoteRefUpdate update : map.values()) {
+                    Activator.log(LogService.LOG_INFO, String.format(" - %s (%s)", update.getSrcRef(), update.getStatus()));
+                }
+            } else {
+                Activator.log(LogService.LOG_INFO, String.format("Pushed from %s to %s - no reference was updated", local, result.getURI()));
             }
         }
     }
