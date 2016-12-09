@@ -69,6 +69,7 @@ public class DeploymentAgentTest {
                 builder.addBundleSymbolicName(archive.getName());
                 builder.addBundleVersion("1.0.0");
                 builder.addImportPackages(ServiceLocator.class, FabricService.class);
+                builder.addImportPackages("io.fabric8.git");
                 builder.addImportPackages(AbstractCommand.class, Action.class);
                 builder.addImportPackage("org.apache.felix.service.command;status=provisional");
                 builder.addImportPackages(ConfigurationAdmin.class, ServiceTracker.class, Logger.class);

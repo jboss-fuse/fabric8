@@ -22,7 +22,10 @@ import io.fabric8.api.CreateContainerBasicOptions;
 import io.fabric8.api.FabricComplete;
 import io.fabric8.api.FabricException;
 import io.fabric8.api.FabricService;
+import io.fabric8.api.GitContext;
 import io.fabric8.api.ServiceProxy;
+import io.fabric8.git.GitDataStore;
+import io.fabric8.git.GitService;
 import io.fabric8.service.jclouds.CreateJCloudsContainerOptions;
 import io.fabric8.service.ssh.CreateSshContainerOptions;
 import io.fabric8.tooling.testing.pax.exam.karaf.ServiceLocator;
@@ -39,10 +42,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.jgit.transport.PushResult;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.FrameworkUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class ContainerBuilder<T extends ContainerBuilder, B extends CreateContainerBasicOptions.Builder> {
+
+    public static Logger LOG = LoggerFactory.getLogger(ContainerBuilder.class);
 
     public static final Long CREATE_TIMEOUT = 10 * 60000L;
     public static final Long PROVISION_TIMEOUT = 5 * 60000L;
@@ -208,6 +216,7 @@ public abstract class ContainerBuilder<T extends ContainerBuilder, B extends Cre
         Set<ContainerProxy> containers = new HashSet<ContainerProxy>();
         BundleContext bundleContext = getBundleContext();
         ServiceLocator.awaitService(getBundleContext(), FabricComplete.class);
+        synchronizeGitRepositories();
         FabricService fabricService = fabricServiceServiceProxy.getService();
         CompletionService<Set<ContainerProxy>> completionService = new ExecutorCompletionService<Set<ContainerProxy>>(executorService);
 
@@ -243,6 +252,33 @@ public abstract class ContainerBuilder<T extends ContainerBuilder, B extends Cre
         }
 
         return Collections.unmodifiableSet(containers);
+    }
+
+    /**
+     * ENTESB-6368: Ensures that local git repository is synchronized with fabric-wide git repository.
+     */
+    protected void synchronizeGitRepositories() {
+        GitService gitService = io.fabric8.api.gravia.ServiceLocator.awaitService(GitService.class);
+        GitDataStore gitDataStore = io.fabric8.api.gravia.ServiceLocator.awaitService(GitDataStore.class);
+
+        for (int i = 0; i < 10; i++) {
+            try {
+                LOG.info("Synchronizing Git repositories");
+                Iterable<PushResult> results = gitDataStore.doPush(gitService.getGit(), new GitContext().requirePush());
+                if (results.iterator().hasNext()) {
+                    return;
+                }
+                throw new Exception("No reference was pushed");
+            } catch (Exception e) {
+                LOG.warn("Synchronization of Git repositories failed: " + e.getMessage());
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(ie);
+                }
+            }
+        }
     }
 
     /**

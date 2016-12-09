@@ -33,11 +33,19 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import io.fabric8.api.GitContext;
+import io.fabric8.git.GitDataStore;
+import io.fabric8.git.GitService;
+import org.eclipse.jgit.transport.PushResult;
 import org.osgi.framework.BundleContext;
 
 import io.fabric8.api.gravia.ServiceLocator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class ContainerBuilder<T extends ContainerBuilder, B extends CreateContainerBasicOptions.Builder> {
+
+    public static Logger LOG = LoggerFactory.getLogger(ContainerBuilder.class);
 
     public static final Long CREATE_TIMEOUT = 10 * 60000L;
     public static final Long PROVISION_TIMEOUT = 5 * 60000L;
@@ -187,7 +195,35 @@ public abstract class ContainerBuilder<T extends ContainerBuilder, B extends Cre
      */
     public Set<Container> build(FabricService fabricService) {
         ServiceLocator.awaitService(FabricComplete.class);
+        synchronizeGitRepositories();
         return build(fabricService, Arrays.<B> asList(getOptionsBuilder()));
+    }
+
+    /**
+     * ENTESB-6368: Ensures that local git repository is synchronized with fabric-wide git repository.
+     */
+    protected void synchronizeGitRepositories() {
+        GitService gitService = ServiceLocator.awaitService(GitService.class);
+        GitDataStore gitDataStore = ServiceLocator.awaitService(GitDataStore.class);
+
+        for (int i = 0; i < 10; i++) {
+            try {
+                LOG.info("Synchronizing Git repositories");
+                Iterable<PushResult> results = gitDataStore.doPush(gitService.getGit(), new GitContext().requirePush());
+                if (results.iterator().hasNext()) {
+                    return;
+                }
+                throw new Exception("No reference was pushed");
+            } catch (Exception e) {
+                LOG.warn("Synchronization of Git repositories failed: " + e.getMessage());
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(ie);
+                }
+            }
+        }
     }
 
     /**
