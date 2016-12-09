@@ -2031,7 +2031,6 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         if (tag == null) {
             ensureCorrectContainerHistory(fork, currentProductVersion);
             applyUserChanges(fork);
-            applyChanges(fork, restartFileInstall);
             return false;
         } else if (!tagName.equals(tag.getTagName())) {
             applyUserChanges(fork);
