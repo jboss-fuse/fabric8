@@ -30,7 +30,7 @@ public class FabricSynchronizeAction extends AbstractAction {
 
     @Override
     protected Object doExecute() throws Exception {
-        String remoteUrl = fabricPatchService.synchronize();
+        String remoteUrl = fabricPatchService.synchronize(true);
         if (remoteUrl != null) {
             System.out.println("Patch information synchronized to git repository at: " + remoteUrl);
         }
