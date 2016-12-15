@@ -2042,8 +2042,14 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         } else if (!tagName.equals(tag.getTagName())) {
             applyUserChanges(fork);
             ensureCorrectContainerHistory(fork, currentProductVersion);
-            applyChanges(fork, restartFileInstall);
-            return true;
+
+            // ENTESB-6416 - if we're switching to fabric mode without rebasing we don't have to "apply changes"
+            // i.e., we don't have to copy changes to ${karaf.base} from new baseline
+            String standaloneTagName = String.format(EnvType.STANDALONE.getBaselineTagFormat(), currentProductVersion);
+            if (!standaloneTagName.equals(tag.getTagName())) {
+                applyChanges(fork, restartFileInstall);
+                return true;
+            }
         }
 
         return false;
