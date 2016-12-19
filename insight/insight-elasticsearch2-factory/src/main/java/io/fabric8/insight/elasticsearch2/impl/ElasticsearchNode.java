@@ -50,6 +50,7 @@ public class ElasticsearchNode {
     protected void activate(final Map<String, Object> props) throws Exception {
         Map<String,String> stringProps = new HashMap<String,String>();
         for (Map.Entry<String, Object> entry : props.entrySet()) {
+        	System.out.println(entry.getKey());
             stringProps.put(entry.getKey(), entry.getValue().toString());
         }
 
