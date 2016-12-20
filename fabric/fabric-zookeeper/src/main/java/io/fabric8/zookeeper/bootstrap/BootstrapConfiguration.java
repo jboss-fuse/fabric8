@@ -193,6 +193,16 @@ public class BootstrapConfiguration extends AbstractComponent {
             decodedZookeeperPassword = PasswordEncoder.encode(CreateEnsembleOptions.generatePassword());
         }
 
+        if (zookeeperUrl != null && zookeeperPassword != null) {
+            Configuration zkConfugiration = configAdmin.get().getConfiguration(Constants.ZOOKEEPER_CLIENT_PID);
+            if (zkConfugiration.getProperties() == null) {
+                Hashtable<String, Object> zkProperties = new Hashtable<>();
+                zkProperties.put("zookeeper.url", zookeeperUrl);
+                zkProperties.put("zookeeper.password", PasswordEncoder.encode(decodedZookeeperPassword));
+                zkConfugiration.update(zkProperties);
+            }
+        }
+
         if (userProps.isEmpty()) {
             userProps.put(DEFAULT_ADMIN_USER, decodedZookeeperPassword+ ROLE_DELIMITER + DEFAULT_ADMIN_ROLE);
         }
