@@ -130,6 +130,7 @@ public class Activator extends AbstractURLStreamHandlerService
     {
         final Dictionary<String, Object> props = new Hashtable<>();
         props.put( URLConstants.URL_HANDLER_PROTOCOL, PROTOCOL );
+        props.put( "fabric", "true" );
         m_handlerReg = m_bundleContext.registerService(
                 URLStreamHandlerService.class.getName(),
                 this,
