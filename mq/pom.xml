@@ -21,13 +21,13 @@
   <parent>
     <groupId>io.fabric8</groupId>
     <artifactId>fabric8-project</artifactId>
-    <version>1.2.0.redhat-630187</version>
+    <version>1.2.0.redhat-630187-05</version>
     <relativePath>../parent</relativePath>
   </parent>
 
   <groupId>io.fabric8.mq</groupId>
   <artifactId>mq-project</artifactId>
-  <version>1.2.0.redhat-630187</version>
+  <version>1.2.0.redhat-630187-05</version>
   <packaging>pom</packaging>
 
   <name>Fabric8 :: MQ Project</name>
