@@ -135,9 +135,9 @@ public class MavenDownloadProxyServlet extends MavenProxyServletSupport {
             public void onTimeout(AsyncEvent event) throws IOException {
                 if (timeoutOrReady.compareAndSet(ASYNC_STARTED, ASYNC_TIMEOUT)) {
                     LOGGER.warn("Timeout handling " + ((HttpServletRequest)event.getSuppliedRequest()).getRequestURI());
-                    event.getAsyncContext().complete();
                     ((HttpServletResponse)event.getAsyncContext().getResponse())
                             .sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Async timeout when downloading Maven artifact");
+                    event.getAsyncContext().complete();
                 } else {
                     LOGGER.debug("Timeout handling " + ((HttpServletRequest) event.getSuppliedRequest()).getRequestURI()
                             + ", but download thread completed, continuing process of download.");
