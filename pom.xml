@@ -313,7 +313,7 @@
         <pax.logging.version>1.8.4</pax.logging.version>
         <pax.url.mvn.commons.version>${pax.url.version}</pax.url.mvn.commons.version>
         <pax.url.mvn.version>${pax.url.version}</pax.url.mvn.version>
-        <pax.url.version>2.4.7</pax.url.version>
+        <pax.url.version>2.4.8</pax.url.version>
         <pax.web.version>3.3.0</pax.web.version>
         <plexus-utils-version>3.0.17</plexus-utils-version>
         <plexus-classworlds-version>2.4</plexus-classworlds-version>
