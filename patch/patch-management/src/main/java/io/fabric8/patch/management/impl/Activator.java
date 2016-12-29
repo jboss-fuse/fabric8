@@ -15,6 +15,8 @@
  */
 package io.fabric8.patch.management.impl;
 
+import java.io.File;
+import java.io.FilenameFilter;
 import java.io.PrintStream;
 
 import io.fabric8.patch.management.BackupService;
@@ -71,6 +73,28 @@ public class Activator implements BundleActivator {
 
         if (!patchManagementService.isEnabled()) {
             log(LogService.LOG_INFO, "\nPatch management is disabled");
+            return;
+        }
+
+        try {
+            class E7 extends Exception {
+                public E7(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+                    super(message, cause, enableSuppression, writableStackTrace);
+                }
+            }
+            new E7("test", null, false, false);
+        } catch (Throwable t) {
+            File[] files = new File(System.getProperty("karaf.home"), "lib/endorsed").listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    return name.contains("karaf.exception");
+                }
+            });
+            if (files != null && files.length > 0) {
+                log2(LogService.LOG_WARNING, "Please remove \"" + files[0].getName() + "\" from lib/endorsed directory and restart. Patching won't succeed with this version of endorsed library.");
+            } else {
+                log2(LogService.LOG_WARNING, "Available java.lang.Exception class is not compatible with JDK7 and later. Patching won't succeed. Please restart.");
+            }
             return;
         }
 
