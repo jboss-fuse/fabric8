@@ -3462,6 +3462,9 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                                 callback.run();
                             } catch (Exception e) {
                                 Activator.log(LogService.LOG_WARNING, null, e.getMessage(), e, false);
+                            } catch (Error e) {
+                                // in case newer patch management calls agent which is still wired to old patch management
+                                Activator.log(LogService.LOG_WARNING, null, e.getMessage(), e, false);
                             }
                         }
                         return false;
