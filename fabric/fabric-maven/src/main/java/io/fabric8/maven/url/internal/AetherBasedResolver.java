@@ -263,10 +263,10 @@ public class AetherBasedResolver implements MavenResolver {
         // configure mirror
         DefaultMirrorSelector selector = new DefaultMirrorSelector();
         for( Mirror m : m_settings.getMirrors() ) {
-            selector.add( m.getName(), m.getUrl(), null, false, m.getMirrorOf(), "*" );
+            selector.add( m.getId(), m.getUrl(), null, false, m.getMirrorOf(), "*" );
         }
         if( mirror != null ) {
-            selector.add(mirror.getName(), mirror.getUrl(), null, false, mirror.getMirrorOf(), "*");
+            selector.add(mirror.getId(), mirror.getUrl(), null, false, mirror.getMirrorOf(), "*");
         }
         return selector;
     }
