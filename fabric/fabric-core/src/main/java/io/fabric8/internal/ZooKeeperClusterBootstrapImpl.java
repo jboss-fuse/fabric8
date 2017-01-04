@@ -16,6 +16,7 @@
 package io.fabric8.internal;
 
 import io.fabric8.api.BootstrapComplete;
+import io.fabric8.api.Constants;
 import io.fabric8.api.Container;
 import io.fabric8.api.CreateEnsembleOptions;
 import io.fabric8.api.DataStoreTemplate;
@@ -29,9 +30,13 @@ import io.fabric8.api.scr.AbstractComponent;
 import io.fabric8.api.scr.Configurer;
 import io.fabric8.api.scr.ValidatingReference;
 import io.fabric8.utils.BundleUtils;
+import io.fabric8.utils.OsgiUtils;
 import io.fabric8.zookeeper.bootstrap.BootstrapConfiguration;
 import io.fabric8.zookeeper.bootstrap.BootstrapConfiguration.DataStoreOptions;
 import io.fabric8.zookeeper.bootstrap.DataStoreBootstrapTemplate;
+
+import io.fabric8.zookeeper.ZkPath;
+import io.fabric8.zookeeper.utils.ZooKeeperUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -42,6 +47,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.utils.ZKPaths;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -56,6 +63,7 @@ import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceEvent;
 import org.osgi.framework.ServiceListener;
 import org.osgi.framework.ServiceReference;
+import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.ComponentContext;
@@ -137,6 +145,27 @@ public final class ZooKeeperClusterBootstrapImpl extends AbstractComponent imple
             long bootstrapTimeout = options.getBootstrapTimeout();
             ServiceLocator.awaitService(FabricComplete.class, bootstrapTimeout, TimeUnit.MILLISECONDS);
             
+            CuratorFramework curatorFramework = ServiceLocator.getService(CuratorFramework.class);
+            Map<String, String> dataStoreProperties = options.getDataStoreProperties();
+            if(ZooKeeperUtils.exists(curatorFramework, ZkPath.CONFIG_GIT_EXTERNAL.getPath()) == null)
+                ZooKeeperUtils.create(curatorFramework, ZkPath.CONFIG_GIT_EXTERNAL.getPath());
+            if(dataStoreProperties != null){
+                String remoteUrl = dataStoreProperties.get(Constants.GIT_REMOTE_URL);
+                if(remoteUrl != null) {
+                    ZooKeeperUtils.create(curatorFramework, ZkPath.CONFIG_GIT_EXTERNAL_URL.getPath());
+                    ZooKeeperUtils.add(curatorFramework, ZkPath.CONFIG_GIT_EXTERNAL_URL.getPath(), remoteUrl);
+                }
+                String remoteUser = dataStoreProperties.get("gitRemoteUser");
+                if(remoteUser != null) {
+                    ZooKeeperUtils.create(curatorFramework, ZkPath.CONFIG_GIT_EXTERNAL_USER.getPath());
+                    ZooKeeperUtils.add(curatorFramework, ZkPath.CONFIG_GIT_EXTERNAL_USER.getPath(), remoteUser);
+                }
+                String remotePassword = dataStoreProperties.get("gitRemotePassword");
+                if(remotePassword != null) {
+                    ZooKeeperUtils.create(curatorFramework, ZkPath.CONFIG_GIT_EXTERNAL_PASSWORD.getPath());
+                    ZooKeeperUtils.add(curatorFramework, ZkPath.CONFIG_GIT_EXTERNAL_PASSWORD.getPath(), remotePassword);
+                }
+            }
             long timeDiff = System.currentTimeMillis() - startTime; 
 			createHandler.waitForContainerAlive(name, syscontext, bootstrapTimeout - timeDiff);
 

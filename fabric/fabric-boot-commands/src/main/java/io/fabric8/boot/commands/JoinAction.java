@@ -30,9 +30,16 @@ import io.fabric8.utils.shell.ShellUtils;
 import io.fabric8.zookeeper.ZkPath;
 import io.fabric8.zookeeper.bootstrap.BootstrapConfiguration;
 
+import io.fabric8.zookeeper.utils.ZooKeeperUtils;
+
+import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URL;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Dictionary;
+import java.util.Enumeration;
 import java.util.Hashtable;
 
 import org.apache.curator.framework.CuratorFramework;
@@ -52,6 +59,8 @@ import org.osgi.service.cm.ConfigurationAdmin;
 
 @Command(name = "join", scope = "fabric", description = "Join a container to an existing fabric", detailedDescription = "classpath:join.txt")
 final class JoinAction extends AbstractAction {
+
+    private static final String FILEINSTALL_FILE_NAME = "felix.fileinstall.filename";
 
     @Option(name = "-n", aliases = "--non-managed", multiValued = false, description = "Flag to keep the container non managed")
     private boolean nonManaged;
@@ -117,6 +126,14 @@ final class JoinAction extends AbstractAction {
 
         FabricValidations.validateContainerName(containerName);
         Configuration bootConfiguration = configAdmin.getConfiguration(BootstrapConfiguration.COMPONENT_PID, null);
+        Configuration dataStoreConfiguration = configAdmin.getConfiguration(Constants.DATASTORE_PID, null);
+        Configuration configZook = configAdmin.getConfiguration(Constants.ZOOKEEPER_CLIENT_PID, null);
+
+        if (configZook.getProperties() != null && configZook.getProperties().get("zookeeper.url") != null) {
+           System.err.println("This container is already connected to a fabric");
+           return null;
+        }
+
         Dictionary<String, Object> bootProperties = bootConfiguration.getProperties();
         if (bootProperties == null) {
             bootProperties = new Hashtable<>();
@@ -152,6 +169,10 @@ final class JoinAction extends AbstractAction {
         bootProperties.put(ZkDefs.MINIMUM_PORT, String.valueOf(minimumPort));
         bootProperties.put(ZkDefs.MAXIMUM_PORT, String.valueOf(maximumPort));
 
+        Dictionary<String, Object> dataStoreProperties = new Hashtable<String, Object>();
+        augmentDataStoreProperties(zookeeperPassword, dataStoreProperties);
+
+
         if (!containerName.equals(oldName)) {
             if (force || permissionToRenameContainer()) {
                 if (!registerContainer(containerName, zookeeperPassword, profile, force)) {
@@ -182,6 +203,8 @@ final class JoinAction extends AbstractAction {
                 }
                 //Restart the container
                 bootConfiguration.update(bootProperties);
+                dataStoreConfiguration.update(dataStoreProperties);
+                persistConfiguration(configAdmin, Constants.DATASTORE_PID, dataStoreProperties );
                 bundleContext.getBundle(0).stop();
 
                 return null;
@@ -190,11 +213,13 @@ final class JoinAction extends AbstractAction {
             }
         } else {
             bootConfiguration.update(bootProperties);
+            dataStoreConfiguration.update(dataStoreProperties);
+            persistConfiguration(configAdmin, Constants.DATASTORE_PID, dataStoreProperties );
             if (!registerContainer(containerName, zookeeperPassword, profile, force)) {
                 System.err.println("A container with the name: " + containerName + " is already member of the cluster. You can specify a different name as an argument.");
                 return null;
             }
-            Configuration config = configAdmin.getConfiguration(Constants.ZOOKEEPER_CLIENT_PID);
+            Configuration config = configAdmin.getConfiguration(Constants.ZOOKEEPER_CLIENT_PID, null);
             Hashtable<String, Object> properties = new Hashtable<String, Object>();
             properties.put("zookeeper.url", zookeeperUrl);
             properties.put("zookeeper.password", PasswordEncoder.encode(encodedPassword));
@@ -204,6 +229,45 @@ final class JoinAction extends AbstractAction {
                 installBundles();
             }
             return null;
+        }
+    }
+
+    private void augmentDataStoreProperties(String registryPassword, Dictionary<String, Object> dataStoreProperties) throws Exception{
+        boolean exists = false;
+        CuratorFramework curator = null;
+        try {
+
+            CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder()
+                    .connectString(zookeeperUrl)
+                    .retryPolicy(new RetryOneTime(1000))
+                    .connectionTimeoutMs(60000);
+
+            if (registryPassword != null && !registryPassword.isEmpty()) {
+                builder.authorization("digest", ("fabric:" + registryPassword).getBytes());
+            }
+
+            curator = builder.build();
+            curator.start();
+            curator.getZookeeperClient().blockUntilConnectedOrTimedOut();
+            exists = exists(curator, ZkPath.CONFIG_GIT_EXTERNAL_URL.getPath()) != null;
+            if (exists) {
+                String val = ZooKeeperUtils.getStringData(curator, ZkPath.CONFIG_GIT_EXTERNAL_URL.getPath());
+                dataStoreProperties.put("gitRemoteUrl", val);
+            }
+            exists = exists(curator, ZkPath.CONFIG_GIT_EXTERNAL_USER.getPath()) != null;
+            if (exists) {
+                String val = ZooKeeperUtils.getStringData(curator, ZkPath.CONFIG_GIT_EXTERNAL_USER.getPath());
+                dataStoreProperties.put("gitRemoteUser", val);
+            }
+            exists = exists(curator, ZkPath.CONFIG_GIT_EXTERNAL_PASSWORD.getPath()) != null;
+            if (exists) {
+                String val = ZooKeeperUtils.getStringData(curator, ZkPath.CONFIG_GIT_EXTERNAL_PASSWORD.getPath());
+                dataStoreProperties.put("gitRemotePassword", val);
+            }
+        } finally {
+            if (curator != null) {
+                curator.close();
+            }
         }
     }
 
@@ -285,6 +349,63 @@ final class JoinAction extends AbstractAction {
         } else {
             bundleFabricAgent.start();
         }
+    }
+
+
+    /**
+     * Persists configuration to storage.
+     * Original code code from org.apache.karaf.shell.config.ConfigCommandSupport#persistConfiguration(org.osgi.service.cm.ConfigurationAdmin, java.lang.String, java.util.Dictionary)
+     *
+     * @param admin
+     * @param pid
+     * @param props
+     * @throws IOException
+     */
+    protected void persistConfiguration(ConfigurationAdmin admin, String pid, Dictionary<String, Object> props) throws IOException {
+        File storageFile = new File(System.getProperty("karaf.etc"), pid + ".cfg");
+        Configuration cfg = admin.getConfiguration(pid, null);
+        if (cfg != null && cfg.getProperties() != null) {
+            Object val = cfg.getProperties().get(FILEINSTALL_FILE_NAME);
+            try {
+                if (val instanceof URL) {
+                    storageFile = new File(((URL) val).toURI());
+                }
+                if (val instanceof URI) {
+                    storageFile = new File((URI) val);
+                }
+                if (val instanceof String) {
+                    storageFile = new File(new URL((String) val).toURI());
+                }
+            } catch (Exception e) {
+                throw (IOException) new IOException(e.getMessage()).initCause(e);
+            }
+        }
+        Properties p = new Properties(storageFile);
+        for (Enumeration<String> keys = props.keys(); keys.hasMoreElements(); ) {
+            String key = keys.nextElement();
+            if (!org.osgi.framework.Constants.SERVICE_PID.equals(key)
+                    && !ConfigurationAdmin.SERVICE_FACTORYPID.equals(key)
+                    && !FILEINSTALL_FILE_NAME.equals(key)) {
+                if (props.get(key) != null) {
+                    p.put(key, props.get(key).toString());
+                }
+            }
+        }
+        // remove "removed" properties from the file
+        ArrayList<String> propertiesToRemove = new ArrayList<String>();
+        for (String key : p.keySet()) {
+            if (props.get(key) == null
+                    && !org.osgi.framework.Constants.SERVICE_PID.equals(key)
+                    && !ConfigurationAdmin.SERVICE_FACTORYPID.equals(key)
+                    && !FILEINSTALL_FILE_NAME.equals(key)) {
+                propertiesToRemove.add(key);
+            }
+        }
+        for (String key : propertiesToRemove) {
+            p.remove(key);
+        }
+        // save the cfg file
+        p.save();
     }
 
     public String getVersion() {
