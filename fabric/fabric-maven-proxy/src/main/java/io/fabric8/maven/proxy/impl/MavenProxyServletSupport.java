@@ -22,7 +22,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
@@ -38,6 +37,7 @@ import javax.servlet.http.HttpServlet;
 
 import io.fabric8.api.RuntimeProperties;
 import io.fabric8.common.util.Files;
+import io.fabric8.common.util.Strings;
 import io.fabric8.deployer.ProjectDeployer;
 import io.fabric8.deployer.dto.DeployResults;
 import io.fabric8.deployer.dto.ProjectRequirements;
@@ -158,6 +158,9 @@ public class MavenProxyServletSupport extends HttpServlet implements MavenProxy 
                 mr.setModelVersion("1.1.0");
                 mr.setGroupId(metadata.getGroupId());
                 mr.setArtifactId(metadata.getArtifactId());
+                if (Strings.isNotBlank(metadata.getVersion())) {
+                    mr.setVersion(metadata.getVersion());
+                }
                 mr.setVersioning(new Versioning());
                 boolean merged = false;
                 List<MetadataResult> results = system.resolveMetadata(session, requests);
@@ -168,6 +171,9 @@ public class MavenProxyServletSupport extends HttpServlet implements MavenProxy 
                         fis.close();
                         if (m.getVersioning() != null) {
                             mr.getVersioning().setLastUpdated(latestTimestamp(mr.getVersioning().getLastUpdated(), m.getVersioning().getLastUpdated()));
+                            if (mr.getVersion() != null && mr.getVersion().endsWith("-SNAPSHOT")) {
+                                handleSnapshot(mr.getVersioning(), m.getVersioning());
+                            }
                             mr.getVersioning().setLatest(latestVersion(mr.getVersioning().getLatest(), m.getVersioning().getLatest()));
                             mr.getVersioning().setRelease(latestVersion(mr.getVersioning().getRelease(), m.getVersioning().getRelease()));
                             for (String v : m.getVersioning().getVersions()) {
@@ -213,6 +219,23 @@ public class MavenProxyServletSupport extends HttpServlet implements MavenProxy 
             }
         }
         return null;
+    }
+
+    /**
+     * Handles <code>/metadata/versioning/snapshot</code> on the basis of
+     * <code>/metadata/versioning/lastUpdated</code>
+     * @param current
+     * @param other
+     */
+    private void handleSnapshot(Versioning current, Versioning other) {
+        if (current.getSnapshot() == null) {
+            current.setSnapshot(other.getSnapshot());
+        } else if (other.getSnapshot() != null) {
+            String ts = latestTimestamp(current.getLastUpdated(), other.getLastUpdated());
+            if (current.getLastUpdated() == null || !current.getLastUpdated().equals(ts)) {
+                current.setSnapshot(other.getSnapshot());
+            }
+        }
     }
 
     private Comparator<String> VERSION_COMPARATOR = new Comparator<String>() {
@@ -416,7 +439,7 @@ public class MavenProxyServletSupport extends HttpServlet implements MavenProxy 
         if (!"jar".equals(context.getType())) {
             url += "/" + context.getType();
         }
-        requirements.setBundles(Arrays.asList(url));
+        requirements.setBundles(Collections.singletonList(url));
 
         return requirements;
     }
