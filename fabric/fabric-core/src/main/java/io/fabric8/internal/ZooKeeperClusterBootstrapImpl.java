@@ -36,6 +36,9 @@ import io.fabric8.zookeeper.bootstrap.BootstrapConfiguration;
 import io.fabric8.zookeeper.bootstrap.BootstrapConfiguration.DataStoreOptions;
 import io.fabric8.zookeeper.bootstrap.DataStoreBootstrapTemplate;
 
+import io.fabric8.zookeeper.ZkPath;
+import io.fabric8.zookeeper.utils.ZooKeeperUtils;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
@@ -44,6 +47,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.utils.ZKPaths;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -161,6 +166,27 @@ public final class ZooKeeperClusterBootstrapImpl extends AbstractComponent imple
             // components, so let's wait for new CuratorComplete service - it is registered after registration
             // of CuratorFramework finishes
             ServiceLocator.awaitService(CuratorComplete.class, bootstrapTimeout, TimeUnit.MILLISECONDS);
+            CuratorFramework curatorFramework = ServiceLocator.getService(CuratorFramework.class);
+            Map<String, String> dataStoreProperties = options.getDataStoreProperties();
+            if(ZooKeeperUtils.exists(curatorFramework, ZkPath.CONFIG_GIT_EXTERNAL.getPath()) == null)
+                ZooKeeperUtils.create(curatorFramework, ZkPath.CONFIG_GIT_EXTERNAL.getPath());
+            if(dataStoreProperties != null){
+                String remoteUrl = dataStoreProperties.get(Constants.GIT_REMOTE_URL);
+                if(remoteUrl != null) {
+                    ZooKeeperUtils.create(curatorFramework, ZkPath.CONFIG_GIT_EXTERNAL_URL.getPath());
+                    ZooKeeperUtils.add(curatorFramework, ZkPath.CONFIG_GIT_EXTERNAL_URL.getPath(), remoteUrl);
+                }
+                String remoteUser = dataStoreProperties.get("gitRemoteUser");
+                if(remoteUser != null) {
+                    ZooKeeperUtils.create(curatorFramework, ZkPath.CONFIG_GIT_EXTERNAL_USER.getPath());
+                    ZooKeeperUtils.add(curatorFramework, ZkPath.CONFIG_GIT_EXTERNAL_USER.getPath(), remoteUser);
+                }
+                String remotePassword = dataStoreProperties.get("gitRemotePassword");
+                if(remotePassword != null) {
+                    ZooKeeperUtils.create(curatorFramework, ZkPath.CONFIG_GIT_EXTERNAL_PASSWORD.getPath());
+                    ZooKeeperUtils.add(curatorFramework, ZkPath.CONFIG_GIT_EXTERNAL_PASSWORD.getPath(), remotePassword);
+                }
+            }
 
             // HttpService is registered differently. not as SCR component activation, but after
             // FabricConfigAdminBridge updates (or doesn't touch) org.ops4j.pax.web CM configuration

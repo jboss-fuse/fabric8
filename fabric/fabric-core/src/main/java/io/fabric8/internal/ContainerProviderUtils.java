@@ -66,6 +66,7 @@ public final class ContainerProviderUtils {
     private static final String KARAF_KILL = loadFunction("karaf_kill.sh");
     private static final String REPLACE_IN_FILE = loadFunction("replace_in_file.sh");
     private static final String REPLACE_PROPERTY_VALUE = loadFunction("replace_property_value.sh");
+    private static final String UNCOMMENT_LINE = loadFunction("uncomment_line.sh");
     private static final String CONFIGURE_HOSTNAMES = loadFunction("configure_hostname.sh");
     private static final String FIND_FREE_PORT = loadFunction("find_free_port.sh");
     private static final String WAIT_FOR_PORT = loadFunction("wait_for_port.sh");
@@ -128,6 +129,7 @@ public final class ContainerProviderUtils {
         sb.append(KARAF_CHECK).append("\n");
         sb.append(REPLACE_IN_FILE).append("\n");
         sb.append(REPLACE_PROPERTY_VALUE).append("\n");
+        sb.append(UNCOMMENT_LINE).append("\n");
         sb.append(CONFIGURE_HOSTNAMES).append("\n");
         sb.append(FIND_FREE_PORT).append("\n");
         sb.append(WAIT_FOR_PORT).append("\n");
@@ -169,10 +171,12 @@ public final class ContainerProviderUtils {
         }
         appendFile(sb, "etc/system.properties", lines);
         replacePropertyValue(sb, "etc/system.properties", "karaf.name", name);
+        String dataStoreFile = "etc/" + Constants.DATASTORE_PID + ".cfg";
         for (Map.Entry<String, String> entry : options.getDataStoreProperties().entrySet()) {
             String key = entry.getKey();
             String value = entry.getValue();
-            replacePropertyValue(sb, "etc/" + Constants.DATASTORE_PID + ".cfg", key, value);
+            replacePropertyValue(sb, dataStoreFile, key, value);
+            uncomment_line(sb, dataStoreFile, key);
         }
         //Apply port range
         sb.append("BIND_ADDRESS=").append(options.getBindAddress() != null && !options.getBindAddress().isEmpty() ? options.getBindAddress() : "0.0.0.0").append("\n");
@@ -382,6 +386,13 @@ public final class ContainerProviderUtils {
         return sb.toString();
     }
 
+
+    private static void     uncomment_line(StringBuilder sb, String path, String key) {
+        sb.append("uncomment_line ")
+                .append("\"").append(key).append("\" ")
+                .append(path)
+                .append("\n");
+    }
 
     private static void replacePropertyValue(StringBuilder sb, String path, String key, String value) {
         sb.append("replace_property_value ")
