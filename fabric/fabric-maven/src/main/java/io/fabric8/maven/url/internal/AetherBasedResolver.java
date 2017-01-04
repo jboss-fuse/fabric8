@@ -669,6 +669,8 @@ public class AetherBasedResolver implements MavenResolver {
             }
         }
 
+        session.setConfigProperty( "aether.updateCheckManager.sessionState", "no" );
+
         session.setOffline( m_config.isOffline() );
 
         return session;
