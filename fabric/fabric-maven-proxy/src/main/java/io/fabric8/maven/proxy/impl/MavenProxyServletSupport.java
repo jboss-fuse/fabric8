@@ -74,7 +74,7 @@ public class MavenProxyServletSupport extends HttpServlet implements MavenProxy 
     //4: artifact filename
     public static final Pattern ARTIFACT_REQUEST_URL_REGEX = Pattern.compile("([^ ]+)/([^/ ]+)/([^/ ]+)/([^/ ]+)");
 
-    //The pattern bellow matches the path to the following:
+    //The pattern bellow matches the path to the following (GAV metadata):
     //1: groupId
     //2: artifactId
     //3: version
@@ -82,6 +82,14 @@ public class MavenProxyServletSupport extends HttpServlet implements MavenProxy 
     //7: repository id.
     //9: type
     public static final Pattern ARTIFACT_METADATA_URL_REGEX = Pattern.compile("([^ ]+)/([^/ ]+)/([^/ ]+)/((maven-metadata([-]([^ .]+))?.xml))([.]([^ ]+))?");
+
+    //The pattern bellow matches the path to the following (GA metadata):
+    //1: groupId
+    //2 and 3: artifactId
+    //4: maven-metadata xml filename
+    //7: repository id.
+    //9: type
+    public static final Pattern ARTIFACT_GA_METADATA_URL_REGEX = Pattern.compile("([^ ]+)/(([^/ ]+))/((maven-metadata([-]([^ .]+))?.xml))([.]([^ ]+))?");
 
     public static final Pattern REPOSITORY_ID_REGEX = Pattern.compile("[^ ]*(@id=([^@ ]+))+[^ ]*");
 
@@ -134,15 +142,15 @@ public class MavenProxyServletSupport extends HttpServlet implements MavenProxy 
         }
 
         Matcher artifactMatcher = ARTIFACT_REQUEST_URL_REGEX.matcher(path);
-        Matcher metdataMatcher = ARTIFACT_METADATA_URL_REGEX.matcher(path);
+        Matcher metdataGaMatcher = ARTIFACT_GA_METADATA_URL_REGEX.matcher(path);
 
-        if (metdataMatcher.matches()) {
+        if (metdataGaMatcher.matches()) {
             LOGGER.info("Received request for maven metadata : {}", path);
             Metadata metadata = null;
             try {
                 metadata = convertPathToMetadata(path);
                 // Only handle xxx/maven-metadata.xml requests
-                if (!"maven-metadata.xml".equals(metadata.getType()) || metdataMatcher.group(7) != null) {
+                if (!"maven-metadata.xml".equals(metadata.getType()) || metdataGaMatcher.group(7) != null) {
                     return null;
                 }
                 List<MetadataRequest> requests = new ArrayList<>();
@@ -516,7 +524,9 @@ public class MavenProxyServletSupport extends HttpServlet implements MavenProxy 
     }
 
     /**
-     * Converts the path of the request to {@link Metadata}.
+     * <p>Converts the path of the request to {@link Metadata}.</p>
+     * <p>The problem is that we may have <code>g/a/v/maven-metadata.xml</code> or <code>g/a/maven-metadata.xml</code>,
+     * but <code>g</code> may be <code>org/something/something</code> or just <code>commons-logging</code>.</p>
      *
      * @param path The request path, following the format: {@code <groupId>/<artifactId>/<version>/<artifactId>-<version>-[<classifier>].extension}
      * @return
@@ -527,19 +537,55 @@ public class MavenProxyServletSupport extends HttpServlet implements MavenProxy 
         if (path == null) {
             throw new InvalidMavenArtifactRequest("Cannot match request path to maven url, request path is empty.");
         }
-        Matcher pathMatcher = ARTIFACT_METADATA_URL_REGEX.matcher(path);
+        Matcher pathMatcher = ARTIFACT_GA_METADATA_URL_REGEX.matcher(path);
         if (pathMatcher.matches()) {
+            // from g/a/maven-metadata.xml* to g1/g2/.../a/v/maven-metadata.xml*
+            String version = pathMatcher.group(3);
+            if (version != null && version.length() > 0 && Character.isDigit(version.charAt(0))) {
+                // we have version that starts with digit - assume GAV metadata
+                Matcher pathGavMatcher = ARTIFACT_METADATA_URL_REGEX.matcher(path);
+                if (pathGavMatcher.matches()) {
+                    pathMatcher = pathGavMatcher;
+                    version = pathMatcher.group(3);
+                }
+            } else {
+                version = "";
+            }
             String groupId = pathMatcher.group(1).replaceAll("/", ".");
             String artifactId = pathMatcher.group(2);
-            String version = pathMatcher.group(3);
-            String type = pathMatcher.group(9);
+
+            String type = pathMatcher.group(8);
             if (type == null) {
                 type = "maven-metadata.xml";
             } else {
                 type = "maven-metadata.xml." + type;
             }
             metadata = new DefaultMetadata(groupId, artifactId, version, type, Metadata.Nature.RELEASE_OR_SNAPSHOT);
-
+        } else {
+            pathMatcher = ARTIFACT_GA_METADATA_URL_REGEX.matcher(path);
+            if (pathMatcher.matches()) {
+                String groupId = pathMatcher.group(1).replaceAll("/", ".");
+                String artifactId = pathMatcher.group(2);
+                String version = pathMatcher.group(3);
+                if (version != null && version.length() > 0 && Character.isDigit(version.charAt(0))) {
+                    // we have version that starts with digit - assume GAV metadata
+                } else {
+                    Matcher pathGaMatcher = ARTIFACT_GA_METADATA_URL_REGEX.matcher(path);
+                    if (pathGaMatcher.matches()) {
+                        // let's assume it's GA metadata (no version)
+                        version = "";
+                        groupId = pathGaMatcher.group(1).replaceAll("/", ".");
+                        artifactId = pathGaMatcher.group(2);
+                    }
+                }
+                String type = pathMatcher.group(8);
+                if (type == null) {
+                    type = "maven-metadata.xml";
+                } else {
+                    type = "maven-metadata.xml." + type;
+                }
+                metadata = new DefaultMetadata(groupId, artifactId, version, type, Metadata.Nature.RELEASE_OR_SNAPSHOT);
+            }
         }
         return metadata;
     }
