@@ -301,12 +301,14 @@ public class MavenProxyServletSupport extends HttpServlet implements MavenProxy 
         Matcher artifactMatcher = ARTIFACT_REQUEST_URL_REGEX.matcher(path);
         Matcher metadataMatcher = ARTIFACT_METADATA_URL_REGEX.matcher(path);
 
+        File target = null;
         if (metadataMatcher.matches()) {
             LOGGER.info("Received upload request for maven metadata : {}", path);
             try {
-                File target = new File(uploadRepository, path);
+                target = new File(uploadRepository, path);
                 Files.copy(file, target);
                 LOGGER.info("Maven metadata installed");
+                result.setFile(target);
             } catch (Exception e) {
                 result = UploadContext.ERROR;
                 LOGGER.warn(String.format("Failed to upload metadata: %s due to %s", path, e.getMessage()), e);
@@ -318,8 +320,9 @@ public class MavenProxyServletSupport extends HttpServlet implements MavenProxy 
             try {
                 artifact = convertPathToArtifact(path);
 
-                File target = new File(uploadRepository, path);
+                target = new File(uploadRepository, path);
                 Files.copy(file, target);
+                result.setFile(target);
 
                 result.setGroupId(artifact.getGroupId());
                 result.setArtifactId(artifact.getArtifactId());
@@ -332,8 +335,17 @@ public class MavenProxyServletSupport extends HttpServlet implements MavenProxy 
                 LOGGER.warn(String.format("Failed to upload artifact : %s due to %s", artifact, e.getMessage()), e);
             }
         }
-        return result;
 
+        try {
+            if (file != null) {
+                // delete tmp directory and file
+                Files.recursiveDelete(file.getParentFile());
+            }
+        } catch (Exception e) {
+            LOGGER.warn(e.getMessage());
+        }
+
+        return result;
     }
 
     protected UploadContext move(String currentFile, String newPath) throws Exception {
