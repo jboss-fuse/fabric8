@@ -769,6 +769,8 @@ public class AetherBasedResolver implements MavenResolver {
         session.setConfigProperty( ConfigurationProperties.CONNECT_TIMEOUT, timeout );
         session.setConfigProperty( ConfigurationProperties.REQUEST_TIMEOUT, timeout );
 
+        session.setConfigProperty( "aether.updateCheckManager.sessionState", "no" );
+
         session.setOffline( m_config.isOffline() );
 
         return session;
