@@ -131,4 +131,9 @@ public class MavenUploadProxyServlet extends MavenDownloadProxyServlet {
         this.fileItemFactory = fileItemFactory;
     }
 
+    @Override
+    protected boolean isHostedRepository() {
+        return true;
+    }
+
 }

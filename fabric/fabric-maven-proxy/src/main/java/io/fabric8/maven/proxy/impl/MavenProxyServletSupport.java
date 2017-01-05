@@ -83,12 +83,13 @@ public class MavenProxyServletSupport extends HttpServlet implements MavenProxy 
     //9: type
     public static final Pattern ARTIFACT_METADATA_URL_REGEX = Pattern.compile("([^ ]+)/([^/ ]+)/([^/ ]+)/((maven-metadata([-]([^ .]+))?.xml))([.]([^ ]+))?");
 
-    //The pattern bellow matches the path to the following (GA metadata):
+    //The pattern bellow matches the path to the following (GA metadata AND GAV metadata):
     //1: groupId
-    //2 and 3: artifactId
+    //2 and 3: artifactId (GA) or version (GAV)
     //4: maven-metadata xml filename
     //7: repository id.
     //9: type
+    //This is used generally to detect metadata requests - both for GA and GAV. It'll be distinguished later
     public static final Pattern ARTIFACT_GA_METADATA_URL_REGEX = Pattern.compile("([^ ]+)/(([^/ ]+))/((maven-metadata([-]([^ .]+))?.xml))([.]([^ ]+))?");
 
     public static final Pattern REPOSITORY_ID_REGEX = Pattern.compile("[^ ]*(@id=([^@ ]+))+[^ ]*");
@@ -153,6 +154,25 @@ public class MavenProxyServletSupport extends HttpServlet implements MavenProxy 
                 if (!"maven-metadata.xml".equals(metadata.getType()) || metdataGaMatcher.group(7) != null) {
                     return null;
                 }
+
+                if (isHostedRepository()) {
+                    // do not resolve metadata via Aether - simply look it up in hosted storage
+                    // This is important, because `mvn deploy` or `mvn fabric8:deploy` goals, even if they PUT
+                    // artifacts and metadata also GET metadata (not artifacts)
+
+                    File hostedMetadata = new File(uploadRepository, path);
+                    LOGGER.debug("Getting metadata from hosted storage : {}", hostedMetadata);
+
+                    if (hostedMetadata.isFile()) {
+                        File tmpFile = Files.createTempFile(runtimeProperties.getDataPath());
+                        Files.copy(hostedMetadata, tmpFile);
+                        return tmpFile;
+                    }
+
+                    // never look up in io.fabric8.maven.defaultRepositories or io.fabric8.maven.repositories
+                    return null;
+                }
+
                 List<MetadataRequest> requests = new ArrayList<>();
                 for (RemoteRepository repository : repositories) {
                     MetadataRequest request = new MetadataRequest(metadata, repository, null);
@@ -227,6 +247,15 @@ public class MavenProxyServletSupport extends HttpServlet implements MavenProxy 
             }
         }
         return null;
+    }
+
+    /**
+     * Indicates the role of servlet/repository. <code>/maven/download</code> is a <em>proxy</em> repository
+     * and <code>/maven/upload</code> acts as <em>hosted</em> repository.
+     * @return
+     */
+    protected boolean isHostedRepository() {
+        return false;
     }
 
     /**
