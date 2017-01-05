@@ -317,13 +317,9 @@ public class DeployToProfileMojo extends AbstractProfileMojo {
             } else {
                 File file = artifact.getFile();
 
-                // lets deploy the pom for the artifact first
-                if (isFile(pomFile)) {
-                    Artifact pomArtifact =
-                            artifactFactory.createProjectArtifact(artifact.getGroupId(), artifact.getArtifactId(),
-                                    artifact.getBaseVersion());
-                    deploy(pomFile, pomArtifact, repo, localRepository, retryFailedDeploymentCount);
-                }
+                // we're not deploying POM separately - it'll be deployed as part of main artifact's metadata
+                // in org.apache.maven.project.artifact.ProjectArtifactMetadata
+
                 if (isFile(file)) {
                     deploy(file, artifact, repo, localRepository, retryFailedDeploymentCount);
                 } else if (!attachedArtifacts.isEmpty()) {
