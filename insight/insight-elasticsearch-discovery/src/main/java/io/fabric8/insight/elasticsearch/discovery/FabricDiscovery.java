@@ -121,7 +121,7 @@ public class FabricDiscovery extends AbstractLifecycleComponent<Discovery>
         this.transportService = transportService;
         this.nodeSettingsService = nodeSettingsService;
         this.discoveryNodeService = discoveryNodeService;
-        this.publishClusterState = new PublishClusterStateAction(settings, transportService, this, this, discoverySettings);
+        this.publishClusterState = new PublishClusterStateAction(settings, transportService, this, this, discoverySettings, clusterName);
         this.context = FrameworkUtil.getBundle(getClass()).getBundleContext();
         this.tracker = new ServiceTracker<>(context, CuratorFramework.class.getName(), this);
     }
