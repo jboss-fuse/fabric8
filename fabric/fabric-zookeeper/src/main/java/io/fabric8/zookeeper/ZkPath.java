@@ -59,7 +59,11 @@ public enum ZkPath {
 	CONFIG_ENSEMBLE                ("/fabric/configs/ensemble/{id}"),
 	CONFIG_ENSEMBLE_GENERAL        ("/fabric/configs/ensemble/general"),
 	CONFIG_ENSEMBLE_PROFILES       ("/fabric/configs/ensemble/profiles"),
-	CONFIG_ENSEMBLE_PROFILE        ("/fabric/configs/ensemble/profiles/{profile}"),
+    CONFIG_ENSEMBLE_PROFILE        ("/fabric/configs/ensemble/profiles/{profile}"),
+    CONFIG_GIT_EXTERNAL            ("/fabric/configs/git/external"),
+    CONFIG_GIT_EXTERNAL_URL        ("/fabric/configs/git/external/url"),
+    CONFIG_GIT_EXTERNAL_USER       ("/fabric/configs/git/external/user"),
+    CONFIG_GIT_EXTERNAL_PASSWORD   ("/fabric/configs/git/external/password"),
 
     BOOTSTRAP                      ("/fabric/registry/bootstrap"),
     MAVEN_PROXY                    ("/fabric/registry/maven/proxy/{type}"),
