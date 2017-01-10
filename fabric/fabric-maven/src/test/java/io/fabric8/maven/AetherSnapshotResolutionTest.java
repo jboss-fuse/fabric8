@@ -242,31 +242,4 @@ public class AetherSnapshotResolutionTest extends AetherResolutionSupport {
         assertThat(FileUtils.readFileToString(a2), equalTo("b"));
     }
 
-    @Test
-    public void snapshotIsAvailableInRemoteRepositoryNotUpdatingRelease() throws IOException {
-        File differentLocalRepository = initFileRepository("dlr");
-        File remoteRepository = initFileRepository("rr");
-        MavenResolver resolver = new ResolverBuilder()
-                .withRemoteRepositories(Collections.singletonList(remoteRepository))
-                .withUpdatePolicy(RepositoryPolicy.UPDATE_POLICY_ALWAYS)
-                .build();
-
-        mvnDeploy(differentLocalRepository, remoteRepository, "io.fabric8.test", "universalis-api", "0.1.0-SNAPSHOT", at("10:00"), "a");
-
-        File file = resolver.download("io.fabric8.test/universalis-api/0.1.0-SNAPSHOT");
-        // first resolution
-        assertThat(FileUtils.readFileToString(file), equalTo("a"));
-
-        // hacking way of replacing released (non-SNAPSHOT) artifact
-        FileUtils.write(new File(remoteRepository, "io/fabric8/test/universalis-api/0.1.0-SNAPSHOT/universalis-api-0.1.0-20170101.100000-1.jar"), "a1");
-
-        // let's trick aether a bit
-        file.setLastModified(file.lastModified() - 1000L);
-
-        // second resolution
-        file = resolver.download("io.fabric8.test/universalis-api/0.1.0-SNAPSHOT");
-        assertThat("Due to update policy, we'll have metadata updated, but no artifact updated",
-                FileUtils.readFileToString(file), equalTo("a"));
-    }
-
 }

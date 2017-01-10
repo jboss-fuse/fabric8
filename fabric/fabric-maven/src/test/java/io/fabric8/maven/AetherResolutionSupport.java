@@ -321,6 +321,11 @@ public class AetherResolutionSupport {
             return this;
         }
 
+        public ResolverBuilder withReleaseUpdates() {
+            properties.setProperty("pid." + ServiceConstants.PROPERTY_UPDATE_RELEASES, "true");
+            return this;
+        }
+
         public MavenResolver build() {
             return new AetherBasedResolver(new MavenConfigurationImpl(new PropertiesPropertyResolver(properties), "pid"));
         }

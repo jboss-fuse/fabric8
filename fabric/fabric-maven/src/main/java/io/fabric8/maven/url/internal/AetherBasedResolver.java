@@ -795,6 +795,9 @@ public class AetherBasedResolver implements MavenResolver {
             session.getData().set(SmartMetadataResolver.DEFAULT_REPOSITORY, null, remoteRepository);
         }
 
+        boolean updateReleases = m_config.getProperty(ServiceConstants.PROPERTY_UPDATE_RELEASES, false, Boolean.class);
+        session.setConfigProperty(SmartLocalRepositoryManagerFactory.PROPERTY_UPDATE_RELEASES, updateReleases);
+
         return session;
     }
 
