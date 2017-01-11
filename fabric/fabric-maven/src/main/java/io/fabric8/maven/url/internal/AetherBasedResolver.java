@@ -294,6 +294,11 @@ public class AetherBasedResolver implements MavenResolver {
         return repos;
     }
 
+    @Override
+    public List<LocalRepository> getDefaultRepositories() {
+        return selectDefaultRepositories();
+    }
+
     private List<RemoteRepository> selectRepositories() {
         List<RemoteRepository> list = new ArrayList<RemoteRepository>();
         List<MavenRepositoryURL> urls = Collections.emptyList();
@@ -593,8 +598,7 @@ public class AetherBasedResolver implements MavenResolver {
             VersionConstraint vc = new GenericVersionScheme().parseVersionConstraint(artifact.getVersion());
             if (vc.getVersion() != null) {
                 for (LocalRepository repo : defaultRepos) {
-                    if (vc.getVersion().toString().endsWith("SNAPSHOT")
-                            && !localRepositoriesWithSnapshots.contains(repo)) {
+                    if (vc.getVersion().toString().endsWith("SNAPSHOT") && !handlesSnapshot(repo)) {
                         continue;
                     }
                     DefaultRepositorySystemSession session = newSession( repo );
@@ -1125,6 +1129,11 @@ public class AetherBasedResolver implements MavenResolver {
         }
 
         return retry;
+    }
+
+    @Override
+    public boolean handlesSnapshot(LocalRepository repo) {
+        return localRepositoriesWithSnapshots.contains(repo);
     }
 
     /**

@@ -48,15 +48,20 @@ import org.apache.maven.artifact.repository.metadata.SnapshotVersion;
 import org.apache.maven.artifact.repository.metadata.Versioning;
 import org.apache.maven.artifact.repository.metadata.io.xpp3.MetadataXpp3Reader;
 import org.apache.maven.artifact.repository.metadata.io.xpp3.MetadataXpp3Writer;
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
+import org.eclipse.aether.DefaultRepositorySystemSession;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.artifact.DefaultArtifact;
 import org.eclipse.aether.metadata.DefaultMetadata;
 import org.eclipse.aether.metadata.Metadata;
+import org.eclipse.aether.repository.LocalRepository;
 import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.resolution.MetadataRequest;
 import org.eclipse.aether.resolution.MetadataResult;
+import org.eclipse.aether.util.version.GenericVersionScheme;
+import org.eclipse.aether.version.VersionConstraint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,15 +83,15 @@ public class MavenProxyServletSupport extends HttpServlet implements MavenProxy 
     //1: groupId
     //2: artifactId
     //3: version
-    //4: maven-metadata xml filename
+    //4, 5 (ignore duplicate groups): maven-metadata xml filename
     //7: repository id.
     //9: type
     public static final Pattern ARTIFACT_METADATA_URL_REGEX = Pattern.compile("([^ ]+)/([^/ ]+)/([^/ ]+)/((maven-metadata([-]([^ .]+))?.xml))([.]([^ ]+))?");
 
     //The pattern bellow matches the path to the following (GA metadata AND GAV metadata):
     //1: groupId
-    //2 and 3: artifactId (GA) or version (GAV)
-    //4: maven-metadata xml filename
+    //2, 3 (ignore duplicate groups): artifactId (GA) or version (GAV)
+    //4, 5 (ignore duplicate groups): maven-metadata xml filename
     //7: repository id.
     //9: type
     //This is used generally to detect metadata requests - both for GA and GAV. It'll be distinguished later
@@ -173,6 +178,30 @@ public class MavenProxyServletSupport extends HttpServlet implements MavenProxy 
                     return null;
                 }
 
+
+                // Try with default repositories - first metadata found is returned
+                VersionConstraint vc = new GenericVersionScheme().parseVersionConstraint(metadata.getVersion());
+                if (vc.getVersion() != null) {
+                    for (LocalRepository repo : resolver.getDefaultRepositories()) {
+                        if (vc.getVersion().toString().endsWith("SNAPSHOT") && !resolver.handlesSnapshot(repo)) {
+                            continue;
+                        }
+                        // clone session to swap local repository manager
+                        DefaultRepositorySystemSession localSession = new DefaultRepositorySystemSession(session);
+                        localSession.setLocalRepositoryManager(system.newLocalRepositoryManager(localSession, repo));
+
+                        LOGGER.debug("Getting metadata from default repository : {}", repo.getBasedir());
+                        List<MetadataResult> results = system.resolveMetadata(localSession,
+                                Collections.singletonList(new MetadataRequest(metadata, null, null)));
+
+                        File file = processMetadataResults(metadata, results);
+                        if (file != null) {
+                            return file;
+                        }
+                    }
+                }
+
+                // fallback to remote repositories - this time results are merged
                 List<MetadataRequest> requests = new ArrayList<>();
                 for (RemoteRepository repository : repositories) {
                     MetadataRequest request = new MetadataRequest(metadata, repository, null);
@@ -182,46 +211,11 @@ public class MavenProxyServletSupport extends HttpServlet implements MavenProxy 
                 MetadataRequest request = new MetadataRequest(metadata, null, null);
                 request.setFavorLocalRepository(true);
                 requests.add(request);
-                org.apache.maven.artifact.repository.metadata.Metadata mr = new org.apache.maven.artifact.repository.metadata.Metadata();
-                mr.setModelVersion("1.1.0");
-                mr.setGroupId(metadata.getGroupId());
-                mr.setArtifactId(metadata.getArtifactId());
-                if (Strings.isNotBlank(metadata.getVersion())) {
-                    mr.setVersion(metadata.getVersion());
-                }
-                mr.setVersioning(new Versioning());
-                boolean merged = false;
                 List<MetadataResult> results = system.resolveMetadata(session, requests);
-                for (MetadataResult result : results) {
-                    if (result.getMetadata() != null && result.getMetadata().getFile() != null) {
-                        FileInputStream fis = new FileInputStream( result.getMetadata().getFile() );
-                        org.apache.maven.artifact.repository.metadata.Metadata m = new MetadataXpp3Reader().read( fis, false );
-                        fis.close();
-                        if (m.getVersioning() != null) {
-                            mr.getVersioning().setLastUpdated(latestTimestamp(mr.getVersioning().getLastUpdated(), m.getVersioning().getLastUpdated()));
-                            if (mr.getVersion() != null && mr.getVersion().endsWith("-SNAPSHOT")) {
-                                handleSnapshot(mr.getVersioning(), m.getVersioning());
-                            }
-                            mr.getVersioning().setLatest(latestVersion(mr.getVersioning().getLatest(), m.getVersioning().getLatest()));
-                            mr.getVersioning().setRelease(latestVersion(mr.getVersioning().getRelease(), m.getVersioning().getRelease()));
-                            for (String v : m.getVersioning().getVersions()) {
-                                if (!mr.getVersioning().getVersions().contains(v)) {
-                                    mr.getVersioning().getVersions().add(v);
-                                }
-                            }
-                            mr.getVersioning().getSnapshotVersions().addAll(m.getVersioning().getSnapshotVersions());
-                        }
-                        merged = true;
-                    }
-                }
-                if (merged) {
-                    Collections.sort(mr.getVersioning().getVersions(), VERSION_COMPARATOR);
-                    Collections.sort(mr.getVersioning().getSnapshotVersions(), SNAPSHOT_VERSION_COMPARATOR);
-                    File tmpFile = Files.createTempFile(runtimeProperties.getDataPath());
-                    FileOutputStream fos = new FileOutputStream(tmpFile);
-                    new MetadataXpp3Writer().write(fos, mr);
-                    fos.close();
-                    return tmpFile;
+
+                File result = processMetadataResults(metadata, results);
+                if (result != null) {
+                    return result;
                 }
             } catch (Exception e) {
                 LOGGER.warn(String.format("Could not find metadata : %s due to %s", metadata, e.getMessage()), e);
@@ -246,6 +240,61 @@ public class MavenProxyServletSupport extends HttpServlet implements MavenProxy 
                 return null;
             }
         }
+        return null;
+    }
+
+    /**
+     * Given a list of {@link MetadataResult} performs a merge of metadata
+     *
+     * @param metadata
+     * @param results
+     * @return <code>If no metadata is found</code>
+     * @throws IOException
+     * @throws XmlPullParserException
+     */
+    private File processMetadataResults(Metadata metadata, List<MetadataResult> results) throws IOException, XmlPullParserException {
+        org.apache.maven.artifact.repository.metadata.Metadata mr = new org.apache.maven.artifact.repository.metadata.Metadata();
+        mr.setModelVersion("1.1.0");
+        mr.setGroupId(metadata.getGroupId());
+        mr.setArtifactId(metadata.getArtifactId());
+        if (Strings.isNotBlank(metadata.getVersion())) {
+            mr.setVersion(metadata.getVersion());
+        }
+        mr.setVersioning(new Versioning());
+
+        boolean merged = false;
+        for (MetadataResult result : results) {
+            if (result.getMetadata() != null && result.getMetadata().getFile() != null) {
+                FileInputStream fis = new FileInputStream(result.getMetadata().getFile());
+                org.apache.maven.artifact.repository.metadata.Metadata m = new MetadataXpp3Reader().read(fis, false);
+                fis.close();
+                if (m.getVersioning() != null) {
+                    if (mr.getVersion() != null && mr.getVersion().endsWith("-SNAPSHOT")) {
+                        handleSnapshot(mr.getVersioning(), m.getVersioning());
+                    }
+                    mr.getVersioning().setLastUpdated(latestTimestamp(mr.getVersioning().getLastUpdated(), m.getVersioning().getLastUpdated()));
+                    mr.getVersioning().setLatest(latestVersion(mr.getVersioning().getLatest(), m.getVersioning().getLatest()));
+                    mr.getVersioning().setRelease(latestVersion(mr.getVersioning().getRelease(), m.getVersioning().getRelease()));
+                    for (String v : m.getVersioning().getVersions()) {
+                        if (!mr.getVersioning().getVersions().contains(v)) {
+                            mr.getVersioning().getVersions().add(v);
+                        }
+                    }
+                    mr.getVersioning().getSnapshotVersions().addAll(m.getVersioning().getSnapshotVersions());
+                }
+                merged = true;
+            }
+        }
+        if (merged) {
+            Collections.sort(mr.getVersioning().getVersions(), VERSION_COMPARATOR);
+            Collections.sort(mr.getVersioning().getSnapshotVersions(), SNAPSHOT_VERSION_COMPARATOR);
+            File tmpFile = Files.createTempFile(runtimeProperties.getDataPath());
+            FileOutputStream fos = new FileOutputStream(tmpFile);
+            new MetadataXpp3Writer().write(fos, mr);
+            fos.close();
+            return tmpFile;
+        }
+
         return null;
     }
 

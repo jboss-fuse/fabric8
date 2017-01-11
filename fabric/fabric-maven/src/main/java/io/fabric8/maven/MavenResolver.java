@@ -48,6 +48,12 @@ public interface MavenResolver extends Closeable {
     List<RemoteRepository> getRepositories();
 
     /**
+     * Retrieve the list of configured default repositories
+     * @return
+     */
+    List<LocalRepository> getDefaultRepositories();
+
+    /**
      * Resolve and download a maven based url
      */
     File download(String url) throws IOException;
@@ -86,6 +92,13 @@ public interface MavenResolver extends Closeable {
      * @return
      */
     RetryChance isRetryableException(Exception exception);
+
+    /**
+     * Checks whether given {@link LocalRepository} can  handle snapshots
+     * @param repo
+     * @return
+     */
+    boolean handlesSnapshot(LocalRepository repo);
 
     /**
      * Enumeration of retry hints that may be used by client code when trying to repeat failed resolution attempt
