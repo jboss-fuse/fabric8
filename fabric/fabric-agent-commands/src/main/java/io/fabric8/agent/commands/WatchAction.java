@@ -50,8 +50,8 @@ public class WatchAction extends OsgiCommandSupport {
     @Option(name = "--list", description = "Displays the watch list", required = false, multiValued = false)
     protected boolean list;
 
-    @Option(name = "--no-upload", description = "If specified then updated bundles are not uploaded to the Fabric's maven proxy repository", required = false, multiValued = false)
-    protected boolean noUpload;
+    @Option(name = "--upload", description = "If specified then updated bundles are uploaded to the Fabric's maven proxy repository", required = false, multiValued = false)
+    protected boolean upload = false;
 
     private ProfileWatcher watcher;
 
@@ -75,7 +75,7 @@ public class WatchAction extends OsgiCommandSupport {
             System.out.println("Stopping watch");
             watcher.stop();
         }
-        watcher.setUpload(!noUpload);
+        watcher.setUpload(upload);
         if (urls != null) {
             if (remove) {
                 for (String url : urls) {

@@ -254,6 +254,12 @@ public class AetherBasedResolver implements MavenResolver {
         return repos;
     }
 
+    @Override
+    public List<LocalRepository> getDefaultRepositories() {
+        return selectDefaultRepositories();
+    }
+
+
     private List<RemoteRepository> selectRepositories() {
         List<RemoteRepository> list = new ArrayList<RemoteRepository>();
         List<MavenRepositoryURL> urls = Collections.emptyList();
