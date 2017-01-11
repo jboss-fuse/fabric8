@@ -91,7 +91,9 @@ import org.eclipse.aether.graph.Dependency;
 import org.eclipse.aether.graph.DependencyFilter;
 import org.eclipse.aether.graph.DependencyNode;
 import org.eclipse.aether.impl.DefaultServiceLocator;
+import org.eclipse.aether.impl.MetadataResolver;
 import org.eclipse.aether.internal.impl.DefaultTransporterProvider;
+import org.eclipse.aether.internal.impl.EnhancedLocalRepositoryManagerFactory;
 import org.eclipse.aether.internal.impl.slf4j.Slf4jLoggerFactory;
 import org.eclipse.aether.repository.Authentication;
 import org.eclipse.aether.repository.LocalRepository;
@@ -113,6 +115,7 @@ import org.eclipse.aether.resolution.VersionRangeResult;
 import org.eclipse.aether.spi.connector.RepositoryConnectorFactory;
 import org.eclipse.aether.spi.connector.transport.TransporterFactory;
 import org.eclipse.aether.spi.connector.transport.TransporterProvider;
+import org.eclipse.aether.spi.localrepo.LocalRepositoryManagerFactory;
 import org.eclipse.aether.transfer.ArtifactNotFoundException;
 import org.eclipse.aether.transfer.ArtifactTransferException;
 import org.eclipse.aether.transfer.MetadataNotFoundException;
@@ -171,6 +174,9 @@ public class AetherBasedResolver implements MavenResolver {
 
     private final Set<LocalRepository> localRepositoriesWithSnapshots = new HashSet<>();
 
+    // Mapping from local repositories to remote repositories when used as defaultRepositories
+    private final Map<File, RemoteRepository> defaultRepositories = new HashMap<>();
+
     /**
      * Create a AetherBasedResolver
      *
@@ -215,6 +221,11 @@ public class AetherBasedResolver implements MavenResolver {
         locator.addService(RepositoryConnectorFactory.class, BasicRepositoryConnectorFactory.class);
         locator.addService(TransporterProvider.class, DefaultTransporterProvider.class);
         locator.addService(TransporterFactory.class, WagonTransporterFactory.class);
+
+        locator.setService(LocalRepositoryManagerFactory.class, SmartLocalRepositoryManagerFactory.class);
+        locator.addService(LocalRepositoryManagerFactory.class, EnhancedLocalRepositoryManagerFactory.class);
+
+        locator.setService(MetadataResolver.class, SmartMetadataResolver.class);
 
         // default timeout (both connection and read timeouts)
         int defaultTimeout = m_config.getTimeout();
@@ -281,6 +292,11 @@ public class AetherBasedResolver implements MavenResolver {
         List<RemoteRepository> repos = selectRepositories();
         assignProxyAndMirrors(repos);
         return repos;
+    }
+
+    @Override
+    public List<LocalRepository> getDefaultRepositories() {
+        return selectDefaultRepositories();
     }
 
     private List<RemoteRepository> selectRepositories() {
@@ -444,6 +460,10 @@ public class AetherBasedResolver implements MavenResolver {
             if (repo.isSnapshotsEnabled()) {
                 localRepositoriesWithSnapshots.add(local);
             }
+            List<RemoteRepository> remotes = new ArrayList<>(1);
+            addRepo(remotes, repo);
+            // remember the remote equivalent of local/default repository
+            defaultRepositories.put(local.getBasedir(), remotes.get(0));
         }
     }
 
@@ -578,8 +598,7 @@ public class AetherBasedResolver implements MavenResolver {
             VersionConstraint vc = new GenericVersionScheme().parseVersionConstraint(artifact.getVersion());
             if (vc.getVersion() != null) {
                 for (LocalRepository repo : defaultRepos) {
-                    if (vc.getVersion().toString().endsWith("SNAPSHOT")
-                            && !localRepositoriesWithSnapshots.contains(repo)) {
+                    if (vc.getVersion().toString().endsWith("SNAPSHOT") && !handlesSnapshot(repo)) {
                         continue;
                     }
                     DefaultRepositorySystemSession session = newSession( repo );
@@ -769,7 +788,19 @@ public class AetherBasedResolver implements MavenResolver {
         session.setConfigProperty( ConfigurationProperties.CONNECT_TIMEOUT, timeout );
         session.setConfigProperty( ConfigurationProperties.REQUEST_TIMEOUT, timeout );
 
+        session.setConfigProperty( "aether.updateCheckManager.sessionState", "no" );
+
         session.setOffline( m_config.isOffline() );
+
+        // remember mapped remote repository if the session is created for "default repository"
+        // - this is required for correct SNAPSHOT handling
+        if (repo != null) {
+            RemoteRepository remoteRepository = defaultRepositories.get(repo.getBasedir());
+            session.getData().set(SmartMetadataResolver.DEFAULT_REPOSITORY, null, remoteRepository);
+        }
+
+        boolean updateReleases = m_config.getProperty(ServiceConstants.PROPERTY_UPDATE_RELEASES, false, Boolean.class);
+        session.setConfigProperty(SmartLocalRepositoryManagerFactory.PROPERTY_UPDATE_RELEASES, updateReleases);
 
         return session;
     }
@@ -1098,6 +1129,11 @@ public class AetherBasedResolver implements MavenResolver {
         }
 
         return retry;
+    }
+
+    @Override
+    public boolean handlesSnapshot(LocalRepository repo) {
+        return localRepositoriesWithSnapshots.contains(repo);
     }
 
     /**

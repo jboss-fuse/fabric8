@@ -147,6 +147,18 @@
     <build>
         <plugins>
             <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>test-jar</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
@@ -165,8 +177,7 @@
                             javax.enterprise.inject.*;
                             resolution:=optional,
                             javax.*,
-			    org.ietf.jgss;
-			    resolution:=optional,
+                            org.ietf.jgss;resolution:=optional,
                             io.fabric8.common.util.*,
                             org.osgi.*,
                             org.slf4j.*,

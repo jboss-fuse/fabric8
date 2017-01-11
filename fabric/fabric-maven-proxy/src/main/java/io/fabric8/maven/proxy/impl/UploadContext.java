@@ -48,6 +48,10 @@ class UploadContext {
         return file;
     }
 
+    public void setFile(File file) {
+        this.file = file;
+    }
+
     public void addHeader(String name, String value) {
         if (headers == null) {
             headers = new HashMap<>();
