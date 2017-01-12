@@ -237,13 +237,13 @@ public final class FabricCxfRegistrationHandler extends AbstractComponent implem
                         boolean created = state instanceof String && state.toString().toUpperCase().startsWith("CREATE");
 
                         if (address != null && (started || created)) {
-                            LOGGER.info("Registering endpoint " + oName + " type " + type + " has status " + state + "at " + address);
+                            LOGGER.info("Registering endpoint " + oName + " type " + type + " has status " + state + " at " + address);
                             registerApiEndpoint(container, oName, address, started);
                         } else {
                             if (address == null) {
-                                LOGGER.warn("Endpoint " + oName + " type " + type + " has status " + state + "but no address");
+                                LOGGER.warn("Endpoint " + oName + " type " + type + " has status " + state + " but no address");
                             } else {
-                                LOGGER.info("Unregistering endpoint " + oName + " type " + type + " has status " + state + "at " + address);
+                                LOGGER.info("Unregistering endpoint " + oName + " type " + type + " has status " + state + " at " + address);
                             }
                             unregisterApiEndpoint(container, oName);
                         }
