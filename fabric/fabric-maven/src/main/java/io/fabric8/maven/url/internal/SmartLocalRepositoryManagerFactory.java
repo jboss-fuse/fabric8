@@ -16,12 +16,20 @@
 package io.fabric8.maven.url.internal;
 
 import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.TimeZone;
 
+import org.apache.maven.artifact.repository.metadata.SnapshotVersion;
+import org.apache.maven.artifact.repository.metadata.io.xpp3.MetadataXpp3Reader;
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.eclipse.aether.RepositorySystemSession;
-import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.impl.RemoteRepositoryManager;
 import org.eclipse.aether.impl.UpdatePolicyAnalyzer;
 import org.eclipse.aether.internal.impl.SimpleLocalRepositoryManagerFactory;
@@ -49,6 +57,11 @@ import org.eclipse.aether.spi.log.NullLoggerFactory;
 public class SmartLocalRepositoryManagerFactory extends SimpleLocalRepositoryManagerFactory {
 
     public static final String PROPERTY_UPDATE_RELEASES = "paxUrlAether.updateReleases";
+    private static final DateFormat TS = new SimpleDateFormat("yyyyMMddHHmmss");
+
+    static {
+        TS.setTimeZone(TimeZone.getTimeZone("UTC"));
+    }
 
     private Logger logger;
     private UpdatePolicyAnalyzer updatePolicyAnalyzer;
@@ -80,7 +93,9 @@ public class SmartLocalRepositoryManagerFactory extends SimpleLocalRepositoryMan
     }
 
     /**
-     * Returns full path of <code>maven-metadata.xml</code>
+     * Returns full path of <code>maven-metadata.xml</code>. We need this, because normally, local repository
+     * manager looks <strong>only</strong> for <code>maven-metadata-ID.xml</code>, where <code>ID</code> is either
+     * "local" or an ID of remote repository.
      * @param metadata
      * @return
      */
@@ -100,39 +115,6 @@ public class SmartLocalRepositoryManagerFactory extends SimpleLocalRepositoryMan
         }
 
         path.append("maven-metadata.xml");
-
-        return path.toString();
-    }
-
-    /**
-     * See org.eclipse.aether.internal.impl.SimpleLocalRepositoryManager#getPathForArtifact()
-     * @param artifact
-     * @param local
-     * @return
-     */
-    private String getPathForArtifact(Artifact artifact, boolean local) {
-        StringBuilder path = new StringBuilder(128);
-
-        path.append(artifact.getGroupId().replace('.', '/')).append('/');
-
-        path.append(artifact.getArtifactId()).append('/');
-
-        path.append(artifact.getBaseVersion()).append('/');
-
-        path.append(artifact.getArtifactId()).append('-');
-        if (local) {
-            path.append(artifact.getBaseVersion());
-        } else {
-            path.append(artifact.getVersion());
-        }
-
-        if (artifact.getClassifier().length() > 0) {
-            path.append('-').append(artifact.getClassifier());
-        }
-
-        if (artifact.getExtension().length() > 0) {
-            path.append('.').append(artifact.getExtension());
-        }
 
         return path.toString();
     }
@@ -169,8 +151,9 @@ public class SmartLocalRepositoryManagerFactory extends SimpleLocalRepositoryMan
             //  - local metadata in maven-metadata-local.xml, or
             //  - local version of remote metadata in maven-metadata-<ID OF REPOSITORY>.xml
             // which are normally available in ~/.m2/repository
-            // local repository always contain maven-metadata.xml with indication of metadata source
+            // local repository always contains maven-metadata-*.xml with indication of metadata source
             // ("local" or remote repository's ID)
+            // local/hosted storage of remote repository contains plain "maven-metadata.xml" file
             LocalMetadataResult result = new LocalMetadataResult(request);
 
             String path = getMetadataPath(request.getMetadata());
@@ -187,8 +170,52 @@ public class SmartLocalRepositoryManagerFactory extends SimpleLocalRepositoryMan
         public LocalArtifactResult find(RepositorySystemSession session, LocalArtifactRequest request) {
             LocalArtifactResult result = super.find(session, request);
 
-            if (result.isAvailable()
-                    && !request.getArtifact().isSnapshot()
+            if (!result.isAvailable()) {
+                return result;
+            }
+
+            // getArtifact().getVersion().endsWith("-SNAPSHOT") is NOT the same as
+            // getArtifact().isSnapshot()!
+            if (request.getArtifact().getVersion().endsWith("-SNAPSHOT")
+                    && request.getRepositories() != null && request.getRepositories().size() > 0) {
+                // ENTESB-6486 - we could've just downloaded maven-metadata.xml from a _remote_ repository
+                // that got it from _local_ repository - i.e., it doesn't contain:
+                // <version>x.y.z-yyyyMMdd.HHmmss-<build-number></version>
+                // but just:
+                // <version>x.y.z-SNAPSHOT</version>
+                // so we have to check again metadata that may have been updated
+
+                File metadata = new File(result.getFile().getParentFile(),
+                        String.format("maven-metadata-%s.xml", request.getRepositories().get(0).getId()));
+                if (metadata.isFile()) {
+                    try {
+                        try (FileReader reader = new FileReader(metadata)) {
+                            org.apache.maven.artifact.repository.metadata.Metadata md = new MetadataXpp3Reader().read(reader);
+                            if (md.getVersioning() != null
+                                    && md.getVersioning().getSnapshot() != null
+                                    && md.getVersioning().getSnapshotVersions() != null) {
+                                if (md.getVersioning().getSnapshot().isLocalCopy()) {
+                                    File artifactFile = result.getFile();
+                                    String extension = request.getArtifact().getExtension();
+                                    for (SnapshotVersion sv : md.getVersioning().getSnapshotVersions()) {
+                                        if (sv.getExtension().equals(extension)) {
+                                            String updated = sv.getUpdated(); // UTC!!!
+                                            long remoteTs = TS.parse(updated).getTime();
+                                            long lastUpdated = result.getFile().lastModified();
+                                            // a bit delicate check, maybe another properties file should be used?
+                                            if (remoteTs > lastUpdated) {
+                                                unavailable(result, request.getRepositories().get(0));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } catch (IOException | XmlPullParserException | ParseException e) {
+                        logger.debug(e.getMessage(), e);
+                    }
+                }
+            } else if (!request.getArtifact().isSnapshot()
                     && (Boolean) session.getConfigProperties().get(PROPERTY_UPDATE_RELEASES)) {
                 // check if we should force download
                 File trackingFile = getTrackingFile(result.getFile());
@@ -204,11 +231,7 @@ public class SmartLocalRepositoryManagerFactory extends SimpleLocalRepositoryMan
                                 long lastUpdated = result.getFile().lastModified();
                                 RepositoryPolicy policy = remoteRepositoryManager.getPolicy(session, repo, true, false);
                                 if (updatePolicyAnalyzer.isUpdatedRequired(session, lastUpdated, policy.getUpdatePolicy())) {
-                                    result.setAvailable(false);
-                                    // needed for non SNAPSHOTs.
-                                    // If we don't null, PeekTaskRunner will be used instead of GetTaskRunner
-                                    result.setFile(null);
-                                    result.setRepository(repo);
+                                    unavailable(result, repo);
                                     break;
                                 }
                             }
@@ -223,9 +246,18 @@ public class SmartLocalRepositoryManagerFactory extends SimpleLocalRepositoryMan
         @Override
         public void add(RepositorySystemSession session, LocalArtifactRegistration request) {
             super.add(session, request);
+
+            // ideally, we should touch the SNAPSHOT artifact with a timestamp from
+            // /<metadata>/<versioning>/<snapshotVersions>/<snapshotVersion>/<updated>
+
             if (!request.getArtifact().isSnapshot()
                     && (Boolean) session.getConfigProperties().get(PROPERTY_UPDATE_RELEASES)) {
-                String path = getPathForArtifact(request.getArtifact(), request.getRepository() == null);
+                String path;
+                if (request.getRepository() == null) {
+                    path = getPathForLocalArtifact(request.getArtifact());
+                } else {
+                    path = getPathForRemoteArtifact(request.getArtifact(), request.getRepository(), "");
+                }
                 File artifactFile = new File(getRepository().getBasedir(), path);
                 File trackingFile = getTrackingFile(artifactFile);
                 String repoId = request.getRepository() == null ? "" : request.getRepository().getId();
@@ -234,6 +266,20 @@ public class SmartLocalRepositoryManagerFactory extends SimpleLocalRepositoryMan
                 updates.put(artifactFile.getName() + ">" + repoId, "");
                 trackingFileManager.update(trackingFile, updates);
             }
+        }
+
+        /**
+         * Forget about local copy of artifact
+         * @param result
+         * @param repo
+         */
+        private void unavailable(LocalArtifactResult result, RemoteRepository repo) {
+            logger.debug("Invalidating " + result.getFile() + " in local repository " + getRepository().getBasedir());
+            result.setAvailable(false);
+            // needed for non SNAPSHOTs.
+            // If we don't null, PeekTaskRunner will be used instead of GetTaskRunner
+            result.setFile(null);
+            result.setRepository(repo);
         }
 
         private File getTrackingFile(File artifactFile) {

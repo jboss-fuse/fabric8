@@ -19,15 +19,14 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 
 import org.apache.commons.io.FileUtils;
 import org.eclipse.aether.repository.RepositoryPolicy;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class AetherSnapshotResolutionTest extends AetherResolutionSupport {
 
@@ -240,6 +239,52 @@ public class AetherSnapshotResolutionTest extends AetherResolutionSupport {
                 a1.isFile() && a2.isFile());
         assertThat(FileUtils.readFileToString(a1), equalTo("a"));
         assertThat(FileUtils.readFileToString(a2), equalTo("b"));
+    }
+
+    /**
+     * ENTESB-6486 - agent fetches SNAPSHOT from fabric-maven-proxy which gets it from <code>~/.m2/repository</code>
+     * where SNAPSHOT was <code>mvn clean install</code>ed
+     * @throws IOException
+     */
+    @Test
+    public void snapshotIsAvailableInRemoteRepositorysDefaultRepositoryInNewerVersionUpdateAlways() throws IOException {
+        File remoteRepository = initFileRepository("rr");
+        MavenResolver resolver = new ResolverBuilder()
+                .withRemoteRepositories(Collections.singletonList(remoteRepository))
+                .withUpdatePolicy(RepositoryPolicy.UPDATE_POLICY_ALWAYS)
+                .build();
+
+        mvnInstall(remoteRepository, "io.fabric8.test", "universalis-api", "0.1.0-SNAPSHOT", at("10:00"), "a");
+        // simulate access to this remote repository through fabric-maven-proxy (or even SmartLocalRepository)
+        // instead of FileWagon
+        FileUtils.copyFile(new File(remoteRepository, "io/fabric8/test/universalis-api/0.1.0-SNAPSHOT/maven-metadata-local.xml"),
+                new File(remoteRepository, "io/fabric8/test/universalis-api/0.1.0-SNAPSHOT/maven-metadata.xml"));
+
+        File file = resolver.download("io.fabric8.test/universalis-api/0.1.0-SNAPSHOT");
+        // first resolution
+        assertThat(FileUtils.readFileToString(file), equalTo("a"));
+
+        File metadata = new File(localRepository,
+                String.format("io/fabric8/test/universalis-api/0.1.0-SNAPSHOT/maven-metadata-%s.xml", remoteRepository.getName()));
+        assertTrue(metadata.isFile());
+        assertTrue(FileUtils.readFileToString(metadata, "UTF-8").contains("<updated>20170101100000</updated>"));
+
+        // install changed SNAPSHOT version in remote repository
+        mvnInstall(remoteRepository, "io.fabric8.test", "universalis-api", "0.1.0-SNAPSHOT", at("11:00"), "b");
+        // again the translaction trick
+        FileUtils.copyFile(new File(remoteRepository, "io/fabric8/test/universalis-api/0.1.0-SNAPSHOT/maven-metadata-local.xml"),
+                new File(remoteRepository, "io/fabric8/test/universalis-api/0.1.0-SNAPSHOT/maven-metadata.xml"));
+
+        // simulate the case when SNAPSHOT was updated remotely *after* first resolution
+        file.setLastModified(new Date(at("11:00").getTime() - 1L).getTime());
+
+        // second resolution
+        file = resolver.download("io.fabric8.test/universalis-api/0.1.0-SNAPSHOT");
+        assertTrue("We should have updated metadata",
+                FileUtils.readFileToString(metadata, "UTF-8").contains("<updated>20170101110000</updated>"));
+
+        assertThat("Due to update policy, we'll have newer version available",
+                FileUtils.readFileToString(file), equalTo("b"));
     }
 
 }
