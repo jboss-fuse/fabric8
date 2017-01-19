@@ -116,6 +116,8 @@ import com.google.common.cache.LoadingCache;
 
 import static io.fabric8.patch.management.impl.GitPatchRepository.ADMIN_HISTORY_BRANCH;
 import static io.fabric8.patch.management.impl.GitPatchRepository.HISTORY_BRANCH;
+import static io.fabric8.zookeeper.utils.ZooKeeperUtils.exists;
+import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getStringData;
 
 
 /**
@@ -203,6 +205,24 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                 properties.put(key, (String) value);
             }
         }
+
+        if(gitRemoteUrl == null) {
+            if(exists(curator.get(), ZkPath.CONFIG_GIT_EXTERNAL_URL.getPath()) != null){
+                String publishedUrl = getStringData(curator.get(), ZkPath.CONFIG_GIT_EXTERNAL_URL.getPath());
+                if(publishedUrl != null && !"".equals(publishedUrl.trim())){
+                    gitRemoteUrl = publishedUrl;
+                    if(exists(curator.get(), ZkPath.CONFIG_GIT_EXTERNAL_USER.getPath()) != null){
+                        String externalUser = getStringData(curator.get(), ZkPath.CONFIG_GIT_EXTERNAL_USER.getPath());
+                        properties.put(GIT_REMOTE_USER, externalUser);
+                    }
+                    if(exists(curator.get(), ZkPath.CONFIG_GIT_EXTERNAL_PASSWORD.getPath()) != null){
+                        String externalUser = getStringData(curator.get(), ZkPath.CONFIG_GIT_EXTERNAL_PASSWORD.getPath());
+                        properties.put(GIT_REMOTE_PASSWORD, externalUser);
+                    }
+                }
+            }
+        }
+
         this.dataStoreProperties = Collections.unmodifiableMap(properties);
         this.pullPushPolicy = new DefaultPullPushPolicy(getGit(), GitHelpers.REMOTE_ORIGIN, gitTimeout);
 
@@ -253,6 +273,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         ProxySelector fabricProxySelector = new FabricGitLocalHostProxySelector(defaultProxySelector, proxyService);
         ProxySelector.setDefault(fabricProxySelector);
         LOGGER.debug("Setting up FabricProxySelector: {}", fabricProxySelector);
+
 
         if (gitRemoteUrl != null) {
             gitListener.runRemoteUrlChanged(gitRemoteUrl);
