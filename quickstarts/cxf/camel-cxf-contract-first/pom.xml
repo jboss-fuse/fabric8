@@ -93,7 +93,7 @@
     <maven.compiler.source>1.7</maven.compiler.source>
     <version.maven-surefire-plugin>2.19.1</version.maven-surefire-plugin>
     <skipTests>true</skipTests>
-    <cxf-version>3.0.2</cxf-version>
+    <cxf-version>3.1.5.redhat-630187</cxf-version>
     <!-- the version of the BOM, defining all the dependency versions -->
     <fabric8.bom.version>1.2.0.redhat-630-SNAPSHOT</fabric8.bom.version>
     <fabric.version>1.2.0.redhat-630-SNAPSHOT</fabric.version>
@@ -293,7 +293,7 @@
       </plugin>
     </plugins>
   </build>
-   
+
   <profiles>
     <profile>
       <id>test</id>
