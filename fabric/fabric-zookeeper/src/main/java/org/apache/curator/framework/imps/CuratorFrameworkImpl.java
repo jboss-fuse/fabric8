@@ -561,6 +561,10 @@ public class CuratorFrameworkImpl implements CuratorFramework
                     log.debug(reason, e);
                 }
             }
+            else if( e instanceof IllegalStateException && "Client is not started".equals(e.getMessage()))
+            {
+                log.debug(reason, e);
+            }
             else
             {
                 log.error(reason, e);
