@@ -547,6 +547,9 @@ public class CuratorFrameworkImpl implements CuratorFramework
             log.info("GG offering background operation " + operationAndData);
             backgroundOperations.offer(operationAndData);
         }
+        else {
+            log.info("GG NOT offering background operation " + operationAndData + " because state == " + getState());
+        }
     }
 
     void logError(String reason, final Throwable e)
