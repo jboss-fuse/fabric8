@@ -1,20 +1,17 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ *  Copyright 2005-2016 Red Hat, Inc.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *  Red Hat licenses this file to you under the Apache License, version
+ *  2.0 (the "License"); you may not use this file except in compliance
+ *  with the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ *  implied.  See the License for the specific language governing
+ *  permissions and limitations under the License.
  */
 package org.apache.curator;
 
@@ -34,6 +31,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -51,6 +50,7 @@ public class CuratorZookeeperClient implements Closeable
     private final int                               connectionTimeoutMs;
     private final AtomicBoolean                     started = new AtomicBoolean(false);
     private final AtomicReference<TracerDriver>     tracer = new AtomicReference<TracerDriver>(new DefaultTracerDriver());
+    private final Queue<Thread>                     retryingThreads = new ConcurrentLinkedQueue<Thread>();
 
     /**
      *
@@ -191,6 +191,21 @@ public class CuratorZookeeperClient implements Closeable
         state.start();
     }
 
+
+    /**
+     * Flag the client as being stopped.
+     * No new connections will be attempted.
+     */
+    public void     stop()
+    {
+        log.debug("Stopping");
+
+        started.set(false);
+        for (Thread thread : retryingThreads) {
+            thread.interrupt();
+        }
+    }
+
     /**
      * Close the client
      */
@@ -215,10 +230,25 @@ public class CuratorZookeeperClient implements Closeable
      *
      * @param policy new policy
      */
-    public void     setRetryPolicy(RetryPolicy policy)
+    public void     setRetryPolicy(final RetryPolicy policy)
     {
         Preconditions.checkNotNull(policy, "policy cannot be null");
 
+        RetryPolicy newPolicy = new RetryPolicy() {
+            @Override
+            public boolean allowRetry(int retryCount, long elapsedTimeMs, RetrySleeper sleeper) {
+                if (!started.get()) {
+                    return false;
+                }
+                Thread thread = Thread.currentThread();
+                try {
+                    retryingThreads.add(thread);
+                    return policy.allowRetry(retryCount, elapsedTimeMs, sleeper);
+                } finally {
+                    retryingThreads.remove(thread);
+                }
+            }
+        };
         retryPolicy.set(policy);
     }
 
