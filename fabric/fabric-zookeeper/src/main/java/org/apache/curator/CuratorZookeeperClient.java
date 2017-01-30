@@ -349,6 +349,8 @@ public class CuratorZookeeperClient implements Closeable
         long            waitTimeMs = connectionTimeoutMs;
         while ( !state.isConnected() && (waitTimeMs > 0) )
         {
+            Preconditions.checkState(started.get(), "Client has been stopped");
+
             final CountDownLatch            latch = new CountDownLatch(1);
             Watcher tempWatcher = new Watcher()
             {
