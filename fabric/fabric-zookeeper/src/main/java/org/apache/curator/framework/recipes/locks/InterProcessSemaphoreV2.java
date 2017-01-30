@@ -21,7 +21,9 @@ package org.apache.curator.framework.recipes.locks;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.io.Closeables;
+import com.google.common.collect.Sets;
+
+import org.apache.curator.utils.CloseableUtils;
 import org.apache.curator.RetryLoop;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.api.PathAndBytesable;
@@ -29,6 +31,7 @@ import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.framework.recipes.shared.SharedCountListener;
 import org.apache.curator.framework.recipes.shared.SharedCountReader;
 import org.apache.curator.framework.state.ConnectionState;
+import org.apache.curator.utils.ThreadUtils;
 import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -36,13 +39,14 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.Closeable;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import org.apache.curator.utils.PathUtils;
 
 /**
  * <p>
@@ -51,27 +55,23 @@ import java.util.concurrent.TimeUnit;
  * Further, this semaphore is mostly "fair" - each user will get a lease in the order requested
  * (from ZK's point of view).
  * </p>
- * <p/>
  * <p>
  * There are two modes for determining the max leases for the semaphore. In the first mode the
  * max leases is a convention maintained by the users of a given path. In the second mode a
  * {@link SharedCountReader} is used as the method for semaphores of a given path to determine
  * the max leases.
  * </p>
- * <p/>
  * <p>
  * If a {@link SharedCountReader} is <b>not</b> used, no internal checks are done to prevent
  * Process A acting as if there are 10 leases and Process B acting as if there are 20. Therefore,
  * make sure that all instances in all processes use the same numberOfLeases value.
  * </p>
- * <p/>
  * <p>
  * The various acquire methods return {@link Lease} objects that represent acquired leases. Clients
  * must take care to close lease objects  (ideally in a <code>finally</code>
  * block) else the lease will be lost. However, if the client session drops (crash, etc.),
  * any leases held by the client are automatically closed and made available to other clients.
  * </p>
- * <p/>
  * <p>
  * Thanks to Ben Bangert (ben@groovie.org) for the algorithm used.
  * </p>
@@ -97,6 +97,10 @@ public class InterProcessSemaphoreV2
     private static final String LOCK_PARENT = "locks";
     private static final String LEASE_PARENT = "leases";
     private static final String LEASE_BASE_NAME = "lease-";
+    public static final Set<String> LOCK_SCHEMA = Sets.newHashSet(
+            LOCK_PARENT,
+            LEASE_PARENT
+    );
 
     /**
      * @param client    the client
@@ -121,6 +125,7 @@ public class InterProcessSemaphoreV2
     private InterProcessSemaphoreV2(CuratorFramework client, String path, int maxLeases, SharedCountReader count)
     {
         this.client = client;
+        path = PathUtils.validatePath(path);
         lock = new InterProcessMutex(client, ZKPaths.makePath(path, LOCK_PARENT));
         this.maxLeases = (count != null) ? count.getCount() : maxLeases;
         leasesPath = ZKPaths.makePath(path, LEASE_PARENT);
@@ -128,22 +133,23 @@ public class InterProcessSemaphoreV2
         if ( count != null )
         {
             count.addListener
-                    (
-                            new SharedCountListener()
-                            {
-                                @Override
-                                public void countHasChanged(SharedCountReader sharedCount, int newCount) throws Exception
-                                {
-                                    InterProcessSemaphoreV2.this.maxLeases = newCount;
-                                }
+                (
+                    new SharedCountListener()
+                    {
+                        @Override
+                        public void countHasChanged(SharedCountReader sharedCount, int newCount) throws Exception
+                        {
+                            InterProcessSemaphoreV2.this.maxLeases = newCount;
+                            notifyFromWatcher();
+                        }
 
-                                @Override
-                                public void stateChanged(CuratorFramework client, ConnectionState newState)
-                                {
-                                    // no need to handle this here - clients should set their own connection state listener
-                                }
-                            }
-                    );
+                        @Override
+                        public void stateChanged(CuratorFramework client, ConnectionState newState)
+                        {
+                            // no need to handle this here - clients should set their own connection state listener
+                        }
+                    }
+                );
         }
     }
 
@@ -178,7 +184,7 @@ public class InterProcessSemaphoreV2
     {
         for ( Lease l : leases )
         {
-            close(l);
+            CloseableUtils.closeQuietly(l);
         }
     }
 
@@ -189,13 +195,12 @@ public class InterProcessSemaphoreV2
      */
     public void returnLease(Lease lease)
     {
-        close(lease);
+        CloseableUtils.closeQuietly(lease);
     }
 
     /**
      * <p>Acquire a lease. If no leases are available, this method blocks until either the maximum
      * number of leases is increased or another client/process closes a lease.</p>
-     * <p/>
      * <p>The client must close the lease when it is done with it. You should do this in a
      * <code>finally</code> block.</p>
      *
@@ -212,7 +217,6 @@ public class InterProcessSemaphoreV2
      * <p>Acquire <code>qty</code> leases. If there are not enough leases available, this method
      * blocks until either the maximum number of leases is increased enough or other clients/processes
      * close enough leases.</p>
-     * <p/>
      * <p>The client must close the leases when it is done with them. You should do this in a
      * <code>finally</code> block. NOTE: You can use {@link #returnAll(Collection)} for this.</p>
      *
@@ -229,7 +233,6 @@ public class InterProcessSemaphoreV2
      * <p>Acquire a lease. If no leases are available, this method blocks until either the maximum
      * number of leases is increased or another client/process closes a lease. However, this method
      * will only block to a maximum of the time parameters given.</p>
-     * <p/>
      * <p>The client must close the lease when it is done with it. You should do this in a
      * <code>finally</code> block.</p>
      *
@@ -250,7 +253,6 @@ public class InterProcessSemaphoreV2
      * close enough leases. However, this method will only block to a maximum of the time
      * parameters given. If time expires before all leases are acquired, the subset of acquired
      * leases are automatically closed.</p>
-     * <p/>
      * <p>The client must close the leases when it is done with them. You should do this in a
      * <code>finally</code> block. NOTE: You can use {@link #returnAll(Collection)} for this.</p>
      *
@@ -319,31 +321,15 @@ public class InterProcessSemaphoreV2
         return builder.build();
     }
 
-    private void close(Closeable closeable){
-        if (closeable == null) {
-            return;
-        }
-        try {
-            closeable.close();
-        } catch (IOException e) {
-            if(e.getCause() instanceof IllegalStateException ){
-                IllegalStateException cause = (IllegalStateException) e.getCause();
-                if("Client is not started".equals(cause.getMessage())){
-                    log.debug("IOException thrown while closing Closeable.", e);
-                }
-            }else{
-                log.warn("IOException thrown while closing Closeable.", e);
-            }
-        }
-
-    }
-
     private enum InternalAcquireResult
     {
         CONTINUE,
         RETURN_NULL,
         RETRY_DUE_TO_MISSING_NODE
     }
+
+    static volatile CountDownLatch debugAcquireLatch = null;
+    static volatile CountDownLatch debugFailedGetChildrenLatch = null;
 
     private InternalAcquireResult internalAcquire1Lease(ImmutableList.Builder<Lease> builder, long startMs, boolean hasWait, long waitMs) throws Exception
     {
@@ -364,21 +350,43 @@ public class InterProcessSemaphoreV2
         {
             lock.acquire();
         }
+
+        Lease lease = null;
+
         try
         {
-            PathAndBytesable<String> createBuilder = client.create().creatingParentsIfNeeded().withProtection().withMode(CreateMode.EPHEMERAL_SEQUENTIAL);
+            PathAndBytesable<String> createBuilder = client.create().creatingParentContainersIfNeeded().withProtection().withMode(CreateMode.EPHEMERAL_SEQUENTIAL);
             String path = (nodeData != null) ? createBuilder.forPath(ZKPaths.makePath(leasesPath, LEASE_BASE_NAME), nodeData) : createBuilder.forPath(ZKPaths.makePath(leasesPath, LEASE_BASE_NAME));
             String nodeName = ZKPaths.getNodeFromPath(path);
-            builder.add(makeLease(path));
+            lease = makeLease(path);
+
+            if ( debugAcquireLatch != null )
+            {
+                debugAcquireLatch.await();
+            }
 
             synchronized(this)
             {
                 for(;;)
                 {
-                    List<String> children = client.getChildren().usingWatcher(watcher).forPath(leasesPath);
+                    List<String> children;
+                    try
+                    {
+                        children = client.getChildren().usingWatcher(watcher).forPath(leasesPath);
+                    }
+                    catch ( Exception e )
+                    {
+                        if ( debugFailedGetChildrenLatch != null )
+                        {
+                            debugFailedGetChildrenLatch.countDown();
+                        }
+                        returnLease(lease); // otherwise the just created ZNode will be orphaned causing a dead lock
+                        throw e;
+                    }
                     if ( !children.contains(nodeName) )
                     {
                         log.error("Sequential path not found: " + path);
+                        returnLease(lease);
                         return InternalAcquireResult.RETRY_DUE_TO_MISSING_NODE;
                     }
 
@@ -391,6 +399,7 @@ public class InterProcessSemaphoreV2
                         long thisWaitMs = getThisWaitMs(startMs, waitMs);
                         if ( thisWaitMs <= 0 )
                         {
+                            returnLease(lease);
                             return InternalAcquireResult.RETURN_NULL;
                         }
                         wait(thisWaitMs);
@@ -406,6 +415,7 @@ public class InterProcessSemaphoreV2
         {
             lock.release();
         }
+        builder.add(Preconditions.checkNotNull(lease));
         return InternalAcquireResult.CONTINUE;
     }
 
@@ -430,12 +440,9 @@ public class InterProcessSemaphoreV2
                 {
                     log.warn("Lease already released", e);
                 }
-                catch ( InterruptedException e )
-                {
-                    throw new RuntimeException("This is actually an InterruptedException", e);
-                }
                 catch ( Exception e )
                 {
+                    ThreadUtils.checkInterrupted(e);
                     throw new IOException(e);
                 }
             }
