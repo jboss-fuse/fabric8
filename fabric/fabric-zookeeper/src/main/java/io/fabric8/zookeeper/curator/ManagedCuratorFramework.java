@@ -190,6 +190,7 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
         }
 
         public void close(State next) {
+            LOGGER.info("GG: close, next = " + next);
             closed.set(true);
             CuratorFramework curator = this.curator;
             if (curator != null) {
@@ -205,6 +206,7 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
                 LOGGER.info("GG: submitting this " + this);
                 executor.submit(this).get();
                 if (next != null) {
+                    LOGGER.info("GG: submitting next " + next);
                     executor.submit(next);
                 }
             } catch (Exception e) {
@@ -270,11 +272,14 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
                 State next = new State(config);
                 if (state.compareAndSet(prev, next)) {
                     if (prev != null) {
+                        LOGGER.info("GG: closing prev " + prev + " which has next " + next);
                         prev.close(next);
                     } else {
+                        LOGGER.info("GG: submitting next for the first time " + next);
                         executor.submit(next);
                     }
                 } else {
+                    LOGGER.info("GG: closing next " + next + " because we couldn't set state");
                     next.close(null);
                 }
             } else {
