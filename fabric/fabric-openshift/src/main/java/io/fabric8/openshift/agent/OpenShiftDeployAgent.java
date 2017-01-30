@@ -102,7 +102,7 @@ public final class OpenShiftDeployAgent extends AbstractComponent implements Gro
     void activate(Map<String, ?> configuration) {
         //this.realm =  properties != null && properties.containsKey(REALM_PROPERTY_NAME) ? properties.get(REALM_PROPERTY_NAME) : DEFAULT_REALM;
         //this.role =  properties != null && properties.containsKey(ROLE_PROPERTY_NAME) ? properties.get(ROLE_PROPERTY_NAME) : DEFAULT_ROLE;
-        group = new ZooKeeperGroup(curator.get(), ZkPath.OPENSHIFT.getPath(), ControllerNode.class);
+        group = new ZooKeeperGroup("", curator.get(), ZkPath.OPENSHIFT.getPath(), ControllerNode.class);
         group.add(this);
         group.update(createState());
         group.start();

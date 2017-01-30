@@ -59,7 +59,7 @@ public class ZooKeeperGroupTest {
                 .retryPolicy(new RetryOneTime(1))
                 .build();
         //curator.start();
-        group = new ZooKeeperGroup<>(curator, PATH, NodeState.class);
+        group = new ZooKeeperGroup<>("", curator, PATH, NodeState.class);
         //group.start();
         // Starting curator and group is not necessary for the current tests.
     }

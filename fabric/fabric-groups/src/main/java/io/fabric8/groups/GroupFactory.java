@@ -19,12 +19,12 @@ import java.util.concurrent.ThreadFactory;
 
 public interface GroupFactory {
 
-    <T extends NodeState> Group<T> createGroup(String path, Class<T> clazz);
+    <T extends NodeState> Group<T> createGroup(String source, String path, Class<T> clazz);
 
-    <T extends NodeState> Group<T> createGroup(String path, Class<T> clazz, ThreadFactory threadFactory);
+    <T extends NodeState> Group<T> createGroup(String source, String path, Class<T> clazz, ThreadFactory threadFactory);
 
-    <T extends NodeState> Group<T> createMultiGroup(String path, Class<T> clazz);
+    <T extends NodeState> Group<T> createMultiGroup(String source, String path, Class<T> clazz);
 
-    <T extends NodeState> Group<T> createMultiGroup(String path, Class<T> clazz, ThreadFactory threadFactory);
+    <T extends NodeState> Group<T> createMultiGroup(String source, String path, Class<T> clazz, ThreadFactory threadFactory);
 
 }

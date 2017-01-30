@@ -22,12 +22,12 @@ import org.apache.curator.framework.CuratorFramework;
 
 public class DelegateZooKeeperMultiGroup<T extends NodeState> extends DelegateZooKeeperGroup<T> implements MultiGroup<T> {
 
-    public DelegateZooKeeperMultiGroup(String path, Class<T> clazz) {
-        super(path, clazz);
+    public DelegateZooKeeperMultiGroup(String source, String path, Class<T> clazz) {
+        super(source, path, clazz);
     }
 
-    protected Group<T> createGroup(CuratorFramework client, String path, Class<T> clazz) {
-        return new ZooKeeperMultiGroup<T>(client, path, clazz);
+    protected Group<T> createGroup(String source, CuratorFramework client, String path, Class<T> clazz) {
+        return new ZooKeeperMultiGroup<T>(source, client, path, clazz);
     }
 
     @Override

@@ -92,7 +92,7 @@ public class GroupTest {
         final String path = "/singletons/test/Order" + System.currentTimeMillis();
         ArrayList<ZooKeeperGroup> members = new ArrayList<ZooKeeperGroup>();
         for (int i=0;i<4;i++) {
-            ZooKeeperGroup<NodeState> group = new ZooKeeperGroup<NodeState>(curator, path, NodeState.class);
+            ZooKeeperGroup<NodeState> group = new ZooKeeperGroup<NodeState>("", curator, path, NodeState.class);
             group.add(listener);
             members.add(group);
         }
@@ -142,7 +142,7 @@ public class GroupTest {
                 .build();
         curator.start();
 
-        final Group<NodeState> group = new ZooKeeperGroup<NodeState>(curator, "/singletons/test" + System.currentTimeMillis(), NodeState.class);
+        final Group<NodeState> group = new ZooKeeperGroup<NodeState>("", curator, "/singletons/test" + System.currentTimeMillis(), NodeState.class);
         group.add(listener);
         group.start();
 
@@ -179,7 +179,7 @@ public class GroupTest {
                 .build();
         curator.start();
 
-        Group<NodeState> group = new ZooKeeperGroup<NodeState>(curator, "/singletons/test" + System.currentTimeMillis(), NodeState.class);
+        Group<NodeState> group = new ZooKeeperGroup<NodeState>("", curator, "/singletons/test" + System.currentTimeMillis(), NodeState.class);
         group.add(listener);
         group.start();
 
@@ -215,7 +215,7 @@ public class GroupTest {
         curator.start();
 
         NIOServerCnxnFactory cnxnFactory = startZooKeeper(port);
-        Group<NodeState> group = new ZooKeeperGroup<NodeState>(curator, "/singletons/test" + System.currentTimeMillis(), NodeState.class);
+        Group<NodeState> group = new ZooKeeperGroup<NodeState>("", curator, "/singletons/test" + System.currentTimeMillis(), NodeState.class);
         group.add(listener);
         group.update(new NodeState("foo"));
         group.start();
@@ -272,7 +272,7 @@ public class GroupTest {
         curator.create().creatingParentsIfNeeded().forPath(groupNode);
 
         for (int i = 0; i < 100; i++) {
-            ZooKeeperGroup<NodeState> group = new ZooKeeperGroup<NodeState>(curator, groupNode, NodeState.class);
+            ZooKeeperGroup<NodeState> group = new ZooKeeperGroup<NodeState>("", curator, groupNode, NodeState.class);
             group.add(listener);
             group.update(new NodeState("foo"));
             group.start();
@@ -310,7 +310,7 @@ public class GroupTest {
 
         curator.getZookeeperClient().blockUntilConnectedOrTimedOut();
 
-        final ZooKeeperGroup<NodeState> group = new ZooKeeperGroup<NodeState>(curator, groupNode, NodeState.class);
+        final ZooKeeperGroup<NodeState> group = new ZooKeeperGroup<NodeState>("", curator, groupNode, NodeState.class);
         group.add(listener);
         group.start();
 

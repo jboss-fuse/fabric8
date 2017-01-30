@@ -57,7 +57,7 @@ public abstract class ZKComponentSupport extends DefaultComponent implements Cal
         if (managedGroupFactory == null) {
             throw new IllegalStateException("Component is not started");
         }
-        return managedGroupFactory.createGroup(path, CamelNodeState.class);
+        return managedGroupFactory.createGroup("", path, CamelNodeState.class);
     }
 
 

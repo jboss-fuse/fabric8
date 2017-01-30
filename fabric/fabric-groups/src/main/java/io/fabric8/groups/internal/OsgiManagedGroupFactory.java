@@ -45,22 +45,22 @@ public class OsgiManagedGroupFactory implements ManagedGroupFactory {
     }
 
     @Override
-    public <T extends NodeState> Group<T> createGroup(String path, Class<T> clazz) {
-        return delegate.createGroup(path, clazz);
+    public <T extends NodeState> Group<T> createGroup(String source, String path, Class<T> clazz) {
+        return delegate.createGroup(source, path, clazz);
     }
 
     @Override
-    public <T extends NodeState> Group<T> createGroup(String path, Class<T> clazz, ThreadFactory threadFactory) {
-        return delegate.createGroup(path, clazz, threadFactory);
+    public <T extends NodeState> Group<T> createGroup(String source, String path, Class<T> clazz, ThreadFactory threadFactory) {
+        return delegate.createGroup(source, path, clazz, threadFactory);
     }
 
     @Override
-    public <T extends NodeState> Group<T> createMultiGroup(String path, Class<T> clazz) {
+    public <T extends NodeState> Group<T> createMultiGroup(String source, String path, Class<T> clazz) {
         throw new IllegalStateException("not supported");
     }
 
     @Override
-    public <T extends NodeState> Group<T> createMultiGroup(String path, Class<T> clazz, ThreadFactory threadFactory) {
+    public <T extends NodeState> Group<T> createMultiGroup(String source, String path, Class<T> clazz, ThreadFactory threadFactory) {
         throw new IllegalStateException("not supported");
     }
 
@@ -124,8 +124,8 @@ public class OsgiManagedGroupFactory implements ManagedGroupFactory {
         }
 
         @Override
-        public <T extends NodeState> Group<T> createGroup(String path, Class<T> clazz) {
-            return new DelegateZooKeeperGroup<T>(path, clazz) {
+        public <T extends NodeState> Group<T> createGroup(String source, String path, Class<T> clazz) {
+            return new DelegateZooKeeperGroup<T>(source, path, clazz) {
                 @Override
                 public void start() {
                     useCurator(curator);
@@ -142,13 +142,13 @@ public class OsgiManagedGroupFactory implements ManagedGroupFactory {
         }
 
         @Override
-        public <T extends NodeState> Group<T> createGroup(String path, Class<T> clazz, ThreadFactory threadFactory) {
+        public <T extends NodeState> Group<T> createGroup(String source, String path, Class<T> clazz, ThreadFactory threadFactory) {
             throw new IllegalStateException("not supported");
         }
 
         @Override
-        public <T extends NodeState> Group<T> createMultiGroup(String path, Class<T> clazz) {
-            return new DelegateZooKeeperMultiGroup<T>(path, clazz) {
+        public <T extends NodeState> Group<T> createMultiGroup(String source, String path, Class<T> clazz) {
+            return new DelegateZooKeeperMultiGroup<T>(source, path, clazz) {
                 @Override
                 public void start() {
                     useCurator(curator);
@@ -165,7 +165,7 @@ public class OsgiManagedGroupFactory implements ManagedGroupFactory {
         }
 
         @Override
-        public <T extends NodeState> Group<T> createMultiGroup(String path, Class<T> clazz, ThreadFactory threadFactory) {
+        public <T extends NodeState> Group<T> createMultiGroup(String source, String path, Class<T> clazz, ThreadFactory threadFactory) {
             throw new IllegalStateException("not supported");
         }
 

@@ -395,7 +395,7 @@ public class ServiceFactoryTest {
 
             @Override
             public void run() {
-                group = new ZooKeeperGroup<NodeState>(proxyCurator, path, NodeState.class);
+                group = new ZooKeeperGroup<NodeState>("", proxyCurator, path, NodeState.class);
                 group.add(this);
                 LOG.info("run: Added: " + this);
 
@@ -528,7 +528,7 @@ public class ServiceFactoryTest {
 
             @Override
             public void run() {
-                group = new ZooKeeperGroup<NodeState>(proxyCurator, path, NodeState.class);
+                group = new ZooKeeperGroup<NodeState>("", proxyCurator, path, NodeState.class);
                 group.add(this);
                 LOG.info("run: Added: " + this);
 

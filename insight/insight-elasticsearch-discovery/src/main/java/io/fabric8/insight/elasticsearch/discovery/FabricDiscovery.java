@@ -223,7 +223,7 @@ public class FabricDiscovery extends AbstractLifecycleComponent<Discovery>
         try {
             logger.debug("CuratorFramework found, starting group");
             GroupFactory factory = new ZooKeeperGroupFactory(curator);
-            singleton = factory.createGroup("/fabric/registry/clusters/elasticsearch/" + clusterName.value(), ESNode.class);
+            singleton = factory.createGroup("", "/fabric/registry/clusters/elasticsearch/" + clusterName.value(), ESNode.class);
             singleton.add(this);
             singleton.update(new ESNode(clusterName.value(), localNode, false));
             singleton.start();

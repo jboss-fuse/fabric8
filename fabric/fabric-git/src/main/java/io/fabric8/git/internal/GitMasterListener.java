@@ -56,7 +56,7 @@ public final class GitMasterListener extends AbstractComponent implements GroupL
     @Activate
     void activate() throws IOException {
         activateComponent();
-        group = new ZooKeeperGroup<GitNode>(curator.get(), ZkPath.GIT.getPath(), GitNode.class, new NamedThreadFactory("zkgroup-gml"));
+        group = new ZooKeeperGroup<GitNode>("GitMasterListener", curator.get(), ZkPath.GIT.getPath(), GitNode.class, new NamedThreadFactory("zkgroup-gml"));
         group.add(this);
         group.start();
     }

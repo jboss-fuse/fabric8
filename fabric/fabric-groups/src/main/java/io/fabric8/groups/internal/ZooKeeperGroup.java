@@ -93,6 +93,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     // this status means we may have (temporary - for the period of ZK session) duplication of nodes
     private final AtomicBoolean unstable = new AtomicBoolean();
     private volatile T state;
+    private final String source;
 
     private final Watcher childrenWatcher = new Watcher() {
         @Override
@@ -130,8 +131,8 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
      * @param client the client
      * @param path   path to watch
      */
-    public ZooKeeperGroup(CuratorFramework client, String path, Class<T> clazz) {
-        this(client, path, clazz,
+    public ZooKeeperGroup(String source, CuratorFramework client, String path, Class<T> clazz) {
+        this(source, client, path, clazz,
                 Executors.newSingleThreadExecutor(new NamedThreadFactory("ZKGroup")));
     }
 
@@ -140,8 +141,8 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
      * @param path          path to watch
      * @param threadFactory factory to use when creating internal threads
      */
-    public ZooKeeperGroup(CuratorFramework client, String path, Class<T> clazz, ThreadFactory threadFactory) {
-        this(client, path, clazz, Executors.newSingleThreadExecutor(threadFactory));
+    public ZooKeeperGroup(String source, CuratorFramework client, String path, Class<T> clazz, ThreadFactory threadFactory) {
+        this(source, client, path, clazz, Executors.newSingleThreadExecutor(threadFactory));
     }
 
     /**
@@ -149,12 +150,13 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
      * @param path            path to watch
      * @param executorService ExecutorService to use for the ZooKeeperGroup's background thread
      */
-    public ZooKeeperGroup(CuratorFramework client, String path, Class<T> clazz, final ExecutorService executorService) {
-        LOG.info("Creating ZK Group for path \"" + path + "\"");
+    public ZooKeeperGroup(String source, CuratorFramework client, String path, Class<T> clazz, final ExecutorService executorService) {
+        LOG.info("Creating ZK Group for source \"" + source + "\", path \"" + path + "\" and class \"" + clazz + "\"");
         this.client = client;
         this.path = path;
         this.clazz = clazz;
         this.executorService = executorService;
+        this.source = source;
         ensurePath = client.newNamespaceAwareEnsurePath(path);
     }
 

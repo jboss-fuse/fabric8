@@ -228,7 +228,7 @@ public class MetricsCollector implements MetricsCollectorMBean {
                     // Clustered stats ?
 
                     if (q.getLock() != null) {
-                        state.lock = new TrackingZooKeeperGroup<>(bundleContext, getGroupPath(q), QueryNodeState.class);
+                        state.lock = new TrackingZooKeeperGroup<>(bundleContext, "", getGroupPath(q), QueryNodeState.class);
                         state.lock.add(new GroupListener<QueryNodeState>() {
                             @Override
                             public void groupEvent(Group<QueryNodeState> group, GroupEvent event) {

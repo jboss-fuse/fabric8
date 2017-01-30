@@ -74,7 +74,7 @@ public class ClusteredSingletonLifecycleStrategy implements LifecycleStrategy, G
 
     public void start() throws Exception {
         factory = ManagedGroupFactoryBuilder.create(curator, getClass().getClassLoader(), this);
-        group = factory.createGroup("/fabric/camel-clusters/" + groupName, CamelNodeState.class);
+        group = factory.createGroup("", "/fabric/camel-clusters/" + groupName, CamelNodeState.class);
         group.update(createState());
         group.add(this);
         group.start();

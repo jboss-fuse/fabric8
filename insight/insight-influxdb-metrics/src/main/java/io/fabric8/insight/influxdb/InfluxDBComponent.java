@@ -68,7 +68,7 @@ public class InfluxDBComponent extends AbstractComponent implements GroupListene
 
 
     private void activateInternal() {
-        group = new ZooKeeperGroup<InfluxDBNode>(curator.get(), INFLUXDB_CLUSTER_PATH, InfluxDBNode.class);
+        group = new ZooKeeperGroup<InfluxDBNode>("", curator.get(), INFLUXDB_CLUSTER_PATH, InfluxDBNode.class);
         group.add(this);
         group.start();
     }

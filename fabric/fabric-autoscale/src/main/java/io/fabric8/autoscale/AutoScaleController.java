@@ -97,7 +97,7 @@ public final class AutoScaleController extends AbstractComponent implements Grou
     void activate() {
         CuratorFramework curator = this.curator.get();
         enableMasterZkCache(curator);
-        group = new ZooKeeperGroup<AutoScalerNode>(curator, ZkPath.AUTO_SCALE_CLUSTER.getPath(), AutoScalerNode.class);
+        group = new ZooKeeperGroup<AutoScalerNode>("", curator, ZkPath.AUTO_SCALE_CLUSTER.getPath(), AutoScalerNode.class);
         group.add(this);
         group.update(createState());
         group.start();

@@ -149,7 +149,7 @@ public class FabricLoadBalancerFeature extends AbstractFeature implements BusLif
     
     public synchronized Group getGroup() throws Exception {
          if (group == null) {
-             group = new ZooKeeperGroup<CxfNodeState>(getCurator(), zkRoot + fabricPath, CxfNodeState.class, new NamedThreadFactory("zkgroup-lb-feature"));
+             group = new ZooKeeperGroup<CxfNodeState>("FLB", getCurator(), zkRoot + fabricPath, CxfNodeState.class, new NamedThreadFactory("zkgroup-lb-feature"));
              group.start();
          }
         return group;
