@@ -42,6 +42,8 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class ConnectionStateManager implements Closeable
 {
+    public static Logger LOG = LoggerFactory.getLogger(ConnectionStateManager.class);
+
     private static final int QUEUE_SIZE;
 
     static
@@ -86,6 +88,7 @@ public class ConnectionStateManager implements Closeable
      */
     public ConnectionStateManager(CuratorFramework client, ThreadFactory threadFactory)
     {
+        LOG.info("GG: Creating ConnectionStateManager");
         this.client = client;
         if ( threadFactory == null )
         {
@@ -101,6 +104,7 @@ public class ConnectionStateManager implements Closeable
     {
         Preconditions.checkState(state.compareAndSet(State.LATENT, State.STARTED), "Cannot be started more than once");
 
+        LOG.info("GG: starting ConnectionStateManager, scheduling processEvents in loop");
         service.submit
             (
                 new Callable<Object>()
@@ -120,6 +124,7 @@ public class ConnectionStateManager implements Closeable
     {
         if ( state.compareAndSet(State.STARTED, State.CLOSED) )
         {
+            LOG.info("GG: CSM.close()");
             service.shutdownNow();
             listeners.clear();
         }
@@ -146,6 +151,7 @@ public class ConnectionStateManager implements Closeable
         {
             return false;
         }
+        LOG.info("GG: setToSuspended(), currentConnectionState = " + currentConnectionState);
 
         if ( (currentConnectionState == ConnectionState.LOST) || (currentConnectionState == ConnectionState.SUSPENDED) )
         {
@@ -177,6 +183,7 @@ public class ConnectionStateManager implements Closeable
         {
             return false;
         }
+        LOG.info("GG: addStateChange(" + newConnectionState + "), current = " + currentConnectionState);
         currentConnectionState = newConnectionState;
 
         ConnectionState localState = newConnectionState;
@@ -193,6 +200,7 @@ public class ConnectionStateManager implements Closeable
 
     public synchronized boolean blockUntilConnected(int maxWaitTime, TimeUnit units) throws InterruptedException
     {
+        LOG.info("GG: blockUntilConnected(" + maxWaitTime + ")");
         long startTime = System.currentTimeMillis();
 
         boolean hasMaxWait = (units != null);
@@ -225,7 +233,7 @@ public class ConnectionStateManager implements Closeable
 
     private void postState(ConnectionState state)
     {
-        log.info("State change: " + state);
+        log.info("GG: State change: postState(" + state + ")");
 
         notifyAll();
 
@@ -249,6 +257,8 @@ public class ConnectionStateManager implements Closeable
                     log.warn("There are no ConnectionStateListeners registered.");
                 }
 
+                LOG.info("GG: ConnectionStateManager calling listeners with state = " + newState);
+
                 listeners.forEach
                     (
                         new Function<ConnectionStateListener, Void>()
@@ -256,6 +266,7 @@ public class ConnectionStateManager implements Closeable
                             @Override
                             public Void apply(ConnectionStateListener listener)
                             {
+                                LOG.info("GG: ConnectionStateManager calling listener + " + listener + " with state = " + newState);
                                 listener.stateChanged(client, newState);
                                 return null;
                             }
