@@ -177,7 +177,7 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
 
         }
 
-        public void close() {
+        public void close(State next) {
             closed.set(true);
             CuratorFramework curator = this.curator;
             if (curator != null) {
@@ -188,6 +188,9 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
             }
             try {
                 executor.submit(this).get();
+                if (next != null) {
+                    executor.submit(next);
+                }
             } catch (Exception e) {
                 LOGGER.warn("Error while closing curator", e);
             }
@@ -245,12 +248,13 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
             if (!config.equals(oldConfiguration)) {
                 State next = new State(config);
                 if (state.compareAndSet(prev, next)) {
-                    executor.submit(next);
                     if (prev != null) {
-                        prev.close();
+                        prev.close(next);
+                    } else {
+                        executor.submit(next);
                     }
                 } else {
-                    next.close();
+                    next.close(null);
                 }
             }
         }
@@ -262,7 +266,7 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
         State prev = state.getAndSet(null);
         if (prev != null) {
             CuratorFrameworkLocator.unbindCurator(prev.curator);
-            prev.close();
+            prev.close(null);
         }
         executor.shutdown();
         executor.awaitTermination(30, TimeUnit.SECONDS);
