@@ -193,6 +193,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     @Activate
     @VisibleForExternal
     public void activate(Map<String, ?> configuration) throws Exception {
+        LOGGER.info("GG: @Activate: " + configuration);
         LockFile.unlock(getGit().getRepository().getIndexFile());
         configurer.configure(configuration, this);
 
@@ -241,6 +242,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
     @Deactivate
     void deactivate() {
+        LOGGER.info("GG: @Deactivate");
         deactivateComponent();
         deactivateInternal();
     }
@@ -252,7 +254,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         // Call the bootstrap {@link DataStoreTemplate}
         DataStoreTemplate template = runtimeProperties.get().removeRuntimeAttribute(DataStoreTemplate.class);
         if (template != null) {
-            
+            LOGGER.info("GG: template: " + template);
             // Do the initial commit and set the root tag
             Ref rootTag = getGit().getRepository().getRef(GitHelpers.ROOT_TAG);
             if (rootTag == null) {
@@ -274,19 +276,21 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         ProxySelector.setDefault(fabricProxySelector);
         LOGGER.debug("Setting up FabricProxySelector: {}", fabricProxySelector);
 
-
+        LOGGER.info("GG: gitRemoteUrl == " + gitRemoteUrl);
         if (gitRemoteUrl != null) {
             gitListener.runRemoteUrlChanged(gitRemoteUrl);
             remoteUrl = gitRemoteUrl;
         } else {
             gitService.get().addGitListener(gitListener);
             remoteUrl = gitService.get().getRemoteUrl();
+            LOGGER.info("GG: remoteUrl from gitService: " + remoteUrl);
             if (remoteUrl != null) {
                 gitListener.runRemoteUrlChanged(remoteUrl);
             }
         }
 
         // Get initial versions
+        LOGGER.info("GG: getInitialVersions()");
         getInitialVersions();
 
         // poll logic in case of remote git repo
@@ -321,10 +325,11 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         counter.addListener(new SharedCountListener() {
             @Override
             public void countHasChanged(final SharedCountReader sharedCountReader, final int value) throws Exception {
+               LOGGER.info("GG: Watch counter updated to " + value + ", scheduling a pull to " + threadPool);
                threadPool.submit(new Runnable() {
                    @Override
                    public void run() {
-                       LOGGER.debug("Watch counter updated to " + value + ", doing a pull");
+                       LOGGER.info("GG: Watch counter updated to " + value + ", doing a pull");
                        doPullInternal();
                    }
                });
@@ -401,12 +406,14 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         gitService.get().removeGitListener(gitListener);
         
         // Shutdown the thread pool
+        LOGGER.info("GG: shutting down threadPool: " + threadPool);
         threadPool.shutdown();
         try {
             // Give some time to the running task to complete.
             if (!threadPool.awaitTermination(5, TimeUnit.SECONDS)) {
                 threadPool.shutdownNow();
             }
+            LOGGER.info("GG: success shutting down threadPool: " + threadPool);
         } catch (InterruptedException ex) {
             threadPool.shutdownNow();
             // Preserve interrupt status.
@@ -422,6 +429,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
             // Closing the shared counter
             try {
+                LOGGER.info("GG: closing shared counter");
                 if (counter != null) {
                     counter.close();
                 }
@@ -438,6 +446,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
     @Override
     public LockHandle aquireWriteLock(final String reason) {
+        LOGGER.info("GG: getting write lock to perform \"" + reason + "\"");
         final WriteLock writeLock = readWriteLock.writeLock();
         boolean success;
         try {
@@ -445,16 +454,20 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         } catch (InterruptedException ex) {
             success = false;
         }
+        LOGGER.info("GG: we have write lock!");
         IllegalStateAssertion.assertTrue(success, "Cannot obtain profile write lock in time");
         return new LockHandle() {
             @Override
             public void unlock() {
                 if (notificationRequired && readWriteLock.getWriteHoldCount() == 1) {
                     try {
+                        LOGGER.info("GG: write unlock (\"" + reason + "\" - firing notifications");
                         dataStore.get().fireChangeNotifications();
                     } finally {
                         notificationRequired = false;
                     }
+                } else {
+                    LOGGER.info("GG: write unlock - NOT firing notifications");
                 }
                 writeLock.unlock();
             }
@@ -470,10 +483,12 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         } catch (InterruptedException ex) {
             success = false;
         }
+        LOGGER.info("GG: we have read lock!");
         IllegalStateAssertion.assertTrue(success, "Cannot obtain profile read lock in time");
         return new LockHandle() {
             @Override
             public void unlock() {
+                LOGGER.info("GG: read unlock");
                 readLock.unlock();
             }
         };
@@ -1143,6 +1158,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     }
     
     private void doCommit(Git git, GitContext context) {
+        LOGGER.info("GG: commit");
         try {
             String message = context.getCommitMessage();
             IllegalStateAssertion.assertTrue(message.length() > 0, "Empty commit message");
@@ -1176,6 +1192,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     }
     
     private PullPolicyResult doPullInternal(GitContext context, CredentialsProvider credentialsProvider, boolean allowVersionDelete) {
+        LOGGER.info("GG: pull");
         PullPolicyResult pullResult = pullPushPolicy.doPull(context, credentialsProvider, allowVersionDelete);
         if (pullResult.getLastException() == null) {
             Set<String> updatedVersions = pullResult.localUpdateVersions();
@@ -1397,7 +1414,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         @Override
         public void onRemoteUrlChanged(final String updatedUrl) {
             final String actualUrl = gitRemoteUrl != null ? gitRemoteUrl : updatedUrl;
-            LOGGER.debug("GitDataStoreListener detected remote url change to \"" + actualUrl + "\". Submitting task" +
+            LOGGER.info("GG: GitDataStoreListener detected remote url change to \"" + actualUrl + "\". Submitting task" +
                     " that'll pull from new remote. Using thread pool " + threadPool);
             threadPool.submit(new Runnable() {
                 @Override

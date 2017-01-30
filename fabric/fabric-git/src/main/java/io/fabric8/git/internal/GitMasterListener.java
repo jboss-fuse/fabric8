@@ -55,6 +55,7 @@ public final class GitMasterListener extends AbstractComponent implements GroupL
 
     @Activate
     void activate() throws IOException {
+        LOGGER.info("GG: @Activate");
         activateComponent();
         group = new ZooKeeperGroup<GitNode>("GitMasterListener", curator.get(), ZkPath.GIT.getPath(), GitNode.class, new NamedThreadFactory("zkgroup-gml"));
         group.add(this);
@@ -63,6 +64,7 @@ public final class GitMasterListener extends AbstractComponent implements GroupL
 
     @Deactivate
     void deactivate() {
+        LOGGER.info("GG: @Deactivate");
         deactivateComponent();
         group.remove(this);
         Closeables.closeQuietly(group);
@@ -86,6 +88,7 @@ public final class GitMasterListener extends AbstractComponent implements GroupL
     private void updateMasterUrl(Group<GitNode> group) {
         GitNode master = group.master();
         String masterUrl = master != null ? master.getUrl() : null;
+        LOGGER.info("GG: updateMasterUrl(" + masterUrl + ")");
         try {
             if (masterUrl != null) {
                 GitService gitservice = gitService.get();

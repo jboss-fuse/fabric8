@@ -317,7 +317,7 @@ public class FabricDiscoveryAgent implements DiscoveryAgent, Callable {
         group.add(new GroupListener<ActiveMQNode>() {
             @Override
             public void groupEvent(Group<ActiveMQNode> group, GroupEvent event) {
-                LOG.debug("Event: " + event);
+                LOG.info("GG: FDA: Event: " + event);
                 Map<String, ActiveMQNode> masters = new HashMap<String, ActiveMQNode>();
                 for (ActiveMQNode node : group.members().values()) {
                     if (!masters.containsKey(node.id)) {

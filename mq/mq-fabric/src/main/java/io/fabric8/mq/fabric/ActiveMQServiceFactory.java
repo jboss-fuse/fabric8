@@ -739,7 +739,7 @@ public class ActiveMQServiceFactory  {
                                 @Override
                                 public void groupEvent(Group<ActiveMQNode> group, GroupEvent event) {
                                     try {
-                                        LOG.trace("Event:" + event + ", started:" + started.get());
+                                        LOG.info("GG: Event:" + event + ", started:" + started.get());
                                         if (event.equals(GroupEvent.CONNECTED) || event.equals(GroupEvent.CHANGED)) {
                                             if (discoveryAgent.getGroup().isMaster(name)) {
                                                 if (started.compareAndSet(false, true)) {

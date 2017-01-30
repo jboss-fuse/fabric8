@@ -86,6 +86,7 @@ public class DataStoreBootstrapTemplate implements DataStoreTemplate {
         
         CuratorFramework curator = null;
         try {
+            LOGGER.info("GG: starting non-managed CF for " + connectionUrl);
             curator = createCuratorFramework(connectionUrl, options);
             curator.start();
             curator.getZookeeperClient().blockUntilConnectedOrTimedOut();

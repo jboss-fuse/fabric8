@@ -98,6 +98,7 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
 
     @Activate
     void activate(Map<String, ?> configuration) throws Exception {
+        LOGGER.info("GG: @Activate");
         RuntimeProperties sysprops = runtimeProperties.get();
         realm = getConfiguredRealm(sysprops, configuration);
         roles = getConfiguredRoles(sysprops, configuration);
@@ -115,6 +116,7 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
 
     @Deactivate
     void deactivate() {
+        LOGGER.info("GG: @Deactivate");
         deactivateComponent();
         unregisterServlet();
         try {
@@ -154,13 +156,14 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
 
     private void updateMasterUrl(Group<GitNode> group) {
         try {
+            LOGGER.info("GG: updateMasterUrl(" + (group.master() == null ? "null" : group.master().getUrl()) + ")");
             if (group.isMaster()) {
-                LOGGER.debug("Git repo is the master");
+                LOGGER.info("GG: Git repo is the master");
                 if (!isMaster.getAndSet(true)) {
                     registerServlet(dataPath, realm, roles);
                 }
             } else {
-                LOGGER.debug("Git repo is not the master");
+                LOGGER.info("GG: Git repo is not the master");
                 if (isMaster.getAndSet(false)) {
                     unregisterServlet();
                 }
@@ -216,6 +219,7 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
      * See https://bugs.eclipse.org/bugs/show_bug.cgi?id=300084
      */
     private void unregisterServlet() {
+        LOGGER.info("GG: unregisterServlet(" + basePath + ")");
         synchronized (gitRemoteUrl) {
             if (basePath != null) {
                 try {
@@ -280,6 +284,7 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
         } catch (Throwable e) {
             LOGGER.error("Could not load config admin for pid " + Constants.DATASTORE_PID + ". Reason: " + e, e);
         }
+        LOGGER.info("GG: readExternalGitUrl : " + result);
         return result;
     }
 

@@ -576,7 +576,7 @@ public class AetherBasedResolver implements MavenResolver {
         assignProxyAndMirrors( remoteRepos );
         File resolved = resolve( defaultRepos, remoteRepos, artifact );
 
-        LOG.debug( "Resolved ({}) as {}", artifact.toString(), resolved.getAbsolutePath() );
+        LOG.info( "GG: Resolved ({}) as {}", artifact.toString(), resolved.getAbsolutePath() );
         return resolved;
     }
 

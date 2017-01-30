@@ -42,6 +42,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 class ConnectionState implements Watcher, Closeable
 {
+    public static Logger LOG = LoggerFactory.getLogger(ConnectionState.class);
+
     private static final int MAX_BACKGROUND_EXCEPTIONS = 10;
     private static final boolean LOG_EVENTS = Boolean.getBoolean(DebugUtils.PROPERTY_LOG_EVENTS);
     private static final Logger log = LoggerFactory.getLogger(ConnectionState.class);
@@ -58,15 +60,18 @@ class ConnectionState implements Watcher, Closeable
 
     ConnectionState(ZookeeperFactory zookeeperFactory, EnsembleProvider ensembleProvider, int sessionTimeoutMs, int connectionTimeoutMs, Watcher parentWatcher, AtomicReference<TracerDriver> tracer, boolean canBeReadOnly)
     {
+        LOG.info("GG: creating ConnectionState " + this);
         this.ensembleProvider = ensembleProvider;
         this.sessionTimeoutMs = sessionTimeoutMs;
         this.connectionTimeoutMs = connectionTimeoutMs;
         this.tracer = tracer;
         if ( parentWatcher != null )
         {
+            LOG.info("GG: Adding first parent watcher : " + parentWatcher);
             parentWatchers.offer(parentWatcher);
         }
 
+        LOG.info("GG: creating HandleHolder with watcher = " + this);
         zooKeeper = new HandleHolder(zookeeperFactory, this, ensembleProvider, sessionTimeoutMs, canBeReadOnly);
     }
 
@@ -100,7 +105,7 @@ class ConnectionState implements Watcher, Closeable
 
     void start() throws Exception
     {
-        log.debug("Starting");
+        log.info("GG: Starting connection state " + this);
         ensembleProvider.start();
         reset();
     }
@@ -108,7 +113,7 @@ class ConnectionState implements Watcher, Closeable
     @Override
     public void close() throws IOException
     {
-        log.debug("Closing");
+        log.info("GG: Closing connection state " + this);
 
         CloseableUtils.closeQuietly(ensembleProvider);
         try
@@ -128,11 +133,13 @@ class ConnectionState implements Watcher, Closeable
 
     void addParentWatcher(Watcher watcher)
     {
+        LOG.info("GG: Offering parent watcher : " + watcher);
         parentWatchers.offer(watcher);
     }
 
     void removeParentWatcher(Watcher watcher)
     {
+        LOG.info("GG: Removing parent watcher : " + watcher);
         parentWatchers.remove(watcher);
     }
 
@@ -144,6 +151,7 @@ class ConnectionState implements Watcher, Closeable
     @Override
     public void process(WatchedEvent event)
     {
+        LOG.info("GG: watched event: " + event);
         if ( LOG_EVENTS )
         {
             log.debug("ConnectState watcher: " + event);
@@ -156,6 +164,7 @@ class ConnectionState implements Watcher, Closeable
             if ( newIsConnected != wasConnected )
             {
                 isConnected.set(newIsConnected);
+                LOG.info("GG: change to isConnected: " + isConnected);
                 connectionStartMs = System.currentTimeMillis();
             }
         }
@@ -164,6 +173,7 @@ class ConnectionState implements Watcher, Closeable
         {
 
             OperationTrace trace = new OperationTrace("connection-state-parent-process", tracer.get(), getSessionId());
+            LOG.info("GG: processing parent watcher: " + parentWatcher);
             parentWatcher.process(event);
             trace.commit();
         }
@@ -232,8 +242,11 @@ class ConnectionState implements Watcher, Closeable
         instanceIndex.incrementAndGet();
 
         isConnected.set(false);
+        log.info("GG: reset, isConnected = false");
         connectionStartMs = System.currentTimeMillis();
+        log.info("GG: reset, closing zooKeeper");
         zooKeeper.closeAndReset();
+        log.info("GG: reset, and getZooKeeper again");
         zooKeeper.getZooKeeper();   // initiate connection
     }
 
