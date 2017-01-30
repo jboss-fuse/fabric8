@@ -90,7 +90,7 @@ public class DataStoreBootstrapTemplate implements DataStoreTemplate {
             curator.start();
             curator.getZookeeperClient().blockUntilConnectedOrTimedOut();
 
-            LockHandle writeLock = profileRegistry.aquireWriteLock();
+            LockHandle writeLock = profileRegistry.aquireWriteLock("running " + this);
             try {
                 // Make the import path absolute
                 File importPath = new File(options.getImportPath());

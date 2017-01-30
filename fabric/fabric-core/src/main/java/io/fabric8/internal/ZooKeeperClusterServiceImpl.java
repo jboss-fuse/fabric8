@@ -300,7 +300,7 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
                 index++;
             }
 
-            LockHandle writeLock = profileRegistry.get().aquireWriteLock();
+            LockHandle writeLock = profileRegistry.get().aquireWriteLock("createCluster(" + containers + ")");
             try {
                 // Create the ensemble profile
                 ensembleProfileBuilder.addFileConfiguration(ensemblePropertiesName, DataStoreUtils.toBytes(ensembleProperties));

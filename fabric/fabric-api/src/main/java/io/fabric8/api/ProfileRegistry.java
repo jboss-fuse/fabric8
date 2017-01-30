@@ -32,7 +32,7 @@ public interface ProfileRegistry {
     /**
      * Aquire a write lock for the profile datastore.
      */
-    LockHandle aquireWriteLock();
+    LockHandle aquireWriteLock(String reason);
     
     /**
      * Aquire a read lock for the profile datastore.
