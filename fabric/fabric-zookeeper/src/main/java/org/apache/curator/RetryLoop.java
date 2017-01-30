@@ -60,6 +60,8 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class RetryLoop
 {
+    public static Logger LOG = LoggerFactory.getLogger(RetryLoop.class);
+
     private boolean         isDone = false;
     private int             retryCount = 0;
 
@@ -98,6 +100,8 @@ public class RetryLoop
      */
     public static<T> T      callWithRetry(CuratorZookeeperClient client, Callable<T> proc) throws Exception
     {
+        LOG.info("GG: callWithRetry: " + proc);
+
         T               result = null;
         RetryLoop       retryLoop = client.newRetryLoop();
         while ( retryLoop.shouldContinue() )
@@ -180,6 +184,7 @@ public class RetryLoop
      */
     public void         takeException(Exception exception) throws Exception
     {
+        LOG.info("GG: retry-loop, taking exception " + exception.getClass());
         boolean     rethrow = true;
         if ( isRetryException(exception) )
         {
@@ -190,6 +195,7 @@ public class RetryLoop
 
             if ( retryPolicy.allowRetry(retryCount++, System.currentTimeMillis() - startTimeMs, sleeper) )
             {
+                LOG.info("GG: retrying operation for RL " + this);
                 new EventTrace("retries-allowed", tracer.get()).commit();
                 if ( !Boolean.getBoolean(DebugUtils.PROPERTY_DONT_LOG_CONNECTION_ISSUES) )
                 {
@@ -199,6 +205,7 @@ public class RetryLoop
             }
             else
             {
+                LOG.info("GG: NOT retrying operation for RL " + this);
                 new EventTrace("retries-disallowed", tracer.get()).commit();
                 if ( !Boolean.getBoolean(DebugUtils.PROPERTY_DONT_LOG_CONNECTION_ISSUES) )
                 {

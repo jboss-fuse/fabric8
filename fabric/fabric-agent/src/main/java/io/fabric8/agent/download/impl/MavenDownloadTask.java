@@ -20,19 +20,25 @@ import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
 
 import io.fabric8.maven.MavenResolver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MavenDownloadTask extends AbstractRetryableDownloadTask {
+
+    public static Logger LOG = LoggerFactory.getLogger(MavenDownloadTask.class);
 
     private final MavenResolver resolver;
 
     public MavenDownloadTask(ScheduledExecutorService executor, MavenResolver resolver, String url) {
         super(executor, url);
+        LOG.info("GG: Creating MavenDownloadTask for \"" + url + "\"");
         this.resolver = resolver;
     }
 
     @Override
     protected File download(Exception previousException) throws Exception {
         try {
+            LOG.info("GG: MavenDownloadTask.download(\"" + url + "\")");
             return resolver.download(url, previousException);
         } catch (NoSuchMethodError error) {
             // handle R patch, where agent is updated, but still wired to old fabric-maven.

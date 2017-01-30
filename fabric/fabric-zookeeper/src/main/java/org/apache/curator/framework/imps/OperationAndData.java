@@ -110,6 +110,11 @@ class OperationAndData<T> implements Delayed, RetrySleeper
     }
 
     @Override
+    public String toString() {
+        return "O&D: " + (operation == null ? "null" : operation.getClass().getName()) + " | " + (data == null ? "null" : data.getClass().getName());
+    }
+
+    @Override
     public long getDelay(TimeUnit unit)
     {
         return unit.convert(sleepUntilTimeMs.get() - System.currentTimeMillis(), TimeUnit.MILLISECONDS);

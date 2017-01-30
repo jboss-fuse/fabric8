@@ -78,7 +78,7 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
         StoredConfig config = repository.getConfig();
         String remoteUrl = config.getString("remote", remoteRef, "url");
         if (remoteUrl == null) {
-            LOGGER.debug("No remote repository defined, so not doing a pull");
+            LOGGER.info("No remote repository defined, so not doing a pull");
             return new AbstractPullPolicyResult();
         }
         
@@ -219,7 +219,7 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
         StoredConfig config = git.getRepository().getConfig();
         String remoteUrl = config.getString("remote", remoteRef, "url");
         if (remoteUrl == null) {
-            LOGGER.debug("No remote repository defined, so not doing a push");
+            LOGGER.info("No remote repository defined, so not doing a push");
             return new AbstractPushPolicyResult();
         }
 

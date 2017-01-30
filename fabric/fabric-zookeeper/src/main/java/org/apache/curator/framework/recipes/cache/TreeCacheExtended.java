@@ -104,6 +104,7 @@ public class TreeCacheExtended implements Closeable
         public void process(WatchedEvent event) {
             try {
                 TreeData data;
+                log.info("GG: process(" + event + ")");
                 switch (event.getType()) {
                     case None:
                         break;
@@ -129,6 +130,11 @@ public class TreeCacheExtended implements Closeable
             } catch (Exception e) {
                 handleException(e);
             }
+        }
+
+        @Override
+        public String toString() {
+            return "Watcher from TreeCache for path \"" + path + "\"";
         }
     };
 
@@ -850,6 +856,7 @@ public class TreeCacheExtended implements Closeable
 
     private void offerOperation(Operation operation)
     {
+        log.info("GG: offering " + operation);
         operations.remove(operation);   // avoids herding for refresh operations
         operations.offer(operation);
     }

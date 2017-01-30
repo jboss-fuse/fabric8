@@ -102,12 +102,14 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
 
     @Activate
     void activate() throws Exception {
+        LOGGER.info("GG: @Activate");
         activateInternal();
         activateComponent();
     }
 
     @Deactivate
     void deactivate() {
+        LOGGER.info("GG: @Deactivate");
         deactivateComponent();
         deactivateInternal();
     }
@@ -165,6 +167,8 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
                     }
                     break;
             }
+        } else {
+            LOGGER.info("GG: " + this + " is not valid. No childEvent propagation!");
         }
     }
 
@@ -192,6 +196,7 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
     }
     
     private void runCallbacks() {
+        LOGGER.info("GG: scheduling doRunCallbacks()");
         callbacksExecutor.submit(new Runnable() {
             @Override
             public void run() {
@@ -204,6 +209,7 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
         assertValid();
         for (Runnable callback : callbacks) {
             try {
+                LOGGER.info("GG: Running callback " + callback);
                 if (LOGGER.isDebugEnabled()) {
                     LOGGER.debug("Running callback " + callback);
                 }
@@ -221,6 +227,7 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
 
     @Override
     public void trackConfiguration(Runnable callback) {
+        LOGGER.info("GG: tracking " + callback + " (isvalid == " + isValid() + ")");
         if (isValid()) {
             callbacks.addIfAbsent(callback);
         }
@@ -228,6 +235,7 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
 
     @Override
     public void untrackConfiguration(Runnable callback) {
+        LOGGER.info("GG: untracking " + callback);
         callbacks.remove(callback);
     }
 

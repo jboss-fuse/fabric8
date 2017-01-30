@@ -38,11 +38,15 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.errors.RepositoryNotFoundException;
 import org.eclipse.jgit.lib.RepositoryCache;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ThreadSafe
 @Component(name = "io.fabric8.git.service", label = "Fabric8 Git Service", immediate = true, metatype = false)
 @Service(GitService.class)
 public final class FabricGitServiceImpl extends AbstractComponent implements GitService {
+
+    public static Logger LOG = LoggerFactory.getLogger(FabricGitServiceImpl.class);
 
     public static final String DEFAULT_GIT_PATH = "git" + File.separator + "local" + File.separator + "fabric";
 
@@ -59,6 +63,7 @@ public final class FabricGitServiceImpl extends AbstractComponent implements Git
     @Activate
     @VisibleForTesting
     public void activate() throws IOException {
+        LOG.info("GG: @Activate");
         RuntimeProperties sysprops = runtimeProperties.get();
         localRepo = sysprops.getDataPath().resolve(DEFAULT_GIT_PATH).toFile();
         if (!localRepo.exists() && !localRepo.mkdirs()) {
@@ -72,6 +77,7 @@ public final class FabricGitServiceImpl extends AbstractComponent implements Git
 
     @Deactivate
     void deactivate() {
+        LOG.info("GG: @Deactivate");
         deactivateComponent();
         RepositoryCache.clear();
         git.status().getRepository().close();
@@ -107,6 +113,7 @@ public final class FabricGitServiceImpl extends AbstractComponent implements Git
     public void notifyRemoteChanged(String remoteUrl) {
         this.remoteUrl = remoteUrl;
         for (GitListener listener : listeners) {
+            LOG.info("GG: notifyRemoteChanged(" + remoteUrl + ") for: " + listener);
             listener.onRemoteUrlChanged(remoteUrl);
         }
     }
@@ -114,17 +121,20 @@ public final class FabricGitServiceImpl extends AbstractComponent implements Git
     @Override
     public void notifyReceivePacket() {
         for (GitListener listener : listeners) {
+            LOG.info("GG: notifyReceivePacket for: " + listener);
             listener.onReceivePack();
         }
     }
 
     @Override
     public void addGitListener(GitListener listener) {
+        LOG.info("GG: Adding git listener: " + listener);
         listeners.add(listener);
     }
 
     @Override
     public void removeGitListener(GitListener listener) {
+        LOG.info("GG: Removing git listener: " + listener);
         listeners.remove(listener);
     }
 

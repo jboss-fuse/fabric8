@@ -459,6 +459,7 @@ public class ClientCnxn {
 
         EventThread() {
             super(makeThreadName("-EventThread"));
+            LOG.info("GG: Creating SendThread with name \"" + getName() + "\"");
             setDaemon(true);
         }
 
@@ -468,6 +469,7 @@ public class ClientCnxn {
                 return;
             }
             sessionState = event.getState();
+            LOG.info("GG: EventThread.sessionState = " + sessionState);
 
             // materialize the watchers based on the event
             WatcherSetEventPair pair = new WatcherSetEventPair(
@@ -475,6 +477,7 @@ public class ClientCnxn {
                             event.getPath()),
                             event);
             // queue the pair (watch set & event) for later processing
+            LOG.info("GG: queueEvent-addEvent(" + event + ")");
             waitingEvents.add(pair);
         }
 
@@ -485,6 +488,7 @@ public class ClientCnxn {
                 else processEvent(packet);
              }
           } else {
+             LOG.info("GG: queueEvent-addPacket(" + packet + ")");
              waitingEvents.add(packet);
           }
        }
@@ -495,6 +499,7 @@ public class ClientCnxn {
 
         @Override
         public void run() {
+            LOG.info("GG: starting to EventThread.run()");
            try {
               isRunning = true;
               while (true) {
@@ -524,9 +529,11 @@ public class ClientCnxn {
           try {
               if (event instanceof WatcherSetEventPair) {
                   // each watcher will process the event
+                  LOG.info("GG: EventThread.processEvent(event == " + ((WatcherSetEventPair)event).event + ")");
                   WatcherSetEventPair pair = (WatcherSetEventPair) event;
                   for (Watcher watcher : pair.watchers) {
                       try {
+                          LOG.info("GG: EventThread: process watcher " + watcher);
                           watcher.process(pair.event);
                       } catch (Throwable t) {
                           LOG.error("Error while calling watcher ", t);
@@ -534,6 +541,7 @@ public class ClientCnxn {
                   }
               } else {
                   Packet p = (Packet) event;
+                  LOG.info("GG: EventThread.processEvent(packet == " + p + ")");
                   int rc = 0;
                   String clientPath = p.clientPath;
                   if (p.replyHeader.getErr() != 0) {
@@ -648,10 +656,12 @@ public class ClientCnxn {
         if (p.cb == null) {
             synchronized (p) {
                 p.finished = true;
+                LOG.info("GG: finishPacket/cb==null(" + p + ")");
                 p.notifyAll();
             }
         } else {
             p.finished = true;
+            LOG.info("GG: finishPacket/cb!=null/queuePacket(" + p + ")");
             eventThread.queuePacket(p);
         }
     }
@@ -662,12 +672,15 @@ public class ClientCnxn {
         }
         switch (state) {
         case AUTH_FAILED:
+            LOG.info("GG: replyHeader.err = AUTHFAILED");
             p.replyHeader.setErr(KeeperException.Code.AUTHFAILED.intValue());
             break;
         case CLOSED:
+            LOG.info("GG: replyHeader.err = SESSIONEXPIRED");
             p.replyHeader.setErr(KeeperException.Code.SESSIONEXPIRED.intValue());
             break;
         default:
+            LOG.info("GG: replyHeader.err = CONNECTIONLOSS");
             p.replyHeader.setErr(KeeperException.Code.CONNECTIONLOSS.intValue());
         }
         finishPacket(p);
@@ -750,6 +763,7 @@ public class ClientCnxn {
             if (replyHdr.getXid() == -4) {
                 // -4 is the xid for AuthPacket               
                 if(replyHdr.getErr() == KeeperException.Code.AUTHFAILED.intValue()) {
+                    LOG.info("GG: state=AUTH_FAILED");
                     state = States.AUTH_FAILED;                    
                     eventThread.queueEvent( new WatchedEvent(Watcher.Event.EventType.None, 
                             Watcher.Event.KeeperState.AuthFailed, null) );            		            		
@@ -811,6 +825,7 @@ public class ClientCnxn {
                             + replyHdr.getXid());
                 }
                 packet = pendingQueue.remove();
+                LOG.info("GG: read response for package from pendingQueue: " + packet + " pendingQueue size == " + pendingQueue.size());
             }
             /*
              * Since requests are processed in order, we better get a response
@@ -850,6 +865,8 @@ public class ClientCnxn {
 
         SendThread(ClientCnxnSocket clientCnxnSocket) {
             super(makeThreadName("-SendThread()"));
+            LOG.info("GG: Creating SendThread with name \"" + getName() + "\"");
+            LOG.info("GG: state=CONNECTING");
             state = States.CONNECTING;
             this.clientCnxnSocket = clientCnxnSocket;
             setDaemon(true);
@@ -873,7 +890,7 @@ public class ClientCnxn {
         }
 
         void primeConnection() throws IOException {
-            LOG.info("Socket connection established to "
+            LOG.info("GG: primeConnection: Socket connection established to "
                      + clientCnxnSocket.getRemoteSocketAddress()
                      + ", initiating session");
             isFirstConnect = false;
@@ -987,6 +1004,8 @@ public class ClientCnxn {
         private boolean saslLoginFailed = false;
 
         private void startConnect() throws IOException {
+            LOG.info("GG: startConnect()");
+            LOG.info("GG: state=CONNECTING");
             state = States.CONNECTING;
 
             InetSocketAddress addr;
@@ -996,9 +1015,11 @@ public class ClientCnxn {
             } else {
                 addr = hostProvider.next(1000);
             }
+            LOG.info("GG: got address: " + addr);
 
             setName(getName().replaceAll("\\(.*\\)",
                     "(" + addr.getHostName() + ":" + addr.getPort() + ")"));
+            LOG.info("GG: set thread name to \"" + getName() + "\"");
             if (ZooKeeperSaslClient.isEnabled()) {
                 try {
                     String principalUserName = System.getProperty(
@@ -1037,6 +1058,7 @@ public class ClientCnxn {
         
         @Override
         public void run() {
+            LOG.info("GG: starting to SendThread.run()");
             clientCnxnSocket.introduce(this,sessionId);
             clientCnxnSocket.updateNow();
             clientCnxnSocket.updateLastSendAndHeard();
@@ -1169,6 +1191,7 @@ public class ClientCnxn {
                         }
                         cleanup();
                         if (state.isAlive()) {
+                            LOG.info("GG: queueing1 WatchedEvent(None, Disconnected)");
                             eventThread.queueEvent(new WatchedEvent(
                                     Event.EventType.None,
                                     Event.KeeperState.Disconnected,
@@ -1182,6 +1205,7 @@ public class ClientCnxn {
             cleanup();
             clientCnxnSocket.close();
             if (state.isAlive()) {
+                LOG.info("GG: queueing2 WatchedEvent(None, Disconnected)");
                 eventThread.queueEvent(new WatchedEvent(Event.EventType.None,
                         Event.KeeperState.Disconnected, null));
             }
@@ -1272,6 +1296,7 @@ public class ClientCnxn {
                 byte[] _sessionPasswd, boolean isRO) throws IOException {
             negotiatedSessionTimeout = _negotiatedSessionTimeout;
             if (negotiatedSessionTimeout <= 0) {
+                LOG.info("GG: state=CLOSED");
                 state = States.CLOSED;
 
                 eventThread.queueEvent(new WatchedEvent(
@@ -1295,6 +1320,7 @@ public class ClientCnxn {
             sessionPasswd = _sessionPasswd;
             state = (isRO) ?
                     States.CONNECTEDREADONLY : States.CONNECTED;
+            LOG.info("GG: state=" + state);
             seenRwServerBefore |= !isRO;
             LOG.info("Session establishment complete on server "
                     + clientCnxnSocket.getRemoteSocketAddress()
@@ -1303,6 +1329,7 @@ public class ClientCnxn {
                     + (isRO ? " (READ-ONLY mode)" : ""));
             KeeperState eventState = (isRO) ?
                     KeeperState.ConnectedReadOnly : KeeperState.SyncConnected;
+            LOG.info("GG: onConnected: queueing WatchedEvent(None, " + eventState + ")");
             eventThread.queueEvent(new WatchedEvent(
                     Watcher.Event.EventType.None,
                     eventState, null));
@@ -1310,6 +1337,7 @@ public class ClientCnxn {
 
         void close() {
             state = States.CLOSED;
+            LOG.info("GG: state=" + state);
             clientCnxnSocket.wakeupCnxn();
         }
 
@@ -1350,6 +1378,7 @@ public class ClientCnxn {
      * behavior.
      */
     public void disconnect() {
+        LOG.info("GG: disconnect()");
         if (LOG.isDebugEnabled()) {
             LOG.debug("Disconnecting client for session: 0x"
                       + Long.toHexString(getSessionId()));
@@ -1446,6 +1475,7 @@ public class ClientCnxn {
             packet.clientPath = clientPath;
             packet.serverPath = serverPath;
             if (!state.isAlive() || closing) {
+                LOG.info("GG: queuePacket(" + packet + ") - calling conLossPacket()");
                 conLossPacket(packet);
             } else {
                 // If the client is asking to close the session then
@@ -1453,6 +1483,7 @@ public class ClientCnxn {
                 if (h.getType() == OpCode.closeSession) {
                     closing = true;
                 }
+                LOG.info("GG: queuePacket(" + packet + ") - adding to outgoingQueue");
                 outgoingQueue.add(packet);
             }
         }

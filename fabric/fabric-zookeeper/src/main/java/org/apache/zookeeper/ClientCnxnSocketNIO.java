@@ -114,6 +114,7 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
                         }
                         p.createBB();
                     }
+                    LOG.info("GG: writing packet: " + p);
                     sock.write(p.bb);
                     if (!p.bb.hasRemaining()) {
                         sentCount++;

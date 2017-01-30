@@ -22,10 +22,15 @@ import org.apache.curator.framework.api.CuratorWatcher;
 import org.apache.curator.utils.ThreadUtils;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.Closeable;
 
 class NamespaceWatcher implements Watcher, Closeable
 {
+    public static Logger LOG = LoggerFactory.getLogger(NamespaceWatcher.class);
+
     private volatile CuratorFrameworkImpl client;
     private volatile Watcher actualWatcher;
     private volatile CuratorWatcher curatorWatcher;
@@ -62,12 +67,14 @@ class NamespaceWatcher implements Watcher, Closeable
                 {
                     if ( actualWatcher != null )
                     {
+                        LOG.info("GG: processing actualWatcher: " + actualWatcher);
                         actualWatcher.process(new NamespaceWatchedEvent(client, event));
                     }
                     else if ( curatorWatcher != null )
                     {
                         try
                         {
+                            LOG.info("GG: processing curatorWatcher: " + curatorWatcher);
                             curatorWatcher.process(new NamespaceWatchedEvent(client, event));
                         }
                         catch ( Exception e )

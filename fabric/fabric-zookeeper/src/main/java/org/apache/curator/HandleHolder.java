@@ -23,9 +23,13 @@ import org.apache.curator.utils.ZookeeperFactory;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class HandleHolder
 {
+    public static Logger LOG = LoggerFactory.getLogger(HandleHolder.class);
+
     private final ZookeeperFactory zookeeperFactory;
     private final Watcher watcher;
     private final EnsembleProvider ensembleProvider;
@@ -74,6 +78,7 @@ class HandleHolder
 
     void closeAndReset() throws Exception
     {
+        LOG.info("GG: closeAndReset");
         internalClose();
 
         // first helper is synchronized when getZooKeeper is called. Subsequent calls
@@ -91,6 +96,8 @@ class HandleHolder
                     if ( zooKeeperHandle == null )
                     {
                         connectionString = ensembleProvider.getConnectionString();
+                        LOG.info("GG: got " + connectionString + " from " + ensembleProvider);
+                        LOG.info("GG: creating zookeeper handle");
                         zooKeeperHandle = zookeeperFactory.newZooKeeper(connectionString, sessionTimeout, watcher, canBeReadOnly);
                     }
 
@@ -136,6 +143,7 @@ class HandleHolder
                     }
                 };
                 zooKeeper.register(dummyWatcher);   // clear the default watcher so that no new events get processed by mistake
+                LOG.info("GG: closing zookeeper " + zooKeeper);
                 zooKeeper.close();
             }
         }
