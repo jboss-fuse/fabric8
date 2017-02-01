@@ -2887,6 +2887,11 @@
                 <version>${swagger-community-version}</version>
             </dependency>
             <dependency>
+                <groupId>org.apache.servicemix.bundles</groupId>
+                <artifactId>org.apache.servicemix.bundles.swagger-jaxrs</artifactId>
+                <version>${swagger-jaxrs-version}</version>
+            </dependency>
+            <dependency>
                 <groupId>joda-time</groupId>
                 <artifactId>joda-time</artifactId>
                 <version>${joda-time2-version}</version>
