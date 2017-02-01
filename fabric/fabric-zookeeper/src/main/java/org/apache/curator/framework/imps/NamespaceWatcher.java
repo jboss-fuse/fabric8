@@ -45,7 +45,7 @@ class NamespaceWatcher implements Watcher, Closeable
     }
 
     @Override
-    public void close()
+    public synchronized void close()
     {
         client = null;
         actualWatcher = null;
@@ -57,20 +57,25 @@ class NamespaceWatcher implements Watcher, Closeable
     {
         if ( client != null )
         {
-            if ( actualWatcher != null )
-            {
-                actualWatcher.process(new NamespaceWatchedEvent(client, event));
-            }
-            else if ( curatorWatcher != null )
-            {
-                try
+            synchronized (this) {
+                if ( client != null )
                 {
-                    curatorWatcher.process(new NamespaceWatchedEvent(client, event));
-                }
-                catch ( Exception e )
-                {
-                    ThreadUtils.checkInterrupted(e);
-                    client.logError("Watcher exception", e);
+                    if ( actualWatcher != null )
+                    {
+                        actualWatcher.process(new NamespaceWatchedEvent(client, event));
+                    }
+                    else if ( curatorWatcher != null )
+                    {
+                        try
+                        {
+                            curatorWatcher.process(new NamespaceWatchedEvent(client, event));
+                        }
+                        catch ( Exception e )
+                        {
+                            ThreadUtils.checkInterrupted(e);
+                            client.logError("Watcher exception", e);
+                        }
+                    }
                 }
             }
         }
