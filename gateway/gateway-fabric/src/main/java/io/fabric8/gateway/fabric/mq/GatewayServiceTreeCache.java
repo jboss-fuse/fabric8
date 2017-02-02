@@ -34,7 +34,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
-import org.apache.curator.framework.recipes.cache.TreeCache;
+import org.apache.curator.framework.recipes.cache.TreeCacheExtended;
 import io.fabric8.api.gravia.IllegalStateAssertion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,7 +65,7 @@ public class GatewayServiceTreeCache {
     };
 
     @GuardedBy("active")
-    private volatile TreeCache treeCache;
+    private volatile TreeCacheExtended treeCache;
 
 
     public GatewayServiceTreeCache(CuratorFramework curator, String zkPath, ServiceMap serviceMap, List<TcpGateway> gateways) {
@@ -81,7 +81,7 @@ public class GatewayServiceTreeCache {
         return "GatewayServiceTreeCache(zkPath: " + zkPath + " gateways: " + gateways + ")";
     }
 
-    protected TreeCache getTreeCache() {
+    protected TreeCacheExtended getTreeCache() {
         IllegalStateAssertion.assertTrue(active.get(), "Gateway service cache not active");
         return treeCache;
     }
@@ -89,8 +89,8 @@ public class GatewayServiceTreeCache {
 
     public void init() throws Exception {
         if (active.compareAndSet(false, true)) {
-            treeCache = new TreeCache(curator, zkPath, true, false, true, treeCacheExecutor);
-            treeCache.start(TreeCache.StartMode.NORMAL);
+            treeCache = new TreeCacheExtended(curator, zkPath, true, false, true, treeCacheExecutor);
+            treeCache.start(TreeCacheExtended.StartMode.NORMAL);
             treeCache.getListenable().addListener(treeListener);
             LOG.info("Started a group listener for " + zkPath);
             for (TcpGateway gateway : gateways) {

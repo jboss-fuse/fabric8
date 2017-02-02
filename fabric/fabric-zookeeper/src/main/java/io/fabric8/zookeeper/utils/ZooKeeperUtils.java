@@ -18,7 +18,7 @@ package io.fabric8.zookeeper.utils;
 import io.fabric8.api.FabricException;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.ChildData;
-import org.apache.curator.framework.recipes.cache.TreeCache;
+import org.apache.curator.framework.recipes.cache.TreeCacheExtended;
 import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -134,7 +134,7 @@ public final class ZooKeeperUtils {
         return pathExists ? curator.getChildren().forPath(path) : Collections.<String>emptyList();
     }
 
-    public static List<String> getChildren(TreeCache cache, String path) throws Exception {
+    public static List<String> getChildren(TreeCacheExtended cache, String path) throws Exception {
         return cache.getChildrenNames(path);
     }
 
@@ -149,7 +149,7 @@ public final class ZooKeeperUtils {
         return allChildren;
     }
 
-    public static List<String> getAllChildren(TreeCache cache, String path) throws Exception {
+    public static List<String> getAllChildren(TreeCacheExtended cache, String path) throws Exception {
         List<String> children = getChildren(cache, path);
         List<String> allChildren = new ArrayList<String>();
         for (String child : children) {
@@ -161,7 +161,7 @@ public final class ZooKeeperUtils {
     }
 
 
-    public static byte[] getByteData(TreeCache cache, String path) throws Exception {
+    public static byte[] getByteData(TreeCacheExtended cache, String path) throws Exception {
         ChildData cacheData = cache.getCurrentData(path);
         if (cacheData != null) {
             return cacheData.getData();
@@ -170,7 +170,7 @@ public final class ZooKeeperUtils {
         }
     }
 
-    public static String getStringData(TreeCache cache, String path) throws Exception {
+    public static String getStringData(TreeCacheExtended cache, String path) throws Exception {
         byte[] data = getByteData(cache, path);
         if (data == null) {
             return null;
@@ -298,7 +298,7 @@ public final class ZooKeeperUtils {
         return map;
     }
 
-    public static Map<String, String> getPropertiesAsMap(TreeCache cache, String path) throws Exception {
+    public static Map<String, String> getPropertiesAsMap(TreeCacheExtended cache, String path) throws Exception {
         Properties properties = getProperties(cache, path);
         Map<String, String> map = new HashMap<String, String>();
         for (String key : properties.stringPropertyNames()) {
@@ -319,7 +319,7 @@ public final class ZooKeeperUtils {
         return properties;
     }
 
-    public static Properties getProperties(TreeCache cace, String path) throws Exception {
+    public static Properties getProperties(TreeCacheExtended cace, String path) throws Exception {
         String value = getStringData(cace, path);
         Properties properties = new Properties();
         if (value != null) {

@@ -17,10 +17,10 @@ package org.apache.curator.framework.recipes.cache;
 
 class TreeEventOperation implements Operation
 {
-    private final TreeCache cache;
+    private final TreeCacheExtended cache;
     private final PathChildrenCacheEvent event;
 
-    TreeEventOperation(TreeCache cache, PathChildrenCacheEvent event)
+    TreeEventOperation(TreeCacheExtended cache, PathChildrenCacheEvent event)
     {
         this.cache = cache;
         this.event = event;
