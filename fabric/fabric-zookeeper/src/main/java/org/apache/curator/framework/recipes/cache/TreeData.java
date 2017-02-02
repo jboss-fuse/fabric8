@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public class TreeData extends ChildData {
+public class TreeData extends ChildDataExtended {
 
     private final Set<String> children = new HashSet<String>();
     private volatile boolean invalidated;

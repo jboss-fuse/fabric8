@@ -65,7 +65,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
-import org.apache.curator.framework.recipes.cache.TreeCache;
+import org.apache.curator.framework.recipes.cache.TreeCacheExtended;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -73,7 +73,6 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.zookeeper.KeeperException;
-import io.fabric8.api.gravia.IllegalArgumentAssertion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,8 +97,8 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
     private final CopyOnWriteArrayList<Runnable> callbacks = new CopyOnWriteArrayList<Runnable>();
     private final ExecutorService cacheExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory("zk-cache"));
     private final ExecutorService callbacksExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory("zk-datastore"));
-    private TreeCache configCache;
-    private TreeCache containerCache;
+    private TreeCacheExtended configCache;
+    private TreeCacheExtended containerCache;
 
     @Activate
     void activate() throws Exception {
@@ -114,12 +113,12 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
     }
     
     private void activateInternal() throws Exception {
-        configCache = new TreeCache(curator.get(), ZkPath.CONFIGS.getPath(), true, false, true, cacheExecutor);
-        configCache.start(TreeCache.StartMode.NORMAL);
+        configCache = new TreeCacheExtended(curator.get(), ZkPath.CONFIGS.getPath(), true, false, true, cacheExecutor);
+        configCache.start(TreeCacheExtended.StartMode.NORMAL);
         configCache.getListenable().addListener(this);
 
-        containerCache = new TreeCache(curator.get(), ZkPath.CONTAINERS.getPath(), true, false, true, cacheExecutor);
-        containerCache.start(TreeCache.StartMode.NORMAL);
+        containerCache = new TreeCacheExtended(curator.get(), ZkPath.CONTAINERS.getPath(), true, false, true, cacheExecutor);
+        containerCache.start(TreeCacheExtended.StartMode.NORMAL);
         containerCache.getListenable().addListener(this);
 
     }

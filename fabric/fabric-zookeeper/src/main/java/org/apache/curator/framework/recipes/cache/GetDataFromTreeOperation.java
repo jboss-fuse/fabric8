@@ -17,10 +17,10 @@ package org.apache.curator.framework.recipes.cache;
 
 class GetDataFromTreeOperation implements Operation
 {
-    private final TreeCache cache;
+    private final TreeCacheExtended cache;
     private final String fullPath;
 
-    GetDataFromTreeOperation(TreeCache cache, String fullPath)
+    GetDataFromTreeOperation(TreeCacheExtended cache, String fullPath)
     {
         this.cache = cache;
         this.fullPath = fullPath;

@@ -67,7 +67,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * when updating data to avoid overwriting another process' change.</p>
  */
 @SuppressWarnings("NullableProblems")
-public class TreeCache implements Closeable
+public class TreeCacheExtended implements Closeable
 {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final CuratorFramework client;
@@ -96,7 +96,7 @@ public class TreeCache implements Closeable
 
     private final AtomicReference<Map<String, ChildData>> initialSet = new AtomicReference<Map<String, ChildData>>();
 
-    private static final ChildData NULL_CHILD_DATA = new ChildData(null, null, null);
+    private static final ChildData NULL_CHILD_DATA = new ChildData("/", null, null);
     private static final String CHILD_OF_ZNODE_PATTERN = "%s/[^ /]*";
 
     private final Watcher watcher = new Watcher() {
@@ -117,14 +117,14 @@ public class TreeCache implements Closeable
                         if (data != null) {
                             data.invalidate();
                         }
-                        offerOperation(new GetDataFromTreeOperation(TreeCache.this, event.getPath()));
+                        offerOperation(new GetDataFromTreeOperation(TreeCacheExtended.this, event.getPath()));
                         break;
                     case NodeChildrenChanged:
                         data = currentData.getIfPresent(event.getPath());
                         if (data != null) {
                             data.invalidate();
                         }
-                        offerOperation(new TreeRefreshOperation(TreeCache.this, event.getPath(), RefreshMode.FORCE_GET_DATA_AND_STAT));
+                        offerOperation(new TreeRefreshOperation(TreeCacheExtended.this, event.getPath(), RefreshMode.FORCE_GET_DATA_AND_STAT));
                 }
             } catch (Exception e) {
                 handleException(e);
@@ -149,10 +149,10 @@ public class TreeCache implements Closeable
      * @param client the client
      * @param path   path to watch
      * @param mode   caching mode
-     * @deprecated use {@link #TreeCache(org.apache.curator.framework.CuratorFramework, String, boolean)} instead
+     * @deprecated use {@link #TreeCacheExtended(org.apache.curator.framework.CuratorFramework, String, boolean)} instead
      */
     @SuppressWarnings("deprecation")
-    public TreeCache(CuratorFramework client, String path, PathChildrenCacheMode mode)
+    public TreeCacheExtended(CuratorFramework client, String path, PathChildrenCacheMode mode)
     {
         this(client, path, mode != PathChildrenCacheMode.CACHE_PATHS_ONLY, false, Executors.newSingleThreadExecutor(defaultThreadFactory));
     }
@@ -162,7 +162,7 @@ public class TreeCache implements Closeable
      * @param path      path to watch
      * @param cacheData if true, node contents are cached in addition to the stat
      */
-    public TreeCache(CuratorFramework client, String path, boolean cacheData)
+    public TreeCacheExtended(CuratorFramework client, String path, boolean cacheData)
     {
         this(client, path, cacheData, false, Executors.newSingleThreadExecutor(defaultThreadFactory));
     }
@@ -172,7 +172,7 @@ public class TreeCache implements Closeable
      * @param path      path to watch
      * @param cacheData if true, node contents are cached in addition to the stat
      */
-    public TreeCache(CuratorFramework client, String path, boolean cacheData, boolean diffData)
+    public TreeCacheExtended(CuratorFramework client, String path, boolean cacheData, boolean diffData)
     {
         this(client, path, cacheData, false, diffData, Executors.newSingleThreadExecutor(defaultThreadFactory));
     }
@@ -183,7 +183,7 @@ public class TreeCache implements Closeable
      * @param cacheData     if true, node contents are cached in addition to the stat
      * @param threadFactory factory to use when creating internal threads
      */
-    public TreeCache(CuratorFramework client, String path, boolean cacheData, ThreadFactory threadFactory)
+    public TreeCacheExtended(CuratorFramework client, String path, boolean cacheData, ThreadFactory threadFactory)
     {
         this(client, path, cacheData,  false, Executors.newSingleThreadExecutor(threadFactory));
     }
@@ -195,7 +195,7 @@ public class TreeCache implements Closeable
      * @param dataIsCompressed if true, data in the path is compressed
      * @param threadFactory    factory to use when creating internal threads
      */
-    public TreeCache(CuratorFramework client, String path, boolean cacheData, boolean dataIsCompressed, ThreadFactory threadFactory)
+    public TreeCacheExtended(CuratorFramework client, String path, boolean cacheData, boolean dataIsCompressed, ThreadFactory threadFactory)
     {
         this(client, path, cacheData, dataIsCompressed, Executors.newSingleThreadExecutor(threadFactory));
     }
@@ -207,7 +207,7 @@ public class TreeCache implements Closeable
      * @param dataIsCompressed if true, data in the path is compressed
      * @param executorService  ExecutorService to use for the PathChildrenCache's background thread
      */
-    public TreeCache(CuratorFramework client, String path, boolean cacheData, boolean dataIsCompressed, final ExecutorService executorService)
+    public TreeCacheExtended(CuratorFramework client, String path, boolean cacheData, boolean dataIsCompressed, final ExecutorService executorService)
     {
         this(client, path, cacheData, dataIsCompressed, false, executorService);
     }
@@ -219,7 +219,7 @@ public class TreeCache implements Closeable
      * @param dataIsCompressed if true, data in the path is compressed
      * @param executorService  ExecutorService to use for the PathChildrenCache's background thread
      */
-    public TreeCache(CuratorFramework client, String path, boolean cacheData, boolean dataIsCompressed, boolean diffData, final ExecutorService executorService)
+    public TreeCacheExtended(CuratorFramework client, String path, boolean cacheData, boolean dataIsCompressed, boolean diffData, final ExecutorService executorService)
     {
         this.client = client;
         this.path = path;
@@ -255,7 +255,7 @@ public class TreeCache implements Closeable
     }
 
     /**
-     * Method of priming cache on {@link TreeCache#start(StartMode)}
+     * Method of priming cache on {@link TreeCacheExtended#start(StartMode)}
      */
     public enum StartMode
     {
@@ -266,7 +266,7 @@ public class TreeCache implements Closeable
         NORMAL,
 
         /**
-         * {@link TreeCache#rebuild()} will be called before this method returns in
+         * {@link TreeCacheExtended#rebuild()} will be called before this method returns in
          * order to get an initial view of the node.
          */
         BUILD_INITIAL_CACHE,
