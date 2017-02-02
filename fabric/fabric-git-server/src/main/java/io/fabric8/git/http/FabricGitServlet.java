@@ -105,14 +105,14 @@ public class FabricGitServlet extends GitServlet {
          *   < Content-Type: application/x-git-receive-pack-result
          */
 
-        LOGGER.debug("GitHttp service req={}", req);
+        LOGGER.info("GG: GitHttp service req={}", req.getRequestURI());
         super.service(req, res);
-        LOGGER.debug("GitHttp service res={}", res);
+        LOGGER.info("GG: GitHttp service req={}, res={}", req.getRequestURI(), res);
 
         // Ignore unwanted service requests
         String resContentType = res.getContentType();
         if (resContentType.contains("x-git-receive-pack-result")) {
-            LOGGER.info("GitHttp service res={}", res);
+            LOGGER.info("GitHttp service req={}, res={}", req.getRequestURI(), res);
 
             int httpStatus = 0;
             try {
@@ -131,7 +131,9 @@ public class FabricGitServlet extends GitServlet {
                     }
                 }
                 try {
+                    LOGGER.info("GG: Trying to set shared count to " + (counter.getCount() + 1));
                     while (!counter.trySetCount(counter.getCount() + 1)) ;
+                    LOGGER.info("GG: Successfully set shared count to " + (counter.getCount()));
                 } catch (Exception ex) {
                     if (LOGGER.isDebugEnabled()) {
                         LOGGER.debug("Error incrementing shared counter: " + ex + ". This exception is ignored.", ex);

@@ -173,7 +173,7 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
                     LOGGER.info("GG: registered CuratorComplete");
                 }
             }
-            LOGGER.info("GG: Calling stateChanged");
+            LOGGER.info("GG: Calling stateChanged. new state == " + newState);
             for (ConnectionStateListener listener : connectionStateListeners) {
                 LOGGER.info("GG: Calling stateChanged for " + listener);
                 listener.stateChanged(client, newState);

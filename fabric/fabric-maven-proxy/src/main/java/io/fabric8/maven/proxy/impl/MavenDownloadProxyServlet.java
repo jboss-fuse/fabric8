@@ -118,6 +118,8 @@ public class MavenDownloadProxyServlet extends MavenProxyServletSupport {
         }
         final String path = tpath;
 
+        LOGGER.info("GG: MavenDownloadProxyServlet.doGet(\"" + path + "\"), dispatcher: " + req.getDispatcherType());
+
         // state to help synchronize between async timeout handler and ArtifactDownloadFuture ready handler
         final AtomicInteger timeoutOrReady = new AtomicInteger(ASYNC_STARTED);
 
@@ -187,6 +189,7 @@ public class MavenDownloadProxyServlet extends MavenProxyServletSupport {
                 resp.flushBuffer();
                 if (pos == size) {
                     Closeables.closeQuietly(channel);
+                    LOGGER.info("GG: MavenDownloadProxyServlet.doGet(\"" + path + "\") asyncContext.complete(), dispatcher: " + req.getDispatcherType());
                     asyncContext.complete();
                 }
             } else {

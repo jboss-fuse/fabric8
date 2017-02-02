@@ -143,7 +143,7 @@ public class ChildData<T> implements Comparable<ChildData>
         return "ChildData{" +
                 "path='" + path + '\'' +
                 ", stat=" + stat +
-                ", data=" + Arrays.toString(data) +
+                ", data=" + (data == null ? "null" : new String(data)) +
                 '}';
     }
 }
