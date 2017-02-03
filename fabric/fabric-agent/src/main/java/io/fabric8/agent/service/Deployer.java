@@ -15,6 +15,7 @@
  */
 package io.fabric8.agent.service;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,6 +32,7 @@ import io.fabric8.agent.model.ConfigFile;
 import io.fabric8.agent.model.Feature;
 import io.fabric8.agent.region.SubsystemResolver;
 import io.fabric8.agent.resolver.FeatureResource;
+import io.fabric8.agent.utils.AgentUtils;
 import io.fabric8.agent.utils.OsgiUtils;
 import io.fabric8.common.util.ChecksumUtils;
 import io.fabric8.common.util.MultiException;
@@ -1005,6 +1007,15 @@ public class Deployer {
                     urls.add(bi.getLocation());
                 }
             }
+        }
+
+        // in case container is updated to different pax-url configuration (patching or just configadmin change)
+        // let's resolve these URIs and make them available from ${karaf.default.repository}
+        try {
+            LOGGER.info("Storing startup artifacts in default repository: {}", urls);
+            AgentUtils.downloadLocations(manager, urls, true);
+        } catch (Exception e) {
+            LOGGER.warn(e.getMessage(), e);
         }
 
         if (callback.done(agentStarted[0], urls)) {
