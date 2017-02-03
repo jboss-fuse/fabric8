@@ -42,11 +42,16 @@ import io.fabric8.agent.model.Repository;
 import io.fabric8.api.FabricService;
 import io.fabric8.api.Profile;
 import io.fabric8.api.ProfileService;
+import io.fabric8.common.util.Files;
 import io.fabric8.common.util.MultiException;
 import io.fabric8.common.util.Strings;
 import io.fabric8.maven.util.Parser;
+import io.fabric8.patch.management.Utils;
 import io.fabric8.service.VersionPropertyPointerResolver;
 import org.apache.maven.settings.Mirror;
+import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.FrameworkUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,6 +87,25 @@ public class AgentUtils {
      */
     public static Map<String, Parser> getProfileArtifacts(FabricService fabricService, Profile profile, Iterable<String> bundles, Iterable<Feature> features) {
         return getProfileArtifacts(fabricService, profile, bundles, features, null);
+    }
+
+    /**
+     * Retrieves default <code>${karaf.home}/${karaf.default.repository}</code> if it exists
+     * @return
+     */
+    public static File getDefaultKarafRepository() {
+        Bundle bundle = FrameworkUtil.getBundle(AgentUtils.class);
+        if (bundle != null) {
+            BundleContext context = bundle.getBundleContext();
+            if (context.getProperty("karaf.home") != null
+                    && context.getProperty("karaf.default.repository") != null) {
+                File target = new File(context.getProperty("karaf.home"), context.getProperty("karaf.default.repository"));
+                if (target.isDirectory()) {
+                    return target;
+                }
+            }
+        }
+        return null;
     }
 
     public interface Callback<T> {
@@ -196,6 +220,9 @@ public class AgentUtils {
             throws MultiException, InterruptedException, MalformedURLException {
         final Map<String, Repository> repositories = new HashMap<>();
         final Downloader downloader = manager.createDownloader();
+
+        final File targetLocation = getDefaultKarafRepository();
+
         for (String uri : uris) {
             downloader.download(uri, new DownloadCallback() {
                 @Override
@@ -209,6 +236,10 @@ public class AgentUtils {
                     for (URI repo : repository.getRepositories()) {
                         downloader.download(repo.toASCIIString(), this);
                     }
+
+                    // we need a feature repository to be available in ${karaf.home}/${karaf.default.repository}
+                    // it makes patching much easier
+                    storeInDefaultKarafRepository(targetLocation, provider.getFile(), uri);
                 }
             });
         }
@@ -223,8 +254,15 @@ public class AgentUtils {
 
     public static Map<String, File> downloadLocations(DownloadManager manager, Collection<String> uris)
             throws MultiException, InterruptedException, MalformedURLException {
+        return downloadLocations(manager, uris, false);
+    }
+
+    public static Map<String, File> downloadLocations(DownloadManager manager, Collection<String> uris,
+                                                      final boolean storeInDefaultKarafRepository)
+            throws MultiException, InterruptedException, MalformedURLException {
         final Map<String, File> files = new HashMap<>();
         final Downloader downloader = manager.createDownloader();
+        final File targetLocation = storeInDefaultKarafRepository ? getDefaultKarafRepository() : null;
         for (String uri : uris) {
             downloader.download(uri, new DownloadCallback() {
                 @Override
@@ -233,12 +271,41 @@ public class AgentUtils {
                     File file = provider.getFile();
                     synchronized (files) {
                         files.put(uri, file);
+                        if (storeInDefaultKarafRepository) {
+                            storeInDefaultKarafRepository(targetLocation, file, uri);
+                        }
                     }
                 }
             });
         }
         downloader.await();
         return files;
+    }
+
+    /**
+     * Tries to store resource resolved by some {@link StreamProvider} into karaf default repository
+     * @param finalTargetLocation
+     * @param file
+     * @param uri
+     */
+    private static void storeInDefaultKarafRepository(File finalTargetLocation, File file, String uri) {
+        if (finalTargetLocation != null && file != null && file.isFile()) {
+            try {
+                String path = Utils.mvnurlToPath(uri);
+                if (path != null) {
+                    File target = new File(finalTargetLocation, path);
+                    if (!target.isFile()) {
+                        LOGGER.info("Copying resolved {} to {}", file, finalTargetLocation);
+                        target.getParentFile().mkdirs();
+                        Files.copy(file, target);
+                    }
+                } else {
+                    LOGGER.warn("Can't resolve Maven URI {} to path", uri);
+                }
+            } catch (Exception e) {
+                LOGGER.warn(e.getMessage(), e);
+            }
+        }
     }
 
 
