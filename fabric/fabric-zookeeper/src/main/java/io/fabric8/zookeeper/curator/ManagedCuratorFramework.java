@@ -134,6 +134,7 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
                 } catch (IOException e) {
                     // Should not happen
                 }
+                CuratorFrameworkLocator.unbindCurator(curator);
                 curator = null;
                 if (!closed.get()) {
                     curator = buildCuratorFramework(configuration);
@@ -145,7 +146,6 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
                         } catch (Exception e){
                             LOGGER.warn("Unable to start ZookeeperClient", e);
                         }
-                    CuratorFrameworkLocator.bindCurator(curator);
                 }
             } catch (Throwable th) {
                 LOGGER.error("Cannot start curator framework", th);
@@ -157,6 +157,7 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
             if (newState == ConnectionState.CONNECTED || newState == ConnectionState.READ_ONLY || newState == ConnectionState.RECONNECTED) {
                 retryCount.set(0);
                 if (registration == null) {
+                    CuratorFrameworkLocator.bindCurator(curator);
                     // this is where the magic happens...
                     registration = bundleContext.registerService(CuratorFramework.class, curator, null);
                     // 12 (at least) seconds passed, >100 SCR components were activated
