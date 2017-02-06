@@ -59,6 +59,7 @@ public class GitSecureHttpContext implements HttpContext {
     private final String[] roles;
 
     public GitSecureHttpContext(HttpContext base, CuratorFramework curator, String realm, String role) {
+        LOGGER.info("GG: Creating GitSecureHttpContext");
         this.base = base;
         this.curator = curator;
         this.realm = realm;
@@ -77,6 +78,7 @@ public class GitSecureHttpContext implements HttpContext {
 
     @Override
     public boolean handleSecurity(HttpServletRequest request, HttpServletResponse response) {
+        LOGGER.info("GG: handleSecurity(" + request.getRequestURI() + ")");
 
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("handleSecurity: request={}", request);
@@ -107,6 +109,7 @@ public class GitSecureHttpContext implements HttpContext {
                         if (LOGGER.isTraceEnabled()) {
                             LOGGER.trace("handleSecurity: Username={}", username);
                         }
+                        LOGGER.info("GG: checking if \"" + username + "\" is container login");
                         if (isContainerLogin(username)) {
                             Properties containers = getContainerTokens(curator);
                             String token = containers.getProperty(username);
@@ -172,6 +175,7 @@ public class GitSecureHttpContext implements HttpContext {
                     }
                 }
             });
+            LOGGER.info("GG: login for login context with realm = " + realm + ", username = " + username);
             loginContext.login();
             boolean found = false;
             main:

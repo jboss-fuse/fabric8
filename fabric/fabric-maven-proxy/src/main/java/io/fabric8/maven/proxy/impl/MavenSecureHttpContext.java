@@ -57,6 +57,7 @@ public class MavenSecureHttpContext implements HttpContext {
      * Constructor
      */
     public MavenSecureHttpContext(HttpContext base, String realm, String[] role) {
+        LOGGER.info("GG: Creating MavenSecureHttpContext");
         this.base = base;
         this.realm = realm;
         this.roles = role;
@@ -74,6 +75,7 @@ public class MavenSecureHttpContext implements HttpContext {
     }
 
     public boolean handleSecurity(HttpServletRequest request, HttpServletResponse response) {
+        LOGGER.info("GG: handleSecurity(" + request.getRequestURI() + ")");
         return authenticate(request, response);
     }
 
@@ -94,6 +96,7 @@ public class MavenSecureHttpContext implements HttpContext {
                     }
                 }
             });
+            LOGGER.info("GG: login for login context with realm = " + realm + ", username = " + username);
             loginContext.login();
             boolean found = false;
             for (String role : roles) {
