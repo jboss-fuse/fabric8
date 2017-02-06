@@ -79,8 +79,14 @@ public class ZookeeperLoginModule implements LoginModule {
         try {
             CuratorFramework curator = CuratorFrameworkLocator.getCuratorFramework();
             if (curator != null) {
-                users = getProperties(curator, path);
-                containers = getContainerTokens(curator);
+                try {
+                    users = getProperties(curator, path);
+                    containers = getContainerTokens(curator);
+                } catch (IllegalStateException e) {
+                    if ("Client is not started".equals(e.getMessage())) {
+                        LOG.warn("Zookeeper connection not available. ZK authentication module is not enabled.");
+                    }
+                }
             }
             if (debug) {
                 LOG.debug("Initialize [" + this + "] - curator=" + curator + ",users=" + users);
