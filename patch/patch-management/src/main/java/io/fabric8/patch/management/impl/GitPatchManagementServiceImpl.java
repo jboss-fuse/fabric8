@@ -2739,6 +2739,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         int count = 1;
 
         // we may have unadded changes - when file mode is changed
+        fork.reset().setMode(ResetCommand.ResetType.MIXED).call();
         fork.reset().setMode(ResetCommand.ResetType.HARD).call();
 
         while (it.hasPrevious()) {
@@ -2754,6 +2755,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             gitPatchRepository.prepareCommit(fork, userChange.getFullMessage()).call();
 
             // we may have unadded changes - when file mode is changed
+            fork.reset().setMode(ResetCommand.ResetType.MIXED).call();
             fork.reset().setMode(ResetCommand.ResetType.HARD).call();
         }
 
