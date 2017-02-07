@@ -368,7 +368,7 @@ public class Utils {
         if (artifact.getClassifier() != null) {
             sb.append('-').append(artifact.getClassifier());
         }
-        sb.append('.').append(artifact.getType());
+        sb.append('.').append(artifact.getType() == null || "".equals(artifact.getType().trim()) ? "jar" : artifact.getType());
 
         return sb.toString().substring(1);
     }
