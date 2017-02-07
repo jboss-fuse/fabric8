@@ -36,6 +36,7 @@ import io.fabric8.agent.utils.AgentUtils;
 import io.fabric8.agent.utils.OsgiUtils;
 import io.fabric8.common.util.ChecksumUtils;
 import io.fabric8.common.util.MultiException;
+import io.fabric8.maven.util.Parser;
 import io.fabric8.utils.NamedThreadFactory;
 import org.apache.felix.utils.version.VersionRange;
 import org.apache.felix.utils.version.VersionTable;
@@ -465,14 +466,11 @@ public class Deployer {
                 for(BundleInfo bundleInfo : bundles){
                     if(bundleInfo.isStart() == false){
                         String location = bundleInfo.getLocation();
-                        int protocolMarker = location.lastIndexOf(":");
-                        location = location.substring(protocolMarker + 1);
-                        String[] split = location.split("/");
-                        if(split.length < 3)
-                            continue;
-                        String key = split[0] + "." + split[1] + "/" + split[2];
-
-                        for(Iterator<Resource> iter = resolver.getBundles().keySet().iterator(); iter.hasNext();){
+                        Parser parser = new Parser(location);
+                        String id = parser.getArtifact();
+                        String version = parser.getVersion();
+                        String key =  id + "/" + version;
+                        for(Iterator<Resource> iter = states.keySet().iterator(); iter.hasNext();){
                             Resource res = iter.next();
                             if(res.toString().equals(key)){
                                 states.put(res, Constants.RequestedState.Installed);
@@ -482,7 +480,6 @@ public class Deployer {
                     }
                 }
             }
-
         }
         // Only keep bundles resources
        states.keySet().retainAll(resolver.getBundles().keySet());
