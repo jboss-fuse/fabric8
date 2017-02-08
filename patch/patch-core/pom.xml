@@ -39,7 +39,7 @@
             io.fabric8.git;resolution:=optional,
             io.fabric8.git.internal;resolution:=optional,
             io.fabric8.zookeeper.utils;resolution:=optional,
-            org.apache.curator.framework;resolution:=optional,
+            org.apache.curator.framework;resolution:=optional;version="[2.6,3)",
             org.eclipse.jgit.api;resolution:=optional,
             org.eclipse.jgit.lib;resolution:=optional,
             org.eclipse.jgit.transport;resolution:=optional,
