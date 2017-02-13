@@ -25,6 +25,7 @@ import static io.fabric8.zookeeper.curator.Constants.ZOOKEEPER_PASSWORD;
 import static io.fabric8.zookeeper.curator.Constants.ZOOKEEPER_URL;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -226,6 +227,7 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
     void activate(BundleContext bundleContext, Map<String, ?> configuration) throws Exception {
         this.bundleContext = bundleContext;
         CuratorConfig config = new CuratorConfig();
+        Map<String, ?> adjustedConfiguration = adjust(configuration);
         configurer.configure(configuration, config);
 
         if (!Strings.isNullOrEmpty(config.getZookeeperUrl())) {
@@ -240,6 +242,7 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
     @Modified
     void modified(Map<String, ?> configuration) throws Exception {
         CuratorConfig config = new CuratorConfig();
+        Map<String, ?> adjustedConfiguration = adjust(configuration);
         configurer.configure(configuration, this);
         configurer.configure(configuration, config);
 
@@ -271,6 +274,21 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
         }
         executor.shutdown();
         executor.awaitTermination(30, TimeUnit.SECONDS);
+    }
+
+    /**
+     *
+     * @param configuration
+     * @return
+     */
+    protected Map<String,?> adjust(Map<String, ?> configuration) {
+        HashMap<String, Object> adjusted = new HashMap<>(configuration);
+        if (adjusted.containsKey("zookeeper.connection.timeout")) {
+            if (!adjusted.containsKey(CONNECTION_TIMEOUT)) {
+                adjusted.put(CONNECTION_TIMEOUT, adjusted.get("zookeeper.connection.timeout"));
+            }
+        }
+        return adjusted;
     }
 
     /**
