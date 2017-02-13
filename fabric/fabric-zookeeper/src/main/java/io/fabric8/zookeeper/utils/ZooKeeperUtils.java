@@ -27,6 +27,8 @@ import org.apache.zookeeper.data.Stat;
 
 import io.fabric8.api.RuntimeProperties;
 import io.fabric8.zookeeper.ZkPath;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -45,6 +47,8 @@ import java.util.Properties;
 
 public final class ZooKeeperUtils {
 
+    public static Logger LOG = LoggerFactory.getLogger(ZooKeeperUtils.class);
+
     private static final Charset UTF_8 = Charset.forName("UTF-8");
     private static final String CONTAINERS_NODE = "/fabric/authentication/containers";
 
@@ -53,6 +57,7 @@ public final class ZooKeeperUtils {
     }
 
     public static void copy(CuratorFramework source, CuratorFramework dest, String path) throws Exception {
+        LOG.info("GG: recursive copy of {}", path);
         for (String child : source.getChildren().forPath(path)) {
             child = ZKPaths.makePath(path, child);
             Stat stat = source.checkExists().forPath(child);

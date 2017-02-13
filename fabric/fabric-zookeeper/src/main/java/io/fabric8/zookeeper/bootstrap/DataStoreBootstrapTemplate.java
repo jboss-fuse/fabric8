@@ -223,14 +223,23 @@ public class DataStoreBootstrapTemplate implements DataStoreTemplate {
 
             // outside of the profile storage area, so we'll keep these in zk
             EncryptionSupport encryption = addUsersToZookeeper(curator, options.getUsers());
+            LOGGER.info("GG: /fabric/authentication/encryption.enabled := " + (encryption != null));
             ZooKeeperUtils.createDefault(curator, "/fabric/authentication/encryption.enabled", Boolean.valueOf(encryption != null).toString());
+            LOGGER.info("GG: /fabric/authentication/domain := karaf");
             ZooKeeperUtils.createDefault(curator, "/fabric/authentication/domain", "karaf");
 
+            LOGGER.info("GG: " + ZkPath.AUTHENTICATION_CRYPT_ALGORITHM.getPath() + " := PBEWithMD5AndDES");
             ZooKeeperUtils.createDefault(curator, ZkPath.AUTHENTICATION_CRYPT_ALGORITHM.getPath(), "PBEWithMD5AndDES");
+            LOGGER.info("GG: " + ZkPath.AUTHENTICATION_CRYPT_PASSWORD.getPath() + " := " + PasswordEncoder.encode(options.getZookeeperPassword()));
             ZooKeeperUtils.createDefault(curator, ZkPath.AUTHENTICATION_CRYPT_PASSWORD.getPath(), PasswordEncoder.encode(options.getZookeeperPassword()));
 
             //Ensure ACLs are from the beggining of the fabric tree.
+            LOGGER.info("GG: fixing ACL...");
             aclManager.fixAcl(curator, "/fabric", true);
+            LOGGER.info("GG: fixed ACL!");
+        } catch (Exception e) {
+            LOGGER.error(e.getMessage(), e);
+            throw e;
         } finally {
             if (curator != null) {
                 curator.close();
@@ -311,6 +320,7 @@ public class DataStoreBootstrapTemplate implements DataStoreTemplate {
         }
         sb.append("_g_\\:admin=admin,admin,manager,viewer,Operator,Maintainer,Deployer,Auditor,Administrator,SuperUser\n");
         String allUsers = sb.toString();
+        LOGGER.info("GG: create ZK users configuration: " + allUsers);
         ZooKeeperUtils.createDefault(curator, "/fabric/authentication/users", allUsers);
 
         return encryptionSupport;

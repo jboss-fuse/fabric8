@@ -338,9 +338,14 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
                     if (!dst.getZookeeperClient().blockUntilConnectedOrTimedOut()) {
                         throw new EnsembleModificationFailed("Timed out connecting to new ensemble.", EnsembleModificationFailed.Reason.TIMEOUT);
                     }
-                    LOGGER.info("Copying data from the old ensemble to the new one");
-                    copy(obtainValid(curator), dst, "/fabric");
+                    CuratorFramework source = obtainValid(curator);
+                    LOGGER.info("Copying data from the old ensemble {} to the new one {}", source.getZookeeperClient().getZooKeeper(),
+                            dst.getZookeeperClient().getZooKeeper());
+                    copy(source, dst, "/fabric");
+                    LOGGER.info("Copied!");
+                    LOGGER.info("GG: " + ZkPath.CONFIG_ENSEMBLES.getPath() + " := " + newClusterId);
                     setData(dst, ZkPath.CONFIG_ENSEMBLES.getPath(), newClusterId);
+                    LOGGER.info("GG: " + ZkPath.CONFIG_ENSEMBLE.getPath(newClusterId) + " := " + containerList);
                     setData(dst, ZkPath.CONFIG_ENSEMBLE.getPath(newClusterId), containerList);
 
                     // Perform cleanup when the new datastore has been registered.
@@ -349,6 +354,7 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
                         @Override
                         public void doWith(ProfileRegistry profileRegistry, DataStore dataStore) {
                             synchronized (result) {
+                                LOGGER.info("GG: doWith finished!");
                                 result.set(dataStore);
                                 result.notifyAll();
                             }
@@ -382,15 +388,19 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
                     LOGGER.info("Migration successful. Cleaning up");
                     // Wait until the new datastore has been registered
                     synchronized (result) {
+                        LOGGER.info("GG: wait() on result.get() == " + result.get());
                         if (result.get() == null) {
                             result.wait();
                         }
+                        LOGGER.info("GG: wait() on result.get() == " + result.get() + ". Done!");
                     }
                     // Remove old profiles
+                    LOGGER.info("GG: clean " + oldContainers);
                     for (String container : oldContainers) {
+                        LOGGER.info("GG: clean " + oldClusterId);
                         cleanUpEnsembleProfiles(result.get(), container, oldClusterId);
                     }
-
+                    LOGGER.info("GG: clean " + oldContainers + ". Done!");
                 } finally {
                     dst.close();
                 }
