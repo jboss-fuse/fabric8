@@ -99,8 +99,12 @@ public final class FabricMBeanRegistrationListener extends AbstractComponent imp
     void deactivate() throws InterruptedException {
         deactivateComponent();
         unregisterMBeanServer();
-        shutdownTracker.stop();
+        // here our ConnectionStateListener is already unbound from MCF, so we won't have a chance to be notified
+        // about Curator connection loss
+        // calling stop() in same thread may hold FelixShutdown (or SCR component actor thread)
+        // let's first shutdown executor (hopefully interrupting hanging ZK connections) and then stop shutdownTracker
         executor.shutdownNow();
+        shutdownTracker.stop();
         executor.awaitTermination(5, TimeUnit.MINUTES);
     }
 
