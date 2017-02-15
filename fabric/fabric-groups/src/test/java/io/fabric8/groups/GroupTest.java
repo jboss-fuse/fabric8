@@ -269,7 +269,7 @@ public class GroupTest {
         String groupNode =  "/singletons/test" + System.currentTimeMillis();
         curator.create().creatingParentsIfNeeded().forPath(groupNode);
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 100; i++) {
             Group<NodeState> group = new ZooKeeperGroup<NodeState>(curator, groupNode, NodeState.class);
             group.add(listener);
             group.update(new NodeState("foo"));
