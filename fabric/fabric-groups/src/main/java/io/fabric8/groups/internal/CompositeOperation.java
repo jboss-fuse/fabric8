@@ -36,6 +36,7 @@ public class CompositeOperation implements Operation {
     public void invoke() throws Exception {
         for (Operation op : operations) {
             try {
+                LOG.info("GG: " + this + ": invoking embedded " + op);
                 op.invoke();
                 if (Thread.currentThread().isInterrupted()) {
                     LOG.info("Interrupting composite operation");
