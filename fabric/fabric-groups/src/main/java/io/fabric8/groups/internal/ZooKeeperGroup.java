@@ -548,6 +548,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
                 connected.set(false);
                 clear();
                 EventOperation op = new EventOperation(this, GroupListener.GroupEvent.DISCONNECTED);
+                LOG.info("GG: " + this + ": immediately invoking " + op);
                 op.invoke();
                 break;
             }
