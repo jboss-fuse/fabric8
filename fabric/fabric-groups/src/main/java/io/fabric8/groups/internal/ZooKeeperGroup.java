@@ -87,6 +87,11 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     private final String uuid = UUID.randomUUID().toString();
 
     private volatile String id;
+    // to help detecting whether ZK Group update failed
+    private final AtomicBoolean creating = new AtomicBoolean();
+    // flag indicating that ephemeral node could be created in registry, but exact sequence ID is uknown
+    // this status means we may have (temporary - for the period of ZK session) duplication of nodes
+    private final AtomicBoolean unstable = new AtomicBoolean();
     private volatile T state;
 
     private final Watcher childrenWatcher = new Watcher() {
@@ -251,12 +256,16 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
                 try {
                     if (isConnected()) {
                         client.delete().guaranteed().forPath(id);
+                        unstable.set(false);
                     }
                 } catch (KeeperException.NoNodeException e) {
                     // Ignore
                 } finally {
                     id = null;
                 }
+            } else if (creating.get()) {
+                LOG.warn("Ephemeral node could be created in the registry, but ZooKeeper group didn't record its id");
+                unstable.set(true);
             }
         } else if (isConnected()) {
             // We could have created the sequence, but then have crashed and our entry is already registered.
@@ -277,9 +286,12 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
 
     private String createEphemeralNode(T state) throws Exception {
         state.uuid = uuid;
+        creating.set(true);
         String pathId = client.create().creatingParentsIfNeeded()
             .withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
             .forPath(path + "/0", encode(state));
+        creating.set(false);
+        unstable.set(false);
         if (LOG.isTraceEnabled()) {
             // state.toString() invokes Jackson ObjectMapper serialization
             LOG.trace(this + ", state:" + state + ", new ephemeralSequential path:" + pathId);
@@ -631,4 +643,13 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     void setId(String id) {
         this.id = id;
     }
+
+    /**
+     * Returns an indication that the sequential, ephemeral node may be registered more than once for this group
+     * @return
+     */
+    public boolean isUnstable() {
+        return unstable.get();
+    }
+
 }
