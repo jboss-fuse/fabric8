@@ -472,7 +472,8 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
             case LOST: {
                 connected.set(false);
                 clear();
-                offerOperation(new EventOperation(this, GroupListener.GroupEvent.DISCONNECTED));
+                EventOperation op = new EventOperation(this, GroupListener.GroupEvent.DISCONNECTED);
+                op.invoke();
                 break;
             }
 
