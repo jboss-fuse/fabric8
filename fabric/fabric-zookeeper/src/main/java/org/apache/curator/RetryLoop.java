@@ -115,6 +115,7 @@ public class RetryLoop
             }
             catch ( Exception e )
             {
+                LOG.info("GG: " + e.getMessage(), e);
                 ThreadUtils.checkInterrupted(e);
                 retryLoop.takeException(e);
             }
@@ -184,7 +185,7 @@ public class RetryLoop
      */
     public void         takeException(Exception exception) throws Exception
     {
-        LOG.info("GG: retry-loop, taking exception " + exception.getClass());
+        LOG.info("GG: retry-loop, taking exception " + exception.getClass(), exception);
         boolean     rethrow = true;
         if ( isRetryException(exception) )
         {

@@ -201,17 +201,24 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     public void close() throws IOException {
         LOG.info("GG: " + this + ": close, connected:" + connected);
         if (started.compareAndSet(true, false)) {
+            LOG.info("GG: removing connection state listener");
             client.getConnectionStateListenable().removeListener(connectionStateListener);
+            LOG.info("GG: shutting down executor");
             executorService.shutdownNow();
             try {
+                LOG.info("GG: shutting down executor - awaiting termination");
                 executorService.awaitTermination(5, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
                 throw (IOException) new InterruptedIOException().initCause(e);
             }
             try {
+                LOG.info("GG: doUpdate(null)");
                 doUpdate(null);
                 if (isConnected()) {
+                    LOG.info("GG: calling listeners with DISCONNECTED in close()");
                     callListeners(GroupListener.GroupEvent.DISCONNECTED);
+                } else {
+                    LOG.info("GG: NOT calling listeners with DISCONNECTED in close()");
                 }
             } catch (Exception e) {
                 handleException(e);
@@ -269,12 +276,16 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
             if (id != null) {
                 try {
                     if (isConnected()) {
+                        LOG.info("GG: " + this + ": deleting " + id);
                         client.delete().guaranteed().forPath(id);
                         unstable.set(false);
+                    } else {
+                        LOG.info("GG: " + this + ": NOT deleting " + id);
                     }
                 } catch (KeeperException.NoNodeException e) {
                     // Ignore
                 } finally {
+                    LOG.info("GG: " + this + ": id:=null");
                     id = null;
                 }
             } else if (creating.get()) {
@@ -287,26 +298,33 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
             // but the old ones should be deleted by the server when session is invalidated.
             // See: https://issues.jboss.org/browse/FABRIC-1238
             if (id == null) {
+                LOG.info("GG: " + this + ": creating ephemeral node");
                 id = createEphemeralNode(state);
+                LOG.info("GG: " + this + ": id:=" + id);
             } else {
                 try {
+                    LOG.info("GG: " + this + ": updating ephemeral node");
                     updateEphemeralNode(state);
                 } catch (KeeperException.NoNodeException e) {
                     id = createEphemeralNode(state);
+                    LOG.info("GG: " + this + ": id:=" + id);
                 }
             }
+        } else {
+            LOG.info("GG: " + this + ": neither null state nor connected");
         }
     }
 
     private String createEphemeralNode(T state) throws Exception {
         state.uuid = uuid;
         creating.set(true);
+        LOG.info("GG: createEphemeralNode in ZK group " + this + " for path " + path + "/0");
         String pathId = client.create().creatingParentsIfNeeded()
             .withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
             .forPath(path + "/0", encode(state));
-        LOG.info("GG: createEphemeralNode in ZK group " + this + " for path " + path + "/0");
         creating.set(false);
         unstable.set(false);
+        LOG.info("GG: createEphemeralNode in ZK group " + this + " for path " + path + "/0: " + pathId);
         if (LOG.isTraceEnabled()) {
             // state.toString() invokes Jackson ObjectMapper serialization
             LOG.trace(this + ", state:" + state + ", new ephemeralSequential path:" + pathId);
@@ -318,7 +336,9 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
 
     private void updateEphemeralNode(T state) throws Exception {
         state.uuid = uuid;
+        LOG.info("GG: updateEphemeralNode in ZK group " + this + " for path " + id);
         client.setData().forPath(id, encode(state));
+        LOG.info("GG: updateEphemeralNode in ZK group " + this + " for path " + id + " - done");
         state.uuid = null;
     }
 
@@ -485,7 +505,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     }
 
     void callListeners(final GroupListener.GroupEvent event) {
-        LOG.info("GG: " + this + ": call listeners");
+        LOG.info("GG: " + this + ": call listeners for event " + event);
         listeners.forEach
                 (
                         new Function<GroupListener<T>, Void>() {

@@ -25,6 +25,8 @@ import org.apache.zookeeper.server.ZooKeeperServer;
 import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
 import io.fabric8.groups.internal.ZooKeeperGroup;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.net.ServerSocket;
@@ -39,6 +41,8 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 public class GroupTest {
+
+    public static Logger LOG = LoggerFactory.getLogger(GroupTest.class);
 
     private GroupListener listener = new GroupListener<NodeState>() {
         @Override
@@ -271,13 +275,19 @@ public class GroupTest {
         String groupNode =  "/singletons/test" + System.currentTimeMillis();
         curator.create().creatingParentsIfNeeded().forPath(groupNode);
 
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 10000; i++) {
+            LOG.info(String.format("GGx: ZKG CREATE %04d", i+1));
             ZooKeeperGroup<NodeState> group = new ZooKeeperGroup<NodeState>("", curator, groupNode, NodeState.class);
             group.add(listener);
+            LOG.info("GGx: UPDATE");
             group.update(new NodeState("foo"));
+            LOG.info("GGx: START");
             group.start();
+            LOG.info("GGx: CLOSE");
             group.close();
+            LOG.info("GGx: CHECKING CHILDREN");
             List<String> entries = curator.getChildren().forPath(groupNode);
+            LOG.info("GGx: ENTRIES: " + entries);
             assertTrue(entries.isEmpty() || group.isUnstable());
             if (group.isUnstable()) {
                 // let's wait for session timeout

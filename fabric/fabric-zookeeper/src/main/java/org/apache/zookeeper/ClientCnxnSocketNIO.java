@@ -100,8 +100,10 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
         }
         if (sockKey.isWritable()) {
             synchronized(outgoingQueue) {
+                LOG.info("GG: findSendablePacket()");
                 Packet p = findSendablePacket(outgoingQueue,
                         cnxn.sendThread.clientTunneledAuthenticationInProgress());
+                LOG.info("GG: findSendablePacket(): " + p);
 
                 if (p != null) {
                     updateLastSend();
@@ -118,7 +120,9 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
                     sock.write(p.bb);
                     if (!p.bb.hasRemaining()) {
                         sentCount++;
+                        LOG.info("GG: removeFirstOccurrence(" + p + ")");
                         outgoingQueue.removeFirstOccurrence(p);
+                        LOG.info("GG: removeFirstOccurrence(" + p + ") done");
                         if (p.requestHeader != null
                                 && p.requestHeader.getType() != OpCode.ping
                                 && p.requestHeader.getType() != OpCode.auth) {
