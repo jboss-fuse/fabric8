@@ -16,12 +16,14 @@
 package io.fabric8.patch.management;
 
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import io.fabric8.patch.management.impl.GitPatchManagementService;
 import io.fabric8.patch.management.impl.GitPatchManagementServiceImpl;
@@ -855,6 +857,95 @@ public class GitPatchManagementServiceIT extends PatchTestSupport {
     }
 
     @Test
+    public void installNonRollupPatchWithUberJars() throws IOException, GitAPIException {
+        freshKarafStandaloneDistro();
+        GitPatchRepository repository = patchManagement("baseline4");
+        PatchManagement management = (PatchManagement) pm;
+
+        Git fork = repository.cloneRepository(repository.findOrCreateMainGitRepository(), true);
+        ((GitPatchManagementServiceImpl)pm).applyUserChanges(fork); // no changes, but commit
+        repository.prepareCommit(fork, "artificial change, not treated as user change (could be a patch)").call();
+        repository.push(fork);
+        repository.closeRepository(fork, true);
+
+        preparePatchZip("src/test/resources/content/patch8", "target/karaf/patches/source/patch-8.zip", false);
+        List<PatchData> patches = management.fetchPatches(new File("target/karaf/patches/source/patch-8.zip").toURI().toURL());
+        Patch patch = management.trackPatch(patches.get(0));
+
+        String tx = management.beginInstallation(PatchKind.NON_ROLLUP);
+        /*
+         * bundle.0 = mvn:io.fabric8/pax-romana/1.0.1
+         * bundle.1 = mvn:io.fabric8/pax-hellenica/1.0.1/jar
+         * # for these two, bundle.getLocation() will return non-matching location
+         * bundle.2 = mvn:io.fabric8/pax-bohemia/1.0.1
+         * bundle.3 = mvn:io.fabric8/pax-pomerania/1.0.1/jar
+         * # for these two, bundle.getLocation() will return matching location
+         * bundle.4 = mvn:io.fabric8/pax-avaria/1.0.1/jar/uber
+         * bundle.5 = mvn:io.fabric8/pax-mazovia/1.0.1//uber
+         * # for these two, bundle.getLocation() will return non-matching location
+         * bundle.6 = mvn:io.fabric8/pax-novgorod/1.0.1/jar/uber
+         * bundle.7 = mvn:io.fabric8/pax-castile/1.0.1//uber
+         */
+        LinkedList<BundleUpdate> bundleUpdatesInThisPatch = new LinkedList<>();
+        bundleUpdatesInThisPatch.add(new BundleUpdate("pax-romana", "1.0.1", "mvn:io.fabric8/pax-romana/1.0.1", "1.0.0", "mvn:io.fabric8/pax-romana/1.0.0"));
+        bundleUpdatesInThisPatch.add(new BundleUpdate("pax-hellenica", "1.0.1", "mvn:io.fabric8/pax-hellenica/1.0.1/jar", "1.0.0", "mvn:io.fabric8/pax-hellenica/1.0.0/jar"));
+        bundleUpdatesInThisPatch.add(new BundleUpdate("pax-bohemia", "1.0.1", "mvn:io.fabric8/pax-bohemia/1.0.1", "1.0.0", "mvn:io.fabric8/pax-bohemia/1.0.0/jar"));
+        bundleUpdatesInThisPatch.add(new BundleUpdate("pax-pomerania", "1.0.1", "mvn:io.fabric8/pax-pomerania/1.0.1/jar", "1.0.0", "mvn:io.fabric8/pax-pomerania/1.0.0"));
+        bundleUpdatesInThisPatch.add(new BundleUpdate("pax-avaria", "1.0.1", "mvn:io.fabric8/pax-avaria/1.0.1/jar/uber", "1.0.0", "mvn:io.fabric8/pax-avaria/1.0.0/jar/uber"));
+        bundleUpdatesInThisPatch.add(new BundleUpdate("pax-mazovia", "1.0.1", "mvn:io.fabric8/pax-mazovia/1.0.1//uber", "1.0.0", "mvn:io.fabric8/pax-mazovia/1.0.0//uber"));
+        bundleUpdatesInThisPatch.add(new BundleUpdate("pax-novgorod", "1.0.1", "mvn:io.fabric8/pax-novgorod/1.0.1/jar/uber", "1.0.0", "mvn:io.fabric8/pax-novgorod/1.0.0//uber"));
+        bundleUpdatesInThisPatch.add(new BundleUpdate("pax-castile", "1.0.1", "mvn:io.fabric8/pax-castile/1.0.1//uber", "1.0.0", "mvn:io.fabric8/pax-castile/1.0.0/jar/uber"));
+        management.install(tx, patch, bundleUpdatesInThisPatch);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Git> transactions = (Map<String, Git>) getField(management, "pendingTransactions");
+        assertThat(transactions.size(), equalTo(1));
+        fork = transactions.values().iterator().next();
+
+        ObjectId since = fork.getRepository().resolve("baseline-6.2.0^{commit}");
+        ObjectId to = fork.getRepository().resolve(tx);
+        Iterable<RevCommit> commits = fork.log().addRange(since, to).call();
+        List<String> commitList = Arrays.asList(
+                "[PATCH] Installing patch my-patch-8",
+                "artificial change, not treated as user change (could be a patch)",
+                "[PATCH] Apply user changes");
+
+        int n = 0;
+        for (RevCommit c : commits) {
+            String msg = c.getShortMessage();
+            assertThat(msg, equalTo(commitList.get(n++)));
+        }
+
+        assertThat(n, equalTo(commitList.size()));
+
+        assertThat(fork.tagList().call().size(), equalTo(3));
+        assertTrue(repository.containsTag(fork, "patch-management"));
+        assertTrue(repository.containsTag(fork, "baseline-6.2.0"));
+        assertTrue(repository.containsTag(fork, "patch-my-patch-8"));
+
+        Properties startup = new Properties();
+        try (FileReader reader = new FileReader(new File(fork.getRepository().getWorkTree(), "etc/startup.properties"))) {
+            startup.load(reader);
+            assertTrue(startup.containsKey("io/fabric8/pax-romana/1.0.1/pax-romana-1.0.1.jar"));
+            assertTrue(startup.containsKey("io/fabric8/pax-hellenica/1.0.1/pax-hellenica-1.0.1.jar"));
+            assertTrue(startup.containsKey("io/fabric8/pax-bohemia/1.0.1/pax-bohemia-1.0.1.jar"));
+            assertTrue(startup.containsKey("io/fabric8/pax-pomerania/1.0.1/pax-pomerania-1.0.1.jar"));
+            assertTrue(startup.containsKey("io/fabric8/pax-avaria/1.0.1/pax-avaria-1.0.1-uber.jar"));
+            assertTrue(startup.containsKey("io/fabric8/pax-mazovia/1.0.1/pax-mazovia-1.0.1-uber.jar"));
+            assertTrue(startup.containsKey("io/fabric8/pax-novgorod/1.0.1/pax-novgorod-1.0.1-uber.jar"));
+            assertTrue(startup.containsKey("io/fabric8/pax-castile/1.0.1/pax-castile-1.0.1-uber.jar"));
+            assertFalse(startup.containsKey("io/fabric8/pax-romana/1.0.0/pax-romana-1.0.0.jar"));
+            assertFalse(startup.containsKey("io/fabric8/pax-hellenica/1.0.0/pax-hellenica-1.0.0.jar"));
+            assertFalse(startup.containsKey("io/fabric8/pax-bohemia/1.0.0/pax-bohemia-1.0.0.jar"));
+            assertFalse(startup.containsKey("io/fabric8/pax-pomerania/1.0.0/pax-pomerania-1.0.0.jar"));
+            assertFalse(startup.containsKey("io/fabric8/pax-avaria/1.0.0/pax-avaria-1.0.0-uber.jar"));
+            assertFalse(startup.containsKey("io/fabric8/pax-mazovia/1.0.0/pax-mazovia-1.0.0-uber.jar"));
+            assertFalse(startup.containsKey("io/fabric8/pax-novgorod/1.0.0/pax-novgorod-1.0.0-uber.jar"));
+            assertFalse(startup.containsKey("io/fabric8/pax-castile/1.0.0/pax-castile-1.0.0-uber.jar"));
+        }
+    }
+
+    @Test
     public void rollbackNonRollupPatchInstallation() throws IOException, GitAPIException {
         freshKarafStandaloneDistro();
         GitPatchRepository repository = patchManagement();
@@ -993,7 +1084,17 @@ public class GitPatchManagementServiceIT extends PatchTestSupport {
      * @throws IOException
      */
     private GitPatchRepository patchManagement() throws IOException, GitAPIException {
-        preparePatchZip("src/test/resources/baselines/baseline1", "target/karaf/system/org/jboss/fuse/jboss-fuse-full/6.2.0/jboss-fuse-full-6.2.0-baseline.zip", true);
+        return patchManagement("baseline1");
+    }
+
+    /**
+     * Install patch management inside fresh karaf distro. No validation is performed.
+     * @param baseline
+     * @return
+     * @throws IOException
+     */
+    private GitPatchRepository patchManagement(String baseline) throws IOException, GitAPIException {
+        preparePatchZip("src/test/resources/baselines/" + baseline, "target/karaf/system/org/jboss/fuse/jboss-fuse-full/6.2.0/jboss-fuse-full-6.2.0-baseline.zip", true);
         pm = new GitPatchManagementServiceImpl(bundleContext);
         pm.start();
         pm.ensurePatchManagementInitialized();
