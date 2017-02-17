@@ -1,0 +1,30 @@
+#
+#  Copyright 2005-2017 Red Hat, Inc.
+#
+#  Red Hat licenses this file to you under the Apache License, version
+#  2.0 (the "License"); you may not use this file except in compliance
+#  with the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+#  implied.  See the License for the specific language governing
+#  permissions and limitations under the License.
+#
+
+id = my-patch-8
+# for these two, bundle.getLocation() will return matching location
+bundle.0 = mvn:io.fabric8/pax-romana/1.0.1
+bundle.1 = mvn:io.fabric8/pax-hellenica/1.0.1/jar
+# for these two, bundle.getLocation() will return non-matching location
+bundle.2 = mvn:io.fabric8/pax-bohemia/1.0.1
+bundle.3 = mvn:io.fabric8/pax-pomerania/1.0.1/jar
+# for these two, bundle.getLocation() will return matching location
+bundle.4 = mvn:io.fabric8/pax-avaria/1.0.1/jar/uber
+bundle.5 = mvn:io.fabric8/pax-mazovia/1.0.1//uber
+# for these two, bundle.getLocation() will return non-matching location
+bundle.6 = mvn:io.fabric8/pax-novgorod/1.0.1/jar/uber
+bundle.7 = mvn:io.fabric8/pax-castile/1.0.1//uber
+bundle.count = 8
