@@ -25,6 +25,7 @@ import static io.fabric8.zookeeper.curator.Constants.ZOOKEEPER_PASSWORD;
 import static io.fabric8.zookeeper.curator.Constants.ZOOKEEPER_URL;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -134,6 +135,7 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
                 } catch (IOException e) {
                     // Should not happen
                 }
+                CuratorFrameworkLocator.unbindCurator(curator);
                 curator = null;
                 if (!closed.get()) {
                     curator = buildCuratorFramework(configuration);
@@ -145,7 +147,6 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
                         } catch (Exception e){
                             LOGGER.warn("Unable to start ZookeeperClient", e);
                         }
-                    CuratorFrameworkLocator.bindCurator(curator);
                 }
             } catch (Throwable th) {
                 LOGGER.error("Cannot start curator framework", th);
@@ -157,6 +158,7 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
             if (newState == ConnectionState.CONNECTED || newState == ConnectionState.READ_ONLY || newState == ConnectionState.RECONNECTED) {
                 retryCount.set(0);
                 if (registration == null) {
+                    CuratorFrameworkLocator.bindCurator(curator);
                     // this is where the magic happens...
                     registration = bundleContext.registerService(CuratorFramework.class, curator, null);
                     // 12 (at least) seconds passed, >100 SCR components were activated
@@ -177,7 +179,7 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
 
         }
 
-        public void close() {
+        public void close(State next) {
             closed.set(true);
             CuratorFramework curator = this.curator;
             if (curator != null) {
@@ -188,6 +190,9 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
             }
             try {
                 executor.submit(this).get();
+                if (next != null) {
+                    executor.submit(next);
+                }
             } catch (Exception e) {
                 LOGGER.warn("Error while closing curator", e);
             }
@@ -222,6 +227,7 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
     void activate(BundleContext bundleContext, Map<String, ?> configuration) throws Exception {
         this.bundleContext = bundleContext;
         CuratorConfig config = new CuratorConfig();
+        Map<String, ?> adjustedConfiguration = adjust(configuration);
         configurer.configure(configuration, config);
 
         if (!Strings.isNullOrEmpty(config.getZookeeperUrl())) {
@@ -236,6 +242,7 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
     @Modified
     void modified(Map<String, ?> configuration) throws Exception {
         CuratorConfig config = new CuratorConfig();
+        Map<String, ?> adjustedConfiguration = adjust(configuration);
         configurer.configure(configuration, this);
         configurer.configure(configuration, config);
 
@@ -245,12 +252,13 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
             if (!config.equals(oldConfiguration)) {
                 State next = new State(config);
                 if (state.compareAndSet(prev, next)) {
-                    executor.submit(next);
                     if (prev != null) {
-                        prev.close();
+                        prev.close(next);
+                    } else {
+                        executor.submit(next);
                     }
                 } else {
-                    next.close();
+                    next.close(null);
                 }
             }
         }
@@ -262,10 +270,25 @@ public final class ManagedCuratorFramework extends AbstractComponent implements 
         State prev = state.getAndSet(null);
         if (prev != null) {
             CuratorFrameworkLocator.unbindCurator(prev.curator);
-            prev.close();
+            prev.close(null);
         }
         executor.shutdown();
         executor.awaitTermination(30, TimeUnit.SECONDS);
+    }
+
+    /**
+     *
+     * @param configuration
+     * @return
+     */
+    protected Map<String,?> adjust(Map<String, ?> configuration) {
+        HashMap<String, Object> adjusted = new HashMap<>(configuration);
+        if (adjusted.containsKey("zookeeper.connection.timeout")) {
+            if (!adjusted.containsKey(CONNECTION_TIMEOUT)) {
+                adjusted.put(CONNECTION_TIMEOUT, adjusted.get("zookeeper.connection.timeout"));
+            }
+        }
+        return adjusted;
     }
 
     /**

@@ -18,7 +18,7 @@ package io.fabric8.dosgi.impl;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
-import org.apache.curator.framework.recipes.cache.TreeCache;
+import org.apache.curator.framework.recipes.cache.TreeCacheExtended;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import io.fabric8.dosgi.api.Dispatched;
@@ -95,7 +95,7 @@ public class Manager implements ServiceListener, ListenerHook, EventHook, FindHo
     // The zookeeper client
     private final CuratorFramework curator;
     // The tracked zookeeper tree
-    private TreeCache tree;
+    private TreeCacheExtended tree;
     // Remote endpoints
     private final CapabilitySet<EndpointDescription> remoteEndpoints;
 
@@ -156,7 +156,7 @@ public class Manager implements ServiceListener, ListenerHook, EventHook, FindHo
         } catch (KeeperException.NodeExistsException e) {
             // The node already exists, that's fine
         }
-        this.tree = new TreeCache(curator,  DOSGI_REGISTRY, true);
+        this.tree = new TreeCacheExtended(curator,  DOSGI_REGISTRY, true);
         this.tree.getListenable().addListener(this);
         this.tree.start();
         // UUID

@@ -19,11 +19,11 @@ import com.google.common.base.Preconditions;
 
 class TreeRefreshOperation implements Operation
 {
-    private final TreeCache cache;
+    private final TreeCacheExtended cache;
     private final String path;
-    private final TreeCache.RefreshMode mode;
+    private final TreeCacheExtended.RefreshMode mode;
 
-    TreeRefreshOperation(TreeCache cache, String path, TreeCache.RefreshMode mode)
+    TreeRefreshOperation(TreeCacheExtended cache, String path, TreeCacheExtended.RefreshMode mode)
     {
         this.cache = Preconditions.checkNotNull(cache,"cache");
         this.path = Preconditions.checkNotNull(path,"path");

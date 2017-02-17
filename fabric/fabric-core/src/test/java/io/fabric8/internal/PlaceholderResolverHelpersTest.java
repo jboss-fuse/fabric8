@@ -15,10 +15,23 @@
  */
 package io.fabric8.internal;
 
+import io.fabric8.service.ComponentConfigurer;
+import io.fabric8.zookeeper.curator.Constants;
+import io.fabric8.zookeeper.curator.CuratorConfig;
+import io.fabric8.zookeeper.curator.ManagedCuratorFramework;
 import org.junit.Assert;
 import org.junit.Test;
+import org.osgi.framework.BundleContext;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class PlaceholderResolverHelpersTest {
 
@@ -47,4 +60,75 @@ public class PlaceholderResolverHelpersTest {
         schemes = PlaceholderResolverHelpers.getSchemeForValue(key);
         Assert.assertEquals(schemes.size(), 0);
     }
+
+    @Test
+    public void curatorConfiguration() throws Exception {
+        ComponentConfigurer configurer = new ComponentConfigurer();
+
+        CuratorConfig cc = new CuratorConfig();
+        BundleContext context = mock(BundleContext.class);
+        configurer.activate(context);
+        Map<String, String> configuration = new HashMap<>();
+        configurer.configure(configuration, cc);
+
+        // empty config
+        assertNull(cc.getZookeeperUrl());
+        assertNull(cc.getZookeeperPassword());
+        assertThat(cc.getZookeeperConnectionTimeOut(), equalTo(Constants.DEFAULT_CONNECTION_TIMEOUT_MS));
+        assertThat(cc.getZookeeperSessionTimeout(), equalTo(Constants.DEFAULT_SESSION_TIMEOUT_MS));
+        assertThat(cc.getZookeeperRetryInterval(), equalTo(Constants.DEFAULT_RETRY_INTERVAL));
+        assertThat(cc.getZookeeperRetryMax(), equalTo(Constants.MAX_RETRIES_LIMIT));
+
+        // default config from SCR component
+        cc = new CuratorConfig();
+        context = mock(BundleContext.class);
+        when(context.getProperty("zookeeper.url")).thenReturn("url");
+        when(context.getProperty("zookeeper.password")).thenReturn("password");
+        when(context.getProperty("zookeeper.retry.max")).thenReturn("42");
+        when(context.getProperty("zookeeper.retry.interval")).thenReturn("43");
+        when(context.getProperty("zookeeper.connection.timeout")).thenReturn("44");
+        when(context.getProperty("zookeeper.session.timeout")).thenReturn("45");
+        configurer.activate(context);
+        configuration.clear();
+        configuration.put(Constants.ZOOKEEPER_URL, "${zookeeper.url}");
+        configuration.put(Constants.ZOOKEEPER_PASSWORD, "${zookeeper.password}");
+        configuration.put(Constants.RETRY_POLICY_MAX_RETRIES, "${zookeeper.retry.max}");
+        configuration.put(Constants.RETRY_POLICY_INTERVAL_MS, "${zookeeper.retry.interval}");
+        configuration.put(Constants.CONNECTION_TIMEOUT, "${zookeeper.connection.timeout}");
+        configuration.put(Constants.SESSION_TIMEOUT, "${zookeeper.session.timeout}");
+        configurer.configure(configuration, cc);
+
+        assertThat(cc.getZookeeperUrl(), equalTo("url"));
+        assertThat(cc.getZookeeperPassword(), equalTo("password"));
+        assertThat(cc.getZookeeperConnectionTimeOut(), equalTo(44));
+        assertThat(cc.getZookeeperSessionTimeout(), equalTo(45));
+        assertThat(cc.getZookeeperRetryInterval(), equalTo(43));
+        assertThat(cc.getZookeeperRetryMax(), equalTo(42));
+
+        // mixed placeholder and value configuration
+        cc = new CuratorConfig();
+        context = mock(BundleContext.class);
+        when(context.getProperty("zookeeper.password")).thenReturn("password");
+        when(context.getProperty("zookeeper.retry.max")).thenReturn("42");
+        when(context.getProperty("zookeeper.retry.interval")).thenReturn("43");
+        when(context.getProperty("zookeeper.connection.timeout")).thenReturn("44");
+        when(context.getProperty("zookeeper.session.timeout")).thenReturn("45");
+        configurer.activate(context);
+        configuration.clear();
+        configuration.put(Constants.ZOOKEEPER_URL, "url2");
+        configuration.put(Constants.ZOOKEEPER_PASSWORD, "${zookeeper.password}");
+        configuration.put(Constants.RETRY_POLICY_MAX_RETRIES, "${zookeeper.retry.max}");
+        configuration.put(Constants.RETRY_POLICY_INTERVAL_MS, "${zookeeper.retry.interval}");
+        configuration.put(Constants.CONNECTION_TIMEOUT, "444");
+        configuration.put(Constants.SESSION_TIMEOUT, "${zookeeper.session.timeout}");
+        configurer.configure(configuration, cc);
+
+        assertThat(cc.getZookeeperUrl(), equalTo("url2"));
+        assertThat(cc.getZookeeperPassword(), equalTo("password"));
+        assertThat(cc.getZookeeperConnectionTimeOut(), equalTo(444));
+        assertThat(cc.getZookeeperSessionTimeout(), equalTo(45));
+        assertThat(cc.getZookeeperRetryInterval(), equalTo(43));
+        assertThat(cc.getZookeeperRetryMax(), equalTo(42));
+    }
+
 }

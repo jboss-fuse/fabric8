@@ -33,7 +33,7 @@ import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent.Type;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
-import org.apache.curator.framework.recipes.cache.TreeCache;
+import org.apache.curator.framework.recipes.cache.TreeCacheExtended;
 import io.fabric8.api.gravia.IllegalStateAssertion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,7 +64,7 @@ public class HttpMappingZooKeeperTreeCache {
     };
 
     @GuardedBy("active")
-    private volatile TreeCache treeCache;
+    private volatile TreeCacheExtended treeCache;
 
     public HttpMappingZooKeeperTreeCache(CuratorFramework curator, HttpMappingRule mappingRuleConfiguration, String zooKeeperPath) {
         this.curator = curator;
@@ -79,7 +79,7 @@ public class HttpMappingZooKeeperTreeCache {
     }
 
 
-    protected TreeCache getTreeCache() {
+    protected TreeCacheExtended getTreeCache() {
         IllegalStateAssertion.assertTrue(active.get(), "Gateway service cache not active");
         return treeCache;
     }
@@ -87,8 +87,8 @@ public class HttpMappingZooKeeperTreeCache {
 
     public void init() throws Exception {
         if (active.compareAndSet(false, true)) {
-            treeCache = new TreeCache(curator, zooKeeperPath, true, false, true, treeCacheExecutor);
-            treeCache.start(TreeCache.StartMode.NORMAL);
+            treeCache = new TreeCacheExtended(curator, zooKeeperPath, true, false, true, treeCacheExecutor);
+            treeCache.start(TreeCacheExtended.StartMode.NORMAL);
             treeCache.getListenable().addListener(treeListener);
             LOG.info("Started listening to ZK path " + zooKeeperPath);
         }

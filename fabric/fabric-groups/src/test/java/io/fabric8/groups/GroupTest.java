@@ -69,8 +69,8 @@ public class GroupTest {
         FileTxnSnapLog ftxn = new FileTxnSnapLog(new File(cfg.getDataLogDir()), new File(cfg.getDataDir()));
         zkServer.setTxnLogFactory(ftxn);
         zkServer.setTickTime(cfg.getTickTime());
-        zkServer.setMinSessionTimeout(cfg.getMinSessionTimeout());
-        zkServer.setMaxSessionTimeout(cfg.getMaxSessionTimeout());
+        zkServer.setMinSessionTimeout(6000);
+        zkServer.setMaxSessionTimeout(9000);
         NIOServerCnxnFactory cnxnFactory = new NIOServerCnxnFactory();
         cnxnFactory.configure(cfg.getClientPortAddress(), cfg.getMaxClientCnxns());
         cnxnFactory.startup(zkServer);
@@ -260,23 +260,32 @@ public class GroupTest {
         int port = findFreePort();
         NIOServerCnxnFactory cnxnFactory = startZooKeeper(port);
 
-        CuratorFramework curator = CuratorFrameworkFactory.builder()
+        CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder()
                 .connectString("localhost:" + port)
-                .retryPolicy(new RetryNTimes(10, 100))
-                .build();
+                .connectionTimeoutMs(6000)
+                .sessionTimeoutMs(6000)
+                .retryPolicy(new RetryNTimes(10, 100));
+        CuratorFramework curator = builder.build();
         curator.start();
         curator.getZookeeperClient().blockUntilConnectedOrTimedOut();
         String groupNode =  "/singletons/test" + System.currentTimeMillis();
         curator.create().creatingParentsIfNeeded().forPath(groupNode);
 
-        for (int i = 0; i < 10; i++) {
-            Group<NodeState> group = new ZooKeeperGroup<NodeState>(curator, groupNode, NodeState.class);
+        for (int i = 0; i < 100; i++) {
+            ZooKeeperGroup<NodeState> group = new ZooKeeperGroup<NodeState>(curator, groupNode, NodeState.class);
             group.add(listener);
             group.update(new NodeState("foo"));
             group.start();
             group.close();
             List<String> entries = curator.getChildren().forPath(groupNode);
-            assertTrue(entries.isEmpty());
+            assertTrue(entries.isEmpty() || group.isUnstable());
+            if (group.isUnstable()) {
+                // let's wait for session timeout
+                curator.close();
+                curator = builder.build();
+                curator.start();
+                curator.getZookeeperClient().blockUntilConnectedOrTimedOut();
+            }
         }
 
         curator.close();

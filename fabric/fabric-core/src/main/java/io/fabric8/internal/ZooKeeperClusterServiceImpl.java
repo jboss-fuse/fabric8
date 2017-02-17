@@ -334,7 +334,6 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
                         .connectionTimeoutMs((int) options.getMigrationTimeout()).build();
                 dst.start();
                 try {
-                    long t0 = System.currentTimeMillis();
                     LOGGER.info("Waiting for ensemble {} to become ready.", newClusterId);
                     if (!dst.getZookeeperClient().blockUntilConnectedOrTimedOut()) {
                         throw new EnsembleModificationFailed("Timed out connecting to new ensemble.", EnsembleModificationFailed.Reason.TIMEOUT);
@@ -356,6 +355,7 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
                         }
                     });
 
+                    long t0 = System.currentTimeMillis();
                     LOGGER.info("Migrating containers to the new ensemble using url {}.", connectionUrl);
                     setData(dst, ZkPath.CONFIG_ENSEMBLE_PASSWORD.getPath(), PasswordEncoder.encode(options.getZookeeperPassword()));
                     setData(dst, ZkPath.CONFIG_ENSEMBLE_URL.getPath(), connectionUrl);

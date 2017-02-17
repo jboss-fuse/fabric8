@@ -44,7 +44,7 @@
             io.fabric8.patch.management;resolution:=optional,
             io.fabric8.zookeeper,
             io.fabric8.zookeeper.utils,
-            org.apache.curator.framework,
+            org.apache.curator.framework;version="[2.6,3)",
             javax.management,
             javax.net.ssl,
             javax.security.auth,

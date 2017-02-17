@@ -37,6 +37,15 @@ public class CompositeOperation implements Operation {
         for (Operation op : operations) {
             try {
                 op.invoke();
+                if (Thread.currentThread().isInterrupted()) {
+                    LOG.info("Interrupting composite operation");
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            } catch (InterruptedException e) {
+                LOG.info("Interrupting composite operation");
+                Thread.currentThread().interrupt();
+                break;
             } catch (Exception e) {
                 LOG.error(e.getMessage(), e);
             }

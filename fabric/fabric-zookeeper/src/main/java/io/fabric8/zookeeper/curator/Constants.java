@@ -21,11 +21,11 @@ public class Constants {
     public static final String ZOOKEEPER_PASSWORD = "zookeeper.password";
     public static final String ENSEMBLE_ID = "ensemble.id";
 
-    public static final String SESSION_TIMEOUT = "sessionTimeOutMs";
-    public static final String CONNECTION_TIMEOUT = "connectionTimeOutMs";
+    public static final String SESSION_TIMEOUT = "zookeeper.session.timeout";
+    public static final String CONNECTION_TIMEOUT = "zookeeper.connection.time.out";
 
-    public static final String RETRY_POLICY_MAX_RETRIES = "retryPolicy.maxRetries";
-    public static final String RETRY_POLICY_INTERVAL_MS = "retryPolicy.retryIntervalMs";
+    public static final String RETRY_POLICY_MAX_RETRIES = "zookeeper.retry.max";
+    public static final String RETRY_POLICY_INTERVAL_MS = "zookeeper.retry.interval";
 
     public static final int DEFAULT_CONNECTION_TIMEOUT_MS = 15000;
     public static final int DEFAULT_SESSION_TIMEOUT_MS = 60000;

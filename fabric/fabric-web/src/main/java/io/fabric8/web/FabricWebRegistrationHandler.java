@@ -118,7 +118,7 @@ public final class FabricWebRegistrationHandler extends AbstractComponent implem
             synchronized (servletEvents) {
                 events = servletEvents.get(servletEvent.getBundle());
                 if (events == null) {
-                    events = new HashMap<String, ServletEvent>();
+                    events = new ConcurrentHashMap<String, ServletEvent>();
                     servletEvents.put(servletEvent.getBundle(), events);
                 }
             }
