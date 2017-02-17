@@ -18,10 +18,12 @@ package io.fabric8.patch.impl;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
@@ -37,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.UUID;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
@@ -45,6 +48,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import io.fabric8.patch.Service;
+import io.fabric8.patch.management.Artifact;
 import io.fabric8.patch.management.BundleUpdate;
 import io.fabric8.patch.management.Patch;
 import io.fabric8.patch.management.PatchData;
@@ -59,7 +63,9 @@ import org.apache.aries.util.io.IOUtils;
 import org.apache.commons.io.FileUtils;
 import org.easymock.EasyMock;
 import org.easymock.IAnswer;
+import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.Repository;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -75,6 +81,7 @@ import org.osgi.service.component.ComponentContext;
 import static io.fabric8.patch.impl.PatchTestSupport.getDirectoryForResource;
 import static io.fabric8.patch.management.Utils.stripSymbolicName;
 import static org.easymock.EasyMock.*;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.*;
 
 public class ServiceImplTest {
@@ -419,13 +426,13 @@ public class ServiceImplTest {
         ServiceImpl service = new ServiceImpl();
         setField(service, "patchManagement", pm);
         service.activate(componentContext);
-        
+
         try {
             service.download(new URL("file:" + storage + "/temp/f00.zip"));
             fail("Should have thrown exception on non existent patch file.");
-        } catch (Exception e) {        	
-        }        
-        
+        } catch (Exception e) {
+        }
+
         Iterable<Patch> patches = service.download(patch132.toURI().toURL());
         assertNotNull(patches);
         Iterator<Patch> it = patches.iterator();
@@ -720,6 +727,157 @@ public class ServiceImplTest {
         assertEquals("Should return original bundle location if no maching version is found in the history",
                      "mvn:groupId/my-bsn/0.9.0",
                      history.getLocation(createMockBundle("my-bsn", "0.9.0", "mvn:groupId/my-bsn/0.9.0")));
+    }
+
+    @Test
+    public void bundleUpdatesInPatch() throws Exception {
+        BundleContext context = EasyMock.createMock(BundleContext.class);
+
+        Bundle bundle0 = createMock(Bundle.class);
+        expect(bundle0.getBundleContext()).andReturn(context);
+        replay(bundle0);
+
+        expect(context.getProperty("karaf.home")).andReturn("target/bundleUpdatesInPatch").anyTimes();
+        expect(context.getProperty("karaf.base")).andReturn("target/bundleUpdatesInPatch").anyTimes();
+        expect(context.getProperty("karaf.data")).andReturn("target/bundleUpdatesInPatch/data").anyTimes();
+        expect(context.getProperty("karaf.name")).andReturn("root").anyTimes();
+        expect(context.getProperty("karaf.instances")).andReturn("instances").anyTimes();
+        expect(context.getProperty("karaf.default.repository")).andReturn("system");
+        expect(context.getProperty("fuse.patch.location")).andReturn(null);
+        expect(context.getBundle(0)).andReturn(bundle0);
+        replay(context);
+
+        ServiceImpl service = new ServiceImpl();
+        Method m = service.getClass().getDeclaredMethod("bundleUpdatesInPatch",
+                Patch.class, Bundle[].class, Map.class, ServiceImpl.BundleVersionHistory.class,
+                Map.class, PatchKind.class, Map.class, List.class);
+        m.setAccessible(true);
+
+        Field f = service.getClass().getDeclaredField("helper");
+        f.setAccessible(true);
+        f.set(service, new OSGiPatchHelper(new File("target/bundleUpdatesInPatch"), context) {
+            @Override
+            public String[] getBundleIdentity(String url) throws IOException {
+                Artifact a = Utils.mvnurlToArtifact(url, false);
+                return new String[] { a.getArtifactId(), a.getVersion() };
+            }
+        });
+
+        PatchData pd = new PatchData("patch-x");
+        // for these two, bundle.getLocation() will return matching location
+        pd.getBundles().add("mvn:io.fabric8/pax-romana/1.0.1");
+        pd.getBundles().add("mvn:io.fabric8/pax-hellenica/1.0.1/jar");
+        // for these two, bundle.getLocation() will return non-matching location
+        pd.getBundles().add("mvn:io.fabric8/pax-bohemia/1.0.1");
+        pd.getBundles().add("mvn:io.fabric8/pax-pomerania/1.0.1/jar");
+        // for these two, bundle.getLocation() will return matching location
+        pd.getBundles().add("mvn:io.fabric8/pax-avaria/1.0.1/jar/uber");
+        pd.getBundles().add("mvn:io.fabric8/pax-mazovia/1.0.1//uber");
+        // for these two, bundle.getLocation() will return non-matching location
+        pd.getBundles().add("mvn:io.fabric8/pax-novgorod/1.0.1/jar/uber");
+        pd.getBundles().add("mvn:io.fabric8/pax-castile/1.0.1//uber");
+
+        f = pd.getClass().getDeclaredField("versionRanges");
+        f.setAccessible(true);
+        f.set(pd, new HashMap<>());
+
+        Patch patch = new Patch(pd, null);
+
+        Bundle[] bundles = new Bundle[8];
+        bundles[0] = bundle("mvn:io.fabric8/pax-romana/1.0.0");
+        bundles[1] = bundle("mvn:io.fabric8/pax-hellenica/1.0.0/jar");
+        bundles[2] = bundle("mvn:io.fabric8/pax-bohemia/1.0.0/jar");
+        bundles[3] = bundle("mvn:io.fabric8/pax-pomerania/1.0.0");
+        bundles[4] = bundle("mvn:io.fabric8/pax-avaria/1.0.0/jar/uber");
+        bundles[5] = bundle("mvn:io.fabric8/pax-mazovia/1.0.0//uber");
+        bundles[6] = bundle("mvn:io.fabric8/pax-novgorod/1.0.0//uber");
+        bundles[7] = bundle("mvn:io.fabric8/pax-castile/1.0.0/jar/uber");
+
+        Object _list = m.invoke(service,
+                patch, bundles, new HashMap<>(), new ServiceImpl.BundleVersionHistory(new HashMap<String, Patch>()),
+                new HashMap<>(), PatchKind.NON_ROLLUP, new HashMap<>(), null);
+        List<BundleUpdate> list = (List<BundleUpdate>) _list;
+
+        assertThat(list.size(), equalTo(8));
+        assertThat(list.get(0).getPreviousLocation(), equalTo("mvn:io.fabric8/pax-romana/1.0.0"));
+        assertThat(list.get(1).getPreviousLocation(), equalTo("mvn:io.fabric8/pax-hellenica/1.0.0/jar"));
+        assertThat(list.get(2).getPreviousLocation(), equalTo("mvn:io.fabric8/pax-bohemia/1.0.0/jar"));
+        assertThat(list.get(3).getPreviousLocation(), equalTo("mvn:io.fabric8/pax-pomerania/1.0.0"));
+        assertThat(list.get(4).getPreviousLocation(), equalTo("mvn:io.fabric8/pax-avaria/1.0.0/jar/uber"));
+        assertThat(list.get(5).getPreviousLocation(), equalTo("mvn:io.fabric8/pax-mazovia/1.0.0//uber"));
+        assertThat(list.get(6).getPreviousLocation(), equalTo("mvn:io.fabric8/pax-novgorod/1.0.0//uber"));
+        assertThat(list.get(7).getPreviousLocation(), equalTo("mvn:io.fabric8/pax-castile/1.0.0/jar/uber"));
+        assertThat(list.get(0).getNewLocation(), equalTo("mvn:io.fabric8/pax-romana/1.0.1"));
+        assertThat(list.get(1).getNewLocation(), equalTo("mvn:io.fabric8/pax-hellenica/1.0.1/jar"));
+        assertThat(list.get(2).getNewLocation(), equalTo("mvn:io.fabric8/pax-bohemia/1.0.1"));
+        assertThat(list.get(3).getNewLocation(), equalTo("mvn:io.fabric8/pax-pomerania/1.0.1/jar"));
+        assertThat(list.get(4).getNewLocation(), equalTo("mvn:io.fabric8/pax-avaria/1.0.1/jar/uber"));
+        assertThat(list.get(5).getNewLocation(), equalTo("mvn:io.fabric8/pax-mazovia/1.0.1//uber"));
+        assertThat(list.get(6).getNewLocation(), equalTo("mvn:io.fabric8/pax-novgorod/1.0.1/jar/uber"));
+        assertThat(list.get(7).getNewLocation(), equalTo("mvn:io.fabric8/pax-castile/1.0.1//uber"));
+
+        // ---
+
+        Repository repository = createMock(Repository.class);
+        File tmp = new File("target/bundleUpdatesInPatch/" + UUID.randomUUID().toString());
+        tmp.mkdirs();
+        File startupProperties = new File(tmp, "etc/startup.properties");
+        FileUtils.copyFile(new File("src/test/resources/uber-startup.properties"), startupProperties);
+        expect(repository.getWorkTree()).andReturn(tmp).anyTimes();
+        replay(repository);
+        Git fork = createMock(Git.class);
+        expect(fork.getRepository()).andReturn(repository).anyTimes();
+        replay(fork);
+
+        GitPatchManagementServiceImpl gitPatchManagementService = new GitPatchManagementServiceImpl(context);
+
+        m = gitPatchManagementService.getClass().getDeclaredMethod("updateFileReferences",
+                Git.class, PatchData.class, List.class);
+        m.setAccessible(true);
+        m.invoke(gitPatchManagementService, fork, pd, list);
+
+        try (FileReader reader = new FileReader(startupProperties)) {
+            Properties startup = new Properties();
+            startup.load(reader);
+            assertTrue(startup.containsKey("io/fabric8/pax-romana/1.0.1/pax-romana-1.0.1.jar"));
+            assertTrue(startup.containsKey("io/fabric8/pax-hellenica/1.0.1/pax-hellenica-1.0.1.jar"));
+            assertTrue(startup.containsKey("io/fabric8/pax-bohemia/1.0.1/pax-bohemia-1.0.1.jar"));
+            assertTrue(startup.containsKey("io/fabric8/pax-pomerania/1.0.1/pax-pomerania-1.0.1.jar"));
+            assertTrue(startup.containsKey("io/fabric8/pax-avaria/1.0.1/pax-avaria-1.0.1-uber.jar"));
+            assertTrue(startup.containsKey("io/fabric8/pax-mazovia/1.0.1/pax-mazovia-1.0.1-uber.jar"));
+            assertTrue(startup.containsKey("io/fabric8/pax-novgorod/1.0.1/pax-novgorod-1.0.1-uber.jar"));
+            assertTrue(startup.containsKey("io/fabric8/pax-castile/1.0.1/pax-castile-1.0.1-uber.jar"));
+            assertFalse(startup.containsKey("io/fabric8/pax-romana/1.0.0/pax-romana-1.0.0.jar"));
+            assertFalse(startup.containsKey("io/fabric8/pax-hellenica/1.0.0/pax-hellenica-1.0.0.jar"));
+            assertFalse(startup.containsKey("io/fabric8/pax-bohemia/1.0.0/pax-bohemia-1.0.0.jar"));
+            assertFalse(startup.containsKey("io/fabric8/pax-pomerania/1.0.0/pax-pomerania-1.0.0.jar"));
+            assertFalse(startup.containsKey("io/fabric8/pax-avaria/1.0.0/pax-avaria-1.0.0-uber.jar"));
+            assertFalse(startup.containsKey("io/fabric8/pax-mazovia/1.0.0/pax-mazovia-1.0.0-uber.jar"));
+            assertFalse(startup.containsKey("io/fabric8/pax-novgorod/1.0.0/pax-novgorod-1.0.0-uber.jar"));
+            assertFalse(startup.containsKey("io/fabric8/pax-castile/1.0.0/pax-castile-1.0.0-uber.jar"));
+        }
+    }
+
+    /**
+     * Helper method for {@link #bundleUpdatesInPatch()} test
+     * @param location
+     * @return
+     */
+    private Bundle bundle(String location) {
+        BundleStartLevel bsl = createMock(BundleStartLevel.class);
+        expect(bsl.getStartLevel()).andReturn(42);
+        replay(bsl);
+
+        Bundle b = createMock(Bundle.class);
+                Artifact a = Utils.mvnurlToArtifact(location, false);
+        expect(b.getSymbolicName()).andReturn(a.getArtifactId()).anyTimes();
+        expect(b.getVersion()).andReturn(new Version(a.getVersion())).anyTimes();
+        expect(b.getLocation()).andReturn(location).anyTimes();
+        expect(b.adapt(BundleStartLevel.class)).andReturn(bsl);
+        expect(b.getState()).andReturn(Bundle.ACTIVE);
+
+        replay(b);
+        return b;
     }
 
     private Bundle createMockBundle(String bsn, String version, String location) {
