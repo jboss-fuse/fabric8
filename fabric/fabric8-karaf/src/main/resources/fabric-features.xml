@@ -60,6 +60,26 @@
         <bundle dependency="true">mvn:org.bouncycastle/bcprov-jdk15on/${bouncycastle-version}</bundle>
         <bundle dependency="true">mvn:org.apache.sshd/sshd-core/${sshd-version}</bundle>
         <bundle dependency="true">mvn:org.apache.mina/mina-core/${mina-version}</bundle>
+        <!-- bundles required before entering fabric mode - for child containers created from ssh containers -->
+        <bundle dependency="true">mvn:io.fabric8/fabric-maven/${project.version}</bundle>
+        <bundle dependency="true">mvn:io.fabric8.patch/patch-core-api/${project.version}</bundle>
+        <bundle dependency="true">mvn:io.fabric8.patch/patch-core/${project.version}</bundle>
+        <bundle dependency="true">mvn:org.apache.karaf.deployer/org.apache.karaf.deployer.features/${karaf-version}</bundle>
+        <bundle dependency="true">mvn:org.apache.karaf.deployer/org.apache.karaf.deployer.kar/${karaf-version}</bundle>
+        <bundle dependency="true">mvn:org.apache.karaf.diagnostic/org.apache.karaf.diagnostic.common/${karaf-version}</bundle>
+        <bundle dependency="true">mvn:org.apache.karaf.diagnostic/org.apache.karaf.diagnostic.command/${karaf-version}</bundle>
+        <bundle dependency="true">mvn:org.apache.karaf.diagnostic/org.apache.karaf.diagnostic.management/${karaf-version}</bundle>
+        <bundle dependency="true">mvn:org.apache.karaf.features/org.apache.karaf.features.command/${karaf-version}</bundle>
+        <bundle dependency="true">mvn:org.apache.karaf.features/org.apache.karaf.features.management/${karaf-version}</bundle>
+        <bundle dependency="true">mvn:org.apache.karaf.jaas/org.apache.karaf.jaas.config/${karaf-version}</bundle>
+        <bundle dependency="true">mvn:org.apache.karaf.management.mbeans/org.apache.karaf.management.mbeans.system/${karaf-version}</bundle>
+        <bundle dependency="true">mvn:org.apache.karaf.management.mbeans/org.apache.karaf.management.mbeans.bundles/${karaf-version}</bundle>
+        <bundle dependency="true">mvn:org.apache.karaf.management.mbeans/org.apache.karaf.management.mbeans.services/${karaf-version}</bundle>
+        <bundle dependency="true">mvn:org.apache.karaf.management.mbeans/org.apache.karaf.management.mbeans.config/${karaf-version}</bundle>
+        <bundle dependency="true">mvn:org.apache.karaf.management.mbeans/org.apache.karaf.management.mbeans.log/${karaf-version}</bundle>
+        <bundle dependency="true">mvn:org.apache.karaf.management.mbeans/org.apache.karaf.management.mbeans.packages/${karaf-version}</bundle>
+        <bundle dependency="true">mvn:org.apache.karaf.management.mbeans/org.apache.karaf.management.mbeans.dev/${karaf-version}</bundle>
+        <bundle dependency="true">mvn:org.apache.karaf.service/org.apache.karaf.service.guard/${karaf-version}</bundle>
     </feature>
 
     <feature name="karaf" version="${karaf-version}" resolver="(obr)">
