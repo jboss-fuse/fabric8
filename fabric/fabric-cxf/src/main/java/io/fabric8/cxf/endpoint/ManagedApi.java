@@ -625,7 +625,7 @@ public class ManagedApi implements ManagedComponent, ServerLifeCycleListener {
 
     public void startServer(Server s) {
         if (server.equals(s)) {
-            state = State.STARTED;            
+            state = State.STARTED;
         }
     }
 

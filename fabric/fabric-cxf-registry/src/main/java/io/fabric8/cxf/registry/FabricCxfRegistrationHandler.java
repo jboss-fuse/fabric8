@@ -191,11 +191,8 @@ public final class FabricCxfRegistrationHandler extends AbstractComponent implem
             Container container = getCurrentContainer();
             if (container != null) {
                 Set<ObjectName> objectNames = getObjectNames();
-                if (container != null) {
-                    for (ObjectName oName : objectNames) {
-                        String type = null;
-                        onMBeanEvent(container, oName, type);
-                    }
+                for (ObjectName oName : objectNames) {
+                    onMBeanEvent(container, oName, null);
                 }
             }
         }
@@ -227,12 +224,13 @@ public final class FabricCxfRegistrationHandler extends AbstractComponent implem
         try {
 
             if (isCxfServiceEndpointQuery.apply(oName)) {
-                if(MBeanServerNotification.UNREGISTRATION_NOTIFICATION.equals(type)){
+                if (MBeanServerNotification.UNREGISTRATION_NOTIFICATION.equals(type)) {
+                    LOGGER.info("Unregistering endpoint " + oName + " type " + type);
                     unregisterApiEndpoint(container, oName);
-                }else{
+                } else {
                     Object state = mBeanServer.getAttribute(oName, "State");
                     String address = getAddress(oName, type, state);
-                    if(mBeanServer.isRegistered(oName)){
+                    if (mBeanServer.isRegistered(oName)) {
                         boolean started = state instanceof String && state.toString().toUpperCase().startsWith("START");
                         boolean created = state instanceof String && state.toString().toUpperCase().startsWith("CREATE");
 
@@ -382,7 +380,7 @@ public final class FabricCxfRegistrationHandler extends AbstractComponent implem
             removeZkPath(path);
         } catch (Exception e) {
             LOGGER.error("Failed to unregister API endpoint at {}.", path, e);
-        } finally{
+        } finally {
             registeredUrls.remove(oName.toString());
         }
     }
