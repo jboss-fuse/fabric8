@@ -15,13 +15,21 @@
  */
 package io.fabric8.cxf.endpoint;
 
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.management.JMException;
+import javax.management.MBeanServer;
+import javax.management.MBeanServerDelegate;
+import javax.management.MBeanServerNotification;
+import javax.management.MalformedObjectNameException;
+import javax.management.Notification;
+import javax.management.NotificationFilter;
+import javax.management.NotificationListener;
+import javax.management.ObjectName;
 
 import org.apache.cxf.Bus;
 import org.apache.cxf.common.logging.LogUtils;
@@ -29,7 +37,6 @@ import org.apache.cxf.endpoint.Endpoint;
 import org.apache.cxf.endpoint.EndpointImpl;
 import org.apache.cxf.endpoint.Server;
 import org.apache.cxf.endpoint.ServerLifeCycleManager;
-import org.apache.cxf.endpoint.ServerRegistry;
 import org.apache.cxf.feature.AbstractFeature;
 import org.apache.cxf.feature.Feature;
 import org.apache.cxf.interceptor.InterceptorProvider;
@@ -41,19 +48,57 @@ import org.apache.cxf.service.factory.FactoryBeanListenerManager;
 
 public class ManagedApiFeature extends AbstractFeature {
     private static final Logger LOG = LogUtils.getL7dLogger(ManagedApiFeature.class);
-    
+
+    private static final ObjectName CXF_OBJECT_NAME = objectNameFor("org.apache.cxf:*");
+
+    private NotificationFilter mBeanServerNotificationFilter = new NotificationFilter() {
+        @Override
+        public boolean isNotificationEnabled(Notification notification) {
+            return (notification instanceof MBeanServerNotification) &&
+                    CXF_OBJECT_NAME.apply(((MBeanServerNotification) notification).getMBeanName());
+        }
+    };
+
     @Override
     public void initialize(Server server, Bus bus) {
-        ManagedApi mApi = new ManagedApi(bus, server.getEndpoint(), server);
-        InstrumentationManager iMgr = bus.getExtension(InstrumentationManager.class);
+        final ManagedApi mApi = new ManagedApi(bus, server.getEndpoint(), server);
+        final InstrumentationManager iMgr = bus.getExtension(InstrumentationManager.class);
         if (iMgr != null) {   
             try {
                 iMgr.register(mApi);
-                ServerLifeCycleManager slcMgr = bus.getExtension(ServerLifeCycleManager.class);
+                final ServerLifeCycleManager slcMgr = bus.getExtension(ServerLifeCycleManager.class);
                 if (slcMgr != null) {
                     slcMgr.registerListener(mApi);
                     slcMgr.startServer(server);
                 }
+
+                // Register notification listener to propagate unregistration of endpoint MBeans
+                final MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+                if (mBeanServer == null) {
+                    return;
+                }
+                NotificationListener listener = new NotificationListener() {
+                    @Override
+                    public void handleNotification(Notification notification, Object handback) {
+                        MBeanServerNotification mbsNotification = (MBeanServerNotification) notification;
+                        ObjectName objectName = mbsNotification.getMBeanName();
+                        String type = mbsNotification.getType();
+                        try {
+                            if (MBeanServerNotification.UNREGISTRATION_NOTIFICATION.equals(type)
+                                    && mApi.isCompanion(objectName)) {
+                                if (slcMgr != null) {
+                                    slcMgr.unRegisterListener(mApi);
+                                }
+                                iMgr.unregister(mApi);
+                                mBeanServer.removeNotificationListener(MBeanServerDelegate.DELEGATE_NAME, this);
+                            }
+                        } catch (JMException e) {
+                            LOG.log(Level.WARNING, "Unregistering ManagedApi failed.", e);
+                        }
+                    }
+                };
+                mBeanServer.addNotificationListener(MBeanServerDelegate.DELEGATE_NAME, listener,
+                        mBeanServerNotificationFilter, null);
 
             } catch (JMException jmex) {
                 jmex.printStackTrace();
@@ -117,4 +162,11 @@ public class ManagedApiFeature extends AbstractFeature {
         }
     }
 
+    private static ObjectName objectNameFor(String name) {
+        try {
+            return new ObjectName(name);
+        } catch (MalformedObjectNameException e) {
+            return null;
+        }
+    }
 }
