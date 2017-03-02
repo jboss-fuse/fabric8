@@ -65,6 +65,7 @@ import org.osgi.service.cm.ConfigurationAdmin;
 public class ManagedApi implements ManagedComponent, ServerLifeCycleListener {
     public static final String ENDPOINT_NAME = "managed.endpoint.name";
     public static final String SERVICE_NAME = "managed.service.name";
+    public static final String INSTANCE_ID = "managed.instance.id";
     public static final String INDENTION = "    ";
     public static final String DOMAIN_NAME = "io.fabric8.cxf";
     private static final Logger LOG = LogUtils.getL7dLogger(ManagedApi.class);
@@ -593,7 +594,7 @@ public class ManagedApi implements ManagedComponent, ServerLifeCycleListener {
         }
         return configurationAdmin;
     }
-        
+
     public ObjectName getObjectName() throws JMException {
         String busId = bus.getId();
         StringBuilder buffer = new StringBuilder();
@@ -616,16 +617,27 @@ public class ManagedApi implements ManagedComponent, ServerLifeCycleListener {
         }
         endpointName = ObjectName.quote(endpointName);
         buffer.append(ManagementConstants.PORT_NAME_PROP).append('=').append(endpointName).append(',');
+        String instanceId = (String)endpoint.get(INSTANCE_ID);
+        if (StringUtils.isEmpty(instanceId)) {
+            instanceId = new StringBuilder().append(endpoint.hashCode()).toString();
+        }
         // Added the instance id to make the ObjectName unique
-        buffer.append(ManagementConstants.INSTANCE_ID_PROP).append('=').append(endpoint.hashCode());
+        buffer.append(ManagementConstants.INSTANCE_ID_PROP).append('=').append(instanceId);
         
         //Use default domain name of server
         return new ObjectName(buffer.toString());
     }
 
+    boolean isCompanion(ObjectName objectName) throws JMException {
+        if (objectName == null) {
+            return false;
+        }
+        return getObjectName().getKeyPropertyListString().equals(objectName.getKeyPropertyListString());
+    }
+
     public void startServer(Server s) {
         if (server.equals(s)) {
-            state = State.STARTED;            
+            state = State.STARTED;
         }
     }
 
