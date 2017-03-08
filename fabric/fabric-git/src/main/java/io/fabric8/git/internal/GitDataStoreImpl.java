@@ -1946,7 +1946,11 @@ class ProfilesVisitor<T> extends SimpleFileVisitor<T> {
     private PathMatcher pathMatcher;
 
     public ProfilesVisitor(File rootDirectory, String pattern) {
-        pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + rootDirectory.toString() + "**" + pattern + "**.profile");
+        String globPrefix = rootDirectory.toString();
+        if (File.separatorChar == '\\') {
+            globPrefix = globPrefix.replace("\\", "\\\\");
+        }
+        pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + globPrefix + "**" + pattern + "**.profile");
     }
 
     @Override
