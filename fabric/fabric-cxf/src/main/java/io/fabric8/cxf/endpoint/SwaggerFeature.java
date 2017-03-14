@@ -30,6 +30,8 @@ import org.apache.cxf.service.factory.FactoryBeanListener;
 import org.apache.cxf.service.factory.FactoryBeanListenerManager;
 
 public class SwaggerFeature extends org.apache.cxf.jaxrs.swagger.SwaggerFeature {
+
+    protected String explicitBasePath;
     
     @Override
     protected void initializeProvider(InterceptorProvider provider, final Bus bus) {
@@ -66,6 +68,24 @@ public class SwaggerFeature extends org.apache.cxf.jaxrs.swagger.SwaggerFeature 
     @Override
     public String getBasePath() {
         // HACK: without this, swagger-ui will invoke endpoints using http://host:8181/crm without using /cxf servlet base path
-        return super.getBasePath() == null ? null : "/cxf" + super.getBasePath();
+        if(super.getBasePath() == null){
+            return null;
+        } else if(super.getBasePath().length()==0) {
+            return "";
+        } else {
+            if(explicitBasePath != null && explicitBasePath.length() > 0){
+                return explicitBasePath;
+            } else {
+                return "/cxf" + super.getBasePath();
+            }
+        }
+    }
+
+    public String getExplicitBasePath() {
+        return explicitBasePath;
+    }
+
+    public void setExplicitBasePath(String explicitBasePath) {
+        this.explicitBasePath = explicitBasePath;
     }
 }
