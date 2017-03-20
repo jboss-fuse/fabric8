@@ -233,7 +233,7 @@
         <hawtbuf-version>1.11.0.redhat-1</hawtbuf-version>
         <hawtdispatch-version>1.22</hawtdispatch-version>
         <hawtio-dockerui-version>1.0.4</hawtio-dockerui-version>
-        <hawtio-eshead-version>1.0.2</hawtio-eshead-version>
+        <hawtio-eshead-version>1.0.3</hawtio-eshead-version>
         <hawtio-kibana-version>3.1.2_2</hawtio-kibana-version>
         <hawtio-swagger-version>${hawtio-version}</hawtio-swagger-version>
         <hawtio-version>1.4.redhat-630247</hawtio-version>
