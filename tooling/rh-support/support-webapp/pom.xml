@@ -107,6 +107,12 @@
             <groupId>com.redhat.gss</groupId>
             <artifactId>redhat-support-lib-java</artifactId>
             <version>${redhat-support-lib.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>javax.mail</groupId>
+                    <artifactId>mail</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>commons-net</groupId>
