@@ -56,6 +56,7 @@ public final class ResourceBuilder {
     private static final int DELIMITER = 2;
     private static final int STARTQUOTE = 4;
     private static final int ENDQUOTE = 8;
+    public static final String FABRIC_RESOLVER_LENIENT = "fabric.resolver.lenient";
 
 
     private ResourceBuilder() {
@@ -354,7 +355,14 @@ public final class ResourceBuilder {
                     } else if (!filter.startsWith("(") && !filter.endsWith(")")) {
                         filter = "(&(" + Constants.OBJECTCLASS + "=" + path + ")(" + filter + "))";
                     } else {
-                        filter = "(&(" + Constants.OBJECTCLASS + "=" + path + ")" + filter + ")";
+                        String lenient = System.getProperty(FABRIC_RESOLVER_LENIENT);
+                        if (Boolean.valueOf(lenient)){
+                            if (!filter.startsWith("(osgi.service.blueprint.compname")) {
+                                filter = "(&(" + Constants.OBJECTCLASS + "=" + path + ")" + filter + ")";
+                            }
+                        } else {
+                            filter = "(&(" + Constants.OBJECTCLASS + "=" + path + ")" + filter + ")";
+                        }
                     }
                     dirs.put(ServiceNamespace.REQUIREMENT_FILTER_DIRECTIVE, filter);
                     reqList.add(new RequirementImpl(
