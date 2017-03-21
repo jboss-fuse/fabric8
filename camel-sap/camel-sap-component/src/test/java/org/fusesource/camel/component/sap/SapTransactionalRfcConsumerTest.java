@@ -20,6 +20,8 @@ package org.fusesource.camel.component.sap;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 import org.apache.camel.CamelContext;
 import org.apache.camel.Endpoint;
@@ -174,6 +176,18 @@ public class SapTransactionalRfcConsumerTest extends SapRfcTestSupport {
 		assertThat("tableRow.get(DATE_PARAM) returned '" +  tableRow.get(DATE_PARAM) + "' instead of expected value '" + DATE_PARAM_OUT_VAL + "'", (Date) tableRow.get(DATE_PARAM), is(DATE_PARAM_OUT_VAL));
 		assertThat("tableRow.get(TIME_PARAM) returned '" +  tableRow.get(TIME_PARAM) + "' instead of expected value '" + TIME_PARAM_OUT_VAL + "'", (Date) tableRow.get(TIME_PARAM), is(TIME_PARAM_OUT_VAL));
 		assertThat("tableRow.get(STRING_PARAM) returned '" +  tableRow.get(STRING_PARAM) + "' instead of expected value '" + STRING_PARAM_OUT_VAL + "'", (String) tableRow.get(STRING_PARAM), is(STRING_PARAM_OUT_VAL));
+
+		// Check exchange properties
+		@SuppressWarnings("unchecked")
+		Map<String,Properties> serverMap = exchange.getProperty(SapConstants.SAP_SERVER_PROPERTIES_MAP_EXCHANGE_PROPERTY, Map.class);
+		assertNotNull("Exchange property '" + SapConstants.SAP_SERVER_PROPERTIES_MAP_EXCHANGE_PROPERTY + "' missing", serverMap);
+		Properties serverProperties = serverMap.get(TEST_SERVER);
+		assertNotNull("Server properties for server '" + TEST_SERVER + "' missing", serverProperties);
+		
+		// Check response headers
+		assertThat("Message header '" + SapConstants.SAP_SCHEME_NAME_MESSAGE_HEADER + "' returned unexpected value", exchange.getIn().getHeader(SapConstants.SAP_SCHEME_NAME_MESSAGE_HEADER, String.class), is(SapConstants.SAP_TRANSACTIONAL_RFC_SERVER));
+		assertThat("Message header '" + SapConstants.SAP_SERVER_NAME_MESSAGE_HEADER + "' returned unexpected value", exchange.getIn().getHeader(SapConstants.SAP_SERVER_NAME_MESSAGE_HEADER, String.class), is(SERVER_NAME));
+		assertThat("Message header '" + SapConstants.SAP_RFC_NAME_MESSAGE_HEADER + "' returned unexpected value", exchange.getIn().getHeader(SapConstants.SAP_RFC_NAME_MESSAGE_HEADER, String.class), is(FUNCTION_MODULE_NAME));
 	}
 
 	@Override

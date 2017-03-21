@@ -65,11 +65,20 @@ public class SapTransactionalIDocListConsumer extends SapConsumer implements JCo
 			DocumentList documentList = IDocUtil.createDocumentList(getEndpoint().getServer().getIDocRepository(), idocDocumentList.getIDocType(), idocDocumentList.getIDocTypeExtension(), idocDocumentList.getSystemRelease(), idocDocumentList.getApplicationRelease());
 			IDocUtil.extractIDocDocumentListIntoDocumentList(idocDocumentList, documentList);
 			
-			// Populated exchange message
+			// Populate SAP exchange properties
+			SapExchangePropertiesUtil.addServerPropertiesToExchange(getEndpoint(), exchange);
+			
 			Message message = exchange.getIn();
+
+			// Populate exchange properties
 			if (isStateful()) {
 				exchange.setProperty(SAP_SESSION_CONTEXT_PROPERTY_NAME, sessionContext);
 			}
+
+			// Populate message headers
+			SapMessageHeadersUtil.addSapHeadersToMessage(getEndpoint(), message);
+
+			// Populated exchange message
 			message.setBody(documentList);
 
 			// Process exchange

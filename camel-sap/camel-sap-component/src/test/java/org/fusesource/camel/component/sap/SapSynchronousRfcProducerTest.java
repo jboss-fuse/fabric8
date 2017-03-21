@@ -17,9 +17,17 @@
 package org.fusesource.camel.component.sap;
 
 
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
@@ -35,12 +43,6 @@ import org.powermock.modules.junit4.PowerMockRunner;
 
 import com.sap.conn.jco.JCoDestinationManager;
 import com.sap.conn.jco.ext.Environment;
-
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 /**
  * SAP Producer test cases.
@@ -184,6 +186,18 @@ public class SapSynchronousRfcProducerTest extends SapRfcTestSupport {
 		assertThat("tableRow.get(TIME_PARAM) returned '" +  tableRow.get(TIME_PARAM) + "' instead of expected value '" + TIME_PARAM_OUT_VAL + "'", (Date) tableRow.get(TIME_PARAM), is(TIME_PARAM_OUT_VAL));
 		assertThat("tableRow.get(STRING_PARAM) returned '" +  tableRow.get(STRING_PARAM) + "' instead of expected value '" + STRING_PARAM_OUT_VAL + "'", (String) tableRow.get(STRING_PARAM), is(STRING_PARAM_OUT_VAL));
 
+		// Check exchange properties
+		@SuppressWarnings("unchecked")
+		Map<String,Properties> destinationMap = exchange.getProperty(SapConstants.SAP_DESTINATION_PROPERTIES_MAP_EXCHANGE_PROPERTY, Map.class);
+		assertNotNull("Exchange property '" + SapConstants.SAP_DESTINATION_PROPERTIES_MAP_EXCHANGE_PROPERTY + "' missing", destinationMap);
+		Properties destinationProperties = destinationMap.get(TEST_DEST);
+		assertNotNull("Destination properties for destination '" + TEST_DEST + "' missing", destinationProperties);
+
+		// Check response headers
+		assertThat("Message header '" + SapConstants.SAP_SCHEME_NAME_MESSAGE_HEADER + "' returned unexpected value", exchange.getIn().getHeader(SapConstants.SAP_SCHEME_NAME_MESSAGE_HEADER, String.class), is(SapConstants.SAP_SYNCHRONOUS_RFC_DESTINATION));
+		assertThat("Message header '" + SapConstants.SAP_DESTINATION_NAME_MESSAGE_HEADER + "' returned unexpected value", exchange.getIn().getHeader(SapConstants.SAP_DESTINATION_NAME_MESSAGE_HEADER, String.class), is(DESTINATION_NAME));
+		assertThat("Message header '" + SapConstants.SAP_RFC_NAME_MESSAGE_HEADER + "' returned unexpected value", exchange.getIn().getHeader(SapConstants.SAP_RFC_NAME_MESSAGE_HEADER, String.class), is(FUNCTION_MODULE_NAME));
+		
 	}
 
 	@Override

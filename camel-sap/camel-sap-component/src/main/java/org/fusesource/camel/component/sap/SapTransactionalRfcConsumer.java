@@ -79,11 +79,20 @@ public class SapTransactionalRfcConsumer extends SapConsumer implements JCoServe
 
 		try {
 
-			// Populated request
+			// Populate SAP exchange properties
+			SapExchangePropertiesUtil.addServerPropertiesToExchange(getEndpoint(), exchange);
+			
 			Message message = exchange.getIn();
+			
+			// Populate exchange properties
 			if (isStateful()) {
 				exchange.setProperty(SAP_SESSION_CONTEXT_PROPERTY_NAME, getSessionContext());
 			}
+			
+			// Populate message headers
+			SapMessageHeadersUtil.addSapHeadersToMessage(getEndpoint(), message);
+
+			// Populated request
 			message.setBody(request);
 
 			// Process exchange

@@ -1,5 +1,17 @@
 package org.fusesource.camel.component.sap;
 
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.number.BigDecimalCloseTo.closeTo;
+import static org.mockito.Mockito.when;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.Date;
+import java.util.Map;
+import java.util.Properties;
+
 import org.apache.camel.CamelContext;
 import org.apache.camel.Endpoint;
 import org.apache.camel.Exchange;
@@ -20,16 +32,6 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import com.sap.conn.idoc.jco.JCoIDoc;
 import com.sap.conn.jco.JCoDestinationManager;
 import com.sap.conn.jco.ext.Environment;
-
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.number.BigDecimalCloseTo.closeTo;
-import static org.mockito.Mockito.when;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.Date;
 
 @RunWith(PowerMockRunner.class)
 @MockPolicy({Slf4jMockPolicy.class})
@@ -246,6 +248,20 @@ public class SapIDocListConsumerTest extends SapIDocTestSupport {
 		assertThat("level3Segment.get(STRING_FIELD) returned unexpected value", (String) level3Segment.get(STRING_FIELD), is(STRING_FIELD_VALUE));
 		assertThat("level3Segment.get(RAWSTRING_FIELD) returned unexpected value", (byte[]) level3Segment.get(RAWSTRING_FIELD), is(RAWSTRING_FIELD_VALUE));
 
+		// Check exchange properties
+		@SuppressWarnings("unchecked")
+		Map<String,Properties> serverMap = exchange.getProperty(SapConstants.SAP_SERVER_PROPERTIES_MAP_EXCHANGE_PROPERTY, Map.class);
+		assertNotNull("Exchange property '" + SapConstants.SAP_SERVER_PROPERTIES_MAP_EXCHANGE_PROPERTY + "' missing", serverMap);
+		Properties serverProperties = serverMap.get(TEST_SERVER);
+		assertNotNull("Server properties for server '" + TEST_SERVER + "' missing", serverProperties);
+		
+		// Check response headers
+		assertThat("Message header '" + SapConstants.SAP_SCHEME_NAME_MESSAGE_HEADER + "' returned unexpected value", exchange.getIn().getHeader(SapConstants.SAP_SCHEME_NAME_MESSAGE_HEADER, String.class), is(SapConstants.SAP_IDOC_LIST_SERVER));
+		assertThat("Message header '" + SapConstants.SAP_SERVER_NAME_MESSAGE_HEADER + "' returned unexpected value", exchange.getIn().getHeader(SapConstants.SAP_SERVER_NAME_MESSAGE_HEADER, String.class), is(TEST_SERVER));
+		assertThat("Message header '" + SapConstants.SAP_IDOC_TYPE_NAME_MESSAGE_HEADER + "' returned unexpected value", exchange.getIn().getHeader(SapConstants.SAP_IDOC_TYPE_NAME_MESSAGE_HEADER, String.class), is(TEST_IDOC_TYPE));
+		assertThat("Message header '" + SapConstants.SAP_IDOC_TYPE_EXTENSION_NAME_MESSAGE_HEADER + "' returned unexpected value", exchange.getIn().getHeader(SapConstants.SAP_IDOC_TYPE_EXTENSION_NAME_MESSAGE_HEADER, String.class), is(TEST_IDOC_TYPE_EXTENSION));
+		assertThat("Message header '" + SapConstants.SAP_SYSTEM_RELEASE_NAME_MESSAGE_HEADER + "' returned unexpected value", exchange.getIn().getHeader(SapConstants.SAP_SYSTEM_RELEASE_NAME_MESSAGE_HEADER, String.class), is(TEST_SYSTEM_RELEASE));
+		assertThat("Message header '" + SapConstants.SAP_APPLICATION_RELEASE_NAME_MESSAGE_HEADER + "' returned unexpected value", exchange.getIn().getHeader(SapConstants.SAP_APPLICATION_RELEASE_NAME_MESSAGE_HEADER, String.class), is(TEST_APPLICATION_RELEASE));
 	}
 
 	@Override

@@ -17,6 +17,7 @@
 package org.fusesource.camel.component.sap;
 
 
+import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.fusesource.camel.component.sap.model.rfc.Structure;
 import org.junit.Test;
@@ -30,9 +31,13 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import com.sap.conn.jco.JCoDestinationManager;
 import com.sap.conn.jco.ext.Environment;
 
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.util.Map;
+import java.util.Properties;
 
 /**
  * SAP Producer test cases.
@@ -105,6 +110,20 @@ public class SapTransactionalRfcProducerTest extends SapRfcTestSupport {
 		verify(mockTable, times(1)).getFieldIterator();
 
 		verify(mockFunction, times(1)).execute(mockDestination, TEST_TID);
+
+		Exchange exchange = getMockEndpoint("mock:result").getExchanges().get(0);
+
+		// Check exchange properties
+		@SuppressWarnings("unchecked")
+		Map<String,Properties> destinationMap = exchange.getProperty(SapConstants.SAP_DESTINATION_PROPERTIES_MAP_EXCHANGE_PROPERTY, Map.class);
+		assertNotNull("Exchange property '" + SapConstants.SAP_DESTINATION_PROPERTIES_MAP_EXCHANGE_PROPERTY + "' missing", destinationMap);
+		Properties destinationProperties = destinationMap.get(TEST_DEST);
+		assertNotNull("Destination properties for destination '" + TEST_DEST + "' missing", destinationProperties);
+
+		// Check response headers
+		assertThat("Message header '" + SapConstants.SAP_SCHEME_NAME_MESSAGE_HEADER + "' returned unexpected value", exchange.getIn().getHeader(SapConstants.SAP_SCHEME_NAME_MESSAGE_HEADER, String.class), is(SapConstants.SAP_TRANSACTIONAL_RFC_DESTINATION));
+		assertThat("Message header '" + SapConstants.SAP_DESTINATION_NAME_MESSAGE_HEADER + "' returned unexpected value", exchange.getIn().getHeader(SapConstants.SAP_DESTINATION_NAME_MESSAGE_HEADER, String.class), is(DESTINATION_NAME));
+		assertThat("Message header '" + SapConstants.SAP_RFC_NAME_MESSAGE_HEADER + "' returned unexpected value", exchange.getIn().getHeader(SapConstants.SAP_RFC_NAME_MESSAGE_HEADER, String.class), is(FUNCTION_MODULE_NAME));
 	}
 
 	@Override

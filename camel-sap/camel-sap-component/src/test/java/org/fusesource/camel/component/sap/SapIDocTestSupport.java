@@ -54,9 +54,7 @@ import com.sap.conn.jco.server.JCoServerState;
 
 public abstract class SapIDocTestSupport extends JCoTestSupport {
 	
-	public static final String TEST_PROGRAM_ID = "TEST_PROGRAM_ID";
 	public static final String TEST_DEST = "TEST_DEST";
-	public static final String TEST_SERVER = "TEST_SERVER";
 	public static final String TEST_QUEUE = "TEST_QUEUE";
 	
 	public static final String CHAR_FIELD = "CHAR_FIELD";
@@ -108,7 +106,6 @@ public abstract class SapIDocTestSupport extends JCoTestSupport {
 	public static final String[][] RECORD_FIELD_VALUE_RANGES = new String[][] { { "A", null }, { "B", null }, { "C", null } };
 	
 	public static final String TEST_TID = "TEST_TID";
-	public static final String TEST_REPOSITORY = "TEST_REPOSITORY";
 	public static final String ROOT_DESCRIPTION = "ROOT_DESCRIPTION";
 	public static final String LEVEL1_DESCRIPTION = "LEVEL1_DESCRIPTION";
 	public static final String LEVEL2_DESCRIPTION = "LEVEL2_DESCRIPTION";

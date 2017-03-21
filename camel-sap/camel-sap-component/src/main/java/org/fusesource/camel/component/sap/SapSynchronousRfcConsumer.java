@@ -73,11 +73,18 @@ public class SapSynchronousRfcConsumer extends SapConsumer implements JCoServerF
 
 		try {
 
-			// Populated request
-			Message message = exchange.getIn();
+			// Populate SAP exchange properties
+			SapExchangePropertiesUtil.addServerPropertiesToExchange(getEndpoint(), exchange);
 			if (isStateful()) {
 				exchange.setProperty(SAP_SESSION_CONTEXT_PROPERTY_NAME, sessionContext);
 			}
+			
+			Message message = exchange.getIn();
+
+			// Populate message headers
+			SapMessageHeadersUtil.addSapHeadersToMessage(getEndpoint(), message);
+
+			// Populated request
 			message.setBody(request);
 
 			// Process exchange

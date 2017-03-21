@@ -17,6 +17,7 @@
 package org.fusesource.camel.component.sap;
 
 import org.apache.camel.Exchange;
+import org.apache.camel.Message;
 import org.apache.camel.impl.DefaultProducer;
 import org.fusesource.camel.component.sap.model.rfc.Structure;
 import org.fusesource.camel.component.sap.util.RfcUtil;
@@ -50,7 +51,15 @@ public class SapQueuedRfcProducer extends DefaultProducer {
 			DestinationSapStatefulSessionHandler.ensureSapStatefulSessionHasBegunAndIsHandled(exchange, getEndpoint().getDestination());
 		}
 
-		Structure request = exchange.getIn().getBody(Structure.class);
+		// Add SAP properties to exchange
+		SapExchangePropertiesUtil.addDestinationPropertiesToExchange(getEndpoint(), exchange);
+		
+		Message message = exchange.getIn();
+		
+		// Populate message headers
+		SapMessageHeadersUtil.addSapHeadersToMessage(getEndpoint(), message);
+
+		Structure request = message.getBody(Structure.class);
 		if (LOG.isDebugEnabled()) {
 			try {
 				LOG.debug("Calling '{}' RFC", getEndpoint().getRfcName());

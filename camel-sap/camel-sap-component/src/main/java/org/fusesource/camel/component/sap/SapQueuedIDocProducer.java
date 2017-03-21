@@ -17,6 +17,7 @@
 package org.fusesource.camel.component.sap;
 
 import org.apache.camel.Exchange;
+import org.apache.camel.Message;
 import org.apache.camel.impl.DefaultProducer;
 import org.fusesource.camel.component.sap.model.idoc.Document;
 import org.fusesource.camel.component.sap.util.IDocUtil;
@@ -41,7 +42,16 @@ public class SapQueuedIDocProducer extends DefaultProducer {
 
 	@Override
 	public void process(Exchange exchange) throws Exception {
-		Document document = exchange.getIn().getBody(Document.class);
+		
+		// Add SAP properties to exchange
+		SapExchangePropertiesUtil.addDestinationPropertiesToExchange(getEndpoint(), exchange);
+		
+		Message message = exchange.getIn();
+
+		// Populate message headers
+		SapMessageHeadersUtil.addSapHeadersToMessage(getEndpoint(), message);
+		
+		Document document = message.getBody(Document.class);
 		if (document == null) {
 			LOG.warn("Exchange input message body does not contain IDoc document");
 			return;

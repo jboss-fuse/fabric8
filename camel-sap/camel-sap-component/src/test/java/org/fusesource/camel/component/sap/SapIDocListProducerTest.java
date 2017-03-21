@@ -1,9 +1,19 @@
 package org.fusesource.camel.component.sap;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.Date;
+import static org.fusesource.camel.component.sap.util.IDocUtil.DATE_FORMATTER;
+import static org.fusesource.camel.component.sap.util.IDocUtil.TIME_FORMATTER;
+import static org.fusesource.camel.component.sap.util.IDocUtil.bytesToHex;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.Matchers.anyObject;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import java.util.Map;
+import java.util.Properties;
+
+import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.fusesource.camel.component.sap.model.idoc.DocumentList;
 import org.junit.Test;
@@ -18,16 +28,6 @@ import com.sap.conn.idoc.IDocFactory;
 import com.sap.conn.idoc.jco.JCoIDoc;
 import com.sap.conn.jco.JCoDestinationManager;
 import com.sap.conn.jco.ext.Environment;
-
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import static org.fusesource.camel.component.sap.util.IDocUtil.DATE_FORMATTER;
-import static org.fusesource.camel.component.sap.util.IDocUtil.TIME_FORMATTER;
-import static org.fusesource.camel.component.sap.util.IDocUtil.bytesToHex;
 
 @RunWith(PowerMockRunner.class)
 @MockPolicy({Slf4jMockPolicy.class})
@@ -169,17 +169,34 @@ public class SapIDocListProducerTest extends SapIDocTestSupport {
 		verify(mockLevel3Segment, times(1)).setValue(RAW_FIELD, bytesToHex(RAW_FIELD_VALUE));
 		verify(mockLevel3Segment, times(1)).setValue(STRING_FIELD, (String) STRING_FIELD_VALUE);
 		verify(mockLevel3Segment, times(1)).setValue(RAWSTRING_FIELD, bytesToHex(RAWSTRING_FIELD_VALUE));
-		
+
 		PowerMockito.verifyStatic();
 		JCoIDoc.send(mockIDocDocumentList, IDocFactory.IDOC_VERSION_DEFAULT, mockDestination, TEST_TID);
-	}
+		
+		Exchange exchange = getMockEndpoint("mock:result").getExchanges().get(0);
+
+		// Check exchange properties
+		@SuppressWarnings("unchecked")
+		Map<String,Properties> destinationMap = exchange.getProperty(SapConstants.SAP_DESTINATION_PROPERTIES_MAP_EXCHANGE_PROPERTY, Map.class);
+		assertNotNull("Exchange property '" + SapConstants.SAP_DESTINATION_PROPERTIES_MAP_EXCHANGE_PROPERTY + "' missing", destinationMap);
+		Properties destinationProperties = destinationMap.get(TEST_DEST);
+		assertNotNull("Destination properties for destination '" + TEST_DEST + "' missing", destinationProperties);
+
+		// Check response headers
+		assertThat("Message header '" + SapConstants.SAP_SCHEME_NAME_MESSAGE_HEADER + "' returned unexpected value", exchange.getIn().getHeader(SapConstants.SAP_SCHEME_NAME_MESSAGE_HEADER, String.class), is(SapConstants.SAP_IDOC_LIST_DESTINATION));
+		assertThat("Message header '" + SapConstants.SAP_DESTINATION_NAME_MESSAGE_HEADER + "' returned unexpected value", exchange.getIn().getHeader(SapConstants.SAP_DESTINATION_NAME_MESSAGE_HEADER, String.class), is(TEST_DEST));
+		assertThat("Message header '" + SapConstants.SAP_IDOC_TYPE_NAME_MESSAGE_HEADER + "' returned unexpected value", exchange.getIn().getHeader(SapConstants.SAP_IDOC_TYPE_NAME_MESSAGE_HEADER, String.class), is(TEST_IDOC_TYPE));
+		assertThat("Message header '" + SapConstants.SAP_IDOC_TYPE_EXTENSION_NAME_MESSAGE_HEADER + "' returned unexpected value", exchange.getIn().getHeader(SapConstants.SAP_IDOC_TYPE_EXTENSION_NAME_MESSAGE_HEADER, String.class), is(TEST_IDOC_TYPE_EXTENSION));
+		assertThat("Message header '" + SapConstants.SAP_SYSTEM_RELEASE_NAME_MESSAGE_HEADER + "' returned unexpected value", exchange.getIn().getHeader(SapConstants.SAP_SYSTEM_RELEASE_NAME_MESSAGE_HEADER, String.class), is(TEST_SYSTEM_RELEASE));
+		assertThat("Message header '" + SapConstants.SAP_APPLICATION_RELEASE_NAME_MESSAGE_HEADER + "' returned unexpected value", exchange.getIn().getHeader(SapConstants.SAP_APPLICATION_RELEASE_NAME_MESSAGE_HEADER, String.class), is(TEST_APPLICATION_RELEASE));
+}
 
 	@Override
 	protected RouteBuilder createRouteBuilder() throws Exception {
 		return new RouteBuilder() {
 			@Override
 			public void configure() throws Exception {
-				from("direct:start").to("sap-idoclist-destination:TEST_DEST:TEST_IDOC_TYPE:TEST_IDOC_TYPE_EXTENSION:TEST_SYSTEM_VERSION:TEST_APPLICATION_VERSION");
+				from("direct:start").to("sap-idoclist-destination:TEST_DEST:TEST_IDOC_TYPE:TEST_IDOC_TYPE_EXTENSION:TEST_SYSTEM_VERSION:TEST_APPLICATION_VERSION").to("mock:result");
 			}
 		};
 	}
