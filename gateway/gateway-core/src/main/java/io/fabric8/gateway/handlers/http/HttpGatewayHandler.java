@@ -26,6 +26,7 @@ import org.vertx.java.core.buffer.Buffer;
 import org.vertx.java.core.http.HttpClient;
 import org.vertx.java.core.http.HttpClientRequest;
 import org.vertx.java.core.http.HttpClientResponse;
+import org.vertx.java.core.http.HttpHeaders;
 import org.vertx.java.core.http.HttpServerRequest;
 import org.vertx.java.core.http.HttpServerResponse;
 
@@ -64,9 +65,7 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
     public void handle(HttpServerRequest request) {
         long callStart = System.nanoTime();
 
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Proxying request: {}", request.uri());
-        }
+        LOG.debug("Proxying request: {} {}", request.method(), request.uri());
 
         // lets map the request URI to map to the service URI and then the renaming URI
         // using mapping rules...
@@ -96,7 +95,15 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
         String json = mappingRulesToJson(mappingRules);
         HttpServerResponse response = request.response();
         response.headers().set("ContentType", "application/json");
-        response.end(json);
+        if ("HEAD".equals(request.method())) {
+            // For HEAD method you must not return message body but must send 'Content-Length' header
+            // https://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html#sec9.4
+            String contentLength = String.valueOf(new Buffer(json).length());
+            response.putHeader(HttpHeaders.CONTENT_LENGTH, contentLength)
+                    .end();
+        } else {
+            response.end(json);
+        }
         response.setStatusCode(200);
     }
 
