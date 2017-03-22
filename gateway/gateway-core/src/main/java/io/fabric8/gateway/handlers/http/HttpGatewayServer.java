@@ -23,6 +23,7 @@ import org.vertx.java.core.http.HttpServer;
 import org.vertx.java.core.http.ServerWebSocket;
 
 /**
+ * Vert.x implementation of HTTP Gateway server
  */
 public class HttpGatewayServer {
     private static final transient Logger LOG = LoggerFactory.getLogger(HttpGatewayServer.class);
@@ -52,7 +53,7 @@ public class HttpGatewayServer {
     public void init() {
         server = vertx.createHttpServer();
         server.requestHandler(handler);
-        if( websocketHandler!=null ) {
+        if (websocketHandler != null) {
             server.setWebSocketSubProtocols("v10.stomp", "v11.stomp", "v12.stomp", "mqttv3.1", "mqttv3.1.1");
             server.websocketHandler(websocketHandler);
         }
@@ -84,7 +85,6 @@ public class HttpGatewayServer {
     public Vertx getVertx() {
         return vertx;
     }
-
 
 }
 

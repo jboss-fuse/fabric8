@@ -46,6 +46,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
+ * Vert.x HTTP Gateway web handler
  */
 public class HttpGatewayHandler implements Handler<HttpServerRequest> {
     private static final transient Logger LOG = LoggerFactory.getLogger(HttpGatewayHandler.class);
@@ -60,138 +61,22 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
     }
 
     @Override
-    public void handle(final HttpServerRequest request) {
-    	long callStart = System.nanoTime();
-        String uri = request.uri();
-        String uri2 = normalizeUri(uri);
+    public void handle(HttpServerRequest request) {
+        long callStart = System.nanoTime();
 
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Proxying request: " + uri);
+            LOG.debug("Proxying request: {}", request.uri());
         }
 
         // lets map the request URI to map to the service URI and then the renaming URI
         // using mapping rules...
-        HttpClient client = null;
-        String remaining = null;
-        String prefix = null;
-        String proxyServiceUrl = null;
-        String reverseServiceUrl = null;
         Map<String, MappedServices> mappingRules = httpGateway.getMappedServices();
         try {
             if (isMappingIndexRequest(request)) {
                 // lets return the JSON of all the results
-                String json = mappingRulesToJson(mappingRules);
-                HttpServerResponse response = request.response();
-                response.headers().set("ContentType", "application/json");
-                response.end(json);
-                response.setStatusCode(200);
+                doReturnIndex(request, mappingRules);
             } else {
-                MappedServices mappedServices = null;
-                URL clientURL = null;
-                Set<Map.Entry<String, MappedServices>> entries = mappingRules.entrySet();
-                for (Map.Entry<String, MappedServices> entry : entries) {
-                    String path = entry.getKey();
-                    mappedServices = entry.getValue();
-
-                    String pathPrefix = path;
-                    boolean uriMatches = uri.startsWith(pathPrefix);
-                    boolean uri2Matches = uri2 != null && uri2.startsWith(pathPrefix);
-                    if (uriMatches || uri2Matches) {
-                        int pathPrefixLength = pathPrefix.length();
-                        if (uri2Matches && pathPrefixLength < uri2.length()) {
-                            remaining = uri2.substring(pathPrefixLength);
-                        } else if (pathPrefixLength < uri.length()) {
-                            remaining = uri.substring(pathPrefixLength);
-                        } else {
-                            remaining = null;
-                        }
-
-                        // now lets pick a service for this path
-                        proxyServiceUrl = mappedServices.chooseService(request);
-                        if (proxyServiceUrl != null) {
-                            // lets create a client for this request...
-                            try {
-                                clientURL = new URL(proxyServiceUrl);
-                                client = createClient(clientURL);
-                                prefix = clientURL.getPath();
-                                reverseServiceUrl = request.absoluteURI().resolve(pathPrefix).toString();
-                                if (reverseServiceUrl.endsWith("/")) {
-                                    reverseServiceUrl = reverseServiceUrl.substring(0, reverseServiceUrl.length() - 1);
-                                }
-                                break;
-                            } catch (MalformedURLException e) {
-                                LOG.warn("Failed to parse URL: " + proxyServiceUrl + ". " + e, e);
-                            }
-                        }
-                    }
-                }
-
-                if (client != null) {
-                    String servicePath = prefix != null ? prefix : "";
-                    // we should usually end the prefix path with a slash for web apps at least
-                    if (servicePath.length() > 0 && !servicePath.endsWith("/")) {
-                        servicePath += "/";
-                    }
-                    if (remaining != null) {
-                        servicePath += remaining;
-                    }
-
-                    LOG.info("Proxying request " + uri + " to service path: " + servicePath + " on service: " + proxyServiceUrl + " reverseServiceUrl: " + reverseServiceUrl);
-                    final HttpClient finalClient = client;
-                    Handler<HttpClientResponse> responseHandler = new Handler<HttpClientResponse>() {
-                        public void handle(HttpClientResponse clientResponse) {
-                            if (LOG.isDebugEnabled()) {
-                                LOG.debug("Proxying response: " + clientResponse.statusCode());
-                            }
-                            request.response().setStatusCode(clientResponse.statusCode());
-                            request.response().headers().set(clientResponse.headers());
-                            request.response().setChunked(true);
-                            clientResponse.dataHandler(new Handler<Buffer>() {
-                                public void handle(Buffer data) {
-                                    if (LOG.isDebugEnabled()) {
-                                        LOG.debug("Proxying response body:" + data);
-                                    }
-                                    request.response().write(data);
-                                }
-                            });
-                            clientResponse.endHandler(new VoidHandler() {
-                                public void handle() {
-                                    request.response().end();
-                                    finalClient.close();
-                                }
-                            });
-                        }
-                    };
-                    if (mappedServices != null) {
-                        ProxyMappingDetails proxyMappingDetails = new ProxyMappingDetails(proxyServiceUrl, reverseServiceUrl, servicePath);
-                        responseHandler = mappedServices.wrapResponseHandlerInPolicies(request, responseHandler, proxyMappingDetails);
-                    }
-                    final HttpClientRequest clientRequest = client.request(request.method(), servicePath, responseHandler);
-                    clientRequest.headers().set(request.headers());
-                    clientRequest.setChunked(true);
-                    request.dataHandler(new Handler<Buffer>() {
-                        public void handle(Buffer data) {
-                            if (LOG.isDebugEnabled()) {
-                                LOG.debug("Proxying request body:" + data);
-                            }
-                            clientRequest.write(data);
-                        }
-                    });
-                    request.endHandler(new VoidHandler() {
-                        public void handle() {
-                            if (LOG.isDebugEnabled()) {
-                                LOG.debug("end of the request");
-                            }
-                            clientRequest.end();
-                        }
-                    });
-
-                } else {
-                    //  lets return a 404
-                    LOG.info("Could not find matching proxy path for " + uri + " from paths: " + mappingRules.keySet());
-                    request.response().setStatusCode(404);
-                    request.response().close();
-                }
+                doRouteRequest(mappingRules, request);
             }
             CallDetailRecord cdr = new CallDetailRecord(System.nanoTime() - callStart, null);
             httpGateway.addCallDetailRecord(cdr);
@@ -207,8 +92,16 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
         }
     }
 
+    protected void doReturnIndex(HttpServerRequest request, Map<String, MappedServices> mappingRules) throws IOException {
+        String json = mappingRulesToJson(mappingRules);
+        HttpServerResponse response = request.response();
+        response.headers().set("ContentType", "application/json");
+        response.end(json);
+        response.setStatusCode(200);
+    }
+
     protected String mappingRulesToJson(Map<String, MappedServices> rules) throws IOException {
-        Map<String, Collection<String>> data = new HashMap<String, Collection<String>>();
+        Map<String, Collection<String>> data = new HashMap<>();
 
         Set<Map.Entry<String, MappedServices>> entries = rules.entrySet();
         for (Map.Entry<String, MappedServices> entry : entries) {
@@ -218,6 +111,116 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
             data.put(key, serviceUrls);
         }
         return mapper.writeValueAsString(data);
+    }
+
+    protected void doRouteRequest(Map<String, MappedServices> mappingRules, final HttpServerRequest request) {
+        String uri = request.uri();
+        String uri2 = normalizeUri(uri);
+
+        HttpClient client = null;
+        String remaining = null;
+        String prefix = null;
+        String proxyServiceUrl = null;
+        String reverseServiceUrl = null;
+
+        MappedServices mappedServices = null;
+        URL clientURL = null;
+        Set<Map.Entry<String, MappedServices>> entries = mappingRules.entrySet();
+        for (Map.Entry<String, MappedServices> entry : entries) {
+            String path = entry.getKey();
+            mappedServices = entry.getValue();
+
+            String pathPrefix = path;
+            boolean uriMatches = uri.startsWith(pathPrefix);
+            boolean uri2Matches = uri2 != null && uri2.startsWith(pathPrefix);
+            if (uriMatches || uri2Matches) {
+                int pathPrefixLength = pathPrefix.length();
+                if (uri2Matches && pathPrefixLength < uri2.length()) {
+                    remaining = uri2.substring(pathPrefixLength);
+                } else if (pathPrefixLength < uri.length()) {
+                    remaining = uri.substring(pathPrefixLength);
+                } else {
+                    remaining = null;
+                }
+
+                // now lets pick a service for this path
+                proxyServiceUrl = mappedServices.chooseService(request);
+                if (proxyServiceUrl != null) {
+                    // lets create a client for this request...
+                    try {
+                        clientURL = new URL(proxyServiceUrl);
+                        client = createClient(clientURL);
+                        prefix = clientURL.getPath();
+                        reverseServiceUrl = request.absoluteURI().resolve(pathPrefix).toString();
+                        if (reverseServiceUrl.endsWith("/")) {
+                            reverseServiceUrl = reverseServiceUrl.substring(0, reverseServiceUrl.length() - 1);
+                        }
+                        break;
+                    } catch (MalformedURLException e) {
+                        LOG.warn("Failed to parse URL: " + proxyServiceUrl + ". " + e, e);
+                    }
+                }
+            }
+        }
+
+        if (client != null) {
+            String servicePath = prefix != null ? prefix : "";
+            // we should usually end the prefix path with a slash for web apps at least
+            if (servicePath.length() > 0 && !servicePath.endsWith("/")) {
+                servicePath += "/";
+            }
+            if (remaining != null) {
+                servicePath += remaining;
+            }
+
+            LOG.info("Proxying request {} to service path: {} on service: {} reverseServiceUrl: {}", uri, servicePath, proxyServiceUrl, reverseServiceUrl);
+            final HttpClient finalClient = client;
+            Handler<HttpClientResponse> responseHandler = new Handler<HttpClientResponse>() {
+                public void handle(HttpClientResponse clientResponse) {
+                    LOG.debug("Proxying response: {}", clientResponse.statusCode());
+                    request.response().setStatusCode(clientResponse.statusCode());
+                    request.response().headers().set(clientResponse.headers());
+                    request.response().setChunked(true);
+                    clientResponse.dataHandler(new Handler<Buffer>() {
+                        public void handle(Buffer data) {
+                            LOG.debug("Proxying response body: {}", data);
+                            request.response().write(data);
+                        }
+                    });
+                    clientResponse.endHandler(new VoidHandler() {
+                        public void handle() {
+                            request.response().end();
+                            finalClient.close();
+                        }
+                    });
+                }
+            };
+            if (mappedServices != null) {
+                ProxyMappingDetails proxyMappingDetails = new ProxyMappingDetails(proxyServiceUrl, reverseServiceUrl, servicePath);
+                responseHandler = mappedServices.wrapResponseHandlerInPolicies(request, responseHandler, proxyMappingDetails);
+            }
+            final HttpClientRequest clientRequest = client.request(request.method(), servicePath, responseHandler);
+            clientRequest.headers().set(request.headers());
+            clientRequest.setChunked(true);
+            request.dataHandler(new Handler<Buffer>() {
+                public void handle(Buffer data) {
+                    LOG.debug("Proxying request body: {}", data);
+                    clientRequest.write(data);
+                }
+            });
+            request.endHandler(new VoidHandler() {
+                public void handle() {
+                    LOG.debug("end of the request");
+                    clientRequest.end();
+                }
+            });
+
+        } else {
+            //  lets return a 404
+            LOG.info("Could not find matching proxy path for {} from paths: {}", uri, mappingRules.keySet());
+            request.response().setStatusCode(404);
+            request.response().close();
+        }
     }
 
     protected boolean isMappingIndexRequest(HttpServerRequest request) {
