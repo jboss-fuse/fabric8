@@ -15,8 +15,6 @@
  */
 package io.fabric8.gateway.handlers.http;
 
-import java.net.BindException;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vertx.java.core.Handler;
@@ -25,6 +23,7 @@ import org.vertx.java.core.http.HttpServer;
 import org.vertx.java.core.http.ServerWebSocket;
 
 /**
+ * Vert.x implementation of HTTP Gateway server
  */
 public class HttpGatewayServer {
     private static final transient Logger LOG = LoggerFactory.getLogger(HttpGatewayServer.class);
@@ -54,7 +53,7 @@ public class HttpGatewayServer {
     public void init() {
         server = vertx.createHttpServer();
         server.requestHandler(handler);
-        if( websocketHandler!=null ) {
+        if (websocketHandler != null) {
             server.setWebSocketSubProtocols("v10.stomp", "v11.stomp", "v12.stomp", "mqttv3.1", "mqttv3.1.1");
             server.websocketHandler(websocketHandler);
         }
@@ -62,7 +61,7 @@ public class HttpGatewayServer {
             server = server.listen(port, host);
             LOG.info("Attempt listening on port " + port + " and host " + host);
         } else {
-        	server = server.listen(port);
+            server = server.listen(port);
             LOG.info("Attempt listening on port " + port);
         }
     }
@@ -86,7 +85,6 @@ public class HttpGatewayServer {
     public Vertx getVertx() {
         return vertx;
     }
-
 
 }
 

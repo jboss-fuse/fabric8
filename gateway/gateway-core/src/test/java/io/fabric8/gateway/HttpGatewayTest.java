@@ -136,9 +136,9 @@ public class HttpGatewayTest {
                 return new InetSocketAddress("0.0.0.0", 8080);
             }
 
-			@Override
-			public void addCallDetailRecord(CallDetailRecord cdr) {
-			}
+            @Override
+            public void addCallDetailRecord(CallDetailRecord cdr) {
+            }
         });
         httpGatewayServer = new HttpGatewayServer(vertx, handler, null, 8080);
         httpGatewayServer.setHost("localhost");
