@@ -26,7 +26,7 @@ import org.vertx.java.core.buffer.Buffer;
 import org.vertx.java.core.http.HttpClient;
 import org.vertx.java.core.http.HttpClientRequest;
 import org.vertx.java.core.http.HttpClientResponse;
-import org.vertx.java.core.http.HttpHeaders;
+import static org.vertx.java.core.http.HttpHeaders.*;
 import org.vertx.java.core.http.HttpServerRequest;
 import org.vertx.java.core.http.HttpServerResponse;
 
@@ -45,6 +45,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+import static java.net.HttpURLConnection.*;
 
 /**
  * Vert.x HTTP Gateway web handler
@@ -94,12 +95,12 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
     protected void doReturnIndex(HttpServerRequest request, Map<String, MappedServices> mappingRules) throws IOException {
         String json = mappingRulesToJson(mappingRules);
         HttpServerResponse response = request.response();
-        response.headers().set("ContentType", "application/json");
+        response.headers().set(CONTENT_TYPE, "application/json");
         if ("HEAD".equals(request.method())) {
             // For HEAD method you must not return message body but must send 'Content-Length' header
             // https://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html#sec9.4
             String contentLength = String.valueOf(new Buffer(json).length());
-            response.putHeader(HttpHeaders.CONTENT_LENGTH, contentLength)
+            response.putHeader(CONTENT_LENGTH, contentLength)
                     .end();
         } else {
             response.end(json);
@@ -187,7 +188,7 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
                     LOG.debug("Proxying response: {}", clientResponse.statusCode());
                     request.response().setStatusCode(clientResponse.statusCode());
                     request.response().headers().set(clientResponse.headers());
-                    request.response().setChunked(true);
+                    applyChunkedEncoding(request.response());
                     clientResponse.dataHandler(new Handler<Buffer>() {
                         public void handle(Buffer data) {
                             LOG.debug("Proxying response body: {}", data);
@@ -264,6 +265,19 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
         } catch (URISyntaxException e) {
             LOG.debug("Exception caught while normalizing URI path - proceeding with the original path value", e);
             return null;
+        }
+    }
+
+    /**
+     * Set chunkedEncoding header based on HTTP specs
+     */
+    protected void applyChunkedEncoding(HttpServerResponse re){
+        switch (re.getStatusCode()){
+            case HTTP_NO_CONTENT:
+                re.setChunked(false);
+                break;
+            default:
+                re.setChunked(true);
         }
     }
 }
