@@ -71,12 +71,12 @@ public class AgentTest {
 
         String[] bundles = {
                 "mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.api/1.0.1",
-                "mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.cm/1.0.9",
-                "mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.core/1.7.1",
+                "mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.cm/1.1.0",
+                "mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.core/1.8.0",
                 "mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.core.compatibility/1.0.0",
-                "mvn:org.apache.aries.proxy/org.apache.aries.proxy.api/1.0.1",
-                "mvn:org.apache.aries.proxy/org.apache.aries.proxy.impl/1.0.5",
-                "mvn:org.apache.aries/org.apache.aries.util/1.1.0",
+                "mvn:org.apache.aries.proxy/org.apache.aries.proxy.api/1.1.0",
+                "mvn:org.apache.aries.proxy/org.apache.aries.proxy/1.1.0",
+                "mvn:org.apache.aries/org.apache.aries.util/1.1.3",
                 "mvn:org.apache.felix/org.apache.felix.configadmin/1.8.12",
                 "mvn:org.apache.karaf.jaas/org.apache.karaf.jaas.command/" + karafVersion,
                 "mvn:org.apache.karaf.jaas/org.apache.karaf.jaas.config/" + karafVersion,

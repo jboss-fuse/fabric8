@@ -110,8 +110,7 @@
         <bundle start-level="40">mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.cm/${aries-blueprint-cm-version}</bundle>
 
         <bundle start-level="40">mvn:org.apache.aries/org.apache.aries.util/${aries-util-version}</bundle>
-        <bundle start-level="40">mvn:org.apache.aries.proxy/org.apache.aries.proxy.api/${aries-proxy-api-version}</bundle>
-        <bundle start-level="40">mvn:org.apache.aries.proxy/org.apache.aries.proxy.impl/${aries-proxy-impl-version}</bundle>
+        <bundle start-level="40">mvn:org.apache.aries.proxy/org.apache.aries.proxy/${aries-proxy-impl-version}</bundle>
         <bundle start-level="40">mvn:org.ow2.asm/asm-all/${asm.version}</bundle>
         <bundle start-level="50">mvn:org.apache.aries.jmx/org.apache.aries.jmx.api/${aries-jmx-api-version}</bundle>
         <bundle start-level="50">mvn:org.apache.aries.jmx/org.apache.aries.jmx.core/${aries-jmx-core-version}</bundle>
