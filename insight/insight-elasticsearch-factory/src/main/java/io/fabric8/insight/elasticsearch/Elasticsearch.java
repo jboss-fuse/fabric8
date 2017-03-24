@@ -22,8 +22,6 @@ import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.elasticsearch.client.ClusterAdminClient;
 import org.elasticsearch.node.Node;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -36,20 +34,15 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service({ElasticsearchMBean.class})
 public class Elasticsearch implements ElasticsearchMBean {
 
-    public static Logger LOG = LoggerFactory.getLogger(Elasticsearch.class);
-
     @Reference
     private MBeanServer mbeanServer;
 
     @Reference(name = "node", policy = ReferencePolicy.DYNAMIC, referenceInterface = org.elasticsearch.node.Node.class, cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE)
     private final Map<String, Set<Node>> nodesClusterMap = new ConcurrentHashMap<String, Set<Node>>();
 
-    private ObjectName fabricManager;
-
     @Activate
     void activate(Map<String, ?> configuration) throws Exception {
         JMXUtils.registerMBean(this, mbeanServer, new ObjectName("io.fabric8.insight:type=Elasticsearch"));
-        fabricManager = new ObjectName("io.fabric8:type=Fabric");
     }
 
     @Deactivate
@@ -74,17 +67,8 @@ public class Elasticsearch implements ElasticsearchMBean {
     public String getRestUrl(String clusterName) {
         NodeInfo[] nodes = getNodeInfo(clusterName);
         if (nodes != null && nodes.length > 0) {
-            String publishAddress = nodes[0].getHttp().address().publishAddress().toString();
-            String proxy = "";
-            try {
-                String url = (String)mbeanServer.invoke(fabricManager, "webConsoleUrl", new Object[0], new String[0]);
-                if (url != null) {
-                    proxy = url + "/proxy/";
-                }
-            } catch (Exception ex) {
-                LOG.warn(ex.getMessage(), ex);
-            }
-            return String.format("%s%s", proxy, publishAddress.substring(0, publishAddress.lastIndexOf(']')).replaceFirst("inet\\[.*\\/", "http://"));
+            String publishAddress = nodes[0].getHttp().address().publishAddress().toString().substring(0);
+            return publishAddress.substring(0, publishAddress.lastIndexOf(']')).replaceFirst("inet\\[.*\\/", "http://");
         }
         return null;
     }
