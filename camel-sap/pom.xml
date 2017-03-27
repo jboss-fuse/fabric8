@@ -668,7 +668,7 @@
                 <enabled>true</enabled>
                 <updatePolicy>never</updatePolicy>
             </releases>
-        </repository>		
+        </repository>
 		<repository>
 			<id>fusesource-third-party-internal</id>
 			<url>https://repository.jboss.org/nexus/content/repositories/fs-releases/</url>
@@ -685,6 +685,17 @@
 			<url>http://download.eng.bos.redhat.com/brewroot/repos/jb-fsw-6.2-build/latest/maven</url>
 			<layout>default</layout>
 		</repository>
+    <repository>
+      <id>jboss.public.repo</id>
+      <name>JBoss Public Repository</name>
+      <url>http://repository.jboss.org/nexus/content/repositories/public</url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+    </repository>
 	</repositories>
 	<pluginRepositories>
 		<pluginRepository>
