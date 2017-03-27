@@ -29,7 +29,7 @@
 	<properties>
 		<tycho-version>0.24.0</tycho-version>
 		<!-- JBoss Tools Integration Stack version -->
-    	<jbtis.version>4.3.1.Final</jbtis.version>
+    	<jbtis.version>4.4.2.Final</jbtis.version>
 		
 		<maven.compiler.target>1.7</maven.compiler.target>
 		<maven.compiler.source>1.7</maven.compiler.source>
@@ -647,8 +647,8 @@
 	</modules>
 	<repositories>
 		<repository>
-			<id>eclipse-mars</id>
-			<url>http://download.eclipse.org/releases/mars/</url>
+			<id>eclipse-neon</id>
+			<url>http://download.eclipse.org/releases/neon/</url>
 			<layout>p2</layout>
 			<snapshots>
 				<enabled>true</enabled>
