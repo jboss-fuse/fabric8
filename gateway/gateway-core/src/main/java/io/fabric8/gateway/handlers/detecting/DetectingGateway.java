@@ -240,10 +240,16 @@ public class DetectingGateway implements DetectingGatewayMBean {
         });
         readStream.dataHandler(new Handler<Buffer>() {
             Buffer received = new Buffer();
-
+            {
+                LOG.debug("Inititalized new Handler[{}] for socket: {}", this, socket.remoteAddress());
+            }
             @Override
             public void handle(Buffer event) {
                 received.appendBuffer(event);
+                if(LOG.isTraceEnabled()) {
+                    LOG.trace("Socket received following data: {}", event.copy().toString().replaceAll("\r"," " ));
+                    LOG.trace("Data handled by Handler {}", this.toString());
+                }
                 for (final Protocol protocol : protocols) {
                     if (protocol.matches(received)) {
                         if ("ssl".equals(protocol.getProtocolName())) {
@@ -432,9 +438,13 @@ public class DetectingGateway implements DetectingGatewayMBean {
                     socketToServer.endHandler(endHandler);
                     socketToServer.exceptionHandler(exceptionHandler);
 
+                    if(LOG.isTraceEnabled()){
+                        LOG.trace("Sending out to destination socket: {}", received);
+                    }
                     socketToServer.write(received);
                     Pump.createPump(socketToServer, socketFromClient.writeStream()).start();
                     Pump.createPump(socketFromClient.readStream(), socketToServer).start();
+                    LOG.debug("socketFromClient {} has been connected to socketToServer {}", socketFromClient.remoteAddress(), socketToServer.remoteAddress());
                 }
             }
         });
