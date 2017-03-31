@@ -98,8 +98,7 @@ public abstract class SapRfcServerComponent extends UriEndpointComponent {
 
 			server.setCallHandlerFactory(new FunctionHandlerFactory());
 			
-			File tidStoreFile = new File(tidStoresLocation, serverName);
-			server.setTIDHandler(new ServerTIDHandler(tidStoreFile));
+			server.setTIDHandler(new ServerTIDHandler(tidStoresLocation, serverName));
 
 			server.addServerExceptionListener(serverErrorAndExceptionListener);
 			server.addServerErrorListener(serverErrorAndExceptionListener);

@@ -32,7 +32,7 @@ import com.sap.conn.jco.server.JCoServerExceptionListener;
  */
 public class ServerErrorAndExceptionListener implements JCoServerErrorListener, JCoServerExceptionListener {
 
-	private static final Logger LOG = LoggerFactory.getLogger(SapSynchronousRfcServerComponent.class);
+	private static final Logger LOG = LoggerFactory.getLogger(ServerErrorAndExceptionListener.class);
 
 	@Override
 	public void serverExceptionOccurred(JCoServer jcoServer, String connectionId,
