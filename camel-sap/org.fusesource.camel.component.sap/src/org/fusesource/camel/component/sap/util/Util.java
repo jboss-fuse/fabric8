@@ -24,6 +24,7 @@ import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EAnnotation;
 import org.eclipse.emf.ecore.EClass;
+import org.eclipse.emf.ecore.EcorePackage;
 import org.eclipse.emf.ecore.EClassifier;
 import org.eclipse.emf.ecore.EModelElement;
 import org.eclipse.emf.ecore.EObject;
@@ -42,6 +43,8 @@ import org.eclipse.emf.ecore.xmi.XMLResource;
 import org.eclipse.emf.ecore.xmi.impl.EcoreResourceFactoryImpl;
 import org.eclipse.emf.ecore.xmi.impl.XMLParserPoolImpl;
 import org.eclipse.emf.ecore.xmi.impl.XMLResourceImpl;
+import org.eclipse.emf.ecore.xml.namespace.XMLNamespacePackage;
+import org.eclipse.emf.ecore.xml.type.XMLTypePackage;
 import org.eclipse.emf.edit.command.SetCommand;
 import org.eclipse.emf.edit.domain.AdapterFactoryEditingDomain;
 import org.eclipse.emf.edit.domain.EditingDomain;
@@ -126,6 +129,7 @@ public class Util {
 	 * @throws IOException
 	 */
 	public static void save(File file, EObject eObject) throws IOException {
+		ensureXMLPackages();
 		URI uri = URI.createFileURI(file.getAbsolutePath());
 		Resource res = new XMLResourceImpl(uri);
 		eObject = EcoreUtil.copy(eObject);
@@ -148,6 +152,7 @@ public class Util {
 	 * @throws IOException
 	 */
 	public static EObject load(File file) throws IOException {
+		ensureXMLPackages();
 		URI uri = URI.createFileURI(file.getAbsolutePath());
 		Resource res = new XMLResourceImpl(uri);
 
@@ -588,4 +593,9 @@ public class Util {
 		}
 	}
 
+	private static void ensureXMLPackages() {
+		Object tmp = XMLTypePackage.eINSTANCE;
+		tmp = XMLNamespacePackage.eINSTANCE;
+		tmp = EcorePackage.eINSTANCE;
+	}
 }

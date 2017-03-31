@@ -73,8 +73,8 @@ public class ServerTIDHandler implements JCoServerTIDHandler {
 
 	File tidStoreFile;
 
-	public ServerTIDHandler(File tidStoreFile)  throws Exception {
-		this.tidStoreFile = tidStoreFile;
+	public ServerTIDHandler(File tidStoreLocation, String serverName) throws Exception {
+		this.tidStoreFile = new File(tidStoreLocation, serverName);
 		loadTIDs();
 	}
 
@@ -151,13 +151,22 @@ public class ServerTIDHandler implements JCoServerTIDHandler {
 		Util.save(tidStoreFile, availableTIDs);
 	}
 
-	private void loadTIDs()  throws Exception {
+	private void loadTIDs() throws Exception {
 		try {
 			TIDStore tidStore = (TIDStore) Util.load(tidStoreFile);
 			availableTIDs.getEntries().clear();
 			availableTIDs.getEntries().addAll(tidStore.getEntries());
 		} catch (FileNotFoundException e) {
 			// No file saved yet: ignore.
+		} catch (Exception e) {
+			// Assume File is corrupted: delete file.
+			LOG.warn("Failed to load TID store file: deleting TID store file");
+			LOG.debug("Failed to load TID store file", e);
+			try {
+				tidStoreFile.delete();
+			} catch (Exception e1) {
+				// Ignore
+			}
 		}
 	}
 
