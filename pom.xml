@@ -201,7 +201,7 @@
         <felix-scr-annotations-version>1.9.8</felix-scr-annotations-version>
         <felix-scr-ds-annotations-version>1.2.4</felix-scr-ds-annotations-version>
         <felix-scr-plugin-version>1.16.0</felix-scr-plugin-version>
-        <felix-scr-version>1.8.2</felix-scr-version>
+        <felix-scr-version>1.8.4</felix-scr-version>
         <felix-utils-version>1.8.0</felix-utils-version>
         <felix.obr.version>2.0.4</felix.obr.version>
         <felix.prefs.version>1.0.4</felix.prefs.version>
