@@ -15,15 +15,21 @@
  */
 package io.fabric8.gateway.fabric.http;
 
+import io.fabric8.api.FabricService;
 import io.fabric8.api.scr.AbstractComponent;
 import io.fabric8.api.scr.Configurer;
 import io.fabric8.api.scr.ValidatingReference;
+import io.fabric8.gateway.handlers.http.HttpMappingRule;
 import io.fabric8.internal.Objects;
+import io.fabric8.zookeeper.ZkPath;
 import io.fabric8.zookeeper.internal.SimplePathTemplate;
 
+import java.io.IOException;
 import java.util.Map;
 
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.cache.NodeCache;
+import org.apache.curator.framework.recipes.cache.NodeCacheListener;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -55,6 +61,8 @@ public final class HttpMappingRuleConfiguration extends AbstractComponent {
     private final ValidatingReference<CuratorFramework> curator = new ValidatingReference<CuratorFramework>();
     @Reference(referenceInterface = FabricHTTPGateway.class)
     private final ValidatingReference<FabricHTTPGateway> gateway = new ValidatingReference<FabricHTTPGateway>();
+    @Reference(referenceInterface = FabricService.class)
+    private final ValidatingReference<FabricService> fabricService = new ValidatingReference<FabricService>();
 
     @Property(name = "zooKeeperPath", value = "/fabric/registry/clusters/webapps",
             label = "ZooKeeper path", description = "The path in ZooKeeper which is monitored to discover the available web services or web applications")
@@ -86,6 +94,13 @@ public final class HttpMappingRuleConfiguration extends AbstractComponent {
             label = "Sticky Load Balancer Cache Size", description = "The number of unique client keys to cache for the sticky load balancer (using an LRU caching algorithm)")
     private int stickyLoadBalancerCacheSize = LoadBalancers.STICKY_LOAD_BALANCER_DEFAULT_CACHE_SIZE;
 
+    @Property(name = "immediateUpdate", boolValue = false,
+            label = "Immediate Update", description = "Monitors ZooKeeper registry to immediately reflects updates. Keep this disabled if you are using roll up updates.")
+    private boolean immediateUpdate = false;
+
+    private NodeCache nodeCache;
+
+
     private HttpMappingRuleBase httpMappingRuleBase;
 
     private HttpMappingZooKeeperTreeCache mappingTree;
@@ -94,12 +109,14 @@ public final class HttpMappingRuleConfiguration extends AbstractComponent {
     void activate(Map<String, ?> configuration) throws Exception {
         activateComponent();
         updateConfiguration(configuration);
+        initializeNodeCache(configuration);
     }
 
     @Modified
     void modified(Map<String, ?> configuration) throws Exception {
         deactivateInternal();
         updateConfiguration(configuration);
+        initializeNodeCache(configuration);
     }
 
     @Deactivate
@@ -176,6 +193,49 @@ public final class HttpMappingRuleConfiguration extends AbstractComponent {
             mappingTree.destroy();
             mappingTree = null;
         }
+
+        if(nodeCache != null){
+            try {
+                nodeCache.close();
+            } catch (IOException e) {
+                LOG.warn("Possible problems when disabling immediateUpdate in HTTP Gateway rule ", e);
+            }
+            nodeCache = null;
+        }
+    }
+
+    private void initializeNodeCache(final Map<String, ?> configuration) {
+        if(immediateUpdate == true){
+            if(nodeCache == null){
+                final String containerName = fabricService.get().getCurrentContainer().getId();
+                final String factoryPid = (String) configuration.get("fabric.zookeeper.pid");
+                nodeCache = new NodeCache(curator.get(), ZkPath.CONFIG_CONTAINER.getPath(containerName));
+                nodeCache.getListenable().addListener(new NodeCacheListener() {
+                    @Override
+                    public void nodeChanged() throws Exception {
+                        LOG.info("Detected version change in container {} with http gateway profile {}.", containerName, factoryPid);
+                        updateConfiguration(configuration);
+                    }
+                });
+                try {
+                    nodeCache.start();
+                    LOG.info("Enabling immediateUpdate in HTTP Gateway on container {} for factoryPid={}.", containerName, factoryPid);
+                } catch (Exception e) {
+                    LOG.warn("Possible problems when enabling immediateUpdate in HTTP Gateway rule", e);
+                }
+            }
+        } else {
+            if (nodeCache != null){
+                try {
+                    LOG.info("Disabling immediateUpdate in HTTP Gateway");
+                    nodeCache.close();
+                    nodeCache = null;
+                } catch (IOException e) {
+                    LOG.warn("Possible problems when disabling immediateUpdate in HTTP Gateway", e);
+                }
+            }
+        }
+
     }
 
     void bindCurator(CuratorFramework curator) {
@@ -192,6 +252,14 @@ public final class HttpMappingRuleConfiguration extends AbstractComponent {
 
     void unbindGateway(FabricHTTPGateway gateway) {
         this.gateway.unbind(gateway);
+    }
+
+    void bindFabricService(FabricService fabricService) {
+        this.fabricService.bind(fabricService);
+    }
+
+    void unbindFabricService(FabricService fabricService) {
+        this.fabricService.unbind(fabricService);
     }
 
     @Override
