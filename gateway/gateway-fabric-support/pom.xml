@@ -38,6 +38,7 @@
         <fuse.osgi.import>
             META-INF.services.*,
             io.fabric8.gateway.*,
+            io.fabric8.vertx.*,
             org.vertx.java.core.impl,
             org.vertx*,
             io.netty*,
