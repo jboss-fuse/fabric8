@@ -71,7 +71,7 @@ public class DetectingGateway implements DetectingGatewayMBean {
     final AtomicLong failedConnectionAttempts = new AtomicLong();
     Set<SocketWrapper> socketsConnecting = Collections.synchronizedSet(new HashSet<SocketWrapper>());
     Set<ConnectedSocketInfo> socketsConnected = Collections.synchronizedSet(new HashSet<ConnectedSocketInfo>());
-    private ShutdownTracker shutdownTacker = new ShutdownTracker();
+    private volatile ShutdownTracker shutdownTracker = new ShutdownTracker();
 
     private int port;
     private String host;
@@ -86,6 +86,7 @@ public class DetectingGateway implements DetectingGatewayMBean {
             super.handle(event);
         }
     };
+    private DetectingGatewayNetSocketHandler connectHandler;
 
     @Override
     public String toString() {
@@ -98,7 +99,8 @@ public class DetectingGateway implements DetectingGatewayMBean {
 
 
     public void init() {
-        server = vertx.createNetServer().connectHandler(new DetectingGatewayNetSocketHandler(this));
+        connectHandler = new DetectingGatewayNetSocketHandler(this);
+        server = vertx.createNetServer().connectHandler(connectHandler);
         if (host != null) {
             server = server.listen(port, host, listenFuture);
         } else {
@@ -114,6 +116,9 @@ public class DetectingGateway implements DetectingGatewayMBean {
         for (ConnectedSocketInfo socket : new ArrayList<>(socketsConnected)) {
             handleShutdown(socket);
         }
+        server = null;
+        connectHandler.setGateway(null);
+        connectHandler = null;
     }
 
     public String getHost() {
@@ -182,9 +187,9 @@ public class DetectingGateway implements DetectingGatewayMBean {
     SSLContext sslContext;
     SslSocketWrapper.ClientAuth clientAuth = SslSocketWrapper.ClientAuth.WANT;
 
-    public void setShutdownTacker(ShutdownTracker shutdownTacker) {
+    public void setShutdownTacker(ShutdownTracker shutdownTracker) {
 
-        this.shutdownTacker = shutdownTacker;
+        this.shutdownTracker = shutdownTracker;
     }
 
     static class ConnectedSocketInfo {
@@ -204,13 +209,14 @@ public class DetectingGateway implements DetectingGatewayMBean {
 
     public void handle(final SocketWrapper socket) {
         try {
-            shutdownTacker.retain();
+            shutdownTracker.retain();
             if( !socketsConnecting.add(socket) ) {
                 throw new AssertionError("Socket existed in the socketsConnecting set");
             }
         } catch (Throwable e) {
             LOG.debug("Could not accept connection from: "+socket.remoteAddress(), e);
             socket.close();
+            // shutdownTracker.release();
             return;
         }
         receivedConnectionAttempts.incrementAndGet();
@@ -219,6 +225,10 @@ public class DetectingGateway implements DetectingGatewayMBean {
             vertx.setTimer(connectionTimeout, new Handler<Long>() {
                 public void handle(Long timerID) {
                     if( socketsConnecting.contains(socket) ) {
+                        // we have to release also the underlying non-ssl connection in case of connection timeout
+                        if( socket instanceof SslSocketWrapper ){
+                            shutdownTracker.release();
+                        }
                         handleConnectFailure(socket, String.format("Gateway client '%s' protocol detection timeout.", socket.remoteAddress()));
                     }
                 }
@@ -332,12 +342,16 @@ public class DetectingGateway implements DetectingGatewayMBean {
 
     private void handleConnectFailure(SocketWrapper socket, String reason) {
         if( socketsConnecting.remove(socket) ) {
-            if( reason!=null ) {
-                LOG.info(reason);
+            try{
+                if( reason!=null ) {
+                    LOG.warn(reason);
+                }
+                failedConnectionAttempts.incrementAndGet();
+                socket.close();
+
+            } finally {
+                shutdownTracker.release();
             }
-            failedConnectionAttempts.incrementAndGet();
-            socket.close();
-            shutdownTacker.release();
         }
     }
 
@@ -451,10 +465,13 @@ public class DetectingGateway implements DetectingGatewayMBean {
     }
 
     private void handleShutdown(ConnectedSocketInfo connectedInfo) {
-        if( socketsConnected.remove(connectedInfo) ) {
-            connectedInfo.from.close();
-            connectedInfo.to.close();
-            shutdownTacker.release();
+        try {
+            if (socketsConnected.remove(connectedInfo)) {
+                connectedInfo.from.close();
+                connectedInfo.to.close();
+            }
+        } finally {
+            shutdownTracker.release();
         }
     }
 
