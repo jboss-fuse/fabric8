@@ -20,6 +20,7 @@ import io.fabric8.api.scr.AbstractComponent;
 import io.fabric8.api.scr.Configurer;
 import io.fabric8.common.util.JMXUtils;
 import io.fabric8.common.util.ShutdownTracker;
+import io.fabric8.common.util.ShutdownTracker.ShutdownException;
 import io.fabric8.common.util.Strings;
 import io.fabric8.gateway.ServiceMap;
 import io.fabric8.gateway.fabric.http.FabricHTTPGateway;
@@ -36,13 +37,16 @@ import io.fabric8.gateway.handlers.detecting.protocol.stomp.StompProtocol;
 import io.fabric8.gateway.loadbalancer.LoadBalancer;
 import io.fabric8.gateway.loadbalancer.LoadBalancers;
 import io.fabric8.internal.Objects;
+
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.felix.scr.annotations.*;
+import org.osgi.service.component.ComponentException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
+import javax.net.ssl.SSLContext;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Map;
@@ -50,12 +54,13 @@ import java.util.Map;
 /**
  * A gateway which listens to a part of the ZooKeeper tree for messaging services and exposes those over a protocol detecting port.
  */
-@Component(name = "io.fabric8.gateway.detecting", immediate = true, metatype = true, policy = ConfigurationPolicy.REQUIRE,
+@Component(name = FabricDetectingGateway.COMPONENT_NAME, immediate = true, metatype = true, policy = ConfigurationPolicy.REQUIRE,
         label = "Fabric8 Detecting Gateway",
         description = "Provides a discovery and load balancing gateway between clients using various messaging protocols and the available message brokers in the fabric")
 @Service(FabricDetectingGatewayService.class)
 public class FabricDetectingGateway extends AbstractComponent implements FabricDetectingGatewayService {
     private static final transient Logger LOG = LoggerFactory.getLogger(FabricDetectingGateway.class);
+    public static final String COMPONENT_NAME = "io.fabric8.gateway.detecting";
 
     @Reference
     private MBeanServer mbeanServer;
@@ -172,18 +177,23 @@ public class FabricDetectingGateway extends AbstractComponent implements FabricD
     private DetectingGateway detectingGateway;
     private GatewayServiceTreeCache cache;
     private ServiceMap serviceMap = new ServiceMap();
-    final private ShutdownTracker shutdownTacker = new ShutdownTracker();
+    private volatile ShutdownTracker shutdownTacker;
 
     @Activate
     void activate(Map<String, ?> configuration) throws Exception {
+        shutdownTacker = new ShutdownTracker();
+        initialize(configuration);
+    }
+
+    protected void initialize( Map<String, ?> configuration) throws Exception {
         configurer.configure(configuration, this);
         Objects.notNull(getVertxService(), "vertxService");
         Objects.notNull(getZooKeeperPath(), "zooKeeperPath");
         activateComponent();
 
         detectingGateway = createDetectingGateway();
-        if( detectingGateway!=null ) {
-            if( httpGateway!=null ) {
+        if (detectingGateway != null) {
+            if (httpGateway != null) {
                 detectingGateway.setHttpGateway(httpGateway.getLocalAddress());
             }
             cache = new GatewayServiceTreeCache(getCurator(), getZooKeeperPath(), serviceMap);
@@ -199,13 +209,37 @@ public class FabricDetectingGateway extends AbstractComponent implements FabricD
         deactivateComponent();
         if (detectingGateway != null) {
             cache.destroy();
-            detectingGateway.destroy();
+            detectingGateway.destroy(); 
+            detectingGateway = null;
         }
-        shutdownTacker.stop();
+        try {
+            shutdownTacker.stop();
+        } catch (ShutdownException e){
+            LOG.error("Exception while shutting down Detecting Gateway", e);
+        }
+    }
+
+    @Modified
+    void modified( Map<String, ?> configuration) throws Exception {
+        deactivate();
+        LOG.info("Re-initializing FabricDetectingGateway");
+        httpGateway.unbindFabricDetectingGatewayService(this);
+        activate(configuration);
+        httpGateway.bindFabricDetectingGatewayService(this);
     }
 
     protected DetectingGateway createDetectingGateway() {
         DetectingGateway gateway = new DetectingGateway();
+
+        VertxService vertxService = getVertxService();
+        LoadBalancer serviceLoadBalancer = LoadBalancers.createLoadBalancer(loadBalancerType, stickyLoadBalancerCacheSize);
+        gateway.setVertx(vertxService.getVertx());
+        gateway.setPort(port);
+        gateway.setServiceMap(serviceMap);
+        gateway.setShutdownTacker(shutdownTacker);
+        gateway.setServiceLoadBalancer(serviceLoadBalancer);
+        gateway.setDefaultVirtualHost(defaultVirtualHost);
+
         ArrayList<Protocol> protocols = new ArrayList<Protocol>();
         if( isStompEnabled() ) {
             protocols.add(new StompProtocol());
@@ -258,6 +292,13 @@ public class FabricDetectingGateway extends AbstractComponent implements FabricD
                 sslConfig.setDisabledCypherSuites(disabledCypherSuites);
             }
             gateway.setSslConfig(sslConfig);
+            //validating configuration
+            try {
+                SSLContext sslContext = SSLContext.getInstance(sslConfig.getProtocol());
+                sslContext.init(sslConfig.getKeyManagers(), sslConfig.getTrustManagers(), null);
+            } catch (Exception e) {
+                throw new ComponentException(e);
+            }
             protocols.add(new SslProtocol());
         }
 
@@ -265,15 +306,7 @@ public class FabricDetectingGateway extends AbstractComponent implements FabricD
             return null;
         }
 
-        VertxService vertxService = getVertxService();
-        LoadBalancer serviceLoadBalancer = LoadBalancers.createLoadBalancer(loadBalancerType, stickyLoadBalancerCacheSize);
-        gateway.setVertx(vertxService.getVertx());
-        gateway.setPort(port);
-        gateway.setServiceMap(serviceMap);
         gateway.setProtocols(protocols);
-        gateway.setShutdownTacker(shutdownTacker);
-        gateway.setServiceLoadBalancer(serviceLoadBalancer);
-        gateway.setDefaultVirtualHost(defaultVirtualHost);
         return gateway;
     }
 

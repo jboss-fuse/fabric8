@@ -67,10 +67,13 @@ public class ShutdownTracker {
      * @return false if the resource has already shutdown.
      */
     public boolean attemptRetain() {
+        LOG.trace("{} Trying to retain... retained:{}, stopping:{}",this, retained.get(), stopping.get());
         if( retained.getAndIncrement() == 0 || stopping.get() )  {
             retained.getAndDecrement(); // Undo the increment..
+            LOG.trace("{} Retain failed. retained:{}, stopping:{}",this, retained.get(), stopping.get());
             return false;
         } else {
+            LOG.trace("{} Retain succeded. retained:{}, stopping:{}",this, retained.get(), stopping.get());
             return true;
         }
     }
@@ -81,8 +84,10 @@ public class ShutdownTracker {
      * @throws IllegalStateException if an unbalanced number of release() calls are done in respect to retain() calls.
      */
     public void release() {
+        LOG.trace("{} Release notified. retained:{}, stopping:{}",this, retained.get(), stopping.get());
         if( retained.decrementAndGet()==0 ) {
             // not retained anymore? this should only happen when we are shutting down.
+            LOG.trace("{} All holders have released. retained:{}, stopping:{}",this, retained.get(), stopping.get());
             if( !stopping.get() ) {
                 if( !DISABLED ) {
                     throw new IllegalStateException("Unbalanced calls to release detected.");
@@ -91,10 +96,15 @@ public class ShutdownTracker {
                 }
             } else {
                 if( onStopCallback!=null ) {
+                    LOG.trace("{} Invoking release callbacks. retained:{}, stopping:{}",this, retained.get(), stopping.get());
                     onStopCallback.run();
                     onStopCallback = null;
+                    stopping.set(false);
+                    LOG.trace("{} Completely released. retained:{}, stopping:{}",this, retained.get(), stopping.get());
                 }
             }
+        } else {
+            LOG.trace("{} Release accepted. retained:{}, stopping:{}",this, retained.get(), stopping.get());
         }
     }
 
@@ -126,6 +136,7 @@ public class ShutdownTracker {
      */
     public void shutdown(Runnable onStopCallback) throws ShutdownException {
         if( stopping.compareAndSet(false, true) ) {
+            LOG.trace("{} Resource in shutdown state.", this);
             this.onStopCallback = onStopCallback;
             release();
         } else {
