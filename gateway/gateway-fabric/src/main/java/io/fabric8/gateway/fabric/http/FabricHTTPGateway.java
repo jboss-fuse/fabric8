@@ -238,13 +238,13 @@ public final class FabricHTTPGateway extends AbstractComponent implements HttpGa
         this.fabricService.unbind(fabricService);
     }
 
-    void bindFabricDetectingGatewayService(FabricDetectingGatewayService fabricDetectingGatewayService) {
+    public void bindFabricDetectingGatewayService(FabricDetectingGatewayService fabricDetectingGatewayService) {
         this.fabricDetectingGatewayService.bind(fabricDetectingGatewayService);
         LOG.info("Detecting Gateway address is: " + fabricDetectingGatewayService.getDetectingGateway().getHttpGateway());
         websocketHandler.setGateway(fabricDetectingGatewayService.getDetectingGateway());
     }
 
-    void unbindFabricDetectingGatewayService(FabricDetectingGatewayService fabricDetectingGatewayService) {
+    public void unbindFabricDetectingGatewayService(FabricDetectingGatewayService fabricDetectingGatewayService) {
         this.fabricDetectingGatewayService.unbind(fabricDetectingGatewayService);
         websocketHandler.setGateway(null);
     }
