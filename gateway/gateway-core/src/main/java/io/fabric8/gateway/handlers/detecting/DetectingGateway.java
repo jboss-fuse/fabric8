@@ -419,12 +419,14 @@ public class DetectingGateway implements DetectingGatewayMBean {
      */
     private NetClient createClient(final ConnectionParameters params, final SocketWrapper socketFromClient, final URI url, final Buffer received) {
         final NetClient netClient = vertx.createNetClient();
+        socketFromClient.readStream().pause();
         return netClient.connect(url.getPort(), url.getHost(), new Handler<AsyncResult<NetSocket>>() {
             public void handle(final AsyncResult<NetSocket> asyncSocket) {
 
                 if( !asyncSocket.succeeded() ) {
                     handleConnectFailure(socketFromClient, String.format("Could not connect to '%s'", url));
                 } else {
+                    socketFromClient.readStream().resume();
                     final NetSocket socketToServer = asyncSocket.result();
 
                     successfulConnectionAttempts.incrementAndGet();

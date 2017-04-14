@@ -76,6 +76,7 @@ public class TcpGatewayHandler implements Handler<NetSocket> {
                                 if (Objects.equal(protocol, urlProtocol)) {
                                     Handler<AsyncResult<NetSocket>> handler = new Handler<AsyncResult<NetSocket>>() {
                                         public void handle(final AsyncResult<NetSocket> asyncSocket) {
+                                            socket.resume();
                                             NetSocket clientSocket = asyncSocket.result();
                                             Pump.createPump(clientSocket, socket).start();
                                             Pump.createPump(socket, clientSocket).start();
@@ -109,6 +110,7 @@ public class TcpGatewayHandler implements Handler<NetSocket> {
         int port = url.getPort();
         String host = url.getHost();
         LOG.info("Connecting " + socket.remoteAddress() + " to host " + host + " port " + port + " protocol " + protocol);
+        socket.pause();
         return client.connect(port, host, handler);
     }
 }
