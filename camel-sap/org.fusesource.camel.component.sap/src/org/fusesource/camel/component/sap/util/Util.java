@@ -11,6 +11,7 @@ import java.io.OutputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -64,6 +65,10 @@ import com.sap.conn.jco.JCoRequest;
 public class Util {
 
 	public static final Registry registry = EPackage.Registry.INSTANCE;
+	
+	public static final SimpleDateFormat sapDateFormat = new SimpleDateFormat("yyyyMMdd");
+
+	public static final SimpleDateFormat sapTimeFormat = new SimpleDateFormat("HHmmss");
 
 	/**
 	 * Marshals the given {@link EObject} into a string.
