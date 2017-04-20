@@ -1478,11 +1478,7 @@ public class RfcUtil extends Util {
 			return null;
 		}
 		jcoDefaultDateValue = stripSingleQuotePrefixSuffix(jcoDefaultDateValue);
-		try {
-			return sapDateFormat.parse(jcoDefaultDateValue);
-		} catch (ParseException e) {
-			return null;
-		}
+		return convertSapDateStringToDate(jcoDefaultDateValue);
 	}
 	
 	/**
@@ -1499,11 +1495,7 @@ public class RfcUtil extends Util {
 			return null;
 		}
 		jcoDefaultTimeValue = stripSingleQuotePrefixSuffix(jcoDefaultTimeValue);
-		try {
-			return sapTimeFormat.parse(jcoDefaultTimeValue);
-		} catch (ParseException e) {
-			return null;
-		}
+		return convertSapTimeStringToDate(jcoDefaultTimeValue);
 	}
 	
 	/**

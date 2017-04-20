@@ -11,8 +11,10 @@ import java.io.OutputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -66,9 +68,25 @@ public class Util {
 
 	public static final Registry registry = EPackage.Registry.INSTANCE;
 	
-	public static final SimpleDateFormat sapDateFormat = new SimpleDateFormat("yyyyMMdd");
+	private static final SimpleDateFormat sapDateFormat = new SimpleDateFormat("yyyyMMdd");
 
-	public static final SimpleDateFormat sapTimeFormat = new SimpleDateFormat("HHmmss");
+	private static final SimpleDateFormat sapTimeFormat = new SimpleDateFormat("HHmmss");
+
+	public static synchronized Date convertSapDateStringToDate(String sapDateString) {
+		try {
+			return sapDateFormat.parse(sapDateString);
+		} catch (ParseException e) {
+			return null;
+		}
+	}
+
+	public static synchronized Date convertSapTimeStringToDate(String sapTimeString) {
+		try {
+			return sapTimeFormat.parse(sapTimeString);
+		} catch (ParseException e) {
+			return null;
+		}
+	}
 
 	/**
 	 * Marshals the given {@link EObject} into a string.
