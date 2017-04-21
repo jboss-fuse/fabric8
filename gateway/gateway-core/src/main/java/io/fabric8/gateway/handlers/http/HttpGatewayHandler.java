@@ -56,6 +56,8 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
     private final HttpGateway httpGateway;
     private final ObjectMapper mapper = new ObjectMapper();
 
+    private boolean addMissingTrailingSlashes = true;
+
     public HttpGatewayHandler(Vertx vertx, HttpGateway httpGateway) {
         this.vertx = vertx;
         this.httpGateway = httpGateway;
@@ -122,7 +124,10 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
 
     protected void doRouteRequest(Map<String, MappedServices> mappingRules, final HttpServerRequest request) {
         String uri = request.uri();
-        String uri2 = normalizeUri(uri);
+        String uri2 = uri;
+        if(addMissingTrailingSlashes) {
+            uri2 = normalizeUri(uri);
+        } 
 
         HttpClient client = null;
         String remaining = null;
@@ -265,5 +270,9 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
             LOG.debug("Exception caught while normalizing URI path - proceeding with the original path value", e);
             return null;
         }
+    }
+    
+    public void setAddMissingTrailingSlashes(boolean addMissingTrailingSlashes) {
+        this.addMissingTrailingSlashes = addMissingTrailingSlashes;
     }
 }
