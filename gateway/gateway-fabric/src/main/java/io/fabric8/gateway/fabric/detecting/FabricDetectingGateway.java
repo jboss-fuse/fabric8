@@ -213,7 +213,12 @@ public class FabricDetectingGateway extends AbstractComponent implements FabricD
             detectingGateway = null;
         }
         try {
-            shutdownTacker.stop();
+            shutdownTacker.shutdown(new Runnable() {
+                @Override
+                public void run() {
+                    LOG.info("Invoked Shutdown on DetectingGateway.");
+                }
+            });
         } catch (ShutdownException e){
             LOG.error("Exception while shutting down Detecting Gateway", e);
         }
