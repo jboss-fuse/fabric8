@@ -225,10 +225,6 @@ public class DetectingGateway implements DetectingGatewayMBean {
             vertx.setTimer(connectionTimeout, new Handler<Long>() {
                 public void handle(Long timerID) {
                     if( socketsConnecting.contains(socket) ) {
-                        // we have to release also the underlying non-ssl connection in case of connection timeout
-                        if( socket instanceof SslSocketWrapper ){
-                            shutdownTracker.release();
-                        }
                         handleConnectFailure(socket, String.format("Gateway client '%s' protocol detection timeout.", socket.remoteAddress()));
                     }
                 }
@@ -295,7 +291,11 @@ public class DetectingGateway implements DetectingGatewayMBean {
                             assert removed;
                             receivedConnectionAttempts.decrementAndGet();
 
-                            DetectingGateway.this.handle(sslSocketWrapper);
+                            try {
+                                DetectingGateway.this.handle(sslSocketWrapper);
+                            } finally {
+                                shutdownTracker.release();
+                            }
                             return;
 
                         } else if ("http".equals(protocol.getProtocolName())) {
@@ -467,13 +467,13 @@ public class DetectingGateway implements DetectingGatewayMBean {
     }
 
     private void handleShutdown(ConnectedSocketInfo connectedInfo) {
-        try {
-            if (socketsConnected.remove(connectedInfo)) {
+        if (socketsConnected.remove(connectedInfo)) {
+            try {
                 connectedInfo.from.close();
                 connectedInfo.to.close();
+            } finally {
+                shutdownTracker.release();
             }
-        } finally {
-            shutdownTracker.release();
         }
     }
 
