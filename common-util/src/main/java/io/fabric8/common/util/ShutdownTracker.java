@@ -90,6 +90,7 @@ public class ShutdownTracker {
             LOG.trace("{} All holders have released. retained:{}, stopping:{}",this, retained.get(), stopping.get());
             if( !stopping.get() ) {
                 if( !DISABLED ) {
+                    retained.set(0);
                     throw new IllegalStateException("Unbalanced calls to release detected.");
                 } else {
                     LOG.info("Ignoring: release() failure, would have caused an IllegalStateException");
