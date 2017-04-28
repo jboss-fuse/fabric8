@@ -228,9 +228,13 @@ public class FabricDetectingGateway extends AbstractComponent implements FabricD
     void modified( Map<String, ?> configuration) throws Exception {
         deactivate();
         LOG.info("Re-initializing FabricDetectingGateway");
-        httpGateway.unbindFabricDetectingGatewayService(this);
+        if(httpGateway != null){
+            httpGateway.unbindFabricDetectingGatewayService(this);
+        }
         activate(configuration);
-        httpGateway.bindFabricDetectingGatewayService(this);
+        if(httpGateway != null){
+            httpGateway.bindFabricDetectingGatewayService(this);
+        }
     }
 
     protected DetectingGateway createDetectingGateway() {
