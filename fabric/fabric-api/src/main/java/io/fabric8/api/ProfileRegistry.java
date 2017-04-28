@@ -59,6 +59,7 @@ public interface ProfileRegistry {
      * @return The version id
      */
     String createVersion(Version version);
+    String modifyVersionDescription(Version version, String description);
 
     /**
      * Create the given version in the data store in the provided Git context.
