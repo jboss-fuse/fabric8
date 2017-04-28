@@ -149,7 +149,7 @@
         <asm.version>5.0.4</asm.version>
         <blueprint-web-version>1.0.0</blueprint-web-version>
         <bndlib-version>2.4.1</bndlib-version>
-        <bouncycastle-version>1.54</bouncycastle-version>
+        <bouncycastle-version>1.56</bouncycastle-version>
         <camel-version-range>[2.14,3)</camel-version-range>
         <camel-version>2.17.0.redhat-630260</camel-version>
         <cassandra-version>2.0.7</cassandra-version>
