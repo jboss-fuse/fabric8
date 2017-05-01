@@ -1005,6 +1005,7 @@ public class IDocUtil extends Util {
 		Segment segment = (Segment) ePackage.getEFactoryInstance().create(eClass);
 		DocumentImpl iDoc = (DocumentImpl) IdocFactory.eINSTANCE.createDocument();
 		iDoc.setRootSegment(segment);
+		((SegmentImpl) segment).setDocument(iDoc);
 		iDoc.setIDocType(iDocType);
 		iDoc.setIDocTypeExtension(iDocTypeExtension);
 		Date now = new Date();
