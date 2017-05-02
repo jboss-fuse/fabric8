@@ -1071,7 +1071,7 @@ public class IDocUtil extends Util {
 				return null;
 			}
 		} catch (Exception e) {
-			LOG.warn(e.getLocalizedMessage(), e);
+			LOG.warn("Failed to retrieve package '" + nsURI + "' :" + e.getLocalizedMessage(), e);
 			return null;
 		}
 
@@ -1406,7 +1406,7 @@ public class IDocUtil extends Util {
 				}
 			}
 		} catch (Exception e) {
-			LOG.warn("Failed to set value", e);
+			LOG.warn("Failed to set value on field '" + fieldName + "' in segment '" + segmentIdentifierString(segment) + "'", e);
 		}
 	}
 	
@@ -1469,7 +1469,7 @@ public class IDocUtil extends Util {
 				}
 			}
 		} catch (Exception e) {
-			LOG.warn("Failed to set value", e);
+			LOG.warn("Failed to set value on field '" + fieldName + "' in segment '" + segmentIdentifierString(segment) + "'", e);
 		}
 	}
 
@@ -1590,5 +1590,14 @@ public class IDocUtil extends Util {
 	                             + Character.digit(hexString.charAt(i+1), 16));
 	    }
 	    return data;		
+	}
+	
+	public static String segmentIdentifierString(Segment segment) {
+		return segment.getDocument().getMessageType() + ":" + 	// IDoc Message Type
+			   segment.getIdocType() + "-" + 					// IDoc Type
+			   segment.getIdocTypeExtension() + "-" + 
+			   segment.getApplicationRelease() + "-" + 
+			   segment.getSystemRelease() + ":" + 
+			   segment.getDefinition(); 						// Segment Definition
 	}
 }

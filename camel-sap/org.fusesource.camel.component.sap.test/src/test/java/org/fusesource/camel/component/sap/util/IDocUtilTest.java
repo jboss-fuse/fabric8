@@ -383,6 +383,8 @@ public class IDocUtilTest {
 		assertEquals("Loaded New Customer Segment has unexpected DISCOUNT", "005", newCustomerSegment.get("DISCOUNT"));
 		assertEquals("Loaded New Customer Segment has unexpected LANGU", "E", newCustomerSegment.get("LANGU"));
 
+		String segmentIdentifierString = IDocUtil.segmentIdentifierString(newCustomerSegment);
+		assertEquals("Segment identifier string has unexpected value", "FLCUSTOMER_CREATEFROMDATA:FLCUSTOMER_CREATEFROMDATA01---:E2BPSCUNEW000", segmentIdentifierString);
 	}
 
 	public void testMarshalUnmarshalIDoc() throws Exception {
@@ -419,6 +421,36 @@ public class IDocUtilTest {
 		document = (Document) IDocUtil.unmarshal(marshalledIDoc);
 
 		System.out.println(IDocUtil.marshal(document));
+	}
+	
+	@Test
+	public void testSegmentIdentifierString() throws Exception {
+		// Load base and derived IDoc packages in global registry from test
+		// file.
+		File file = new File("data/testLoadIDocRegistry.ecore");
+		IDocUtil.loadRegistry(file);
+
+		// Create IDoc document
+		Document document = IDocUtil.createDocument("NPL", "FLCUSTOMER_CREATEFROMDATA01", null, null, null);
+
+		// Fill in control info
+		document.setMessageType("FLCUSTOMER_CREATEFROMDATA");
+		document.setRecipientPartnerNumber("NPLCLNT002");
+		document.setRecipientPartnerType("LS");
+		document.setSenderPartnerNumber("JCOCLIENT");
+		document.setSenderPartnerType("LS");
+
+		Segment rootSegment = document.getRootSegment();
+		String segmentIdentifierString = IDocUtil.segmentIdentifierString(rootSegment);
+		assertEquals("Root Segment identifier string has unexpected value", "FLCUSTOMER_CREATEFROMDATA:FLCUSTOMER_CREATEFROMDATA01---:ROOT", segmentIdentifierString);
+		Segment headerSegment = rootSegment.getChildren("E1SCU_CRE").add();
+		segmentIdentifierString = IDocUtil.segmentIdentifierString(headerSegment);
+		assertEquals("Header Segment identifier string has unexpected value", "FLCUSTOMER_CREATEFROMDATA:FLCUSTOMER_CREATEFROMDATA01---:E2SCU_CRE000", segmentIdentifierString);
+		Segment newCustomerSegment = headerSegment.getChildren("E1BPSCUNEW").add();
+		segmentIdentifierString = IDocUtil.segmentIdentifierString(newCustomerSegment);
+		assertEquals("New Customer Segment identifier string has unexpected value", "FLCUSTOMER_CREATEFROMDATA:FLCUSTOMER_CREATEFROMDATA01---:E2BPSCUNEW000", segmentIdentifierString);
+
+
 	}
 
 	public static class IDocHandlerFactory implements JCoIDocHandlerFactory {
