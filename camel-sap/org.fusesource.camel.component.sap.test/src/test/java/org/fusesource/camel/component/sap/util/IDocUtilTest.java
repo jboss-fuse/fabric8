@@ -168,7 +168,7 @@ public class IDocUtilTest {
 		Segment rootSegment = document.getRootSegment();
 		assertEquals("New IDoc document has incorrect root segment type", "ROOT", rootSegment.getType());
 		assertEquals("Root segment of new IDoc document has incorrect hierarchy level", 1, rootSegment.getHierarchyLevel());
-		assertNotNull("Document reference not assinged to root segment", rootSegment.getDocument());
+		assertNotNull("Document reference not assigned to root segment", rootSegment.getDocument());
 	}
 
 	@Test
@@ -359,17 +359,17 @@ public class IDocUtilTest {
 
 		rootSegment = document.getRootSegment();
 		assertNotNull("Failed to load ROOT segment", rootSegment);
-		assertNotNull("Document reference not assinged to Root Segment", rootSegment.getDocument());
+		assertNotNull("Document reference not assigned to Root Segment", rootSegment.getDocument());
 
 		assertNotNull("Failed to load Header Segment", rootSegment.getChildren("E1SCU_CRE"));
 		headerSegment = rootSegment.getChildren("E1SCU_CRE").get(0);
 		assertNotNull("Failed to load Header Segment", headerSegment);
-		assertNotNull("Document reference not assinged to Header Segment", headerSegment.getDocument());
+		assertNotNull("Document reference not assigned to Header Segment", headerSegment.getDocument());
 
 		assertNotNull("Failed to load New Customer Segment", headerSegment.getChildren("E1BPSCUNEW"));
 		newCustomerSegment = headerSegment.getChildren("E1BPSCUNEW").get(0);
 		assertNotNull("Failed to load New Customer Segment", newCustomerSegment);
-		assertNotNull("Document reference not assinged to Customer Segment", newCustomerSegment.getDocument());
+		assertNotNull("Document reference not assigned to Customer Segment", newCustomerSegment.getDocument());
 
 		assertEquals("Loaded New Customer Segment has unexpected CUSTNAME", "Fred Flintstone", newCustomerSegment.get("CUSTNAME"));
 		assertEquals("Loaded New Customer Segment has unexpected FORM", "Mr.", newCustomerSegment.get("FORM"));
