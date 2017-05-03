@@ -61,7 +61,7 @@ public class StickyLoadBalancer implements LoadBalancer {
         T answer;
         synchronized (requestCache) {
             answer = (T) requestCache.get(clientKey);
-            if (answer == null) {
+            if (answer == null || !services.contains(answer)) {
                 answer = firstRequestLoadBalancer.choose(services, requestFacade);
                 if (answer != null) {
                     requestCache.put(clientKey, answer);
