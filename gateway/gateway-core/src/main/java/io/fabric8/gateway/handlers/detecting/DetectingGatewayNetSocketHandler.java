@@ -22,7 +22,8 @@ import org.vertx.java.core.net.NetSocket;
 /**
  */
 public class DetectingGatewayNetSocketHandler implements Handler<NetSocket> {
-    private final DetectingGateway gateway;
+
+    private DetectingGateway gateway;
 
     public DetectingGatewayNetSocketHandler(DetectingGateway gateway) {
         this.gateway = gateway;
@@ -31,6 +32,10 @@ public class DetectingGatewayNetSocketHandler implements Handler<NetSocket> {
     @Override
     public void handle(final NetSocket socket) {
         gateway.handle(SocketWrapper.wrap(socket));
+    }
+
+    public void setGateway(DetectingGateway gateway) {
+        this.gateway = gateway;
     }
 
 }
