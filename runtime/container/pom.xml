@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.fabric8.runtime</groupId>
         <artifactId>fabric-runtime</artifactId>
-        <version>1.2.0.redhat-630-SNAPSHOT</version>
+        <version>1.2.0.redhat-630254-06</version>
     </parent>
 
     <artifactId>fabric-runtime-container</artifactId>
