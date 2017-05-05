@@ -84,6 +84,10 @@ public final class FabricHTTPGateway extends AbstractComponent implements HttpGa
     @Property(name = "websocketGatewayPrefix", label = "Web Socket Path Prefix", description = "The prefix a websocket requests must have")
     private String websocketGatewayPrefix = "";
 
+    @Property(name = "addMissingTrailingSlashes", label = "Adds slashes at the end of proxied urls", description = "Adds slashes at the end of proxied urls in case they don't already end with a slash character")
+    private boolean addMissingTrailingSlashes = true;
+
+
     @Reference
     private Configurer configurer;
 
@@ -132,6 +136,7 @@ public final class FabricHTTPGateway extends AbstractComponent implements HttpGa
 
         Vertx vertx = getVertx();
         handler = new HttpGatewayHandler(vertx, this);
+        handler.setAddMissingTrailingSlashes(addMissingTrailingSlashes);
         websocketHandler.setPathPrefix(websocketGatewayPrefix);
         server = new HttpGatewayServer(vertx, handler, enableWebSocketGateway ? websocketHandler : null, port);
         server.init();
