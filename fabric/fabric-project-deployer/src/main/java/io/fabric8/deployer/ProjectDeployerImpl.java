@@ -197,7 +197,7 @@ public final class ProjectDeployerImpl extends AbstractComponent implements Proj
      */
     private void updateProfileConfiguration(Version version, Profile profile, ProjectRequirements requirements, ProjectRequirements oldRequirements, ProfileBuilder builder, boolean merge) {
         List<String> parentProfiles = Lists.mutableList(profile.getParentIds());
-        List<String> bundles = merge ? Lists.mutableList(profile.getBundles()) : new ArrayList<String>();
+        List<String> bundles = Lists.mutableList(profile.getBundles());
         List<String> features = Lists.mutableList(profile.getFeatures());
         List<String> repositories = Lists.mutableList(profile.getRepositories());
         if (!merge && oldRequirements != null) {
@@ -270,10 +270,16 @@ public final class ProjectDeployerImpl extends AbstractComponent implements Proj
         }
     }
 
-    private DeployResults resolveProfileDeployments(ProjectRequirements requirements, FabricService fabric, Profile profile, ProfileBuilder builder, boolean append) throws Exception {
+    private DeployResults resolveProfileDeployments(ProjectRequirements requirements, FabricService fabric, Profile profile, ProfileBuilder builder, boolean mergeWithOldProfile) throws Exception {
         DependencyDTO rootDependency = requirements.getRootDependency();
         ProfileService profileService = fabricService.get().adapt(ProfileService.class);
-
+        
+        if(!mergeWithOldProfile){
+            // If we're not merging with the old profile, then create a dummy empty profile to merge with instead.
+            ProfileBuilder emptyProfile = ProfileBuilder.Factory.create(profile.getVersion(),profile.getId()).setOverlay(true);
+            profile = emptyProfile.getProfile();
+        }
+        
         if (rootDependency != null) {
             // as a hack lets just add this bundle in
             LOG.info("Got root: " + rootDependency);
@@ -283,12 +289,9 @@ public final class ProjectDeployerImpl extends AbstractComponent implements Proj
             String bundleUrl = rootDependency.toBundleUrlWithType();
             LOG.info("Using resolver to add extra features and bundles on " + bundleUrl);
 
-            List<String> features = new ArrayList<String>();
-            List<String> bundles = new ArrayList<String>();
-            if(append){
-               bundles.addAll(profile.getBundles()); 
-            }
-            List<String> optionals = new ArrayList<String>();
+            List<String> features = new ArrayList<String>(profile.getFeatures());
+            List<String> bundles = new ArrayList<String>(profile.getBundles());
+            List<String> optionals = new ArrayList<String>(profile.getOptionals());
 
             if (requirements.getFeatures() != null) {
                 features.addAll(requirements.getFeatures());
