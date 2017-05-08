@@ -74,17 +74,24 @@ public class DetectingGatewayTest {
 
     // Setup Vertx
     protected Vertx vertx;
+    // used to swap threads since Vertx.stop() does funky stuff.
+    // see https://github.com/vert-x/mod-lang-clojure/commit/fa6f78874a0c3507955dc5743f833cfbbbb60cb5
+    Thread current = null;
+
     @Before
     public void startVertx() {
+        current = Thread.currentThread();
         if( vertx == null ) {
             vertx = VertxFactory.newVertx();
         }
     }
     @After
     public void stopVertx(){
+        ClassLoader tccl = current.getContextClassLoader();
         if( vertx!=null ) {
             vertx.stop();
             vertx = null;
+            current.setContextClassLoader(tccl);
         }
     }
 
