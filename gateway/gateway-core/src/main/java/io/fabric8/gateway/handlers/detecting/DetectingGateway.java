@@ -71,7 +71,7 @@ public class DetectingGateway implements DetectingGatewayMBean {
     final AtomicLong failedConnectionAttempts = new AtomicLong();
     Set<SocketWrapper> socketsConnecting = Collections.synchronizedSet(new HashSet<SocketWrapper>());
     Set<ConnectedSocketInfo> socketsConnected = Collections.synchronizedSet(new HashSet<ConnectedSocketInfo>());
-    private ShutdownTracker shutdownTacker = new ShutdownTracker();
+    private volatile ShutdownTracker shutdownTracker = new ShutdownTracker();
 
     private int port;
     private String host;
@@ -86,6 +86,7 @@ public class DetectingGateway implements DetectingGatewayMBean {
             super.handle(event);
         }
     };
+    private DetectingGatewayNetSocketHandler connectHandler;
 
     @Override
     public String toString() {
@@ -98,7 +99,8 @@ public class DetectingGateway implements DetectingGatewayMBean {
 
 
     public void init() {
-        server = vertx.createNetServer().connectHandler(new DetectingGatewayNetSocketHandler(this));
+        connectHandler = new DetectingGatewayNetSocketHandler(this);
+        server = vertx.createNetServer().connectHandler(connectHandler);
         if (host != null) {
             server = server.listen(port, host, listenFuture);
         } else {
@@ -114,6 +116,9 @@ public class DetectingGateway implements DetectingGatewayMBean {
         for (ConnectedSocketInfo socket : new ArrayList<>(socketsConnected)) {
             handleShutdown(socket);
         }
+        server = null;
+        connectHandler.setGateway(null);
+        connectHandler = null;
     }
 
     public String getHost() {
@@ -182,9 +187,9 @@ public class DetectingGateway implements DetectingGatewayMBean {
     SSLContext sslContext;
     SslSocketWrapper.ClientAuth clientAuth = SslSocketWrapper.ClientAuth.WANT;
 
-    public void setShutdownTacker(ShutdownTracker shutdownTacker) {
+    public void setShutdownTacker(ShutdownTracker shutdownTracker) {
 
-        this.shutdownTacker = shutdownTacker;
+        this.shutdownTracker = shutdownTracker;
     }
 
     static class ConnectedSocketInfo {
@@ -204,13 +209,14 @@ public class DetectingGateway implements DetectingGatewayMBean {
 
     public void handle(final SocketWrapper socket) {
         try {
-            shutdownTacker.retain();
+            shutdownTracker.retain();
             if( !socketsConnecting.add(socket) ) {
                 throw new AssertionError("Socket existed in the socketsConnecting set");
             }
         } catch (Throwable e) {
             LOG.debug("Could not accept connection from: "+socket.remoteAddress(), e);
             socket.close();
+            // shutdownTracker.release();
             return;
         }
         receivedConnectionAttempts.incrementAndGet();
@@ -240,10 +246,16 @@ public class DetectingGateway implements DetectingGatewayMBean {
         });
         readStream.dataHandler(new Handler<Buffer>() {
             Buffer received = new Buffer();
-
+            {
+                LOG.debug("Inititalized new Handler[{}] for socket: {}", this, socket.remoteAddress());
+            }
             @Override
             public void handle(Buffer event) {
                 received.appendBuffer(event);
+                if(LOG.isTraceEnabled()) {
+                    LOG.trace("Socket received following data: {}", event.copy().toString().replaceAll("\r"," " ));
+                    LOG.trace("Data handled by Handler {}", this.toString());
+                }
                 for (final Protocol protocol : protocols) {
                     if (protocol.matches(received)) {
                         if ("ssl".equals(protocol.getProtocolName())) {
@@ -279,7 +291,11 @@ public class DetectingGateway implements DetectingGatewayMBean {
                             assert removed;
                             receivedConnectionAttempts.decrementAndGet();
 
-                            DetectingGateway.this.handle(sslSocketWrapper);
+                            try {
+                                DetectingGateway.this.handle(sslSocketWrapper);
+                            } finally {
+                                shutdownTracker.release();
+                            }
                             return;
 
                         } else if ("http".equals(protocol.getProtocolName())) {
@@ -326,12 +342,16 @@ public class DetectingGateway implements DetectingGatewayMBean {
 
     private void handleConnectFailure(SocketWrapper socket, String reason) {
         if( socketsConnecting.remove(socket) ) {
-            if( reason!=null ) {
-                LOG.info(reason);
+            try{
+                if( reason!=null ) {
+                    LOG.warn(reason);
+                }
+                failedConnectionAttempts.incrementAndGet();
+                socket.close();
+
+            } finally {
+                shutdownTracker.release();
             }
-            failedConnectionAttempts.incrementAndGet();
-            socket.close();
-            shutdownTacker.release();
         }
     }
 
@@ -399,12 +419,14 @@ public class DetectingGateway implements DetectingGatewayMBean {
      */
     private NetClient createClient(final ConnectionParameters params, final SocketWrapper socketFromClient, final URI url, final Buffer received) {
         final NetClient netClient = vertx.createNetClient();
+        socketFromClient.readStream().pause();
         return netClient.connect(url.getPort(), url.getHost(), new Handler<AsyncResult<NetSocket>>() {
             public void handle(final AsyncResult<NetSocket> asyncSocket) {
 
                 if( !asyncSocket.succeeded() ) {
                     handleConnectFailure(socketFromClient, String.format("Could not connect to '%s'", url));
                 } else {
+                    socketFromClient.readStream().resume();
                     final NetSocket socketToServer = asyncSocket.result();
 
                     successfulConnectionAttempts.incrementAndGet();
@@ -432,19 +454,26 @@ public class DetectingGateway implements DetectingGatewayMBean {
                     socketToServer.endHandler(endHandler);
                     socketToServer.exceptionHandler(exceptionHandler);
 
+                    if(LOG.isTraceEnabled()){
+                        LOG.trace("Sending out to destination socket: {}", received);
+                    }
                     socketToServer.write(received);
                     Pump.createPump(socketToServer, socketFromClient.writeStream()).start();
                     Pump.createPump(socketFromClient.readStream(), socketToServer).start();
+                    LOG.debug("socketFromClient {} has been connected to socketToServer {}", socketFromClient.remoteAddress(), socketToServer.remoteAddress());
                 }
             }
         });
     }
 
     private void handleShutdown(ConnectedSocketInfo connectedInfo) {
-        if( socketsConnected.remove(connectedInfo) ) {
-            connectedInfo.from.close();
-            connectedInfo.to.close();
-            shutdownTacker.release();
+        if (socketsConnected.remove(connectedInfo)) {
+            try {
+                connectedInfo.from.close();
+                connectedInfo.to.close();
+            } finally {
+                shutdownTracker.release();
+            }
         }
     }
 

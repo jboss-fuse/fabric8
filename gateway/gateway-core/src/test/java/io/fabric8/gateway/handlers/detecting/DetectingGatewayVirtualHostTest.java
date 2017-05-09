@@ -1,5 +1,5 @@
 /**
- *  Copyright 2005-2015 Red Hat, Inc.
+ *  Copyright 2005-2016 Red Hat, Inc.
  *
  *  Red Hat licenses this file to you under the Apache License, version
  *  2.0 (the "License"); you may not use this file except in compliance
@@ -16,6 +16,17 @@
 package io.fabric8.gateway.handlers.detecting;
 
 
+import io.fabric8.gateway.ServiceDTO;
+import io.fabric8.gateway.ServiceMap;
+import io.fabric8.gateway.handlers.detecting.protocol.amqp.AmqpProtocol;
+import io.fabric8.gateway.handlers.detecting.protocol.http.HttpProtocol;
+import io.fabric8.gateway.handlers.detecting.protocol.mqtt.MqttProtocol;
+import io.fabric8.gateway.handlers.detecting.protocol.openwire.OpenwireProtocol;
+import io.fabric8.gateway.handlers.detecting.protocol.ssl.SslConfig;
+import io.fabric8.gateway.handlers.detecting.protocol.ssl.SslProtocol;
+import io.fabric8.gateway.handlers.detecting.protocol.stomp.StompProtocol;
+import io.fabric8.gateway.loadbalancer.LoadBalancer;
+import io.fabric8.gateway.loadbalancer.LoadBalancers;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.apollo.broker.Broker;
 import org.apache.activemq.apollo.dto.AcceptingConnectorDTO;
@@ -24,17 +35,6 @@ import org.apache.activemq.apollo.dto.VirtualHostDTO;
 import org.apache.activemq.apollo.util.ServiceControl;
 import org.apache.activemq.command.ActiveMQQueue;
 import org.apache.qpid.amqp_1_0.jms.impl.ConnectionFactoryImpl;
-import io.fabric8.gateway.handlers.detecting.protocol.http.HttpProtocol;
-import io.fabric8.gateway.handlers.detecting.protocol.openwire.OpenwireProtocol;
-import io.fabric8.gateway.handlers.detecting.protocol.stomp.StompProtocol;
-import io.fabric8.gateway.loadbalancer.LoadBalancer;
-import io.fabric8.gateway.ServiceDTO;
-import io.fabric8.gateway.ServiceMap;
-import io.fabric8.gateway.handlers.detecting.protocol.amqp.AmqpProtocol;
-import io.fabric8.gateway.handlers.detecting.protocol.mqtt.MqttProtocol;
-import io.fabric8.gateway.handlers.detecting.protocol.ssl.SslConfig;
-import io.fabric8.gateway.handlers.detecting.protocol.ssl.SslProtocol;
-import io.fabric8.gateway.loadbalancer.LoadBalancers;
 import org.fusesource.mqtt.client.MQTT;
 import org.fusesource.stomp.client.Stomp;
 import org.junit.After;
@@ -61,15 +61,13 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 /**
  */
-public class DetectingGatewayTest {
+public class DetectingGatewayVirtualHostTest {
 
-    private static final transient Logger LOG = LoggerFactory.getLogger(DetectingGatewayTest.class);
+    private static final transient Logger LOG = LoggerFactory.getLogger(DetectingGatewayVirtualHostTest.class);
     ServiceMap serviceMap = new ServiceMap();
 
     // Setup Vertx
@@ -77,7 +75,6 @@ public class DetectingGatewayTest {
     // used to swap threads since Vertx.stop() does funky stuff.
     // see https://github.com/vert-x/mod-lang-clojure/commit/fa6f78874a0c3507955dc5743f833cfbbbb60cb5
     Thread current = null;
-
     @Before
     public void startVertx() {
         current = Thread.currentThread();
@@ -104,14 +101,14 @@ public class DetectingGatewayTest {
         for(int i=0; i < 2; i++) {
 
             // create a broker..
-            String name = "broker" + i;
+            String name = "broker";
             Broker broker = createBroker(name);
             ServiceControl.start(broker);
             brokers.add(broker);
 
             // Add a service map entry for the broker.
             ServiceDTO details = new ServiceDTO();
-            details.setId(name);
+            details.setId(name+i);
             details.setVersion("1.0");
             details.setContainer("testing");
             details.setBundleName("none");
@@ -174,41 +171,6 @@ public class DetectingGatewayTest {
         LOG.info(msg.toString());
     }
 
-    @Test
-    public void canDetectTheStompProtocol() throws Exception {
-        DetectingGateway gateway = createGateway();
-
-        // Lets establish a connection....
-        Stomp stomp = new Stomp("localhost", gateway.getBoundPort());
-        stomp.setHost("broker0"); // lets connect to the broker0 virtual host..
-        org.fusesource.stomp.client.BlockingConnection connection = stomp.connectBlocking();
-
-        assertConnectedToBroker(0);
-        connection.close();
-    }
-
-    @Test// (timeout=60 * 1000)
-    public void canDetectTheMQTTProtocol() throws Exception {
-
-        DetectingGateway gateway = createGateway();
-
-        // Lets establish a connection....
-        MQTT mqtt = new MQTT();
-        mqtt.setHost("localhost", gateway.getBoundPort());
-        mqtt.setClientId("myclientid");
-//        mqtt.setVersion("3.1.1");
-        mqtt.setUserName("broker0/chirino");
-        mqtt.setConnectAttemptsMax(1);
-
-        org.fusesource.mqtt.client.BlockingConnection connection = mqtt.blockingConnection();
-        connection.connect();
-
-        assertEquals(1, gateway.getSuccessfulConnectionAttempts());
-        assertEquals(1, gateway.getConnectedClients().length);
-        assertConnectedToBroker(0);
-        connection.kill();
-    }
-
     void assertConnectedToBroker(int broker) {
         for( int i = 0; i < brokers.size(); i++) {
             if( i==broker ) {
@@ -223,7 +185,6 @@ public class DetectingGatewayTest {
     @Test
     public void canDetectTheAMQPProtocol() throws Exception {
         DetectingGateway gateway = createGateway();
-
         final ConnectionFactoryImpl factory = new ConnectionFactoryImpl("localhost", gateway.getBoundPort(), "admin", "password");
         Connection connection = factory.createConnection();
         connection.start();
@@ -238,24 +199,6 @@ public class DetectingGatewayTest {
     }
 
     @Test
-    public void canDetectTheOpenwireProtocol() throws Exception {
-
-        DetectingGateway gateway = createGateway();
-
-        gateway.init();
-        String url = "tcp://localhost:" + gateway.getBoundPort()+"?wireFormat.host=broker0";
-        final ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory(url);
-        Connection connection = factory.createConnection();
-        connection.start();
-
-        assertConnectedToBroker(0);
-        assertEquals(1, gateway.getSuccessfulConnectionAttempts());
-        assertEquals(1, gateway.getConnectedClients().length);
-
-        connection.close();
-    }
-
-    @Test
     public void canDetectTheOpenwireSslProtocol() throws Exception {
 
         System.setProperty("javax.net.ssl.trustStore", new File(basedir(), "src/test/resources/client.ks").getCanonicalPath());
@@ -263,8 +206,9 @@ public class DetectingGatewayTest {
         System.setProperty("javax.net.ssl.trustStoreType", "jks");
 
         DetectingGateway gateway = createGateway();
+        gateway.setConnectionTimeout(9_000_000);
 
-        String url = "ssl://localhost:" + gateway.getBoundPort()+"?wireFormat.host=broker0";
+        String url = "ssl://localhost:" + gateway.getBoundPort()+"?wireFormat.host=broker";
         final ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory(url);
         Connection connection = factory.createConnection();
         connection.start();
@@ -272,7 +216,6 @@ public class DetectingGatewayTest {
         assertEquals(1, gateway.getSuccessfulConnectionAttempts());
         assertEquals(1, gateway.getConnectedClients().length);
 
-        assertConnectedToBroker(0);
         Thread.sleep(6000);
 
         Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
@@ -284,14 +227,13 @@ public class DetectingGatewayTest {
 
     }
 
-
     private int getConnectionsOnBroker(int brokerIdx) {
         return brokers.get(brokerIdx).connections().size();
     }
 
     public DetectingGateway createGateway() {
 
-        String loadBalancerType = LoadBalancers.STICKY_LOAD_BALANCER;
+        String loadBalancerType = LoadBalancers.ROUND_ROBIN_LOAD_BALANCER;
         int stickyLoadBalancerCacheSize = LoadBalancers.STICKY_LOAD_BALANCER_DEFAULT_CACHE_SIZE;
 
         LoadBalancer serviceLoadBalancer = LoadBalancers.createLoadBalancer(loadBalancerType, stickyLoadBalancerCacheSize);
@@ -312,8 +254,8 @@ public class DetectingGatewayTest {
         gateway.setServiceMap(serviceMap);
         gateway.setProtocols(protocols);
         gateway.setServiceLoadBalancer(serviceLoadBalancer);
-        gateway.setDefaultVirtualHost("broker1");
-        gateway.setConnectionTimeout(5000);
+        gateway.setDefaultVirtualHost("broker");
+        gateway.setConnectionTimeout(500000);
         gateway.init();
 
         gateways.add(gateway);
@@ -334,112 +276,5 @@ public class DetectingGatewayTest {
         }
     }
 
-
-    /**
-     * Invlaid protocols should get quickly rejected.
-     * @throws Exception
-     */
-    @Test
-    public void rejectsInvalidProtocols() throws Exception {
-
-        final DetectingGateway gateway = createGateway();
-        final Socket socket = new Socket("localhost", gateway.getBoundPort());
-        final OutputStream outputStream = socket.getOutputStream();
-
-        within(2, TimeUnit.SECONDS, new Callable<Object>(){
-            @Override
-            public Object call() throws Exception {
-                assertEquals(1, gateway.getConnectingClients().length);
-                return null;
-            }
-        });
-        within(2, TimeUnit.SECONDS, new Callable<Object>(){
-            @Override
-            public Object call() throws Exception {
-                try {
-                    outputStream.write("Hello World!\n".getBytes());
-                    fail("Expected exception.");
-                } catch (IOException e) {
-                }
-                return null;
-            }
-        });
-        socket.close();
-
-        assertEquals(1, gateway.getReceivedConnectionAttempts());
-        assertEquals(1, gateway.getFailedConnectionAttempts());
-        assertEquals(0, gateway.getSuccessfulConnectionAttempts());
-        assertEquals(0, gateway.getConnectingClients().length);
-        assertEquals(0, gateway.getConnectedClients().length);
-
-    }
-
-    /**
-     * If a client comes in there should a time limit on how long
-     * we keep a connection open while we are protocol detecting.
-     *
-     * @throws Exception
-     */
-    @Test
-    public void timesOutConnectionAttempts() throws Exception {
-
-        final DetectingGateway gateway = createGateway();
-        final Socket socket = new Socket("localhost", gateway.getBoundPort());
-        final InputStream inputStream = socket.getInputStream();
-
-        long start = System.currentTimeMillis();
-        socket.getOutputStream().write("STOMP".getBytes());
-        assertEquals(-1, inputStream.read()); // Waits for the EOF
-        long duration = System.currentTimeMillis() - start;
-        socket.close();
-
-        // The read should have blocked until the connection timeout occurs
-        // at 5000 ms mark..
-        assertTrue(duration > 4000);
-        assertTrue(duration < 6000);
-
-        within(1, TimeUnit.SECONDS, new Callable<Object>(){
-            @Override
-            public Object call() throws Exception {
-                assertEquals(1, gateway.getReceivedConnectionAttempts());
-                assertEquals(1, gateway.getFailedConnectionAttempts());
-                assertEquals(0, gateway.getSuccessfulConnectionAttempts());
-                assertEquals(0, gateway.getConnectingClients().length);
-                assertEquals(0, gateway.getConnectedClients().length);
-                return null;
-            }
-        });
-
-    }
-
-    private <T> T within(int timeout, TimeUnit unit, Callable<T> action) throws Exception {
-        long remaining = unit.toMillis(timeout);
-        Throwable lastError=null;
-        long step = remaining/10;
-        do  {
-            long start = System.currentTimeMillis();
-            try {
-                return action.call();
-            } catch (Throwable e) {
-                lastError = e;
-            }
-            long duration = System.currentTimeMillis()-start;
-            remaining -= duration;
-            if( duration < step ) {
-                long nap = step - duration;
-                remaining -= duration;
-                if( remaining > 0 ) {
-                    Thread.sleep(nap);
-                }
-            }
-        } while(remaining > 0);
-        if( lastError instanceof Exception ) {
-            throw (Exception)lastError;
-        }
-        if( lastError instanceof Error ) {
-            throw (Error)lastError;
-        }
-        throw new RuntimeException(lastError);
-    }
 
 }
