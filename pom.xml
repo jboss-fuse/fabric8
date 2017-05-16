@@ -276,8 +276,8 @@
         <joda-time2-version>2.9.2</joda-time2-version>
         <jolokia-version>1.3.6.redhat-000001</jolokia-version>
         <jgroups-version>3.4.4.Final</jgroups-version>
-        <jsch-version>0.1.53</jsch-version>
-        <jsch-smx-version>0.1.53_1</jsch-smx-version>
+        <jsch-version>0.1.54</jsch-version>
+        <jsch-smx-version>0.1.54_1</jsch-smx-version>
         <json4s-version>3.2.8_1</json4s-version>
         <jsr311-api-smx-version>2.7.0</jsr311-api-smx-version>
         <junit-version>4.11</junit-version>
