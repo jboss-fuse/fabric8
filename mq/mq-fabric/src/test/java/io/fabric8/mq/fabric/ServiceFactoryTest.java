@@ -27,13 +27,17 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.jms.JMSException;
 import io.fabric8.mq.fabric.discovery.OsgiFabricDiscoveryAgent;
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQConnectionFactory;
+import org.apache.activemq.broker.AbstractLocker;
 import org.apache.activemq.command.DiscoveryEvent;
+import org.apache.activemq.store.PersistenceAdapter;
 import org.apache.activemq.transport.discovery.DiscoveryListener;
+import org.apache.activemq.util.ServiceStopper;
 import org.apache.activemq.transport.TransportListener;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -243,6 +247,55 @@ public class ServiceFactoryTest {
 
         amqConnection[0].close();
         underTest.destroy();
+    }
+
+    public static class IOLockTester extends AbstractLocker {
+        public IOLockTester() {}
+
+        static AtomicInteger failOnVal = new AtomicInteger(0);
+        @Override
+        public void configure(PersistenceAdapter persistenceAdapter) throws IOException {
+            LOG.info("Configure: " + persistenceAdapter);
+            lockAcquireSleepInterval=10;
+        }
+
+        @Override
+        protected void doStop(ServiceStopper serviceStopper) throws Exception {}
+
+        @Override
+        protected void doStart() throws Exception {}
+
+        @Override
+        public boolean keepAlive() throws IOException {
+            LOG.info("keepAlive: callCount " + failOnVal.get());
+            int callCount = failOnVal.incrementAndGet();
+            if (callCount > 1 && callCount < 5) {
+                LOG.info("Failing keep alive");
+                this.lockable.getBrokerService().handleIOException(new IOException("Blowing up on call count: " + callCount));
+            }
+            return true;
+        }
+    }
+
+    @Test
+    public void testStartRetryOnLockIOException() throws Exception {
+
+        underTest = new ActiveMQServiceFactory();
+        underTest.curator = curator;
+
+        Properties props = new Properties();
+        props.put("config", "amq-ioe-lock.xml");
+        props.put("broker-name", "amq");
+        props.put("connectors", "openwire");
+
+        underTest.updated("b", props);
+
+        ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("failover:(tcp://localhost:61616)?useExponentialBackOff=false&timeout=15000");
+
+        final ActiveMQConnection connection = (ActiveMQConnection) cf.createConnection();
+        connection.start();
+
+        assertTrue("is connected", connection.getTransport().isConnected());
     }
 
     @Test
