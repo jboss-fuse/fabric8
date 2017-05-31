@@ -345,11 +345,17 @@ public final class ProfileServiceImpl extends AbstractProtectedComponent<Profile
             if (!profiles.contains(profile)) {
                 List<Profile> circularRelationship = new ArrayList<>();
                 for (String parentId : profile.getParentIds()) {
-                    Profile parent = version.getRequiredProfile(parentId);
-                    if ( !isCircularRelationship(profile, parent)){
-                        fillParentProfiles(parent, profiles);
+                    if (version.hasProfile(parentId)){
+                        Profile parent = version.getRequiredProfile(parentId);
+                        if (parent != null){
+                            if ( !isCircularRelationship(profile, parent)){
+                                fillParentProfiles(parent, profiles);
+                            } else {
+                                circularRelationship.add(parent);
+                            }
+                        }
                     } else {
-                        circularRelationship.add(parent);
+                        LOGGER.error("Tried to load a profile[{}] not present in this version[{}]", parentId, version);
                     }
                 }
                 profiles.add(profile);
