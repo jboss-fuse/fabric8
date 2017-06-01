@@ -31,6 +31,8 @@ import org.apache.felix.gogo.commands.Argument;
 import org.apache.felix.gogo.commands.Command;
 import org.apache.felix.gogo.commands.Option;
 import org.apache.karaf.shell.console.AbstractAction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Command(name = ContainerList.FUNCTION_VALUE, scope = ContainerList.SCOPE_VALUE, description = ContainerList.DESCRIPTION, detailedDescription = "classpath:containerList.txt")
 public class ContainerListAction extends AbstractAction {
@@ -45,6 +47,7 @@ public class ContainerListAction extends AbstractAction {
     private final FabricService fabricService;
     private final ProfileService profileService;
     private final DataStore dataStore;
+    private final Logger LOG = LoggerFactory.getLogger(ContainerListAction.class);
 
     ContainerListAction(FabricService fabricService) {
         this.fabricService = fabricService;
@@ -93,9 +96,12 @@ public class ContainerListAction extends AbstractAction {
                 }
 
                 List<String> assignedProfiles = dataStore.getContainerProfiles(container.getId());
-                table.row(indent + container.getId() + marker, container.getVersion().getId(), container.getType(),
-                        aliveText(container), assignedProfiles.get(0), CommandUtils.status(container));
-
+                try {
+                    table.row(indent + container.getId() + marker, container.getVersion().getId(), container.getType(),
+                            aliveText(container), assignedProfiles.get(0), CommandUtils.status(container));
+                } catch (RuntimeException e) {
+                    LOG.warn("Problem getting the overlay profile for container " + container.getId(), e);
+                }
                 // we want multiple profiles to be displayed on next lines
                 for (int i = 1; i < assignedProfiles.size(); i++) {
                     table.row("", "", "", "", assignedProfiles.get(i), "");
