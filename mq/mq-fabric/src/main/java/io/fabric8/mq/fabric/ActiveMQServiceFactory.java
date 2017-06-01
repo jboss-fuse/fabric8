@@ -41,7 +41,6 @@ import io.fabric8.mq.fabric.discovery.FabricDiscoveryAgent;
 import io.fabric8.utils.NamedThreadFactory;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.broker.BrokerService;
-import org.apache.activemq.broker.BrokerStoppedException;
 import org.apache.activemq.broker.LockableServiceSupport;
 import org.apache.activemq.broker.TransportConnector;
 import org.apache.activemq.network.DiscoveryNetworkConnector;
@@ -492,8 +491,6 @@ public class ActiveMQServiceFactory  {
                                     lastModified = server.getResource().lastModified();
                                 }
                                 started = true;
-                            } catch (BrokerStoppedException expected) {
-                                break;
                             } catch (Throwable e) {
                                 if (start_future.isCancelled() || Thread.currentThread().isInterrupted()) {
                                     LOG.info("Broker " + name + " interrupted while starting");
