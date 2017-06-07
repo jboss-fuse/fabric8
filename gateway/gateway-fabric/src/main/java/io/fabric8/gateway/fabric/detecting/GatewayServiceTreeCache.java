@@ -110,6 +110,7 @@ public class GatewayServiceTreeCache {
             return;
         }
         String path = childData.getPath();
+        LOG.trace("Event {} on path {}", event.getType().toString(),  path);
         PathChildrenCacheEvent.Type type = event.getType();
         byte[] data = childData.getData();
         if (data == null || data.length == 0 || path == null) {
@@ -119,8 +120,10 @@ public class GatewayServiceTreeCache {
             path = path.substring(zkPath.length());
         }
 
+        List<String> split = Strings.splitAndTrimAsList(path, "/");
         // Lets just use the group name as the service path.
-        path = Strings.splitAndTrimAsList(path, "/").get(0);
+        path = split.get(0);
+        String zNode = split.get(1);
 
         boolean remove = false;
         switch (type) {
@@ -137,11 +140,12 @@ public class GatewayServiceTreeCache {
         try {
             dto = mapper.readValue(data, ServiceDTO.class);
             expandPropertyResolvers(dto);
+            dto.setContainer(dto.getContainer() + "_zNode_" + zNode);
             if (remove) {
-                LOG.info("Removed gateway service: "+path+": "+new String(data, "UTF-8"));
+                LOG.info("Removed gateway service: "+path+": " + dto);
                 serviceMap.serviceRemoved(path, dto);
             } else {
-                LOG.info("Updated gateway service: "+path+": "+new String(data, "UTF-8"));
+                LOG.info("Updated gateway service: "+path+": " + dto);
                 serviceMap.serviceUpdated(path, dto);
             }
         } catch (IOException e) {
