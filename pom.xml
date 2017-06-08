@@ -352,7 +352,7 @@
         <swagger-community-version>1.3.2</swagger-community-version>
         <swagger-version>1.3.12_1</swagger-version>
         <swagger-core-version>1.3.12_2</swagger-core-version>
-        <swagger-jaxrs-version>1.3.12_2</swagger-jaxrs-version>
+        <swagger-jaxrs-version>1.3.12_3</swagger-jaxrs-version>
         <swagger-scala-version>2.10.4</swagger-scala-version>
         <swagger-scala-guava-version>15.0</swagger-scala-guava-version>
         <tinybundles-version>2.0.0</tinybundles-version>
