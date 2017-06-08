@@ -614,6 +614,38 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     }
 
     @Override
+    public String modifyVersionDescription(final Version version, String description) {
+        GitContext context = newGitWriteContext(version.getId());
+
+        final Map<String, String> attributes = version.getAttributes();
+        attributes.put(Version.DESCRIPTION, description);
+
+        IllegalStateAssertion.assertNotNull(version, "version");
+        LockHandle writeLock = aquireWriteLock();
+        try {
+            assertValid();
+            LOGGER.debug("Updating version: {}", version);
+            GitOperation<String> gitop = new GitOperation<String>() {
+                public String call(Git git, GitContext context) throws Exception {
+                    String versionId = version.getId();
+                    GitHelpers.checkoutTag(git, GitHelpers.ROOT_TAG);
+                    createOrCheckoutVersion(git, version.getId());
+                    setVersionAttributes(git, context, versionId, attributes);
+                    context.commitMessage("Create version: " + version);
+                    Set<String>  alreadyProcessedProfiles =  new HashSet<String>();
+                    for (Profile profile : version.getProfiles()) {
+                        createOrUpdateProfile(context, null, profile,alreadyProcessedProfiles);
+                    }
+                    return versionId;
+                }
+            };
+            return executeInternal(context, null, gitop);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    @Override
     public String createVersion(GitContext context, final Version version) {
         IllegalStateAssertion.assertNotNull(version, "version");
         LockHandle writeLock = aquireWriteLock();
