@@ -81,6 +81,8 @@ import org.slf4j.LoggerFactory;
 public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider {
     private static final Logger LOG = LoggerFactory.getLogger(QuorumPeer.class);
 
+    MBeanRegistry registry = new MBeanRegistry();
+
     QuorumBean jmxQuorumBean;
     LocalPeerBean jmxLocalPeerBean;
     LeaderElectionBean jmxLeaderElectionBean;
@@ -739,13 +741,13 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         LOG.debug("Starting quorum peer");
         try {
             jmxQuorumBean = new QuorumBean(this);
-            MBeanRegistry.getInstance().register(jmxQuorumBean, null);
+            registry.register(jmxQuorumBean, null);
             for(QuorumServer s: getView().values()){
                 ZKMBeanInfo p;
                 if (getId() == s.id) {
                     p = jmxLocalPeerBean = new LocalPeerBean(this);
                     try {
-                        MBeanRegistry.getInstance().register(p, jmxQuorumBean);
+                        registry.register(p, jmxQuorumBean);
                     } catch (Exception e) {
                         LOG.warn("Failed to register with JMX", e);
                         jmxLocalPeerBean = null;
@@ -753,7 +755,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                 } else {
                     p = new RemotePeerBean(s);
                     try {
-                        MBeanRegistry.getInstance().register(p, jmxQuorumBean);
+                        registry.register(p, jmxQuorumBean);
                     } catch (Exception e) {
                         LOG.warn("Failed to register with JMX", e);
                     }
@@ -873,7 +875,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         } finally {
             LOG.warn("QuorumPeer main thread exited");
             try {
-                MBeanRegistry.getInstance().unregisterAll();
+                registry.unregisterAll();
             } catch (Exception e) {
                 LOG.warn("Failed to unregister with JMX", e);
             }
