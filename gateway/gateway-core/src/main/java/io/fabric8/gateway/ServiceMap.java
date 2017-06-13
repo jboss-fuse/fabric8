@@ -51,7 +51,9 @@ public class ServiceMap {
      */
     public void serviceUpdated(String path, ServiceDetails service) {
         // ignore services with empty services
-        getPathMap(path).update(service);
+        if (!service.getServices().isEmpty()) {
+            getPathMap(path).update(service);
+        }
         logCurrentConfiguration();
     }
 
@@ -116,13 +118,7 @@ public class ServiceMap {
             if (containerMap == null) {
                 containerMap = initial;
             }
-            if(service.getServices().isEmpty()){
-                if(containerMap.containsKey(service.getContainer())){
-                    containerMap.remove(service.getContainer());
-                }
-            } else {
-                containerMap.put(service.getContainer(), service);
-            }
+            containerMap.put(service.getContainer(), service);
         }
 
         public void remove(ServiceDetails service) {
