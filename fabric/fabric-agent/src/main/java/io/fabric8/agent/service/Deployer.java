@@ -465,15 +465,43 @@ public class Deployer {
                 List<BundleInfo> bundles = featureResource.getFeature().getBundles();
                 for(BundleInfo bundleInfo : bundles){
                     if(bundleInfo.isStart() == false){
+                        Set<String> candidates = new HashSet<>();
+
+                        String fullLocation = bundleInfo.getLocation();
+                        int protocolMarker = fullLocation.lastIndexOf(":");
+                        fullLocation = fullLocation.substring(protocolMarker + 1);
+                        String[] split = fullLocation.split("/");
+                        if(split.length >= 3){
+                            String fullLocationKey = split[0] + "." + split[1] + "/" + split[2];
+                            candidates.add(fullLocationKey);
+                        }
+
                         String location = bundleInfo.getLocation();
                         Parser parser = new Parser(location);
                         String id = parser.getArtifact();
                         String version = parser.getVersion();
                         String key =  id + "/" + version;
+                        String keyDotted = id + "/" + version.replaceAll("_", ".");
+
+                        String prefix = parser.getGroup();
+                        if(parser.getGroup().contains(":")){
+                            prefix = parser.getGroup().split(":")[1];
+                        }
+                        String fullKey = prefix + "." + key;
+                        String fullKeyDotted = prefix + "." + keyDotted;
+
+                        candidates.add(key);
+                        candidates.add(keyDotted);
+
+                        candidates.add(fullKey);
+                        candidates.add(fullKeyDotted);
+
                         for(Iterator<Resource> iter = states.keySet().iterator(); iter.hasNext();){
                             Resource res = iter.next();
-                            if(res.toString().equals(key)){
+                            String resourceStringRepresentation = res.toString();
+                            if(  candidates.contains(resourceStringRepresentation) ){
                                 states.put(res, Constants.RequestedState.Installed);
+                                break;
                             }
 
                         }
