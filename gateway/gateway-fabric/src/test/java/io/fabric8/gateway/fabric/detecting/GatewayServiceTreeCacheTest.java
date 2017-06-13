@@ -37,7 +37,7 @@ public class GatewayServiceTreeCacheTest {
         CuratorFramework curator = mock(CuratorFramework.class);
         GatewayServiceTreeCache cache = new GatewayServiceTreeCache(curator, zkPath, serviceMap);
 
-        String path = "/fabric/registry/clusters/test/default/0000001";
+        String path = "/fabric/registry/clusters/test/default";
 
         // Add container1 - master
         // Add container2 - slave

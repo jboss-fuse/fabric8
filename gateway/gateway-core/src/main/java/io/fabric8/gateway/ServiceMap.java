@@ -15,9 +15,6 @@
  */
 package io.fabric8.gateway;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +26,6 @@ import java.util.concurrent.ConcurrentMap;
  * proxy handlers, or used to create new proxy handers
  */
 public class ServiceMap {
-    private Logger LOG = LoggerFactory.getLogger(ServiceMap.class);
     private final ConcurrentMap<String, PathMap> map = new ConcurrentHashMap<>();
 
     /**
@@ -54,7 +50,6 @@ public class ServiceMap {
         if (!service.getServices().isEmpty()) {
             getPathMap(path).update(service);
         }
-        logCurrentConfiguration();
     }
 
     /**
@@ -62,7 +57,7 @@ public class ServiceMap {
      */
     public void serviceRemoved(String path, ServiceDetails service) {
         getPathMap(path).remove(service);
-        logCurrentConfiguration();
+
         // lets update any in progress proxy handlers using this service
     }
 
@@ -75,25 +70,12 @@ public class ServiceMap {
         return answer;
     }
 
-    public void logCurrentConfiguration(){
-        if(LOG.isTraceEnabled()){
-            StringBuilder output = new StringBuilder();
-            for(Map.Entry<String, PathMap> e : map.entrySet()){
-                String service = e.getKey().toString();
-                output.append("Service: " + service );
-                output.append(getServices(service));
-            }
-            LOG.trace(output.toString());
-        }
-    }
-
     @Override
     public String toString() {
         return getClass().getSimpleName() + ": " + map.toString();
     }
 
     protected static class PathMap {
-
         private final String path;
         /**
          * Map: Service ID -> Container -> ServiceDetails
@@ -127,8 +109,6 @@ public class ServiceMap {
                 containerMap.remove(service.getContainer());
             }
         }
-
-
 
         @Override
         public String toString() {
