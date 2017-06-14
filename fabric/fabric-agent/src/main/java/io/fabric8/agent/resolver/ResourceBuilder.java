@@ -359,6 +359,8 @@ public final class ResourceBuilder {
                         if (Boolean.valueOf(lenient)){
                             if (!filter.startsWith("(osgi.service.blueprint.compname")) {
                                 filter = "(&(" + Constants.OBJECTCLASS + "=" + path + ")" + filter + ")";
+                            } else {
+                                filter = "(" + Constants.OBJECTCLASS + "=" + path + ")";
                             }
                         } else {
                             filter = "(&(" + Constants.OBJECTCLASS + "=" + path + ")" + filter + ")";
