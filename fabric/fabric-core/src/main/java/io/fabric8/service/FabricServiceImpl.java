@@ -1151,7 +1151,8 @@ public final class FabricServiceImpl extends AbstractComponent implements Fabric
     }
 
     /**
-     * Validates that the requirements are valid; to ensure the profiles exist etc
+     * Validates the requirements to ensure the profiles exist etc. and
+     * removes those for a profile that does not exist.
      */
     public static void validateRequirements(FabricService fabricService, FabricRequirements requirements) {
         ProfileService profileService = fabricService.adapt(ProfileService.class);
@@ -1162,10 +1163,15 @@ public final class FabricServiceImpl extends AbstractComponent implements Fabric
         } else {
             version = fabricService.getDefaultVersion();
         }
-        Set<String> profileIds = new HashSet<String>(Profiles.profileIds(version.getProfiles()));
+        Set<String> profileIds = new HashSet<>(Profiles.profileIds(version.getProfiles()));
         List<ProfileRequirements> profileRequirements = requirements.getProfileRequirements();
         for (ProfileRequirements profileRequirement : profileRequirements) {
-            validateProfileRequirements(fabricService, requirements, profileRequirement, profileIds);
+            try {
+                validateProfileRequirements(fabricService, requirements, profileRequirement, profileIds);
+            } catch (IllegalArgumentException e) {
+                LOGGER.info("Removing {}; {}", profileRequirement, e.getMessage());
+                requirements.removeProfileRequirements(profileRequirement.getProfile());
+            }
         }
     }
 
