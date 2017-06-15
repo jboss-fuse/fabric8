@@ -41,11 +41,18 @@ import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.emf.ecore.xmi.XMIResource;
+import org.eclipse.emf.ecore.xmi.XMLDefaultHandler;
+import org.eclipse.emf.ecore.xmi.XMLLoad;
 import org.eclipse.emf.ecore.xmi.XMLParserPool;
 import org.eclipse.emf.ecore.xmi.XMLResource;
+import org.eclipse.emf.ecore.xmi.XMLSave;
 import org.eclipse.emf.ecore.xmi.impl.EcoreResourceFactoryImpl;
+import org.eclipse.emf.ecore.xmi.impl.SAXXMLHandler;
+import org.eclipse.emf.ecore.xmi.impl.XMLLoadImpl;
 import org.eclipse.emf.ecore.xmi.impl.XMLParserPoolImpl;
 import org.eclipse.emf.ecore.xmi.impl.XMLResourceImpl;
+import org.eclipse.emf.ecore.xmi.impl.XMLSaveImpl;
+import org.eclipse.emf.ecore.xmi.impl.XMLString;
 import org.eclipse.emf.ecore.xml.namespace.XMLNamespacePackage;
 import org.eclipse.emf.ecore.xml.type.XMLTypePackage;
 import org.eclipse.emf.edit.command.SetCommand;
@@ -98,8 +105,7 @@ public class Util {
 	 */
 	public static String marshal(EObject eObject) throws IOException {
 		ensureBasePackages();
-		URI uri = URI.createFileURI("/"); // ensure relative reference URIs
-		XMLResource resource = new XMLResourceImpl(uri);
+		XMLResource resource = createXMLResource();
 		eObject = EcoreUtil.copy(eObject);
 		resource.getContents().add(eObject);
 		StringWriter out = new StringWriter();
@@ -126,8 +132,7 @@ public class Util {
 	 */
 	public static EObject unmarshal(String string) throws IOException {
 		ensureBasePackages();
-		URI uri = URI.createFileURI("/"); // ensure relative reference URIs
-		XMLResource resource = new XMLResourceImpl(uri);
+		XMLResource resource = createXMLResource();
 		StringReader in = new StringReader(string);
 
 		Map<String, Object> options = new HashMap<String, Object>();
@@ -155,8 +160,7 @@ public class Util {
 	 */
 	public static void save(File file, EObject eObject) throws IOException {
 		ensureBasePackages();
-		URI uri = URI.createFileURI(file.getAbsolutePath());
-		Resource res = new XMLResourceImpl(uri);
+		Resource res = createXMLResource();
 		eObject = EcoreUtil.copy(eObject);
 		res.getContents().add(eObject);
 		Map<String, Object> options = new HashMap<String, Object>();
@@ -179,7 +183,7 @@ public class Util {
 	public static EObject load(File file) throws IOException {
 		ensureBasePackages();
 		URI uri = URI.createFileURI(file.getAbsolutePath());
-		Resource res = new XMLResourceImpl(uri);
+		Resource res = createXMLResource(uri);
 
 		Map<String, Object> options = new HashMap<String, Object>();
 		XMLParserPool parserPool = new XMLParserPoolImpl();
@@ -294,7 +298,7 @@ public class Util {
 	 */
 	public static OutputStream toOutputStream(EObject eObject) throws IOException {
 		ensureBasePackages();
-		XMLResource resource = new XMLResourceImpl();
+		XMLResource resource = createXMLResource();
 		eObject = EcoreUtil.copy(eObject);
 		resource.getContents().add(eObject);
 		OutputStream out = new ByteArrayOutputStream();
@@ -311,7 +315,7 @@ public class Util {
 	 */
 	public static void print(EObject eObject) throws IOException {
 		ensureBasePackages();
-		XMLResource resource = new XMLResourceImpl();
+		XMLResource resource = createXMLResource();
 		resource.getContents().add(eObject);
 		resource.save(System.out, null);
 	}
@@ -338,7 +342,7 @@ public class Util {
 	 * @throws IOException
 	 */
 	public static EObject fromInputStream(InputStream in) throws IOException {
-		XMLResource resource = new XMLResourceImpl();
+		XMLResource resource = createXMLResource();
 		resource.load(in, null);
 		return resource.getContents().get(0);
 	}
@@ -630,5 +634,80 @@ public class Util {
 		tmp = EcorePackage.eINSTANCE;
 		tmp = RfcPackage.eINSTANCE;
 		tmp = IdocPackage.eINSTANCE;
+	}
+
+	public static void addNameSpaceDeclarations(EObject o, XMLString doc) {
+		Set<String> prefixes = new HashSet<String>();
+		
+		// find all features with namespace prefixes
+		for (EStructuralFeature feature: o.eClass().getEAllStructuralFeatures()) {
+			if (feature.getName().contains("/")) { // feature got a namespace?
+				if (o.eGet(feature) == null) {
+					continue; // no value to save in XML so no need for prefix
+				}
+
+				// get namespace prefix 
+				String name = feature.getName();
+				String[] tmp = name.split("/");
+				String prefix = tmp[1];
+				prefixes.add(prefix);
+			}
+		}
+		
+
+		// get object's package
+		EPackage ePackage = (EPackage) EcoreUtil.getRootContainer(o.eClass());
+
+		for (String prefix: prefixes) {
+			doc.addAttribute(XMLResource.XML_NS + ":" + prefix, ePackage.getNsURI());
+		}
+	}
+	
+	public static XMLResource createXMLResource() {
+		URI uri = URI.createFileURI("/"); // ensure relative reference URIs
+		return createXMLResource(uri);
+	}
+	
+	public static XMLResource createXMLResource(URI uri) {
+		XMLResource xmlResource = new XMLResourceImpl(uri) {
+
+			@Override
+			protected XMLSave createXMLSave() {
+				return new XMLSaveImpl(createXMLHelper()) {
+					
+					@Override
+					protected void saveElementID(EObject o) {
+						addNameSpaceDeclarations(o,doc);
+						super.saveElementID(o);
+					}
+					
+				};
+			}
+			
+			@Override
+			protected XMLLoad createXMLLoad() {
+				return new XMLLoadImpl(createXMLHelper()) {
+					
+					@Override
+					public XMLDefaultHandler createDefaultHandler() {
+						return new SAXXMLHandler(resource, helper, options) {
+
+							@Override
+							protected EStructuralFeature getFeature(EObject object, String prefix, String name, boolean isElement) {
+								if (prefix != null) {
+									name = "/" + prefix + "/" + name;
+									prefix = null;
+								}
+								return super.getFeature(object, prefix, name, isElement);
+							}
+
+						};
+					}
+					
+				};
+			}
+			
+		};
+		return xmlResource;
 	}
 }
