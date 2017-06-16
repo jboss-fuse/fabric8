@@ -109,6 +109,15 @@ public class ContainerConnectAction extends AbstractAction {
      * Executes the ssh command.
      */
     private void executSshCommand(CommandSession session, String username, String password, String hostname, String port, String cmd) throws Exception {
+
+        if (cmd == null || cmd.length() == 0) {
+            // ENTESB-6826: we're connecting in "shell" mode, which isn't wise when running from bin/client or ssh
+            if (session.getKeyboard().getClass().getName().equals("org.apache.sshd.common.channel.ChannelPipedInputStream")) {
+                System.err.println("When connecting to remote container using \"fabric:container-connect\" using ssh or bin/client, please establish SSH session (run bin/client) first and then run \"fabric:container-connect\"");
+                return;
+            }
+        }
+
         // Create the client from prototype
         SshClient client = createClient();
 
