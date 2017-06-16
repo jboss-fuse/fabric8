@@ -341,9 +341,21 @@ public class Util {
 	 * @throws IOException
 	 */
 	public static EObject fromInputStream(InputStream in) throws IOException {
-		XMLResource resource = createXMLResource();
-		resource.load(in, null);
-		return resource.getContents().get(0);
+		ensureBasePackages();
+		Resource res = createXMLResource();
+
+		Map<String, Object> options = new HashMap<String, Object>();
+		XMLParserPool parserPool = new XMLParserPoolImpl();
+		Map<Object, Object> nameToFeatureMap = new HashMap<Object, Object>();
+		options.put(XMIResource.OPTION_DEFER_ATTACHMENT, Boolean.TRUE);
+		options.put(XMIResource.OPTION_DEFER_IDREF_RESOLUTION, Boolean.TRUE);
+		options.put(XMIResource.OPTION_USE_DEPRECATED_METHODS, Boolean.TRUE);
+		options.put(XMIResource.OPTION_USE_PARSER_POOL, parserPool);
+		options.put(XMIResource.OPTION_USE_XML_NAME_TO_FEATURE_MAP, nameToFeatureMap);
+		options.put(XMIResource.OPTION_EXTENDED_META_DATA, Boolean.TRUE);
+
+		res.load(in, options);
+		return res.getContents().get(0);
 	}
 
 	/**
