@@ -22,11 +22,11 @@
     <parent>
     <groupId>io.fabric8.quickstarts</groupId>
     <artifactId>fabric8-quickstarts-parent</artifactId>
-    <version>1.2.0.redhat-630-SNAPSHOT</version>
+    <version>1.2.0.redhat-630281</version>
   </parent>
     <groupId>io.fabric8.quickstarts</groupId>
     <artifactId>fabric8-quickstarts-cxf-parent</artifactId>
-    <version>1.2.0.redhat-630-SNAPSHOT</version>
+    <version>1.2.0.redhat-630281</version>
     <packaging>pom</packaging>
     <name>JBoss  Quickstart: cxf</name>
 
