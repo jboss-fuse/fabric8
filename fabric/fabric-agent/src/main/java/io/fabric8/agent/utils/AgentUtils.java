@@ -46,6 +46,7 @@ import io.fabric8.common.util.Files;
 import io.fabric8.common.util.MultiException;
 import io.fabric8.common.util.Strings;
 import io.fabric8.maven.util.Parser;
+import io.fabric8.patch.management.Artifact;
 import io.fabric8.patch.management.Utils;
 import io.fabric8.service.VersionPropertyPointerResolver;
 import org.apache.maven.settings.Mirror;
@@ -237,9 +238,13 @@ public class AgentUtils {
                         downloader.download(repo.toASCIIString(), this);
                     }
 
-                    // we need a feature repository to be available in ${karaf.home}/${karaf.default.repository}
-                    // it makes patching much easier
-                    storeInDefaultKarafRepository(targetLocation, provider.getFile(), uri);
+                    Artifact artifact = Utils.mvnurlToArtifact(uri, true);
+                    if (artifact == null || artifact.getVersion() == null || !artifact.getVersion().endsWith("-SNAPSHOT")) {
+                        // we need a feature repository to be available in ${karaf.home}/${karaf.default.repository}
+                        // it makes patching much easier
+                        // ENTESB-6931: don't store SNAPSHOT feature repositories in ${karaf.home}/${karaf.default.repository}
+                        storeInDefaultKarafRepository(targetLocation, provider.getFile(), uri);
+                    }
                 }
             });
         }
