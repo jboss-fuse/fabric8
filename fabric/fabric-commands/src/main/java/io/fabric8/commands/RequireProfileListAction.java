@@ -21,6 +21,7 @@ import org.apache.felix.gogo.commands.Command;
 import io.fabric8.api.FabricRequirements;
 import io.fabric8.api.ProfileRequirements;
 import io.fabric8.commands.support.RequirementsListSupport;
+import org.apache.felix.gogo.commands.Option;
 
 import java.io.PrintStream;
 import java.util.List;
