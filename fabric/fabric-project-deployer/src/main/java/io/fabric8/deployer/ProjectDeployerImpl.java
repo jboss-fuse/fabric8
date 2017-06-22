@@ -404,6 +404,7 @@ public final class ProjectDeployerImpl extends AbstractComponent implements Proj
             FabricRequirements fabricRequirements = fabricService.get().getRequirements();
             ProfileRequirements profileRequirements = fabricRequirements.getOrCreateProfileRequirement(profile.getId());
             profileRequirements.setMinimumInstances(minimumInstances);
+            fabricRequirements.setVersion(requirements.getVersion());
             fabricService.get().setRequirements(fabricRequirements);
         }
 
