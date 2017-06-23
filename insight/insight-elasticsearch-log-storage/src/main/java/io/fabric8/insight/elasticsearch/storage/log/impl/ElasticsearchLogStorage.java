@@ -25,13 +25,18 @@ import org.elasticsearch.node.Node;
 @Service({StorageService.class})
 public class ElasticsearchLogStorage extends AbstractElasticsearchStorage {
 
+    private static final String INDEX_TEMPLATE_LOCATION = "indexTemplateLocation";
+
     @Reference(name = "node", referenceInterface = org.elasticsearch.node.Node.class, target = "(cluster.name=insight)")
     private final ValidatingReference<Node> node = new ValidatingReference<>();
+
+    @Property(name = INDEX_TEMPLATE_LOCATION, label = "Index Template LOcation", description = "Location of the json file containing the index template", boolValue = false)
+    private String indexTemplateLocation = "profile:elasticsearch-index-template.json";
 
     @Activate
     public void activate() {
         running = true;
-        putInsightTemplate();
+        putInsightTemplate(indexTemplateLocation);
         thread = new Thread(this, "ElasticStorage");
         thread.start();
     }
