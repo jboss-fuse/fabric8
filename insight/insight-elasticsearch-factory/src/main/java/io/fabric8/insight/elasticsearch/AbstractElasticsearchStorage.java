@@ -31,6 +31,9 @@ import org.elasticsearch.node.Node;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Scanner;
@@ -53,10 +56,16 @@ public abstract class AbstractElasticsearchStorage implements StorageService, Me
 
     private MetricsStorageService metricsStorage = new MetricsStorageServiceImpl(this);
 
-    protected void putInsightTemplate() {
+    protected void putInsightTemplate(String indexTemplateLocation) {
         IndicesAdminClient indicesAdminClient = getNode().client().admin().indices();
 
-        String templateText = new Scanner(AbstractElasticsearchStorage.class.getResourceAsStream("/elasticsearch-index-template.json"), "UTF-8").useDelimiter("\\A").next();
+        InputStream stream = null;
+        try {
+            stream = new URL(indexTemplateLocation).openStream();
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Unable to load Elastic Search index defined at this location: " + indexTemplateLocation);
+        }
+        String templateText = new Scanner(stream, "UTF-8").useDelimiter("\\A").next();
 
         PutIndexTemplateRequest putInsightTemplateRequest = new PutIndexTemplateRequestBuilder(indicesAdminClient, "insight")
                 .setSource(templateText)
