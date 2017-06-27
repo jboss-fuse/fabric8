@@ -24,6 +24,8 @@ import org.apache.karaf.shell.console.AbstractAction;
 public abstract class ChangeRequirementSupport extends AbstractAction {
 
     private final FabricService fabricService;
+    protected String version;
+
 
     public ChangeRequirementSupport(FabricService fabricService) {
         this.fabricService = fabricService;
@@ -40,9 +42,16 @@ public abstract class ChangeRequirementSupport extends AbstractAction {
             requirements = new FabricRequirements();
         }
         if (updateRequirements(requirements)) {
+            if (version != null){
+                requirements.setVersion(version);
+            }
             getFabricService().setRequirements(requirements);
         }
         return null;
+    }
+
+    public void setVersion(String version){
+        this.version = version;
     }
 
     /**

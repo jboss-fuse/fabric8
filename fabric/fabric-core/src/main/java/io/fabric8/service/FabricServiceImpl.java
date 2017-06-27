@@ -1190,7 +1190,9 @@ public final class FabricServiceImpl extends AbstractComponent implements Fabric
     public FabricRequirements getRequirements() {
         assertValid();
         FabricRequirements requirements = dataStore.get().getRequirements();
-        requirements.setVersion(getDefaultVersionId());
+        if (requirements.getVersion() == null || requirements.getVersion().trim().equals("") ){
+            requirements.setVersion(getDefaultVersionId());
+        }
         return requirements;
     }
 

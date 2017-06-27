@@ -34,6 +34,8 @@ public class RequireProfileSetAction extends ChangeRequirementSupport {
     protected Integer maximumInstances;
     @Option(name = "--dependsOn", multiValued = true, required = false, description = "The profile IDs which need to be provisioned before this profile. To specify multiple profiles, use this flag multiple times.")
     protected List<String> dependentProfiles;
+    @Option(name = "--version", multiValued = false, required = false, description = "The version to operate onto. Defaults to the default version.")
+    protected String v;
 
     @Argument(index = 0, required = true, description = "Profile ID")
     protected String profile;
@@ -44,6 +46,9 @@ public class RequireProfileSetAction extends ChangeRequirementSupport {
 
     @Override
     protected boolean updateRequirements(FabricRequirements requirements) {
+        if(v != null){
+            setVersion(v);
+        }
         ProfileRequirements requirement = new ProfileRequirements(profile);
         if (minimumInstances != null) {
             requirement.setMinimumInstances(minimumInstances);
