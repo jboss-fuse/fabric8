@@ -76,7 +76,7 @@ public class AgentTest {
                 "mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.core.compatibility/1.0.0",
                 "mvn:org.apache.aries.proxy/org.apache.aries.proxy.api/1.0.1",
                 "mvn:org.apache.aries.proxy/org.apache.aries.proxy.impl/1.0.5",
-                "mvn:org.apache.aries/org.apache.aries.util/1.1.0",
+                "mvn:org.apache.aries/org.apache.aries.util/1.1.3",
                 "mvn:org.apache.felix/org.apache.felix.configadmin/1.8.4",
                 "mvn:org.apache.karaf.jaas/org.apache.karaf.jaas.command/" + karafVersion,
                 "mvn:org.apache.karaf.jaas/org.apache.karaf.jaas.config/" + karafVersion,
