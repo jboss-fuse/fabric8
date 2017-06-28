@@ -18,6 +18,7 @@ package org.fusesource.camel.component.sap;
 
 import org.fusesource.camel.component.sap.util.ComponentDestinationDataProvider;
 import org.fusesource.camel.component.sap.util.ComponentServerDataProvider;
+import org.fusesource.camel.component.sap.util.Util;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 
@@ -37,6 +38,7 @@ public class Activator implements BundleActivator {
 	 */
 	public void start(BundleContext bundleContext) throws Exception {
 		Activator.context = bundleContext;
+		Util.ensureBasePackages();
 	}
 
 	/*
