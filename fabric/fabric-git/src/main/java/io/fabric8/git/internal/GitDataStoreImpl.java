@@ -128,6 +128,12 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
     private static final transient Logger LOGGER = LoggerFactory.getLogger(GitDataStoreImpl.class);
 
+    // instead of:
+    // import static io.fabric8.patch.management.impl.GitPatchRepository.ADMIN_HISTORY_BRANCH;
+    // import static io.fabric8.patch.management.impl.GitPatchRepository.HISTORY_BRANCH;
+    private static final String HISTORY_BRANCH = "container-history";
+    private static final String ADMIN_HISTORY_BRANCH = "admin-container-history";
+
 
     private static final String GIT_REMOTE_USER = "gitRemoteUser";
     private static final String GIT_REMOTE_PASSWORD = "gitRemotePassword";
@@ -1132,12 +1138,12 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     private PullPolicyResult doPullInternal(GitContext context, CredentialsProvider credentialsProvider, boolean allowVersionDelete) {
         PullPolicyResult pullResult = pullPushPolicy.doPull(context, credentialsProvider, allowVersionDelete);
         if (pullResult.getLastException() == null) {
-            Set<String> updatedVersions = pullResult.localUpdateVersions();
+            Map<String, PullPushPolicy.BranchChange> updatedVersions = pullResult.localUpdateVersions();
             if (!updatedVersions.isEmpty()) {
-                if( updatedVersions.contains(GitHelpers.MASTER_BRANCH) ) {
+                if( updatedVersions.containsKey(GitHelpers.MASTER_BRANCH) ) {
                     versionCache.invalidateAll();
                 } else {
-                    for (String version : updatedVersions) {
+                    for (String version : updatedVersions.keySet()) {
                         versionCache.invalidate(version);
                     }
                 }
