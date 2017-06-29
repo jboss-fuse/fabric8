@@ -51,6 +51,7 @@ import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevTag;
 import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.TagOpt;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
@@ -370,6 +371,18 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
                     .setForce(true)
                     .call();
         }
+    }
+
+    @Override
+    public Iterable<PushResult> pushPatchBranches() throws GitAPIException {
+        List<Ref> localBranches = mainRepository.branchList().call();
+        List<RefSpec> toPush = new LinkedList<>();
+        for (Ref ref : localBranches) {
+            if (ref.getName().startsWith("refs/heads/patches-")) {
+                toPush.add(new RefSpec(ref.getName()));
+            }
+        }
+        return mainRepository.push().setRefSpecs(toPush).setPushTags().call();
     }
 
     @Override

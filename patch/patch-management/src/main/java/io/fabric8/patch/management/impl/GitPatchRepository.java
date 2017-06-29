@@ -30,6 +30,7 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevTag;
+import org.eclipse.jgit.transport.PushResult;
 
 /**
  * <p>Interface for low-level git patch repository operations.</p>
@@ -250,4 +251,8 @@ public interface GitPatchRepository {
      */
     String getStandaloneChildkarafName();
 
+    /**
+     * Pushes branches related to patches - without pushing locally relevant only branches (like "container-history")
+     */
+    Iterable<PushResult> pushPatchBranches() throws GitAPIException;
 }

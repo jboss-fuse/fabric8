@@ -40,7 +40,7 @@ import org.eclipse.jgit.errors.RepositoryNotFoundException;
 import org.eclipse.jgit.lib.RepositoryCache;
 
 @ThreadSafe
-@Component(name = "io.fabric8.git.service", label = "Fabric8 Git Service", immediate = true, metatype = false)
+@Component(name = "io.fabric8.git.service", immediate = true, metatype = false)
 @Service(GitService.class)
 public final class FabricGitServiceImpl extends AbstractComponent implements GitService {
 

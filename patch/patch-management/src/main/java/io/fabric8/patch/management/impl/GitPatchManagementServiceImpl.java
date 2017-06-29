@@ -3362,11 +3362,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         if (mainRepository.getRepository().getConfig() != null) {
             String remote = mainRepository.getRepository().getConfig().getString("remote", "origin", "url");
             if (remote != null) {
-                Iterable<PushResult> results = mainRepository.push()
-                        .setRemote("origin")
-                        .setPushAll()
-                        .setPushTags()
-                        .call();
+                Iterable<PushResult> results = gitPatchRepository.pushPatchBranches();
                 logPushResult(results, mainRepository.getRepository(), verbose);
                 return;
             }
@@ -3453,7 +3449,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             // from patches/.management/history to data/git/local
                             // and then to data/git/servlet
                             try {
-                                mainRepository.push().setPushAll().setPushTags().call();
+                                gitPatchRepository.pushPatchBranches();
                                 callback.run();
                             } catch (Exception e) {
                                 Activator.log(LogService.LOG_WARNING, null, e.getMessage(), e, false);

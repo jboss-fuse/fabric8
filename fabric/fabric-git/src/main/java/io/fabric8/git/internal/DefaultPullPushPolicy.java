@@ -156,6 +156,14 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                     if (allowDelete) {
                         String remotebranchRef = String.format("remotes/%s/%s", remoteRef, branch);
                         LOGGER.info("Deleting local branch: {} and local reference to remote branch: {}", branch, remotebranchRef);
+                        // we can't delete (even with --force) a branch that's checked out - let's checkout master then
+                        // which can't be deleted
+                        if (branch.equals(git.getRepository().getBranch())) {
+                            git.clean().setCleanDirectories(true).call();             // to remove not-tracked files
+                            git.reset().setMode(ResetCommand.ResetType.MIXED).call(); // for file permissions
+                            git.reset().setMode(ResetCommand.ResetType.HARD).call();  // for other changes
+                            git.checkout().setName("master").call();
+                        }
                         git.branchDelete().setBranchNames(branch, remotebranchRef).setForce(true).call();
                         localUpdate.put(branch, new BranchChange(branch).removed());
                     } else {
@@ -207,6 +215,11 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                                 localUpdate.put(branch, new BranchChange(branch).updated(localObjectId, remoteObjectId, "reset"));
                             }
                         }
+                    } else if (!git.status().call().isClean()) {
+                        LOGGER.info("Local branch {} is up to date, but not clean. Cleaning working copy now.", branch);
+                        git.clean().setCleanDirectories(true).call();             // to remove not-tracked files
+                        git.reset().setMode(ResetCommand.ResetType.MIXED).call(); // for file permissions
+                        git.reset().setMode(ResetCommand.ResetType.HARD).call();  // for other changes
                     }
                     versions.add(branch);
                 }
@@ -236,6 +249,11 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
         Iterator<PushResult> resit = null;
         Exception lastException = null;
         try {
+            // clean working copy before the push
+            git.clean().setCleanDirectories(true).call();             // to remove not-tracked files
+            git.reset().setMode(ResetCommand.ResetType.MIXED).call(); // for file permissions
+            git.reset().setMode(ResetCommand.ResetType.HARD).call();  // for other changes
+
             resit = git.push().setTimeout(gitTimeout).setCredentialsProvider(credentialsProvider)
                     .setPushTags()
                     .setPushAll()
