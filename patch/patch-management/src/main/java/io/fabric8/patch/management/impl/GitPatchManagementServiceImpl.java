@@ -3216,6 +3216,21 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                 // in case we don't find previous R patch, we'll have to find it the hard way
                 oldestToNewest.add(0, rc);
                 if (rc.getShortMessage().startsWith("Installing rollup patch ")) {
+                    if (rc.getParents() != null && rc.getParents().length == 2) {
+                        // ENTESB-7012 in order to preserve all user changes, we have to commit patch profile
+                        // changes not above "Installing rollup patch ..." commit, but above
+                        // it's 2nd parent with "Installing profiles from patch ..." message
+                        if (rc.getParents()[0].getShortMessage().startsWith("Installing profiles from patch ")) {
+                            patchBaseRevision = rc.getParents()[0];
+                            break;
+                        } else if (rc.getParents()[1].getShortMessage().startsWith("Installing profiles from patch ")) {
+                            patchBaseRevision = rc.getParents()[1];
+                            break;
+                        }
+                    }
+                    // if "Installing rollup patch ..." commit doesn't have 2 parents, it means it was created by
+                    // some old patch mechanism from early 6.2.1 which just copied profiles over and didn't use
+                    // merging
                     patchBaseRevision = rc;
                     break;
                 }
