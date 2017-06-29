@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.eclipse.jgit.api.CreateBranchCommand.SetupUpstreamMode;
@@ -37,6 +38,7 @@ import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.api.MergeResult.MergeStatus;
 import org.eclipse.jgit.api.RebaseCommand.Operation;
 import org.eclipse.jgit.api.RebaseResult;
+import org.eclipse.jgit.api.ResetCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.JGitInternalException;
 import org.eclipse.jgit.lib.ObjectId;
@@ -53,6 +55,8 @@ import io.fabric8.api.gravia.IllegalStateAssertion;
 import org.eclipse.jgit.transport.TagOpt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static java.util.Collections.emptyMap;
 
 /**
  * The default {@link PullPushPolicy}.
@@ -95,7 +99,7 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
 
         // No meaningful processing after GitAPIException
         if (lastException != null) {
-            LOGGER.warn("Pull failed during fetch because of: {}", lastException.getMessage(), lastException);
+            LOGGER.warn("Pull failed during fetch because of: " + lastException.getMessage(), lastException);
             return new AbstractPullPolicyResult(lastException);
         }
 
@@ -236,19 +240,19 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                     .setPushTags()
                     .setPushAll()
                     .call().iterator();
-        } catch (GitAPIException | JGitInternalException ex) {
+        } catch (Exception ex) {
             lastException = ex;
         }
 
         // Allow the commit to stay in the repository in case of push failure
         if (lastException != null) {
-            LOGGER.warn("Cannot push because of: {}", lastException.toString());
+            LOGGER.warn("Cannot push because of: " + lastException.toString(), lastException);
             return new AbstractPushPolicyResult(lastException);
         }
 
         List<PushResult> pushResults = new ArrayList<>();
-        List<RemoteRefUpdate> acceptedUpdates = new ArrayList<>();
-        List<RemoteRefUpdate> rejectedUpdates = new ArrayList<>();
+        Map<String, RemoteBranchChange> acceptedUpdates = new TreeMap<>();
+        Map<String, RemoteBranchChange> rejectedUpdates = new TreeMap<>();
 
         // Collect the updates that are not ok
         while (resit.hasNext()) {
@@ -256,17 +260,42 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
             pushResults.add(pushResult);
             for (RemoteRefUpdate refUpdate : pushResult.getRemoteUpdates()) {
                 Status status = refUpdate.getStatus();
-                if (status == Status.OK || status == Status.UP_TO_DATE) {
-                    acceptedUpdates.add(refUpdate);
+                ObjectId from = refUpdate.getTrackingRefUpdate() == null || refUpdate.getTrackingRefUpdate().getOldObjectId() == null
+                        ? refUpdate.getExpectedOldObjectId() : refUpdate.getTrackingRefUpdate().getOldObjectId();
+                ObjectId to = refUpdate.getTrackingRefUpdate() == null || refUpdate.getTrackingRefUpdate().getNewObjectId() == null
+                        ? refUpdate.getNewObjectId() : refUpdate.getTrackingRefUpdate().getNewObjectId();
+                if (status == Status.OK) {
+                    acceptedUpdates.put(refUpdate.getSrcRef(), new RemoteBranchChange(refUpdate.getSrcRef(), refUpdate)
+                            .updated(from, to, "fast-forward"));
+                } else if (status == Status.UP_TO_DATE) {
+                    acceptedUpdates.put(refUpdate.getSrcRef(), new RemoteBranchChange(refUpdate.getSrcRef(), refUpdate));
                 } else {
-                    rejectedUpdates.add(refUpdate);
+                    switch (status) {
+                        case REJECTED_NONFASTFORWARD:
+                            // typical problem when repos are not synced
+                            rejectedUpdates.put(refUpdate.getSrcRef(), new RemoteBranchChange(refUpdate.getSrcRef(), refUpdate)
+                                    .rejected(from, to, "non fast-forward update"));
+                            break;
+                        case NOT_ATTEMPTED:
+                        case REJECTED_NODELETE:
+                        case REJECTED_REMOTE_CHANGED:
+                        case REJECTED_OTHER_REASON:
+                        case NON_EXISTING:
+                        case AWAITING_REPORT:
+                        default:
+                            // ?
+                            rejectedUpdates.put(refUpdate.getSrcRef(), new RemoteBranchChange(refUpdate.getSrcRef(), refUpdate)
+                                    .rejected(from, to, status.toString()));
+                            break;
+                    }
                 }
             }
         }
 
         // Reset to the last known good rev and make the commit/push fail
-        for (RemoteRefUpdate rejectedRef : rejectedUpdates) {
-            LOGGER.warn("Rejected push: {}" + rejectedRef);
+        for (String rejectedRefName : rejectedUpdates.keySet()) {
+            RemoteRefUpdate rejectedRef = rejectedUpdates.get(rejectedRefName).getRemoteRefUpdate();
+            LOGGER.warn("Rejected push: {}. Attempting to recreate local branch.", rejectedRef);
             String refName = rejectedRef.getRemoteName();
             String branch = refName.substring(refName.lastIndexOf('/') + 1);
             try {
@@ -276,8 +305,9 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                 git.branchRename().setOldName(branch).setNewName(branch + "-tmp").call();
                 git.checkout().setCreateBranch(true).setName(branch).setStartPoint(fetchRef.getObjectId().getName()).call();
                 git.branchDelete().setBranchNames(branch + "-tmp").setForce(true).call();
-            } catch (GitAPIException ex) {
-                LOGGER.warn("Cannot reset branch {}, because of: {}", branch, ex.toString());
+                LOGGER.info("Local branch {} recreated from {}", branch, fetchRef.toString());
+            } catch (Exception ex) {
+                LOGGER.warn("Cannot recreate branch " + branch + " because of: " + ex.toString(), ex);
             }
         }
 
@@ -337,22 +367,22 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
     static class AbstractPushPolicyResult implements PushPolicyResult {
 
         private final List<PushResult> pushResults = new ArrayList<>();
-        private final List<RemoteRefUpdate> acceptedUpdates = new ArrayList<>();
-        private final List<RemoteRefUpdate> rejectedUpdates = new ArrayList<>();
+        private final Map<String, RemoteBranchChange> acceptedUpdates = new TreeMap<>();
+        private final Map<String, RemoteBranchChange> rejectedUpdates = new TreeMap<>();
         private final Exception lastException;
 
         AbstractPushPolicyResult() {
-            this(Collections.<PushResult>emptyList(), Collections.<RemoteRefUpdate>emptyList(), Collections.<RemoteRefUpdate>emptyList(), null);
+            this(Collections.<PushResult>emptyList(), Collections.<String, RemoteBranchChange>emptyMap(), Collections.<String, RemoteBranchChange>emptyMap(), null);
         }
 
         AbstractPushPolicyResult(Exception lastException) {
-            this(Collections.<PushResult>emptyList(), Collections.<RemoteRefUpdate>emptyList(), Collections.<RemoteRefUpdate>emptyList(), lastException);
+            this(Collections.<PushResult>emptyList(), Collections.<String, RemoteBranchChange>emptyMap(), Collections.<String, RemoteBranchChange>emptyMap(), lastException);
         }
 
-        AbstractPushPolicyResult(List<PushResult> pushResults, List<RemoteRefUpdate> acceptedUpdates, List<RemoteRefUpdate> rejectedUpdates, Exception lastException) {
+        AbstractPushPolicyResult(List<PushResult> pushResults, Map<String, RemoteBranchChange> acceptedUpdates, Map<String, RemoteBranchChange> rejectedUpdates, Exception lastException) {
             this.pushResults.addAll(pushResults);
-            this.acceptedUpdates.addAll(acceptedUpdates);
-            this.rejectedUpdates.addAll(rejectedUpdates);
+            this.acceptedUpdates.putAll(acceptedUpdates);
+            this.rejectedUpdates.putAll(rejectedUpdates);
             this.lastException = lastException;
         }
 
@@ -362,13 +392,13 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
         }
 
         @Override
-        public List<RemoteRefUpdate> getAcceptedUpdates() {
-            return Collections.unmodifiableList(acceptedUpdates);
+        public Map<String, RemoteBranchChange> getAcceptedUpdates() {
+            return Collections.unmodifiableMap(acceptedUpdates);
         }
 
         @Override
-        public List<RemoteRefUpdate> getRejectedUpdates() {
-            return Collections.unmodifiableList(rejectedUpdates);
+        public Map<String, RemoteBranchChange> getRejectedUpdates() {
+            return Collections.unmodifiableMap(rejectedUpdates);
         }
 
         @Override
@@ -378,7 +408,7 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
 
         @Override
         public String toString() {
-            return "[accepted=" + acceptedUpdates.size() + ",rejected=" + rejectedUpdates.size() + ",error=" + lastException + "]";
+            return "[accepted=" + acceptedUpdates.values() + ",rejected=" + rejectedUpdates.values() + ",error=" + lastException + "]";
         }
     }
 

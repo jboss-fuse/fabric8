@@ -63,9 +63,9 @@ public interface PullPushPolicy {
 
         List<PushResult> getPushResults();
 
-        List<RemoteRefUpdate> getAcceptedUpdates();
+        Map<String, RemoteBranchChange> getAcceptedUpdates();
 
-        List<RemoteRefUpdate> getRejectedUpdates();
+        Map<String, RemoteBranchChange> getRejectedUpdates();
 
         Exception getLastException();
     }
@@ -75,10 +75,10 @@ public interface PullPushPolicy {
      */
     public static class BranchChange {
 
-        private String branch;
-        private Change change = Change.UP_TO_DATE;
-        private ObjectId ref1, ref2;
-        private String updateStatus;
+        protected String branch;
+        protected Change change = Change.UP_TO_DATE;
+        protected ObjectId ref1, ref2;
+        protected String updateStatus;
 
         public BranchChange(String branch) {
             this.branch = branch;
@@ -112,14 +112,59 @@ public interface PullPushPolicy {
             }
         }
 
-        private static enum Change {
-            CREATED("(new branch)"), REMOVED("(deleted)"), UPDATED("(updated by %s: %s..%s)"), UP_TO_DATE("");
+        static enum Change {
+            CREATED("(new branch)"),
+            REMOVED("(deleted)"),
+            UPDATED("(updated by %s: %s..%s)"),
+            REJECTED("(rejected due to %s: %s..%s)"),
+            UP_TO_DATE("(no change)");
             private String description;
 
             Change(String description) {
                 this.description = description;
             }
         }
+    }
+
+    /**
+     * Indication of a change performed to remote branch.
+     */
+    public static class RemoteBranchChange extends BranchChange {
+
+        private final RemoteRefUpdate remoteRefUpdate;
+
+        public RemoteBranchChange(String branch, RemoteRefUpdate remoteRefUpdate) {
+            super(branch);
+            this.remoteRefUpdate = remoteRefUpdate;
+        }
+
+        @Override
+        public RemoteBranchChange updated(ObjectId previousRef, ObjectId newRef, String how) {
+            return (RemoteBranchChange) super.updated(previousRef, newRef, how);
+        }
+
+        public RemoteBranchChange rejected(ObjectId previousRef, ObjectId newRef, String why) {
+            this.change = Change.REJECTED;
+            this.ref1 = previousRef;
+            this.ref2 = newRef;
+            this.updateStatus = why;
+            return this;
+        }
+
+        public RemoteRefUpdate getRemoteRefUpdate() {
+            return remoteRefUpdate;
+        }
+
+        @Override
+        public String toString() {
+            if (change == Change.REJECTED) {
+                return String.format("%s%s", branch, String.format(change.description, updateStatus,
+                        ref1 == null ? "?" : ref1.getName(), ref2 == null ? "?" : ref2.getName()));
+            } else {
+                return super.toString();
+            }
+        }
+
     }
 
     /**

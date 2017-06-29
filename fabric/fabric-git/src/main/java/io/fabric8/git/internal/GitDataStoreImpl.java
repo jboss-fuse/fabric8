@@ -1151,7 +1151,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                 PushPolicyResult pushResult = doPushInternal(context, getCredentialsProvider());
                 if (!pushResult.getRejectedUpdates().isEmpty()) {
                     Exception gitex = pushResult.getLastException();
-                    throw new IllegalStateException("Push rejected: " + pushResult.getRejectedUpdates(), gitex);
+                    throw new IllegalStateException("Push rejected: " + pushResult.getRejectedUpdates().values(), gitex);
                 }
             }
             
