@@ -60,7 +60,7 @@ import org.slf4j.LoggerFactory;
 public final class DefaultPullPushPolicy implements PullPushPolicy  {
 
     private static final transient Logger LOGGER = LoggerFactory.getLogger(DefaultPullPushPolicy.class);
-    
+
     private final Git git;
     private final String remoteRef;
     private final int gitTimeout;
@@ -78,27 +78,27 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
         StoredConfig config = repository.getConfig();
         String remoteUrl = config.getString("remote", remoteRef, "url");
         if (remoteUrl == null) {
-            LOGGER.debug("No remote repository defined, so not doing a pull");
+            LOGGER.info("No remote repository defined, so not doing a pull");
             return new AbstractPullPolicyResult();
         }
-        
+
         LOGGER.info("Performing a pull on remote URL: {}", remoteUrl);
-        
+
         Exception lastException = null;
         try {
             git.fetch().setTimeout(gitTimeout).setCredentialsProvider(credentialsProvider)
                     .setTagOpt(TagOpt.FETCH_TAGS)
                     .setRemote(remoteRef).call();
-        } catch (GitAPIException | JGitInternalException ex) {
+        } catch (Exception ex) {
             lastException = ex;
         }
 
         // No meaningful processing after GitAPIException
         if (lastException != null) {
-            LOGGER.warn("Pull failed because of: {}", lastException.toString());
+            LOGGER.warn("Pull failed during fetch because of: {}", lastException.getMessage(), lastException);
             return new AbstractPullPolicyResult(lastException);
         }
-        
+
         // Get local and remote branches
         Map<String, Ref> localBranches = new HashMap<String, Ref>();
         Map<String, Ref> remoteBranches = new HashMap<String, Ref>();
@@ -127,46 +127,46 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                     allBranches.add(name);
                 }
             }
-            
-            Set<String> localUpdate = new HashSet<String>();
+
+            Map<String, BranchChange> localUpdate = new HashMap<>();
             boolean remoteUpdate = false;
             Set<String> versions = new TreeSet<>();
-            
+
             // Remote repository has no branches, force a push
             if (remoteBranches.isEmpty()) {
-                LOGGER.debug("Pulled from an empty remote repository");
+                LOGGER.info("Pulled from an empty remote repository");
                 return new AbstractPullPolicyResult(versions, localUpdate, !localBranches.isEmpty(), null);
             } else {
                 LOGGER.debug("Processing remote branches: {}", remoteBranches);
             }
-            
+
             // Verify master branch and do a checkout of it when we have it locally (already)
             IllegalStateAssertion.assertTrue(remoteBranches.containsKey(GitHelpers.MASTER_BRANCH), "Remote repository does not have a master branch");
 
             // Iterate over all local/remote branches
             for (String branch : allBranches) {
-                
-                // Delete a local branch that does not exist remotely, but not master 
+
+                // Delete a local branch that does not exist remotely, but not master
                 boolean allowDelete = allowVersionDelete && !GitHelpers.MASTER_BRANCH.equals(branch);
                 if (localBranches.containsKey(branch) && !remoteBranches.containsKey(branch)) {
                     if (allowDelete) {
                         String remotebranchRef = String.format("remotes/%s/%s", remoteRef, branch);
-                        LOGGER.debug("Deleting local branch: {} and local reference to remote branch: {}", branch, remotebranchRef);
+                        LOGGER.info("Deleting local branch: {} and local reference to remote branch: {}", branch, remotebranchRef);
                         git.branchDelete().setBranchNames(branch, remotebranchRef).setForce(true).call();
-                        localUpdate.add(branch);
+                        localUpdate.put(branch, new BranchChange(branch).removed());
                     } else {
                         remoteUpdate = true;
                     }
-                } 
-                
+                }
+
                 // Create a local branch that exists remotely
                 else if (!localBranches.containsKey(branch) && remoteBranches.containsKey(branch)) {
-                    LOGGER.debug("Adding local branch: {}", branch);
+                    LOGGER.info("Adding new local branch: {}", branch);
                     git.checkout().setCreateBranch(true).setName(branch).setStartPoint(remoteRef + "/" + branch).setUpstreamMode(SetupUpstreamMode.TRACK).setForce(true).call();
                     versions.add(branch);
-                    localUpdate.add(branch);
+                    localUpdate.put(branch, new BranchChange(branch).created());
                 }
-                
+
                 // Update a local branch that also exists remotely
                 else if (localBranches.containsKey(branch) && remoteBranches.containsKey(branch)) {
                     ObjectId localObjectId = localBranches.get(branch).getObjectId();
@@ -178,25 +178,29 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                         git.checkout().setName(branch).setForce(true).call();
                         MergeResult mergeResult = git.merge().setFastForward(FastForwardMode.FF_ONLY).include(remoteObjectId).call();
                         MergeStatus mergeStatus = mergeResult.getMergeStatus();
-                        LOGGER.debug("Updating local branch {} with status: {}", branch, mergeStatus);
+                        LOGGER.info("Updating local branch {} with status: {} ({}..{})",
+                                branch, mergeStatus, localCommit, remoteCommit);
                         if (mergeStatus == MergeStatus.FAST_FORWARD) {
-                            localUpdate.add(branch);
+                            localUpdate.put(branch, new BranchChange(branch).updated(localObjectId, remoteObjectId, "fast forward"));
                         } else if (mergeStatus == MergeStatus.ALREADY_UP_TO_DATE) {
+                            LOGGER.info("Remote branch {} is behind local version - changes will be pushed", branch);
                             remoteUpdate = true;
                         } else if (mergeStatus == MergeStatus.ABORTED) {
-                            LOGGER.debug("Cannot fast forward branch {}, attempting rebase", branch);
+                            // failure to merge using FastForwardMode.FF_ONLY always ends with MergeStatus.ABORTED
+                            LOGGER.info("Cannot fast forward branch {}, attempting rebase", branch);
                             RebaseResult rebaseResult = git.rebase().setUpstream(remoteCommit).call();
                             RebaseResult.Status rebaseStatus = rebaseResult.getStatus();
                             if (rebaseStatus == RebaseResult.Status.OK) {
-                                localUpdate.add(branch);
+                                LOGGER.info("Rebase successful for branch {}", branch);
+                                localUpdate.put(branch, new BranchChange(branch).updated(localObjectId, remoteObjectId, "rebase"));
                                 remoteUpdate = true;
                             } else {
-                                LOGGER.warn("Rebase on branch {} failed, restoring remote branch", branch);
+                                LOGGER.warn("Rebase on branch {} failed, restoring remote tracking branch", branch);
                                 git.rebase().setOperation(Operation.ABORT).call();
                                 git.checkout().setName(GitHelpers.MASTER_BRANCH).setForce(true).call();
                                 git.branchDelete().setBranchNames(branch).setForce(true).call();
                                 git.checkout().setCreateBranch(true).setName(branch).setStartPoint(remoteRef + "/" + branch).setUpstreamMode(SetupUpstreamMode.TRACK).setForce(true).call();
-                                localUpdate.add(branch);
+                                localUpdate.put(branch, new BranchChange(branch).updated(localObjectId, remoteObjectId, "reset"));
                             }
                         }
                     }
@@ -204,18 +208,18 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                 }
             }
 
-
             PullPolicyResult result = new AbstractPullPolicyResult(versions, localUpdate, remoteUpdate, null);
             LOGGER.info("Pull result: {}", result);
             return result;
         } catch (Exception ex) {
+            LOGGER.error(ex.getMessage(), ex);
             return new AbstractPullPolicyResult(ex);
         }
     }
-    
+
     @Override
     public synchronized PushPolicyResult doPush(GitContext context, CredentialsProvider credentialsProvider) {
-        
+
         StoredConfig config = git.getRepository().getConfig();
         String remoteUrl = config.getString("remote", remoteRef, "url");
         if (remoteUrl == null) {
@@ -224,7 +228,7 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
         }
 
         LOGGER.info("Pushing last change to: {}", remoteUrl);
-        
+
         Iterator<PushResult> resit = null;
         Exception lastException = null;
         try {
@@ -235,17 +239,17 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
         } catch (GitAPIException | JGitInternalException ex) {
             lastException = ex;
         }
-        
+
         // Allow the commit to stay in the repository in case of push failure
         if (lastException != null) {
             LOGGER.warn("Cannot push because of: {}", lastException.toString());
             return new AbstractPushPolicyResult(lastException);
         }
-        
+
         List<PushResult> pushResults = new ArrayList<>();
         List<RemoteRefUpdate> acceptedUpdates = new ArrayList<>();
         List<RemoteRefUpdate> rejectedUpdates = new ArrayList<>();
-        
+
         // Collect the updates that are not ok
         while (resit.hasNext()) {
             PushResult pushResult = resit.next();
@@ -259,7 +263,7 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                 }
             }
         }
-        
+
         // Reset to the last known good rev and make the commit/push fail
         for (RemoteRefUpdate rejectedRef : rejectedUpdates) {
             LOGGER.warn("Rejected push: {}" + rejectedRef);
@@ -276,8 +280,8 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                 LOGGER.warn("Cannot reset branch {}, because of: {}", branch, ex.toString());
             }
         }
-        
-        PushPolicyResult result = new AbstractPushPolicyResult(pushResults, acceptedUpdates, rejectedUpdates, lastException);
+
+        PushPolicyResult result = new AbstractPushPolicyResult(pushResults, acceptedUpdates, rejectedUpdates, null);
         LOGGER.info("Push result: {}", result);
         return result;
     }
@@ -285,28 +289,28 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
     static class AbstractPullPolicyResult implements PullPolicyResult {
 
         private final Set<String> versions = new TreeSet<>();
-        private final Set<String> localUpdate = new HashSet<>();
+        private final Map<String, BranchChange> localUpdate = new HashMap<>();
         private final boolean remoteUpdate;
         private final Exception lastException;
-        
+
         AbstractPullPolicyResult() {
-            this(Collections.<String>emptySet(), Collections.<String>emptySet(), false, null);
+            this(Collections.<String>emptySet(), Collections.<String, BranchChange>emptyMap(), false, null);
         }
 
         AbstractPullPolicyResult(Exception lastException) {
-            this(Collections.<String>emptySet(), Collections.<String>emptySet(), false, lastException);
+            this(Collections.<String>emptySet(), Collections.<String, BranchChange>emptyMap(), false, lastException);
         }
 
-        AbstractPullPolicyResult(Set<String> versions, Set<String> localUpdate, boolean remoteUpdate, Exception lastException) {
+        AbstractPullPolicyResult(Set<String> versions, Map<String, BranchChange> localUpdate, boolean remoteUpdate, Exception lastException) {
             this.versions.addAll(versions);
-            this.localUpdate.addAll(localUpdate);
+            this.localUpdate.putAll(localUpdate);
             this.remoteUpdate = remoteUpdate;
             this.lastException = lastException;
         }
 
         @Override
-        public Set<String> localUpdateVersions() {
-            return  Collections.unmodifiableSet(localUpdate);
+        public Map<String, BranchChange> localUpdateVersions() {
+            return  Collections.unmodifiableMap(localUpdate);
         }
 
         @Override
@@ -326,7 +330,7 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
 
         @Override
         public String toString() {
-            return "[localUpdate=" + localUpdate + ",remoteUpdate=" + remoteUpdate + ",versions=" + versions + ",error=" + lastException + "]";
+            return "[localUpdate=" + localUpdate.values() + ",remoteUpdate=" + remoteUpdate + ",versions=" + versions + ",error=" + lastException + "]";
         }
     }
 
@@ -336,7 +340,7 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
         private final List<RemoteRefUpdate> acceptedUpdates = new ArrayList<>();
         private final List<RemoteRefUpdate> rejectedUpdates = new ArrayList<>();
         private final Exception lastException;
-        
+
         AbstractPushPolicyResult() {
             this(Collections.<PushResult>emptyList(), Collections.<RemoteRefUpdate>emptyList(), Collections.<RemoteRefUpdate>emptyList(), null);
         }
@@ -377,4 +381,5 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
             return "[accepted=" + acceptedUpdates.size() + ",rejected=" + rejectedUpdates.size() + ",error=" + lastException + "]";
         }
     }
+
 }
