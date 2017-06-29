@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getSubstitutedData;
 
 @ThreadSafe
-@Component(name = "io.fabric8.git.master.listener", label = "Fabric8 Git Master Listener", immediate = true, metatype = false)
+@Component(name = "io.fabric8.git.master.listener", immediate = true, metatype = false)
 public final class GitMasterListener extends AbstractComponent implements GroupListener<GitNode> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GitMasterListener.class);
