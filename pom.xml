@@ -236,7 +236,7 @@
         <hawtio-eshead-version>1.0.3</hawtio-eshead-version>
         <hawtio-kibana-version>3.1.2_2</hawtio-kibana-version>
         <hawtio-swagger-version>${hawtio-version}</hawtio-swagger-version>
-        <hawtio-version>1.4.redhat-630284</hawtio-version>
+        <hawtio-version>1.4.0.redhat-630284</hawtio-version>
         <http-client-version>4.5.2</http-client-version>
         <http-core-version>4.4.4</http-core-version>
         <influxdb-version>1.2</influxdb-version>
