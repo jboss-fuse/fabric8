@@ -89,7 +89,7 @@ public class AgentTest {
                 "mvn:org.apache.karaf.shell/org.apache.karaf.shell.packages/" + karafVersion,
                 "mvn:org.apache.karaf.shell/org.apache.karaf.shell.ssh/" + karafVersion,
                 "mvn:org.apache.mina/mina-core/2.0.9",
-                "mvn:org.apache.sshd/sshd-core/0.14.0.redhat-001",
+//                "mvn:org.apache.sshd/sshd-core/0.14.0.redhat-001",
                 "mvn:org.ow2.asm/asm-all/5.0.3",
                 "mvn:org.ops4j.pax.logging/pax-logging-api/1.8.3",
                 "mvn:org.ops4j.pax.logging/pax-logging-service/1.8.3",
