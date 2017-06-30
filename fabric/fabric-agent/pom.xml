@@ -291,6 +291,12 @@
             <version>${karaf-version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.sshd</groupId>
+            <artifactId>sshd-core</artifactId>
+            <version>${sshd-version}</version>
+            <scope>test</scope>
+        </dependency>
 
         <!-- test server -->
         <dependency>
