@@ -50,7 +50,10 @@ public class AgentTest {
         System.setProperty("karaf.home", new File("target/karaf").getAbsolutePath());
 
         Dictionary<String, String> resolverProps = new Hashtable<>();
-        resolverProps.put(ServiceConstants.PROPERTY_REPOSITORIES, "http://repository.jboss.org/nexus/content/repositories/fs-public/@id=jboss.fs.public,https://repository.jboss.org/nexus/content/groups/ea/@id=jboss.ea.repo,http://repo1.maven.org/maven2@id=maven.central.repo");
+        resolverProps.put(ServiceConstants.PROPERTY_REPOSITORIES, "http://repository.jboss.org/nexus/content/repositories/fs-public/@id=jboss.fs.public," +
+                "https://repository.jboss.org/nexus/content/groups/ea/@id=jboss.ea.repo," +
+                "http://repo1.maven.org/maven2@id=maven.central.repo," +
+                "http://download.eng.bos.redhat.com/brewroot/repos/jb-fuse-6.2-build/latest/maven@id=brew");
         MavenResolver mavenResolver = MavenResolvers.createMavenResolver(resolverProps, null);
         DownloadManager manager = DownloadManagers.createDownloadManager(mavenResolver, Executors.newScheduledThreadPool(8));
 
@@ -74,8 +77,7 @@ public class AgentTest {
                 "mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.cm/1.1.0",
                 "mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.core/1.8.0",
                 "mvn:org.apache.aries.blueprint/org.apache.aries.blueprint.core.compatibility/1.0.0",
-                "mvn:org.apache.aries.proxy/org.apache.aries.proxy.api/1.1.0",
-                "mvn:org.apache.aries.proxy/org.apache.aries.proxy/1.1.0",
+                "mvn:org.apache.aries.proxy/org.apache.aries.proxy/1.1.1",
                 "mvn:org.apache.aries/org.apache.aries.util/1.1.3",
                 "mvn:org.apache.felix/org.apache.felix.configadmin/1.8.12",
                 "mvn:org.apache.karaf.jaas/org.apache.karaf.jaas.command/" + karafVersion,
