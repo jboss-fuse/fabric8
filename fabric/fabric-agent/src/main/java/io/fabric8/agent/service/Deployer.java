@@ -15,12 +15,17 @@
  */
 package io.fabric8.agent.service;
 
-import java.io.File;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import io.fabric8.agent.download.DownloadManager;
 import io.fabric8.agent.download.Downloader;
@@ -36,6 +41,7 @@ import io.fabric8.agent.utils.AgentUtils;
 import io.fabric8.agent.utils.OsgiUtils;
 import io.fabric8.common.util.ChecksumUtils;
 import io.fabric8.common.util.MultiException;
+import io.fabric8.common.util.Zips;
 import io.fabric8.maven.util.Parser;
 import io.fabric8.utils.NamedThreadFactory;
 import org.apache.felix.utils.version.VersionRange;
@@ -1273,19 +1279,37 @@ public class Deployer {
                     }
                     // We found a matching bundle
                     if (resource != null) {
+                        String uri = getUri(resource);
                         // In case of snapshots, check if the snapshot is out of date
                         // and flag it as to update
-                        if (isUpdateable(resource)) {
+                        if (uri != null && isUpdateable(uri)) {
                             // Always update snapshots
                             if (Constants.UPDATE_SNAPSHOTS_ALWAYS.equalsIgnoreCase(request.updateSnaphots)) {
                                 LOGGER.debug("Update snapshot for " + bundle.getLocation());
                                 deployment.toUpdate.put(bundle, resource);
                             } else if (Constants.UPDATE_SNAPSHOTS_CRC.equalsIgnoreCase(request.updateSnaphots)) {
                                 // if the checksum are different
-                                try (
-                                        InputStream is = getBundleInputStream(resource, resolver.getProviders())
-                                ) {
-                                    long newCrc = ChecksumUtils.checksum(is);
+                                InputStream is = null;
+                                try {
+                                    is = getBundleInputStream(resource, resolver.getProviders());
+                                    Long bpNewCrc = null;
+                                    try {
+                                        URI resourceURI = new URI(uri);
+                                        if ("blueprint".equals(resourceURI.getScheme())) {
+                                            InputStream bis = getBlueprintInputStream(is);
+                                            // original stream is closed in either case
+                                            if (bis != null) {
+                                                bpNewCrc = ChecksumUtils.checksum(bis);
+                                                is = bis;
+                                            } else {
+                                                // rewind FileInputStream, because we failed to read blueprint
+                                                // descriptor
+                                                is = getBundleInputStream(resource, resolver.getProviders());
+                                            }
+                                        }
+                                    } catch (URISyntaxException ignored) {
+                                    }
+                                    long newCrc = bpNewCrc != null ? bpNewCrc : ChecksumUtils.checksum(is);
                                     long oldCrc = dstate.state.bundleChecksums.containsKey(bundle.getBundleId())
                                                     ? dstate.state.bundleChecksums.get(bundle.getBundleId()) : 0L;
                                     if (newCrc != oldCrc) {
@@ -1293,6 +1317,13 @@ public class Deployer {
                                         deployment.toUpdate.put(bundle, resource);
                                     }
                                     result.bundleChecksums.put(bundle.getBundleId(), newCrc);
+                                } finally {
+                                    if (is != null) {
+                                        try {
+                                            is.close();
+                                        } catch (IOException ignored) {
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1363,6 +1394,10 @@ public class Deployer {
                 return getFeatureId(resource);
             }
         };
+    }
+
+    protected boolean isUpdateable(String uri) {
+        return uri.matches(Constants.UPDATEABLE_URIS);
     }
 
     protected boolean isUpdateable(Resource resource) {
@@ -1478,6 +1513,32 @@ public class Deployer {
             throw new IllegalStateException("Resource " + uri + " has no StreamProvider");
         }
         return new FileInputStream(provider.getFile());
+    }
+
+    /**
+     * Assuming that <code>stream</code> is a <em>blueprint bundle</em>, extracts <code>/OSGI-INF/blueprint/*.xml</code>
+     * entry instead.
+     * @param stream
+     * @return
+     * @throws IOException
+     */
+    protected InputStream getBlueprintInputStream(InputStream stream) throws IOException {
+        try {
+            try (ZipInputStream zis = new ZipInputStream(stream)) {
+                ZipEntry e = null;
+                while ((e = zis.getNextEntry()) != null) {
+                    if (!e.isDirectory() && e.getName().startsWith("OSGI-INF/blueprint/") && e.getName().endsWith(".xml")) {
+                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                        Zips.copy(zis, baos);
+                        return new ByteArrayInputStream(baos.toByteArray());
+                    }
+                }
+            }
+        } catch (IOException e) {
+            LOGGER.warn(e.getMessage(), e);
+        }
+
+        return null;
     }
 
 }
