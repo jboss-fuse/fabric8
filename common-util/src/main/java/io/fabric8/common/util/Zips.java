@@ -156,7 +156,7 @@ public class Zips {
         }
     }
 
-    static void copy(InputStream is, OutputStream os) throws IOException {
+    public static void copy(InputStream is, OutputStream os) throws IOException {
         try {
             byte[] b = new byte[4096];
             int l = is.read(b);
