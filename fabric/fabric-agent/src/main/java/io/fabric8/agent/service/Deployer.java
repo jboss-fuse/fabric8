@@ -1431,7 +1431,7 @@ public class Deployer {
     }
 
     protected boolean isUpdateable(String uri) {
-        return uri.matches(Constants.UPDATEABLE_URIS);
+        return uri.startsWith("wrap:") ? uri.substring(5).matches(Constants.UPDATEABLE_URIS) : uri.matches(Constants.UPDATEABLE_URIS);
     }
 
     protected boolean isUpdateable(Resource resource) {
