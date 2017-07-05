@@ -17,8 +17,10 @@ package io.fabric8.cxf.registry;
 
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -338,11 +340,32 @@ public final class FabricCxfRegistrationHandler extends AbstractComponent implem
     private String toPublicAddress(String container, String address) {
         try {
             URI uri = new URI(address);
-            int port = PublicPortMapper.getPublicPort(uri.getPort());
+            int _port = uri.getPort();
+            if (_port == -1) {
+                // ENTESB-6754 - new URI("HOSTNAME_WITHOUT_DOTS").getPort() returns -1. It works well with URL
+                // instead of URI...
+                try {
+                    _port = new URL(address).getPort();
+                } catch (MalformedURLException ignored) {
+                }
+            }
+            if (_port == -1) {
+                // try with scheme matching
+                if ("http".equals(uri.getScheme())) {
+                    _port = 80;
+                } else if ("https".equals(uri.getScheme())) {
+                    _port = 443;
+                }
+            }
+            int port = PublicPortMapper.getPublicPort(_port);
             String hostname = "${zk:" + container + "/ip}";
             String path = uri.getPath();
             while (path.startsWith("/")) {
                 path = path.substring(1);
+            }
+            if (port == -1) {
+                LOGGER.warn("Can't determine port number from endpoint address: " + address + ". Creating public address without port - please verify endpoint configuration.");
+                return uri.getScheme() + "://" + hostname + "/" + path;
             }
             return uri.getScheme() + "://" + hostname + ":" + port + "/" + path;
         } catch (URISyntaxException e) {
