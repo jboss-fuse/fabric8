@@ -30,6 +30,7 @@ import io.fabric8.api.RuntimeProperties;
 import io.fabric8.api.Version;
 import io.fabric8.api.VersionBuilder;
 import io.fabric8.api.VersionSequence;
+import io.fabric8.api.commands.GitVersion;
 import io.fabric8.api.jcip.ThreadSafe;
 import io.fabric8.api.scr.AbstractComponent;
 import io.fabric8.api.scr.Configurer;
@@ -71,6 +72,8 @@ import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -99,6 +102,8 @@ import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.StoredConfig;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.transport.RefSpec;
@@ -141,6 +146,8 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     private static final int GIT_COMMIT_SHORT_LENGTH = 7;
     private static final int MAX_COMMITS_WITHOUT_GC = 40;
     private static final long AQUIRE_LOCK_TIMEOUT = 25 * 1000L;
+
+    private static final DateFormat TIMESTAMP = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     @Reference(referenceInterface = CuratorFramework.class)
     private final ValidatingReference<CuratorFramework> curator = new ValidatingReference<>();
@@ -629,6 +636,48 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         } finally {
             readLock.unlock();
         }
+    }
+
+    @Override
+    public List<GitVersion> gitVersions() {
+        LockHandle readLock = aquireReadLock();
+        try {
+            assertValid();
+            GitOperation<List<GitVersion>> gitop = new GitOperation<List<GitVersion>>() {
+                public List<GitVersion> call(Git git, GitContext context) throws Exception {
+                    List<Ref> refs = git.branchList().call();
+                    List<GitVersion> localVersions = new LinkedList<>();
+                    for (Ref ref : refs) {
+                        String v = ref.getName();
+                        if (v.startsWith("refs/heads/")) {
+                            String name = v.substring(("refs/heads/").length());
+                            if (name.startsWith("patch-") || name.startsWith("patches-")
+                                    || name.startsWith("container-history")) {
+                                continue;
+                            }
+                            GitVersion gv = new GitVersion(name);
+                            gv.setSha1(ref.getObjectId().getName());
+                            RevCommit headCommit = new RevWalk(git.getRepository()).parseCommit(ref.getObjectId());
+                            if (headCommit != null) {
+                                gv.setMessage(headCommit.getShortMessage());
+                                gv.setTimestamp(TIMESTAMP.format(new Date(headCommit.getCommitTime() * 1000L)));
+                            }
+                            localVersions.add(gv);
+                        }
+                    }
+                    return Collections.unmodifiableList(localVersions);
+                }
+            };
+            return executeInternal(newGitReadContext(), null, gitop);
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
+    public List<GitVersion> gitSynchronize() {
+        doPullInternal();
+        return gitVersions();
     }
 
     @Override

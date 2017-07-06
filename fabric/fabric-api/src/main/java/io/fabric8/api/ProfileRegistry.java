@@ -18,6 +18,7 @@ package io.fabric8.api;
 import java.util.List;
 import java.util.Map;
 
+import io.fabric8.api.commands.GitVersion;
 
 /**
  * The profile data store
@@ -75,6 +76,20 @@ public interface ProfileRegistry {
      * Get the ordered list of available versions in the provided Git context.
      */
     List<String> getVersionIds(GitContext context);
+
+    /**
+     * Returns list of {@link GitVersion} for diagnostic purposes - to check if some container's git repository
+     * is out of sync.
+     * @return
+     */
+    List<GitVersion> gitVersions();
+
+    /**
+     * Forces synchronization of local git repository - forced pull from current git master. Returns list of
+     * version/branch information after synchronization.
+     * @return
+     */
+    List<GitVersion> gitSynchronize();
 
     /**
      * True if the data store contains the given version.
