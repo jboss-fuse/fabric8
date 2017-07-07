@@ -39,8 +39,7 @@ import org.eclipse.jgit.api.MergeResult.MergeStatus;
 import org.eclipse.jgit.api.RebaseCommand.Operation;
 import org.eclipse.jgit.api.RebaseResult;
 import org.eclipse.jgit.api.ResetCommand;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.api.errors.JGitInternalException;
+import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
@@ -55,8 +54,6 @@ import io.fabric8.api.gravia.IllegalStateAssertion;
 import org.eclipse.jgit.transport.TagOpt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static java.util.Collections.emptyMap;
 
 /**
  * The default {@link PullPushPolicy}.
@@ -99,7 +96,11 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
 
         // No meaningful processing after GitAPIException
         if (lastException != null) {
-            LOGGER.warn("Pull failed during fetch because of: " + lastException.getMessage(), lastException);
+            if (lastException instanceof InvalidRemoteException) {
+                LOGGER.warn("Pull failed during fetch because remote repository is not ready yet");
+            } else {
+                LOGGER.warn("Pull failed during fetch because of: " + lastException.getMessage(), lastException);
+            }
             return new AbstractPullPolicyResult(lastException);
         }
 
