@@ -147,8 +147,6 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     private static final int MAX_COMMITS_WITHOUT_GC = 40;
     private static final long AQUIRE_LOCK_TIMEOUT = 25 * 1000L;
 
-    private static final DateFormat TIMESTAMP = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
     @Reference(referenceInterface = CuratorFramework.class)
     private final ValidatingReference<CuratorFramework> curator = new ValidatingReference<>();
     @Reference(referenceInterface = GitService.class)
@@ -645,26 +643,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
             assertValid();
             GitOperation<List<GitVersion>> gitop = new GitOperation<List<GitVersion>>() {
                 public List<GitVersion> call(Git git, GitContext context) throws Exception {
-                    List<Ref> refs = git.branchList().call();
-                    List<GitVersion> localVersions = new LinkedList<>();
-                    for (Ref ref : refs) {
-                        String v = ref.getName();
-                        if (v.startsWith("refs/heads/")) {
-                            String name = v.substring(("refs/heads/").length());
-                            if (name.startsWith("patch-") || name.startsWith("patches-")
-                                    || name.startsWith("container-history")) {
-                                continue;
-                            }
-                            GitVersion gv = new GitVersion(name);
-                            gv.setSha1(ref.getObjectId().getName());
-                            RevCommit headCommit = new RevWalk(git.getRepository()).parseCommit(ref.getObjectId());
-                            if (headCommit != null) {
-                                gv.setMessage(headCommit.getShortMessage());
-                                gv.setTimestamp(TIMESTAMP.format(new Date(headCommit.getCommitTime() * 1000L)));
-                            }
-                            localVersions.add(gv);
-                        }
-                    }
+                    List<GitVersion> localVersions = GitHelpers.gitVersions(git);
                     return Collections.unmodifiableList(localVersions);
                 }
             };
@@ -1700,9 +1679,11 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         private boolean acceptDirectory(File dir) {
             // we should skip directories which has a .skipimport file
             String[] files = dir.list();
-            for (String name : files) {
-                if (".skipimport".equals(name)) {
-                    return false;
+            if (files != null) {
+                for (String name : files) {
+                    if (".skipimport".equals(name)) {
+                        return false;
+                    }
                 }
             }
 
