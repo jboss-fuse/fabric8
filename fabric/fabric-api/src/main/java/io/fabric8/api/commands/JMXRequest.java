@@ -15,6 +15,9 @@
  */
 package io.fabric8.api.commands;
 
+import java.util.Date;
+import java.util.UUID;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -23,11 +26,23 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class JMXRequest {
 
     @JsonProperty
-    private String id;
+    private String id = UUID.randomUUID().toString();
     @JsonProperty
     private String objectName;
     @JsonProperty
     private String method;
+
+    /**
+     * Timestamp of request creation
+     */
+    @JsonProperty
+    private long timestamp = new Date().getTime();
+
+    /**
+     * How long should the execution of the command be delayed?
+     */
+    @JsonProperty
+    private long delay = 0L;
 
     public String getId() {
         return id;
@@ -41,16 +56,27 @@ public class JMXRequest {
         return objectName;
     }
 
-    public void setObjectName(String objectName) {
+    public JMXRequest withObjectName(String objectName) {
         this.objectName = objectName;
+        return this;
     }
 
     public String getMethod() {
         return method;
     }
 
-    public void setMethod(String method) {
+    public JMXRequest withMethod(String method) {
         this.method = method;
+        return this;
+    }
+
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("[%s] %s.%s()%s", id, objectName, method, delay > 0L ? " (delayed by " + delay + ")" : "");
     }
 
 }

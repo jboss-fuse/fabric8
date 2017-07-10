@@ -23,6 +23,9 @@ import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getChildrenSafe;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getStringData;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getSubstitutedPath;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.setData;
+
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.fabric8.api.AutoScaleStatus;
 import io.fabric8.api.CreateContainerMetadata;
 import io.fabric8.api.CreateContainerOptions;
@@ -33,6 +36,8 @@ import io.fabric8.api.FabricService;
 import io.fabric8.api.ProfileService;
 import io.fabric8.api.RuntimeProperties;
 import io.fabric8.api.ZkDefs;
+import io.fabric8.api.commands.JMXRequest;
+import io.fabric8.api.commands.JMXResult;
 import io.fabric8.api.jcip.ThreadSafe;
 import io.fabric8.api.scr.AbstractComponent;
 import io.fabric8.api.scr.ValidatingReference;
@@ -57,15 +62,25 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.apache.curator.framework.recipes.cache.TreeCacheExtended;
+import org.apache.curator.framework.recipes.queue.DistributedQueue;
+import org.apache.curator.framework.recipes.queue.PublicStringSerializer;
+import org.apache.curator.framework.recipes.queue.QueueBuilder;
+import org.apache.curator.framework.recipes.queue.QueueConsumer;
+import org.apache.curator.framework.state.ConnectionState;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -84,22 +99,32 @@ import org.slf4j.LoggerFactory;
 @Component(label = "Fabric8 DataStore", policy = ConfigurationPolicy.IGNORE, immediate = true, metatype = true)
 @Service({ DataStore.class })
 public class ZkDataStoreImpl extends AbstractComponent implements DataStore, PathChildrenCacheListener {
-    
+
     private static final transient Logger LOGGER = LoggerFactory.getLogger(ZkDataStoreImpl.class);
-    
+
     private static final String JVM_OPTIONS_PATH = "/fabric/configs/io.fabric8.containers.jvmOptions";
     private static final String REQUIREMENTS_JSON_PATH = "/fabric/configs/io.fabric8.requirements.json";
-    
+
     @Reference(referenceInterface = CuratorFramework.class)
     private final ValidatingReference<CuratorFramework> curator = new ValidatingReference<CuratorFramework>();
     @Reference(referenceInterface = RuntimeProperties.class)
     private final ValidatingReference<RuntimeProperties> runtimeProperties = new ValidatingReference<RuntimeProperties>();
-    
+    @Reference(referenceInterface = MBeanServer.class, bind = "bindMBeanServer", unbind = "unbindMBeanServer")
+    private final ValidatingReference<MBeanServer> mbeanServer = new ValidatingReference<MBeanServer>();
+
     private final CopyOnWriteArrayList<Runnable> callbacks = new CopyOnWriteArrayList<Runnable>();
     private final ExecutorService cacheExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory("zk-cache"));
     private final ExecutorService callbacksExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory("zk-datastore"));
+
     private TreeCacheExtended configCache;
     private TreeCacheExtended containerCache;
+
+    // executor to invoke JMX commands received via ZK queues
+    private final ExecutorService commandsExecutor = Executors.newScheduledThreadPool(1, new NamedThreadFactory("zk-commands"));
+    private ObjectMapper commandsMapper;
+    private DistributedQueue<String> commandRequestsQueue;
+    private DistributedQueue<String> commandResponsesQueue;
+    private BlockingQueue<JMXRequest> commandRequests = new LinkedBlockingQueue<>();
 
     @Activate
     void activate() throws Exception {
@@ -112,7 +137,7 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
         deactivateComponent();
         deactivateInternal();
     }
-    
+
     private void activateInternal() throws Exception {
         configCache = new TreeCacheExtended(curator.get(), ZkPath.CONFIGS.getPath(), true, false, true, cacheExecutor);
         configCache.start(TreeCacheExtended.StartMode.NORMAL);
@@ -122,6 +147,20 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
         containerCache.start(TreeCacheExtended.StartMode.NORMAL);
         containerCache.getListenable().addListener(this);
 
+        commandsMapper = new ObjectMapper();
+        commandsMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        commandsMapper.configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true);
+
+        // ENTESB-5654: queues to communicate between containers
+        String name = runtimeProperties.get().getRuntimeIdentity();
+        commandRequestsQueue = QueueBuilder.builder(curator.get(), new CommandConsumer<>(commandRequests, JMXRequest.class),
+                PublicStringSerializer.serializer(), ZkPath.COMMANDS_REQUESTS.getPath(name)).buildQueue();
+        commandRequestsQueue.start();
+        commandResponsesQueue = QueueBuilder.builder(curator.get(), null,
+                PublicStringSerializer.serializer(), ZkPath.COMMANDS_RESPONSES.getPath(name)).buildQueue();
+        commandResponsesQueue.start();
+
+        commandsExecutor.submit(new ZkCommandProcessor());
     }
 
     private void deactivateInternal() {
@@ -131,6 +170,11 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
         containerCache.getListenable().removeListener(this);
         Closeables.closeQuietly(containerCache);
 
+        Closeables.closeQuietly(commandRequestsQueue);
+        Closeables.closeQuietly(commandResponsesQueue);
+        commandsMapper.getTypeFactory().clearCache();
+
+        commandsExecutor.shutdownNow();
         callbacksExecutor.shutdownNow();
         cacheExecutor.shutdownNow();
     }
@@ -186,12 +230,12 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
                         path.equals(ZkPath.CONFIG_CONTAINER.getPath(runtimeIdentity)) ||
                         (currentVersion != null && path.equals(ZkPath.CONFIG_VERSIONS_CONTAINER.getPath(currentVersion, runtimeIdentity)));
     }
-    
+
     @Override
     public void fireChangeNotifications() {
         runCallbacks();
     }
-    
+
     private void runCallbacks() {
         callbacksExecutor.submit(new Runnable() {
             @Override
@@ -200,7 +244,7 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
             }
         });
     }
-    
+
     private void doRunCallbacks() {
         assertValid();
         for (Runnable callback : callbacks) {
@@ -214,7 +258,7 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
             }
         }
     }
-    
+
     @Override
     public String getFabricReleaseVersion() {
         return FabricVersionUtils.getReleaseVersion();
@@ -381,11 +425,7 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
                 }
             };
             return (CreateContainerMetadata) ois.readObject();
-        } catch (ClassNotFoundException e) {
-            return null;
-        } catch (InvalidClassException e) {
-            return null;
-        } catch (KeeperException.NoNodeException e) {
+        } catch (ClassNotFoundException | InvalidClassException | KeeperException.NoNodeException e) {
             return null;
         } catch (Exception e) {
             throw FabricException.launderThrowable(e);
@@ -633,7 +673,7 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
             throw new IllegalArgumentException("Unsupported container attribute " + attribute);
         }
     }
-    
+
     @Override
     public String getDefaultVersion() {
         assertValid();
@@ -765,6 +805,76 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
         return containers;
     }
 
+    /**
+     * {@link QueueConsumer} that takes commands from ZK queue and places them in given {@link BlockingQueue}
+     * @param <T> type of commands - after unmarshalling JSON
+     */
+    private class CommandConsumer<T> implements QueueConsumer<String> {
+
+        final private BlockingQueue<T> commands;
+        private final Class<T> clazz;
+
+        public CommandConsumer(BlockingQueue<T> commands, Class<T> clazz) {
+            this.commands = commands;
+            this.clazz = clazz;
+        }
+
+        @Override
+        public void consumeMessage(String message) throws Exception {
+            T command = commandsMapper.readValue(message, clazz);
+            commands.offer(command);
+        }
+
+        @Override
+        public void stateChanged(CuratorFramework client, ConnectionState newState) {
+
+        }
+    }
+
+    private class ZkCommandProcessor implements Runnable {
+
+        @Override
+        public void run() {
+            LOGGER.info("Starting ZkCommandProcessor");
+            while (true) {
+                try {
+                    JMXRequest cmd = commandRequests.take();
+                    LOGGER.info("Got " + cmd);
+                    long start = System.currentTimeMillis();
+                    JMXResult result = new JMXResult();
+                    result.setCorrelationId(cmd.getId());
+                    result.setCode(0);
+                    result.setMessage("OK");
+
+                    // execute ...
+                    MBeanServer jmx = mbeanServer.getOptional();
+                    try {
+                        if (jmx == null) {
+                            result.setDuration(System.currentTimeMillis() - start);
+                            String msg = "MBean server is not available. Can't invoke ZK command";
+                            LOGGER.warn(msg);
+                            result.setCode(1);
+                            result.setMessage(msg);
+                        } else {
+                            String jmxResult = (String) jmx.invoke(new ObjectName(cmd.getObjectName()), cmd.getMethod(), new Object[0], new String[0]);
+                            result.setDuration(System.currentTimeMillis() - start);
+                            LOGGER.debug("ZK command invocation successful (duration: {})", result.getDuration());
+                            result.setResponse(jmxResult);
+                        }
+
+                        commandResponsesQueue.put(commandsMapper.writeValueAsString(result));
+                    } catch (Exception e) {
+                        LOGGER.warn("Exception while sending ZK command response: " + e.getMessage(), e);
+                    }
+                } catch (InterruptedException e) {
+                    LOGGER.info("ZkCommandProcessor interrupted - end of ZK command processing");
+                    return;
+                }
+            }
+        }
+
+    }
+
     public void bindCurator(CuratorFramework curator) {
         this.curator.bind(curator);
     }
@@ -778,4 +888,12 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
     void unbindRuntimeProperties(RuntimeProperties service) {
         this.runtimeProperties.unbind(service);
     }
+
+    void bindMBeanServer(MBeanServer mbeanServer) {
+        this.mbeanServer.bind(mbeanServer);
+    }
+    void unbindMBeanServer(MBeanServer mbeanServer) {
+        this.mbeanServer.unbind(mbeanServer);
+    }
+
 }

@@ -31,6 +31,9 @@ public class GitVersion {
     @JsonProperty
     String message;
 
+    public GitVersion() {
+    }
+
     public GitVersion(String version) {
         this.version = version;
     }
