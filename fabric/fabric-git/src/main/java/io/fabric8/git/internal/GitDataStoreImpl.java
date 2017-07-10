@@ -31,6 +31,7 @@ import io.fabric8.api.Version;
 import io.fabric8.api.VersionBuilder;
 import io.fabric8.api.VersionSequence;
 import io.fabric8.api.commands.GitVersion;
+import io.fabric8.api.commands.GitVersions;
 import io.fabric8.api.jcip.ThreadSafe;
 import io.fabric8.api.scr.AbstractComponent;
 import io.fabric8.api.scr.Configurer;
@@ -72,8 +73,6 @@ import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -104,8 +103,6 @@ import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.StoredConfig;
-import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.transport.RefSpec;
@@ -721,14 +718,14 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     }
 
     @Override
-    public List<GitVersion> gitVersions() {
+    public GitVersions gitVersions() {
         LockHandle readLock = aquireReadLock();
         try {
             assertValid();
-            GitOperation<List<GitVersion>> gitop = new GitOperation<List<GitVersion>>() {
-                public List<GitVersion> call(Git git, GitContext context) throws Exception {
+            GitOperation<GitVersions> gitop = new GitOperation<GitVersions>() {
+                public GitVersions call(Git git, GitContext context) throws Exception {
                     List<GitVersion> localVersions = GitHelpers.gitVersions(git);
-                    return Collections.unmodifiableList(localVersions);
+                    return new GitVersions(localVersions);
                 }
             };
             return executeInternal(newGitReadContext(), null, gitop);
@@ -738,7 +735,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     }
 
     @Override
-    public List<GitVersion> gitSynchronize() {
+    public GitVersions gitSynchronize() {
         doPullInternal();
         return gitVersions();
     }

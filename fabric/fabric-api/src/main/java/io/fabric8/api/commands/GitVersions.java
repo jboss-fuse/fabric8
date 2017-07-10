@@ -19,13 +19,19 @@ import java.util.LinkedList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
 public class GitVersions {
 
     @JsonProperty
     List<GitVersion> versions = new LinkedList<>();
 
     public GitVersions() {
+    }
+
+    public GitVersions(List<GitVersion> versions) {
+        this.versions = versions;
     }
 
     public List<GitVersion> getVersions() {

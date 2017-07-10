@@ -50,6 +50,7 @@ public class FabricManagerTest {
         versions.getVersions().addAll(Arrays.asList(v, v, v));
         res.setResponse(versions);
         System.out.println(om().writeValueAsString(res));
+        System.out.println(om().writeValueAsString(versions));
     }
 
     @Test

@@ -92,4 +92,9 @@ public class JMXResult {
         this.duration = duration;
     }
 
+    @Override
+    public String toString() {
+        return String.format("[%s] response code=%d (%s)", correlationId, code, message);
+    }
+
 }

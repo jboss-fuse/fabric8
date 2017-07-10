@@ -21,12 +21,16 @@ import java.util.List;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 import io.fabric8.api.Container;
 import io.fabric8.api.FabricService;
 import io.fabric8.api.RuntimeProperties;
+import io.fabric8.api.commands.JMXResult;
 import io.fabric8.zookeeper.ZkPath;
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.queue.PublicStringSerializer;
 import org.apache.felix.gogo.commands.Argument;
 import org.apache.felix.gogo.commands.Option;
 import org.apache.karaf.shell.console.AbstractAction;
@@ -88,15 +92,36 @@ public abstract class JMXCommandActionSupport extends AbstractAction {
 
             performContainerAction(path, name);
         }
-        summary(validContainerNames);
+
+        afterEachContainer(validContainerNames);
+
+        cleanResponses();
+
         return null;
+    }
+
+    /**
+     * Even if we could make response queues persistent, I think not doing it is better idea. Each command
+     * cleans after itself (and previous, failed/timed out commands)
+     */
+    protected void cleanResponses() {
+        for (Container container : fabricService.getContainers()) {
+            try {
+                String path = ZkPath.COMMANDS_RESPONSES.getPath(container.getId());
+                List<String> responses = curator.getChildren().forPath(path);
+                for (String r : responses) {
+                    curator.delete().forPath(path + "/" + r);
+                }
+            } catch (Exception ignored) {
+            }
+        }
     }
 
     /**
      * Action to be performed before sending commands to selected containers
      * @param names
      */
-    protected void beforeEachContainer(List<String> names) { }
+    protected void beforeEachContainer(Collection<String> names) throws Exception { }
 
     /**
      * Perform given action on named (valid) container
@@ -106,22 +131,47 @@ public abstract class JMXCommandActionSupport extends AbstractAction {
     protected abstract void performContainerAction(String queuePath, String containerName) throws Exception;
 
     /**
-     * Print summary after sending command to given containers
+     * Action to be performed after sending commands to selected containers
      * @param names
      */
-    protected abstract void summary(Collection<String> names);
+    protected void afterEachContainer(Collection<String> names) throws Exception { }
 
     /**
-     * Helper Object i&gt; JSON mapper for Karaf commands.
+     * Helper Object -&gt; JSON mapper for Karaf commands.
      * @param jmxRequest
      * @return
      * @throws JsonProcessingException
      */
     protected String map(Object jmxRequest) throws JsonProcessingException {
+        return getObjectMapper().writeValueAsString(jmxRequest);
+    }
+
+    protected List<JMXResult> asResults(String path, List<String> responses, Class<?> resultClass) throws Exception {
+        ObjectMapper mapper = getObjectMapper();
+        List<JMXResult> results = new LinkedList<>();
+        for (String responsePath : responses) {
+            byte[] bytes = curator.getData().forPath(path + "/" + responsePath);
+            String response = PublicStringSerializer.deserialize(bytes);
+            JMXResult result = mapper.readValue(response, JMXResult.class);
+            if (result.getResponse() instanceof String) {
+                try {
+                    result.setResponse(mapper.readValue((String)result.getResponse(), resultClass));
+                } catch (JsonMappingException | IllegalArgumentException ignore) {
+                    continue;
+                }
+            }
+            results.add(result);
+        }
+        mapper.getTypeFactory().clearCache();
+        return results;
+    }
+
+    private ObjectMapper getObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
+        mapper.setTypeFactory(TypeFactory.defaultInstance().withClassLoader(getClass().getClassLoader()));
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         mapper.configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true);
-        return mapper.writeValueAsString(jmxRequest);
+        return mapper;
     }
 
 }
