@@ -1388,6 +1388,11 @@ public final class FabricManager implements FabricManagerMBean {
     }
 
     @Override
+    public String gitMaster() {
+        return fabricService.getGitMaster();
+    }
+
+    @Override
     public String getZookeeperUrl() {
         return fabricService.getZookeeperUrl();
     }

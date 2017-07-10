@@ -362,4 +362,6 @@ public interface FabricManagerMBean {
     String webConsoleUrl();
 
     String gitUrl();
+
+    String gitMaster();
 }

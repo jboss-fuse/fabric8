@@ -16,10 +16,15 @@
 package io.fabric8.git.internal;
 
 import io.fabric8.api.Profiles;
+import io.fabric8.api.commands.GitVersion;
 import io.fabric8.common.util.Strings;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -28,9 +33,6 @@ import org.eclipse.jgit.api.CheckoutResult;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.NoHeadException;
-import org.eclipse.jgit.errors.CorruptObjectException;
-import org.eclipse.jgit.errors.IncorrectObjectTypeException;
-import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.Ref;
@@ -39,7 +41,6 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
-import org.gitective.core.CommitUtils;
 import io.fabric8.api.gravia.IllegalStateAssertion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +58,9 @@ public class GitHelpers {
     static final String REMOTE_ORIGIN = "origin";
     static final String MASTER_BRANCH = "master";
     static final String ROOT_TAG = "root";
-    
+
+    private static final DateFormat TIMESTAMP = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
     static final Pattern ENSEMBLE_PROFILE_PATTERN = Pattern.compile("fabric-ensemble-[0-9]+|fabric-ensemble-[0-9]+-[0-9]+");
     
     /**
@@ -267,6 +270,37 @@ public class GitHelpers {
         } else {
             return null;
         }
+    }
+
+    /**
+     * Fetches summary information (list of {@link GitVersion}) for given {@link Git} instance.
+     * @param git
+     * @return
+     * @throws GitAPIException
+     * @throws IOException
+     */
+    public static List<GitVersion> gitVersions(Git git) throws GitAPIException, IOException {
+        List<Ref> refs = git.branchList().call();
+        List<GitVersion> localVersions = new LinkedList<>();
+        for (Ref ref : refs) {
+            String v = ref.getName();
+            if (v.startsWith("refs/heads/")) {
+                String name = v.substring(("refs/heads/").length());
+                if (name.startsWith("patch-") || name.startsWith("patches-")
+                        || name.startsWith("container-history")) {
+                    continue;
+                }
+                GitVersion gv = new GitVersion(name);
+                gv.setSha1(ref.getObjectId().getName());
+                RevCommit headCommit = new RevWalk(git.getRepository()).parseCommit(ref.getObjectId());
+                if (headCommit != null) {
+                    gv.setMessage(headCommit.getShortMessage());
+                    gv.setTimestamp(TIMESTAMP.format(new Date(headCommit.getCommitTime() * 1000L)));
+                }
+                localVersions.add(gv);
+            }
+        }
+        return localVersions;
     }
 
 }
