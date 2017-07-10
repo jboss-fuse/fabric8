@@ -21,10 +21,9 @@ import io.fabric8.api.DataStore;
 import io.fabric8.api.FabricService;
 
 import java.util.Collection;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 
+import io.fabric8.commands.support.ContainerGlobSupport;
 import org.apache.felix.gogo.commands.Argument;
 import org.apache.felix.gogo.commands.Option;
 import org.apache.karaf.shell.console.AbstractAction;
@@ -62,57 +61,11 @@ public abstract class AbstractContainerLifecycleAction extends AbstractAction {
     }
 
     /**
-     * Returns a list of all available containers matching simple pattern where {@code *} matches any substring
-     * and {@code ?} matches single character.
-     */
-    protected List<String> matchedAvailableContainers(String pattern) {
-        LinkedList<String> result = new LinkedList<String>();
-        for (Container c: this.fabricService.getContainers()) {
-            String name = c.getId();
-            if (this.matches(pattern, name))
-                result.add(name);
-        }
-        return result;
-    }
-
-    /**
-     * Simple "glob" pattern matching
-     */
-    protected boolean matches(String globPattern, String name) {
-        String re = "^" + globPattern.replace(".", "\\.").replace("?", ".?").replace("*", ".*") + "$";
-        return name.matches(re);
-    }
-
-    /**
      * <p>Converts a list of possibly wildcard container names into list of available container names.</p>
      * <p>It also checks if the expanded list has at least one element</p>
      */
     protected Collection<String> expandGlobNames(List<String> containerNames) {
-        Collection<String> expandedNames = new LinkedHashSet<String>();
-        if (containerNames == null) {
-            System.out.println("Please specify container name(s).");
-            return expandedNames;
-        }
-        boolean globUsed = false;
-        for (String name: containerNames) {
-            if (name.contains("*") || name.contains("?")) {
-                globUsed = true;
-                expandedNames.addAll(this.matchedAvailableContainers(name));
-            } else {
-                expandedNames.add(name);
-            }
-        }
-        if (expandedNames.size() == 0) {
-            if (globUsed) {
-                System.out.println("Please specify container name(s). Your pattern didn't match any container name.");
-            } else {
-                System.out.println("Please specify container name(s).");
-            }
-        } else {
-            System.out.println("The list of container names: " + expandedNames.toString());
-        }
-
-        return expandedNames;
+        return ContainerGlobSupport.expandGlobNames(fabricService, containerNames);
     }
 
 }
