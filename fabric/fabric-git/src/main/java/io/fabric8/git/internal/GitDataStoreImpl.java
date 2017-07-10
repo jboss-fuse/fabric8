@@ -99,6 +99,7 @@ import org.apache.zookeeper.KeeperException;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.internal.storage.file.LockFile;
+import org.eclipse.jgit.lib.BatchingProgressMonitor;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
@@ -236,6 +237,16 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
         this.dataStoreProperties = Collections.unmodifiableMap(properties);
         this.pullPushPolicy = new DefaultPullPushPolicy(getGit(), GitHelpers.REMOTE_ORIGIN, gitTimeout);
+
+        Thread currentThread = Thread.currentThread();
+        ClassLoader backupClassLoader = null;
+        try {
+            backupClassLoader = currentThread.getContextClassLoader();
+            currentThread.setContextClassLoader(this.getClass().getClassLoader());
+            new DummyBatchingProgressMonitor();
+        } finally {
+            currentThread.setContextClassLoader(backupClassLoader);
+        }
 
         // DataStore activation accesses public API that is private by {@link AbstractComponent#assertValid()).
         // We activate the component first and rollback on error
@@ -2050,5 +2061,27 @@ class ProfilesVisitor<T> extends SimpleFileVisitor<T> {
 
     public List<File> getProfiles() {
         return profiles;
+    }
+}
+
+/**
+ * Pure <code>Class.forName("org.eclipse.jgit.lib.BatchingProgressMonitor")</code> is not enough to
+ * perform static initialization of a class.
+ */
+class DummyBatchingProgressMonitor extends BatchingProgressMonitor {
+    @Override
+    protected void onUpdate(String taskName, int workCurr) {
+    }
+
+    @Override
+    protected void onEndTask(String taskName, int workCurr) {
+    }
+
+    @Override
+    protected void onUpdate(String taskName, int workCurr, int workTotal, int percentDone) {
+    }
+
+    @Override
+    protected void onEndTask(String taskName, int workCurr, int workTotal, int percentDone) {
     }
 }

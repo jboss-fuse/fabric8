@@ -15,7 +15,6 @@
  */
 package io.fabric8.git.http;
 
-import io.fabric8.git.GitService;
 import io.fabric8.zookeeper.ZkPath;
 
 import java.io.IOException;
@@ -55,16 +54,6 @@ public class FabricGitServlet extends GitServlet {
         try {
             counter = new SharedCount(curator, ZkPath.GIT_TRIGGER.getPath(), 0);
             counter.start();
-
-            Thread currentThread = Thread.currentThread();
-            ClassLoader backupClassLoader = null;
-            try {
-                backupClassLoader = currentThread.getContextClassLoader();
-                currentThread.setContextClassLoader(GitService.class.getClassLoader());
-                Class.forName("org.eclipse.jgit.lib.BatchingProgressMonitor");
-            } finally {
-                currentThread.setContextClassLoader(backupClassLoader);
-            }
         } catch (Exception ex) {
             handleException(ex);
         }
