@@ -15,49 +15,30 @@
  */
 package io.fabric8.zookeeper.utils;
 
-import io.fabric8.zookeeper.ZkPath;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.retry.RetryOneTime;
-import org.apache.zookeeper.server.NIOServerCnxnFactory;
-import org.apache.zookeeper.server.ServerConfig;
-import org.apache.zookeeper.server.ZooKeeperServer;
-import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
-import org.junit.After;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.File;
-import java.io.StringReader;
-import java.net.ServerSocket;
-import java.net.URL;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 public class InterpolationHelperTest {
 
     InterpolationHelper.SubstitutionCallback dummyCallback;
 
-
     @Before
     public void init() throws Exception {
-        dummyCallback = new InterpolationHelper.SubstitutionCallback(){
+        dummyCallback = new InterpolationHelper.SubstitutionCallback() {
             public String getValue(String key) {
                 return null;
-            }};
-
-
+            }
+        };
     }
-
 
     @Test
     public void testSubstVars() throws Exception {
-
         String val = "#${propName}#";
         String currentKey = "";
         Map<String, String> cycleMap = new HashMap<>();
@@ -65,35 +46,31 @@ public class InterpolationHelperTest {
         configProps.put("propName", "OK");
         InterpolationHelper.SubstitutionCallback callback = this.dummyCallback;
 
-        String result = InterpolationHelper.substVars(val, currentKey, cycleMap, configProps, callback );
+        String result = InterpolationHelper.substVars(val, currentKey, cycleMap, configProps, callback);
 
         assertThat(result, equalTo("#OK#"));
 
         val = "#${ANOTHERpropName}#";
-        result = InterpolationHelper.substVars(val, currentKey, cycleMap, configProps, callback );
+        result = InterpolationHelper.substVars(val, currentKey, cycleMap, configProps, callback);
         assertThat(result, equalTo("##"));
-
-
     }
 
     @Test
     public void testSubstVarsPreserveUnresolved() throws Exception {
-
         String val = "#${propName}#";
         String currentKey = "";
         Map<String, String> cycleMap = new HashMap<>();
         Map<String, String> configProps = new HashMap<>();
         configProps.put("propName", "OK");
-        InterpolationHelper.SubstitutionCallback callback =  this.dummyCallback;
+        InterpolationHelper.SubstitutionCallback callback = this.dummyCallback;
 
-        String result = InterpolationHelper.substVarsPreserveUnresolved(val, currentKey, cycleMap, configProps, callback );
+        String result = InterpolationHelper.substVarsPreserveUnresolved(val, currentKey, cycleMap, configProps, callback);
 
         assertThat(result, equalTo("#OK#"));
 
         val = "#${ANOTHERpropName}#";
-        result = InterpolationHelper.substVarsPreserveUnresolved(val, currentKey, cycleMap, configProps, callback );
+        result = InterpolationHelper.substVarsPreserveUnresolved(val, currentKey, cycleMap, configProps, callback);
         assertThat(result, equalTo(val));
     }
-
 
 }
