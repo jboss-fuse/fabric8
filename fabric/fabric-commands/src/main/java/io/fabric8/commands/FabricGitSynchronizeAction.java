@@ -27,30 +27,23 @@ import org.apache.curator.framework.recipes.queue.PublicStringSerializer;
 import org.apache.felix.gogo.commands.Command;
 import org.apache.zookeeper.CreateMode;
 
-@Command(name = FabricGitSummary.FUNCTION_VALUE, scope = FabricGitSummary.SCOPE_VALUE, description = FabricGitSummary.DESCRIPTION)
-public class FabricGitSummaryAction extends JMXCommandActionSupport {
+@Command(name = FabricGitSynchronize.FUNCTION_VALUE, scope = FabricGitSynchronize.SCOPE_VALUE, description = FabricGitSynchronize.DESCRIPTION)
+public class FabricGitSynchronizeAction extends JMXCommandActionSupport {
 
-    public FabricGitSummaryAction(FabricService fabricService, CuratorFramework curator, RuntimeProperties runtimeProperties) {
+    public FabricGitSynchronizeAction(FabricService fabricService, CuratorFramework curator, RuntimeProperties runtimeProperties) {
         super(fabricService, curator, runtimeProperties);
-    }
-
-    @Override
-    protected void beforeEachContainer(List<String> names) {
-        // first, we need summary from fabric-git-server (to have something to compare local git repositories to)
-        String gitMaster = fabricService.getGitMaster();
-        System.out.println("Git master is: " + gitMaster);
     }
 
     @Override
     protected void performContainerAction(String queuePath, String containerName) throws Exception {
         // hand-made org.apache.curator.framework.recipes.queue.DistributedQueue.put()
-        String command = map(new JMXRequest().withObjectName("io.fabric8:type=Fabric").withMethod("gitVersions"));
+        String command = map(new JMXRequest().withObjectName("io.fabric8:type=Fabric").withMethod("gitSynchronize"));
         curator.create().withMode(CreateMode.PERSISTENT_SEQUENTIAL).forPath(queuePath, PublicStringSerializer.serialize(command));
     }
 
     @Override
     protected void summary(Collection<String> names) {
-        System.out.printf("Scheduled git-summary command to %d containers\n", names.size());
+        System.out.printf("Scheduled git-synchronize command to %d containers\n", names.size());
     }
 
 }
