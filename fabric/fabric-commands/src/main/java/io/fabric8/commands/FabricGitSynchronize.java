@@ -34,14 +34,14 @@ import org.apache.felix.service.command.Function;
 @Component(immediate = true)
 @Service({ Function.class, AbstractCommand.class })
 @Properties({
-        @Property(name = "osgi.command.scope", value = FabricGitSummary.SCOPE_VALUE),
-        @Property(name = "osgi.command.function", value = FabricGitSummary.FUNCTION_VALUE)
+        @Property(name = "osgi.command.scope", value = FabricGitSynchronize.SCOPE_VALUE),
+        @Property(name = "osgi.command.function", value = FabricGitSynchronize.FUNCTION_VALUE)
 })
-public class FabricGitSummary extends AbstractCommandComponent {
+public class FabricGitSynchronize extends AbstractCommandComponent {
 
     public static final String SCOPE_VALUE = "fabric";
-    public static final String FUNCTION_VALUE = "git-summary";
-    public static final String DESCRIPTION = "Retrieves status of git repository and its branches/versions";
+    public static final String FUNCTION_VALUE = "git-synchronize";
+    public static final String DESCRIPTION = "Schedules synchronization of local git repositories for selected/all containers";
 
     @Reference(referenceInterface = FabricService.class)
     private final ValidatingReference<FabricService> fabricService = new ValidatingReference<FabricService>();
@@ -61,7 +61,7 @@ public class FabricGitSummary extends AbstractCommandComponent {
     @Override
     public Action createNewAction() {
         assertValid();
-        return new FabricGitSummaryAction(fabricService.get(), CuratorFrameworkLocator.getCuratorFramework(), runtimeProperties.get());
+        return new FabricGitSynchronizeAction(fabricService.get(), CuratorFrameworkLocator.getCuratorFramework(), runtimeProperties.get());
     }
 
     void bindFabricService(FabricService fabricService) {
