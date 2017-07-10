@@ -40,6 +40,7 @@ import io.fabric8.api.Profiles;
 import io.fabric8.api.Version;
 import io.fabric8.api.VersionSequence;
 import io.fabric8.api.commands.GitVersion;
+import io.fabric8.api.commands.GitVersions;
 import io.fabric8.api.jmx.FabricManagerMBean;
 import io.fabric8.api.jmx.FabricStatusDTO;
 import io.fabric8.api.jmx.ServiceStatusDTO;
@@ -1307,7 +1308,7 @@ public final class FabricManager implements FabricManagerMBean {
 
     @Override
     public String gitVersions() {
-        List<GitVersion> gitVersions = profileRegistry.gitVersions();
+        GitVersions gitVersions = profileRegistry.gitVersions();
         try {
             return getObjectMapper().writeValueAsString(gitVersions);
         } catch (JsonProcessingException e) {
@@ -1317,7 +1318,7 @@ public final class FabricManager implements FabricManagerMBean {
 
     @Override
     public String gitSynchronize() {
-        List<GitVersion> gitVersions = profileRegistry.gitSynchronize();
+        GitVersions gitVersions = profileRegistry.gitSynchronize();
         try {
             return getObjectMapper().writeValueAsString(gitVersions);
         } catch (JsonProcessingException e) {

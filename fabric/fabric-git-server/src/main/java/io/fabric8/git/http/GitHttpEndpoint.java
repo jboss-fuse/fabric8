@@ -20,6 +20,7 @@ import java.util.List;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.fabric8.api.commands.GitVersion;
+import io.fabric8.api.commands.GitVersions;
 import io.fabric8.git.internal.GitHelpers;
 import io.fabric8.git.jmx.GitHttpEndpointMBean;
 import org.slf4j.Logger;
@@ -47,7 +48,7 @@ public class GitHttpEndpoint implements GitHttpEndpointMBean {
         }
         try {
             List<GitVersion> gitVersions = GitHelpers.gitVersions(handler.git);
-            return getObjectMapper().writeValueAsString(gitVersions);
+            return getObjectMapper().writeValueAsString(new GitVersions(gitVersions));
         } catch (Exception e) {
             LOG.warn(e.getMessage(), e);
         }

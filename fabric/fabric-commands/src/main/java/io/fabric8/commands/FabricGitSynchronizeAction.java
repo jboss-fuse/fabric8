@@ -16,7 +16,6 @@
 package io.fabric8.commands;
 
 import java.util.Collection;
-import java.util.List;
 
 import io.fabric8.api.FabricService;
 import io.fabric8.api.RuntimeProperties;
@@ -36,14 +35,13 @@ public class FabricGitSynchronizeAction extends JMXCommandActionSupport {
 
     @Override
     protected void performContainerAction(String queuePath, String containerName) throws Exception {
-        // hand-made org.apache.curator.framework.recipes.queue.DistributedQueue.put()
         String command = map(new JMXRequest().withObjectName("io.fabric8:type=Fabric").withMethod("gitSynchronize"));
         curator.create().withMode(CreateMode.PERSISTENT_SEQUENTIAL).forPath(queuePath, PublicStringSerializer.serialize(command));
     }
 
     @Override
-    protected void summary(Collection<String> names) {
-        System.out.printf("Scheduled git-synchronize command to %d containers\n", names.size());
+    protected void afterEachContainer(Collection<String> names) {
+        System.out.printf("Scheduled git-synchronize command to %d containers\n\n", names.size());
     }
 
 }
