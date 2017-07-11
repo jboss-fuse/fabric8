@@ -89,9 +89,10 @@ public interface ProfileRegistry {
     /**
      * Forces synchronization of local git repository - forced pull from current git master. Returns list of
      * version/branch information after synchronization.
+     * @param allowPush whether local repo state is pushed to central if there are newer local changes
      * @return
      */
-    GitVersions gitSynchronize();
+    GitVersions gitSynchronize(boolean allowPush);
 
     /**
      * True if the data store contains the given version.

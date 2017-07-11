@@ -735,8 +735,8 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     }
 
     @Override
-    public GitVersions gitSynchronize() {
-        doPullInternal();
+    public GitVersions gitSynchronize(boolean allowPush) {
+        doPullInternal(allowPush);
         return gitVersions();
     }
 
@@ -1236,9 +1236,13 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     }
 
     private void doPullInternal() {
+        doPullInternal(true);
+    }
+
+    private void doPullInternal(boolean allowPush) {
         LockHandle writeLock = aquireWriteLock();
         try {
-           doPullInternal(new GitContext(), getCredentialsProvider(), true);
+           doPullInternal(new GitContext(), getCredentialsProvider(), true, allowPush);
         } catch (Throwable e) {
             LOGGER.debug("Error during pull due " + e.getMessage(), e);
             LOGGER.warn("Error during pull due " + e.getMessage() + ". This exception is ignored.");
@@ -1246,9 +1250,13 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
             writeLock.unlock();
         }
     }
-    
+
     private PullPolicyResult doPullInternal(GitContext context, CredentialsProvider credentialsProvider, boolean allowVersionDelete) {
-        PullPolicyResult pullResult = pullPushPolicy.doPull(context, credentialsProvider, allowVersionDelete);
+        return doPullInternal(context, credentialsProvider, allowVersionDelete, true);
+    }
+
+    private PullPolicyResult doPullInternal(GitContext context, CredentialsProvider credentialsProvider, boolean allowVersionDelete, boolean allowPush) {
+        PullPolicyResult pullResult = pullPushPolicy.doPull(context, credentialsProvider, allowVersionDelete, allowPush);
         if (pullResult.getLastException() == null) {
             Map<String, PullPushPolicy.BranchChange> updatedVersions = pullResult.localUpdateVersions();
             if (!updatedVersions.isEmpty()) {

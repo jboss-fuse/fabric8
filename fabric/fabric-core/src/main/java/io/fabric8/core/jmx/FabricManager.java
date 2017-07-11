@@ -1338,8 +1338,8 @@ public final class FabricManager implements FabricManagerMBean {
     }
 
     @Override
-    public String gitSynchronize() {
-        GitVersions gitVersions = profileRegistry.gitSynchronize();
+    public String gitSynchronize(Boolean allowPush) {
+        GitVersions gitVersions = profileRegistry.gitSynchronize(allowPush);
         try {
             return getObjectMapper().writeValueAsString(gitVersions);
         } catch (JsonProcessingException e) {

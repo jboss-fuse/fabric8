@@ -30,6 +30,7 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ResetCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.errors.UnsupportedCredentialItem;
+import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.transport.CredentialItem;
@@ -44,6 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.*;
 
@@ -435,13 +437,55 @@ public class PushPullPolicyIT {
 
     @Test
     public void remoteUpdateWhenLocalBranchIsAhead() throws GitAPIException, IOException {
-        editVersion("1.1", 2, true);
+        editVersion("1.1", 2, true, "fabric/profiles/default.profile/io.fabric8.other.properties");
         editVersion("1.1", 2, false);
+        ObjectId branch1_1local = local.getRepository().getRef("refs/heads/1.1").getObjectId();
+        ObjectId branch1_1remote = servlet.getRepository().getRef("refs/heads/1.1").getObjectId();
+        assertThat(branch1_1local, not(equalTo(branch1_1remote)));
+
         local.checkout().setName("1.0").setCreateBranch(false).call();
 
         assertTrue(local.status().call().isClean());
 
         PullPushPolicy.PullPolicyResult result = policy.doPull(new GitContext(), CP, true);
+        assertNull(result.getLastException());
+
+        List<String> versions = new ArrayList<>(result.getVersions());
+        // these are sorted (TreeSet)
+        assertThat(versions.size(), equalTo(5));
+        assertThat(versions.get(0), equalTo("1.0"));
+        assertThat(versions.get(1), equalTo("1.0.1"));
+        assertThat(versions.get(2), equalTo("1.1"));
+        assertThat(versions.get(3), equalTo("1.2"));
+        assertThat(versions.get(4), equalTo("master"));
+
+        List<String> localUpdateVersions = new ArrayList<>(result.localUpdateVersions().keySet());
+        assertThat(localUpdateVersions.size(), equalTo(1));
+        assertThat(localUpdateVersions.get(0), equalTo("1.1"));
+
+        assertTrue(result.remoteUpdateRequired());
+        assertTrue(local.status().call().isClean());
+
+        List<Ref> localBranches = local.branchList().call();
+        assertThat(localBranches.size(), equalTo(5));
+        assertNotNull(local.getRepository().getRef("1.1"));
+
+        assertThat("Local branch should change by rebase on top of what's in remote", local.getRepository().getRef("refs/heads/1.1").getObjectId(), not(equalTo(branch1_1remote)));
+    }
+
+    @Test
+    public void remoteUpdateWhenLocalBranchIsAheadButNoPushIsAllowed() throws GitAPIException, IOException {
+        editVersion("1.1", 2, true, "fabric/profiles/default.profile/io.fabric8.other.properties");
+        editVersion("1.1", 2, false);
+        ObjectId branch1_1local = local.getRepository().getRef("refs/heads/1.1").getObjectId();
+        ObjectId branch1_1remote = servlet.getRepository().getRef("refs/heads/1.1").getObjectId();
+        assertThat(branch1_1local, not(equalTo(branch1_1remote)));
+
+        local.checkout().setName("1.0").setCreateBranch(false).call();
+
+        assertTrue(local.status().call().isClean());
+
+        PullPushPolicy.PullPolicyResult result = policy.doPull(new GitContext(), CP, true, false);
         assertNull(result.getLastException());
 
         List<String> versions = new ArrayList<>(result.getVersions());
@@ -463,6 +507,8 @@ public class PushPullPolicyIT {
         List<Ref> localBranches = local.branchList().call();
         assertThat(localBranches.size(), equalTo(5));
         assertNotNull(local.getRepository().getRef("1.1"));
+
+        assertThat("Local branch should change (will be reset to remote)", local.getRepository().getRef("refs/heads/1.1").getObjectId(), equalTo(branch1_1remote));
     }
 
     @Test
@@ -627,9 +673,20 @@ public class PushPullPolicyIT {
      * Simulates <code>profile-edit</code> invocations in existing version
      * @param version
      * @param numberOfEdits
-     * @param inRemote whether to perform edits in remote repository
+     * @param inRemote
      */
     private void editVersion(String version, int numberOfEdits, boolean inRemote) {
+        editVersion(version, numberOfEdits, inRemote, "fabric/profiles/default.profile/io.fabric8.agent.properties");
+    }
+
+    /**
+     * Simulates <code>profile-edit</code> invocations in existing version
+     * @param version
+     * @param numberOfEdits
+     * @param inRemote whether to perform edits in remote repository
+     * @param fileName file to edit
+     */
+    private void editVersion(String version, int numberOfEdits, boolean inRemote, String fileName) {
         Git git = local;
         try {
             if (inRemote) {
@@ -654,7 +711,7 @@ public class PushPullPolicyIT {
                     .setCreateBranch(create).call();
 
             for (int edit = 0; edit < numberOfEdits; edit++) {
-                FileUtils.write(new File(git.getRepository().getWorkTree(), "fabric/profiles/default.profile/io.fabric8.agent.properties"), String.format("\nedit%d = %d # %s", edit + 1, edit + 1, UUID.randomUUID().toString()), true);
+                FileUtils.write(new File(git.getRepository().getWorkTree(), fileName), String.format("\nedit%d = %d # %s", edit + 1, edit + 1, UUID.randomUUID().toString()), true);
                 git.add().addFilepattern(".").call();
                 commit(git, "Update configurations for profile: default, version: " + version);
             }

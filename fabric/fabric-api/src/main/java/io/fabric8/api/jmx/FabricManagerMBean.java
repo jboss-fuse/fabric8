@@ -283,9 +283,10 @@ public interface FabricManagerMBean {
 
     /**
      * Orders synchronization of local git repository with central git repository. Returns new git/version state.
+     * @param allowPush whether local repo state is pushed to central if there are newer local changes
      * @return
      */
-    String gitSynchronize();
+    String gitSynchronize(Boolean allowPush);
 
     void copyProfile(String versionId, String sourceId, String targetId, boolean force);
 

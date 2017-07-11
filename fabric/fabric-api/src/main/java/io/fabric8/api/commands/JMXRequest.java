@@ -16,6 +16,8 @@
 package io.fabric8.api.commands;
 
 import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -31,6 +33,8 @@ public class JMXRequest {
     private String objectName;
     @JsonProperty
     private String method;
+    @JsonProperty
+    private List<String[]> params = new LinkedList<>();
 
     /**
      * Timestamp of request creation
@@ -70,8 +74,26 @@ public class JMXRequest {
         return this;
     }
 
+    public JMXRequest withParam(Class<?> type, Object value) {
+        params.add(new String[] { type.getName(), value.toString() });
+        return this;
+    }
+
+    public List<String[]> getParams() {
+        return params;
+    }
+
     public long getTimestamp() {
         return timestamp;
+    }
+
+    public JMXRequest withDelay(long delay) {
+        this.delay = delay;
+        return this;
+    }
+
+    public long getDelay() {
+        return delay;
     }
 
     @Override
