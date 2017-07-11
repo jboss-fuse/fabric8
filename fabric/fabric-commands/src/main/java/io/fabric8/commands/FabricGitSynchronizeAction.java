@@ -33,6 +33,9 @@ public class FabricGitSynchronizeAction extends JMXCommandActionSupport {
     @Option(name = "-p", aliases = { "--allow-push" }, description = "Whether containers are allowed to push local Git repository state to central Git repository", required = false, multiValued = false)
     protected boolean allowPush = false;
 
+    @Option(name = "-r", aliases = { "--random-delay" }, description = "Delay synchronization attempt by random number of seconds. By default each container will delay synchronization by 0-15 seconds to protect against too many pull operations.", required = false, multiValued = false)
+    protected int randomDelay = 15;
+
     public FabricGitSynchronizeAction(FabricService fabricService, CuratorFramework curator, RuntimeProperties runtimeProperties) {
         super(fabricService, curator, runtimeProperties);
     }
@@ -40,7 +43,9 @@ public class FabricGitSynchronizeAction extends JMXCommandActionSupport {
     @Override
     protected void performContainerAction(String queuePath, String containerName) throws Exception {
         String command = map(new JMXRequest()
-                .withObjectName("io.fabric8:type=Fabric").withMethod("gitSynchronize")
+                .withObjectName("io.fabric8:type=Fabric")
+                .withMethod("gitSynchronize")
+                .withDelay(randomDelay)
                 .withParam(Boolean.class, allowPush));
         curator.create().withMode(CreateMode.PERSISTENT_SEQUENTIAL).forPath(queuePath, PublicStringSerializer.serialize(command));
     }

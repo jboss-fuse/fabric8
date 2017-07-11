@@ -61,12 +61,15 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -119,7 +122,8 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
     private TreeCacheExtended containerCache;
 
     // executor to invoke JMX commands received via ZK queues
-    private final ExecutorService commandsExecutor = Executors.newScheduledThreadPool(1, new NamedThreadFactory("zk-commands"));
+    private final ExecutorService commandProcessorExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory("zk-cmd-processor"));
+    private final ScheduledExecutorService commandsExecutor = Executors.newScheduledThreadPool(1, new NamedThreadFactory("zk-commands"));
     private ObjectMapper commandsMapper;
     private DistributedQueue<String> commandRequestsQueue;
     private DistributedQueue<String> commandResponsesQueue;
@@ -159,7 +163,7 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
                 PublicStringSerializer.serializer(), ZkPath.COMMANDS_RESPONSES.getPath(name)).buildQueue();
         commandResponsesQueue.start();
 
-        commandsExecutor.submit(new ZkCommandProcessor());
+        commandProcessorExecutor.submit(new ZkCommandProcessor());
     }
 
     private void deactivateInternal() {
@@ -174,6 +178,7 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
         commandsMapper.getTypeFactory().clearCache();
 
         commandsExecutor.shutdownNow();
+        commandProcessorExecutor.shutdownNow();
         callbacksExecutor.shutdownNow();
         cacheExecutor.shutdownNow();
     }
@@ -833,21 +838,23 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
 
     private class ZkCommandProcessor implements Runnable {
 
+        private Random RND = new Random();
+
         @Override
         public void run() {
             LOGGER.info("Starting ZkCommandProcessor");
             while (true) {
                 try {
-                    JMXRequest cmd = commandRequests.take();
+                    final JMXRequest cmd = commandRequests.take();
                     LOGGER.info("Got " + cmd);
                     long start = System.currentTimeMillis();
-                    JMXResult result = new JMXResult();
+                    final JMXResult result = new JMXResult();
                     result.setCorrelationId(cmd.getId());
                     result.setCode(0);
                     result.setMessage("OK");
 
                     // execute ...
-                    MBeanServer jmx = mbeanServer.getOptional();
+                    final MBeanServer jmx = mbeanServer.getOptional();
                     try {
                         if (jmx == null) {
                             result.setDuration(System.currentTimeMillis() - start);
@@ -855,9 +862,10 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
                             LOGGER.warn(msg);
                             result.setCode(1);
                             result.setMessage(msg);
+                            commandResponsesQueue.put(commandsMapper.writeValueAsString(result));
                         } else {
-                            List<Object> params = new ArrayList<>(cmd.getParams().size());
-                            List<String> types = new ArrayList<>(cmd.getParams().size());
+                            final List<Object> params = new ArrayList<>(cmd.getParams().size());
+                            final List<String> types = new ArrayList<>(cmd.getParams().size());
                             for (String[] pair : cmd.getParams()) {
                                 types.add(pair[0]);
                                 switch (pair[0]) {
@@ -868,14 +876,31 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
                                         params.add(null);
                                 }
                             }
-                            String jmxResult = (String) jmx.invoke(new ObjectName(cmd.getObjectName()),
-                                    cmd.getMethod(), params.toArray(new Object[params.size()]), types.toArray(new String[params.size()]));
-                            result.setDuration(System.currentTimeMillis() - start);
-                            LOGGER.debug("ZK command invocation successful (duration: {})", result.getDuration());
-                            result.setResponse(jmxResult);
+                            Runnable invocation = new Runnable() {
+                                @Override
+                                public void run() {
+                                    try {
+                                        long start = System.currentTimeMillis();
+                                        String jmxResult = (String) jmx.invoke(new ObjectName(cmd.getObjectName()),
+                                                cmd.getMethod(), params.toArray(new Object[params.size()]), types.toArray(new String[params.size()]));
+                                        result.setDuration(System.currentTimeMillis() - start);
+                                        LOGGER.debug("ZK command invocation successful (duration: {})", result.getDuration());
+                                        result.setResponse(jmxResult);
+                                        commandResponsesQueue.put(commandsMapper.writeValueAsString(result));
+                                    } catch (Exception e) {
+                                        LOGGER.warn("Exception while invoking JMX command: " + e.getMessage(), e);
+                                    }
+                                }
+                            };
+                            if (cmd.getDelay() == 0) {
+                                LOGGER.info("Invoking ZK command immediately: {}", cmd);
+                                commandsExecutor.execute(invocation);
+                            } else {
+                                int delay = RND.nextInt(cmd.getDelay()) + 1;
+                                LOGGER.info("Scheduling invocation of ZK command with random delay={}s: {}", delay, cmd);
+                                commandsExecutor.schedule(invocation, delay, TimeUnit.SECONDS);
+                            }
                         }
-
-                        commandResponsesQueue.put(commandsMapper.writeValueAsString(result));
                     } catch (Exception e) {
                         LOGGER.warn("Exception while sending ZK command response: " + e.getMessage(), e);
                     }
