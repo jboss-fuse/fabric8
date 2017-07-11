@@ -275,6 +275,19 @@ public interface FabricManagerMBean {
 
     List<Map<String, Object>> versions(List<String> fields);
 
+    /**
+     * Returns git-related version information. Returns JSONified array of {@link io.fabric8.api.commands.GitVersion}
+     * @return
+     */
+    String gitVersions();
+
+    /**
+     * Orders synchronization of local git repository with central git repository. Returns new git/version state.
+     * @param allowPush whether local repo state is pushed to central if there are newer local changes
+     * @return
+     */
+    String gitSynchronize(Boolean allowPush);
+
     void copyProfile(String versionId, String sourceId, String targetId, boolean force);
 
     void renameProfile(String versionId, String profileId, String newId, boolean force);
@@ -350,4 +363,6 @@ public interface FabricManagerMBean {
     String webConsoleUrl();
 
     String gitUrl();
+
+    String gitMaster();
 }

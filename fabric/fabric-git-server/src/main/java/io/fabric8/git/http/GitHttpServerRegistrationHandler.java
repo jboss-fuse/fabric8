@@ -24,6 +24,7 @@ import io.fabric8.api.scr.ValidatingReference;
 import io.fabric8.git.GitDataStore;
 import io.fabric8.git.GitHttpEndpoint;
 import io.fabric8.git.GitNode;
+import io.fabric8.git.jmx.GitHttpEndpointMBean;
 import io.fabric8.groups.Group;
 import io.fabric8.groups.GroupListener;
 import io.fabric8.groups.internal.ZooKeeperGroup;
@@ -41,6 +42,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+import javax.management.StandardMBean;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.felix.scr.annotations.Activate;
@@ -81,20 +87,31 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
     private final ValidatingReference<GitDataStore> gitDataStore = new ValidatingReference<>();
     @Reference(referenceInterface = RuntimeProperties.class)
     private final ValidatingReference<RuntimeProperties> runtimeProperties = new ValidatingReference<RuntimeProperties>();
+    @Reference(referenceInterface = MBeanServer.class, bind = "bindMBeanServer", unbind = "unbindMBeanServer")
+    private final ValidatingReference<MBeanServer> mbeanServer = new ValidatingReference<MBeanServer>();
 
     //Reference not used, but it expresses the dependency on a fully initialized fabric.
     @Reference
     private FabricService fabricService;
 
-    private final AtomicBoolean isMaster = new AtomicBoolean();
+    final AtomicBoolean isMaster = new AtomicBoolean();
     private final AtomicReference<String> gitRemoteUrl = new AtomicReference<>();
     private Group<GitNode> group;
     private Path basePath;
-    private Git git;
+    Git git;
 
     private String realm;
     private String roles;
     private Path dataPath;
+
+    private ObjectName objectName;
+
+    public GitHttpServerRegistrationHandler() {
+        try {
+            objectName = new ObjectName("io.fabric8:type=GitServer");
+        } catch (MalformedObjectNameException ignored) {
+        }
+    }
 
     @Activate
     void activate(Map<String, ?> configuration) throws Exception {
@@ -208,6 +225,11 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
             initParams.put("repository-root", servletBase);
             initParams.put("export-all", "true");
             httpService.get().registerServlet("/git", new FabricGitServlet(git, curator.get()), initParams, secure);
+
+            if (mbeanServer.getOptional() != null) {
+                StandardMBean mbean = new StandardMBean(new io.fabric8.git.http.GitHttpEndpoint(this), GitHttpEndpointMBean.class);
+                mbeanServer.get().registerMBean(mbean, objectName);
+            }
         }
     }
 
@@ -216,6 +238,13 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
      * See https://bugs.eclipse.org/bugs/show_bug.cgi?id=300084
      */
     private void unregisterServlet() {
+        try {
+            if (mbeanServer.getOptional() != null) {
+                mbeanServer.get().unregisterMBean(objectName);
+            }
+        } catch (Exception e) {
+            LOGGER.warn("Exception during " + objectName + " unregistration: " + e.getMessage(), e);
+        }
         synchronized (gitRemoteUrl) {
             if (basePath != null) {
                 try {
@@ -363,4 +392,13 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
     void unbindRuntimeProperties(RuntimeProperties service) {
         this.runtimeProperties.unbind(service);
     }
+
+    void bindMBeanServer(MBeanServer mbeanServer) {
+        this.mbeanServer.bind(mbeanServer);
+    }
+    void unbindMBeanServer(MBeanServer mbeanServer) {
+        this.mbeanServer.unbind(mbeanServer);
+    }
+
 }
+

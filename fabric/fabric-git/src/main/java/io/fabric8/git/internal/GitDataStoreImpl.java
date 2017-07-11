@@ -30,6 +30,8 @@ import io.fabric8.api.RuntimeProperties;
 import io.fabric8.api.Version;
 import io.fabric8.api.VersionBuilder;
 import io.fabric8.api.VersionSequence;
+import io.fabric8.api.commands.GitVersion;
+import io.fabric8.api.commands.GitVersions;
 import io.fabric8.api.jcip.ThreadSafe;
 import io.fabric8.api.scr.AbstractComponent;
 import io.fabric8.api.scr.Configurer;
@@ -96,6 +98,7 @@ import org.apache.zookeeper.KeeperException;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.internal.storage.file.LockFile;
+import org.eclipse.jgit.lib.BatchingProgressMonitor;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
@@ -187,12 +190,18 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     private long gitRemotePollInterval = 60 * 1000L;
     @Property(name = GIT_GC_ON_LOAD, label = "Run Git GC", description = "Whether or not to run Git GC on load of the Git repo", boolValue = false)
     private boolean gitGcOnLoad = false;
-    
+    @Property(name = "gitAllowRemoteUpdate", label = "Allow remote update", description = "Whether or not local changes should be pushed to remote repository if local branch/version is newer. Used only when fetching from remote repository.", boolValue = true)
+    private boolean gitAllowRemoteUpdate = true;
+    @Property(name = "gitRandomFetchDelay", label = "Fetch delay", description = "If greater than 0, container will wait up to given number of seconds before fetching from remote repository.", intValue = 0)
+    private int gitRandomFetchDelay = 0;
+
     private final LoadingCache<String, Version> versionCache = CacheBuilder.newBuilder().build(new VersionCacheLoader());
     private final Set<String> versions = new HashSet<String>();
 
     // ENTESB-6336: This latch will be triggerred after versionCache contains some sane data
     private final CountDownLatch initialVersionsAvailable = new CountDownLatch(1);
+
+    private Random RND = new Random(new Date().getTime());
 
     @Activate
     @VisibleForExternal
@@ -228,7 +237,17 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         }
 
         this.dataStoreProperties = Collections.unmodifiableMap(properties);
-        this.pullPushPolicy = new DefaultPullPushPolicy(getGit(), GitHelpers.REMOTE_ORIGIN, gitTimeout);
+        this.pullPushPolicy = new DefaultPullPushPolicy(getGit(), GitHelpers.REMOTE_ORIGIN, gitTimeout, gitAllowRemoteUpdate);
+
+        Thread currentThread = Thread.currentThread();
+        ClassLoader backupClassLoader = null;
+        try {
+            backupClassLoader = currentThread.getContextClassLoader();
+            currentThread.setContextClassLoader(this.getClass().getClassLoader());
+            new DummyBatchingProgressMonitor();
+        } finally {
+            currentThread.setContextClassLoader(backupClassLoader);
+        }
 
         // DataStore activation accesses public API that is private by {@link AbstractComponent#assertValid()).
         // We activate the component first and rollback on error
@@ -325,13 +344,20 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         counter.addListener(new SharedCountListener() {
             @Override
             public void countHasChanged(final SharedCountReader sharedCountReader, final int value) throws Exception {
-               threadPool.submit(new Runnable() {
-                   @Override
-                   public void run() {
-                       LOGGER.debug("Watch counter updated to " + value + ", doing a pull");
-                       doPullInternal();
-                   }
-               });
+                Runnable task = new Runnable() {
+                    @Override
+                    public void run() {
+                        doPullInternal();
+                    }
+                };
+                if (gitRandomFetchDelay == 0) {
+                    LOGGER.debug("Watch counter updated to " + value + ", scheduling immediate pull");
+                    threadPool.submit(task);
+                } else {
+                    int delay = RND.nextInt(gitRandomFetchDelay) + 1;
+                    LOGGER.debug("Watch counter updated to " + value + ", scheduling pull with random delay=" + delay + "s");
+                    threadPool.schedule(task, delay, TimeUnit.SECONDS);
+                }
             }
 
             @Override
@@ -702,6 +728,29 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         } finally {
             readLock.unlock();
         }
+    }
+
+    @Override
+    public GitVersions gitVersions() {
+        LockHandle readLock = aquireReadLock();
+        try {
+            assertValid();
+            GitOperation<GitVersions> gitop = new GitOperation<GitVersions>() {
+                public GitVersions call(Git git, GitContext context) throws Exception {
+                    List<GitVersion> localVersions = GitHelpers.gitVersions(git);
+                    return new GitVersions(localVersions);
+                }
+            };
+            return executeInternal(newGitReadContext(), null, gitop);
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
+    public GitVersions gitSynchronize(boolean allowPush) {
+        doPullInternal(allowPush);
+        return gitVersions();
     }
 
     @Override
@@ -1200,9 +1249,13 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     }
 
     private void doPullInternal() {
+        doPullInternal(gitAllowRemoteUpdate);
+    }
+
+    private void doPullInternal(boolean allowPush) {
         LockHandle writeLock = aquireWriteLock();
         try {
-           doPullInternal(new GitContext(), getCredentialsProvider(), true);
+           doPullInternal(new GitContext(), getCredentialsProvider(), true, allowPush);
         } catch (Throwable e) {
             LOGGER.debug("Error during pull due " + e.getMessage(), e);
             LOGGER.warn("Error during pull due " + e.getMessage() + ". This exception is ignored.");
@@ -1210,9 +1263,13 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
             writeLock.unlock();
         }
     }
-    
+
     private PullPolicyResult doPullInternal(GitContext context, CredentialsProvider credentialsProvider, boolean allowVersionDelete) {
-        PullPolicyResult pullResult = pullPushPolicy.doPull(context, credentialsProvider, allowVersionDelete);
+        return doPullInternal(context, credentialsProvider, allowVersionDelete, true);
+    }
+
+    private PullPolicyResult doPullInternal(GitContext context, CredentialsProvider credentialsProvider, boolean allowVersionDelete, boolean allowPush) {
+        PullPolicyResult pullResult = pullPushPolicy.doPull(context, credentialsProvider, allowVersionDelete, allowPush);
         if (pullResult.getLastException() == null) {
             Map<String, PullPushPolicy.BranchChange> updatedVersions = pullResult.localUpdateVersions();
             if (!updatedVersions.isEmpty()) {
@@ -1739,9 +1796,11 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         private boolean acceptDirectory(File dir) {
             // we should skip directories which has a .skipimport file
             String[] files = dir.list();
-            for (String name : files) {
-                if (".skipimport".equals(name)) {
-                    return false;
+            if (files != null) {
+                for (String name : files) {
+                    if (".skipimport".equals(name)) {
+                        return false;
+                    }
                 }
             }
 
@@ -2001,5 +2060,27 @@ class ProfilesVisitor<T> extends SimpleFileVisitor<T> {
 
     public List<File> getProfiles() {
         return profiles;
+    }
+}
+
+/**
+ * Pure <code>Class.forName("org.eclipse.jgit.lib.BatchingProgressMonitor")</code> is not enough to
+ * perform static initialization of a class.
+ */
+class DummyBatchingProgressMonitor extends BatchingProgressMonitor {
+    @Override
+    protected void onUpdate(String taskName, int workCurr) {
+    }
+
+    @Override
+    protected void onEndTask(String taskName, int workCurr) {
+    }
+
+    @Override
+    protected void onUpdate(String taskName, int workCurr, int workTotal, int percentDone) {
+    }
+
+    @Override
+    protected void onEndTask(String taskName, int workCurr, int workTotal, int percentDone) {
     }
 }

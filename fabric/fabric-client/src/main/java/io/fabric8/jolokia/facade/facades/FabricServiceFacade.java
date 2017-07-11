@@ -232,6 +232,11 @@ public class FabricServiceFacade implements FabricService {
     }
 
     @Override
+    public String getGitMaster() {
+        return Helpers.read(getJolokiaClient(), "GitMaster");
+    }
+
+    @Override
     public String getWebConsoleUrl() {
         return Helpers.read(getJolokiaClient(), "WebConsoleUrl");
     }

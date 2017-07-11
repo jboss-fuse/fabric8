@@ -26,6 +26,7 @@ import static org.junit.Assert.fail;
 import io.fabric8.api.Container;
 import io.fabric8.api.FabricService;
 import io.fabric8.api.scr.support.ReflectionHelper;
+import io.fabric8.commands.support.ContainerGlobSupport;
 import io.fabric8.internal.ContainerImpl;
 
 import java.io.ByteArrayOutputStream;
@@ -206,20 +207,20 @@ public class ContainerLifecycleCommandsTest {
 
     @Test
     public void globMatchingTest() throws Exception {
-        assertThat(this.stop.matches("c*", "c"), is(true));
-        assertThat(this.stop.matches("c*", "c1"), is(true));
-        assertThat(this.stop.matches("c*", "cabc"), is(true));
-        assertThat(this.stop.matches("d*", "cabc"), is(false));
-        assertThat(this.stop.matches("*c*", "c"), is(true));
-        assertThat(this.stop.matches("*c*", "abc"), is(true));
-        assertThat(this.stop.matches("*c*", "bca"), is(true));
-        assertThat(this.stop.matches("*c*", "bda"), is(false));
+        assertThat(ContainerGlobSupport.matches("c*", "c"), is(true));
+        assertThat(ContainerGlobSupport.matches("c*", "c1"), is(true));
+        assertThat(ContainerGlobSupport.matches("c*", "cabc"), is(true));
+        assertThat(ContainerGlobSupport.matches("d*", "cabc"), is(false));
+        assertThat(ContainerGlobSupport.matches("*c*", "c"), is(true));
+        assertThat(ContainerGlobSupport.matches("*c*", "abc"), is(true));
+        assertThat(ContainerGlobSupport.matches("*c*", "bca"), is(true));
+        assertThat(ContainerGlobSupport.matches("*c*", "bda"), is(false));
 
-        assertThat(this.stop.matches("c?", "c1"), is(true));
-        assertThat(this.stop.matches("c?", "c10"), is(false));
+        assertThat(ContainerGlobSupport.matches("c?", "c1"), is(true));
+        assertThat(ContainerGlobSupport.matches("c?", "c10"), is(false));
 
-        assertThat(this.stop.matches("c.", "c1"), is(false));
-        assertThat(this.stop.matches("c.", "c."), is(true));
+        assertThat(ContainerGlobSupport.matches("c.", "c1"), is(false));
+        assertThat(ContainerGlobSupport.matches("c.", "c."), is(true));
     }
 
     /**

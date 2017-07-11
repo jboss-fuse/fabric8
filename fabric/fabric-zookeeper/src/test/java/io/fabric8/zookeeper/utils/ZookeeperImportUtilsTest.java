@@ -15,51 +15,17 @@
  */
 package io.fabric8.zookeeper.utils;
 
-import java.io.File;
 import java.io.StringReader;
-import java.net.ServerSocket;
 import java.net.URL;
 import java.util.List;
 import java.util.Properties;
 
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.retry.RetryOneTime;
-import org.apache.zookeeper.server.NIOServerCnxnFactory;
-import org.apache.zookeeper.server.ServerConfig;
-import org.apache.zookeeper.server.ZooKeeperServer;
-import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
 
-public class ZookeeperImportUtilsTest {
-
-    private CuratorFramework curator;
-    private NIOServerCnxnFactory cnxnFactory;
-
-    @Before
-    public void init() throws Exception {
-        int port = findFreePort();
-
-        curator = CuratorFrameworkFactory.builder()
-            .connectString("localhost:" + port)
-            .retryPolicy(new RetryOneTime(1000))
-            .build();
-        curator.start();
-
-        cnxnFactory = startZooKeeper(port);
-        curator.getZookeeperClient().blockUntilConnectedOrTimedOut();
-    }
-
-    @After
-    public void cleanup() throws Exception {
-        curator.close();
-        cnxnFactory.shutdown();
-    }
+public class ZookeeperImportUtilsTest extends ZookeeperServerTestSupport {
 
     @Test
     public void testNoExceptionFromImportProperties() throws Exception {
@@ -129,30 +95,6 @@ public class ZookeeperImportUtilsTest {
         ZooKeeperFacade facade = new ZooKeeperFacade(curator);
         List<String> children = facade.matchingDescendants("/fabric4/fabric/registry/clusters/servlets/*/1.0.0");
         assertThat("children size: " + children, children.size(), not(equalTo(0)));
-
-    }
-
-    private int findFreePort() throws Exception {
-        ServerSocket ss = new ServerSocket(0);
-        int port = ss.getLocalPort();
-        ss.close();
-        return port;
-    }
-
-    private NIOServerCnxnFactory startZooKeeper(int port) throws Exception {
-        ServerConfig cfg = new ServerConfig();
-        cfg.parse(new String[]{Integer.toString(port), "target/zk/data"});
-
-        ZooKeeperServer zkServer = new ZooKeeperServer();
-        FileTxnSnapLog ftxn = new FileTxnSnapLog(new File(cfg.getDataLogDir()), new File(cfg.getDataDir()));
-        zkServer.setTxnLogFactory(ftxn);
-        zkServer.setTickTime(cfg.getTickTime());
-        zkServer.setMinSessionTimeout(cfg.getMinSessionTimeout());
-        zkServer.setMaxSessionTimeout(cfg.getMaxSessionTimeout());
-        NIOServerCnxnFactory cnxnFactory = new NIOServerCnxnFactory();
-        cnxnFactory.configure(cfg.getClientPortAddress(), cfg.getMaxClientCnxns());
-        cnxnFactory.startup(zkServer);
-        return cnxnFactory;
     }
 
 }

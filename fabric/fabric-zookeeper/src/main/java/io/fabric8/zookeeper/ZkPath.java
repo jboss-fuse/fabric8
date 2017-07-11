@@ -157,9 +157,12 @@ public enum ZkPath {
 
     AUTHENTICATION_CRYPT_ALGORITHM ("/fabric/authentication/crypt/algorithm"),
     AUTHENTICATION_CRYPT_PASSWORD  ("/fabric/authentication/crypt/password"),
-    AUTHENTICATION_CONTAINER       ("/fabric/authentication/containers/{container}");
+    AUTHENTICATION_CONTAINER       ("/fabric/authentication/containers/{container}"),
 
-
+    COMMANDS_REQUESTS              ("/fabric/registry/containers/commands/{container}/request"),
+    COMMANDS_REQUESTS_QUEUE        ("/fabric/registry/containers/commands/{container}/request/queue-"),
+    COMMANDS_RESPONSES             ("/fabric/registry/containers/commands/{container}/response"),
+    COMMANDS_RESPONSES_QUEUE       ("/fabric/registry/containers/commands/{container}/response/queue-");
 
     private static final Pattern ENSEMBLE_PROFILE_PATTERN = Pattern.compile("fabric-ensemble-[0-9]+|fabric-ensemble-[0-9]+-[0-9]+");
 

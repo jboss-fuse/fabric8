@@ -165,6 +165,11 @@ public interface FabricService {
     String getGitUrl();
 
     /**
+     * Returns the name of container which is current git master
+     */
+    String getGitMaster();
+
+    /**
      * Returns the URL of the web console
      */
     String getWebConsoleUrl();
