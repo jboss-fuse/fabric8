@@ -185,9 +185,16 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     private long gitRemotePollInterval = 60 * 1000L;
     @Property(name = GIT_GC_ON_LOAD, label = "Run Git GC", description = "Whether or not to run Git GC on load of the Git repo", boolValue = false)
     private boolean gitGcOnLoad = false;
-    
+    @Property(name = "gitAllowRemoteUpdate", label = "Allow remote update", description = "Whether or not local changes should be pushed to remote repository if local branch/version is newer. Used only when fetching from remote repository.", boolValue = true)
+    private boolean gitAllowRemoteUpdate = true;
+    @Property(name = "gitRandomFetchDelay", label = "Fetch delay", description = "If greater than 0, container will wait up to given number of seconds before fetching from remote repository.", intValue = 0)
+    private int gitRandomFetchDelay = 0;
+
     private final LoadingCache<String, Version> versionCache = CacheBuilder.newBuilder().build(new VersionCacheLoader());
     private final Set<String> versions = new HashSet<String>();
+
+
+    private Random RND = new Random(new Date().getTime());
 
     @Activate
     @VisibleForExternal
@@ -205,7 +212,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
             }
         }
         this.dataStoreProperties = Collections.unmodifiableMap(properties);
-        this.pullPushPolicy = new DefaultPullPushPolicy(getGit(), GitHelpers.REMOTE_ORIGIN, gitTimeout);
+        this.pullPushPolicy = new DefaultPullPushPolicy(getGit(), GitHelpers.REMOTE_ORIGIN, gitTimeout, gitAllowRemoteUpdate);
 
         // DataStore activation accesses public API that is private by {@link AbstractComponent#assertValid()).
         // We activate the component first and rollback on error
@@ -300,13 +307,20 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         counter.addListener(new SharedCountListener() {
             @Override
             public void countHasChanged(final SharedCountReader sharedCountReader, final int value) throws Exception {
-               threadPool.submit(new Runnable() {
-                   @Override
-                   public void run() {
-                       LOGGER.debug("Watch counter updated to " + value + ", doing a pull");
-                       doPullInternal();
-                   }
-               });
+                Runnable task = new Runnable() {
+                    @Override
+                    public void run() {
+                        doPullInternal();
+                    }
+                };
+                if (gitRandomFetchDelay == 0) {
+                    LOGGER.debug("Watch counter updated to " + value + ", scheduling immediate pull");
+                    threadPool.submit(task);
+                } else {
+                    int delay = RND.nextInt(gitRandomFetchDelay) + 1;
+                    LOGGER.debug("Watch counter updated to " + value + ", scheduling pull with random delay=" + delay + "s");
+                    threadPool.schedule(task, delay, TimeUnit.SECONDS);
+                }
             }
 
             @Override
@@ -1149,7 +1163,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     }
 
     private void doPullInternal() {
-        doPullInternal(true);
+        doPullInternal(gitAllowRemoteUpdate);
     }
 
     private void doPullInternal(boolean allowPush) {
