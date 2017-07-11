@@ -75,6 +75,11 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
 
     @Override
     public synchronized PullPolicyResult doPull(GitContext context, CredentialsProvider credentialsProvider, boolean allowVersionDelete) {
+        return doPull(context, credentialsProvider, allowVersionDelete, true);
+    }
+
+    @Override
+    public synchronized PullPolicyResult doPull(GitContext context, CredentialsProvider credentialsProvider, boolean allowVersionDelete, boolean allowPush) {
         Repository repository = git.getRepository();
         StoredConfig config = repository.getConfig();
         String remoteUrl = config.getString("remote", remoteRef, "url");
@@ -196,20 +201,35 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                         if (mergeStatus == MergeStatus.FAST_FORWARD) {
                             localUpdate.put(branch, new BranchChange(branch).updated(localObjectId, remoteObjectId, "fast forward"));
                         } else if (mergeStatus == MergeStatus.ALREADY_UP_TO_DATE) {
-                            LOGGER.info("Remote branch {} is behind local version - changes will be pushed", branch);
-                            remoteUpdate = true;
+                            if (allowPush) {
+                                LOGGER.info("Remote branch {} is behind local version - changes will be pushed", branch);
+                                remoteUpdate = true;
+                            } else {
+                                LOGGER.info("Remote branch {} is behind local version - changes won't be pushed - restoring remote tracking branch", branch);
+                                git.checkout().setName(GitHelpers.MASTER_BRANCH).setForce(true).call();
+                                git.branchDelete().setBranchNames(branch).setForce(true).call();
+                                git.checkout().setCreateBranch(true).setName(branch).setStartPoint(remoteRef + "/" + branch).setUpstreamMode(SetupUpstreamMode.TRACK).setForce(true).call();
+                                localUpdate.put(branch, new BranchChange(branch).updated(localObjectId, remoteObjectId, "reset"));
+                            }
                         } else if (mergeStatus == MergeStatus.ABORTED) {
                             // failure to merge using FastForwardMode.FF_ONLY always ends with MergeStatus.ABORTED
-                            LOGGER.info("Cannot fast forward branch {}, attempting rebase", branch);
-                            RebaseResult rebaseResult = git.rebase().setUpstream(remoteCommit).call();
-                            RebaseResult.Status rebaseStatus = rebaseResult.getStatus();
+                            RebaseResult.Status rebaseStatus = null;
+                            if (allowPush) {
+                                LOGGER.info("Cannot fast forward branch {}, attempting rebase", branch);
+                                RebaseResult rebaseResult = git.rebase().setUpstream(remoteCommit).call();
+                                rebaseStatus = rebaseResult.getStatus();
+                            }
                             if (rebaseStatus == RebaseResult.Status.OK) {
                                 LOGGER.info("Rebase successful for branch {}", branch);
                                 localUpdate.put(branch, new BranchChange(branch).updated(localObjectId, remoteObjectId, "rebase"));
                                 remoteUpdate = true;
                             } else {
-                                LOGGER.warn("Rebase on branch {} failed, restoring remote tracking branch", branch);
-                                git.rebase().setOperation(Operation.ABORT).call();
+                                if (allowPush) {
+                                    LOGGER.warn("Rebase on branch {} failed, restoring remote tracking branch", branch);
+                                    git.rebase().setOperation(Operation.ABORT).call();
+                                } else {
+                                    LOGGER.info("Restoring remote tracking branch {}", branch);
+                                }
                                 git.checkout().setName(GitHelpers.MASTER_BRANCH).setForce(true).call();
                                 git.branchDelete().setBranchNames(branch).setForce(true).call();
                                 git.checkout().setCreateBranch(true).setName(branch).setStartPoint(remoteRef + "/" + branch).setUpstreamMode(SetupUpstreamMode.TRACK).setForce(true).call();

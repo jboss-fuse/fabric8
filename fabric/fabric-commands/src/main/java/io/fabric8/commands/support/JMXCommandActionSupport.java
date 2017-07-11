@@ -39,7 +39,7 @@ import static io.fabric8.utils.FabricValidations.validateContainerName;
 
 public abstract class JMXCommandActionSupport extends AbstractAction {
 
-    @Option(name = "-a", aliases = { "--all" }, description = "Check status of all containers", required = false, multiValued = false)
+    @Option(name = "-a", aliases = { "--all" }, description = "Send command to all containers", required = false, multiValued = false)
     protected boolean allContainers = false;
 
     @Option(name = "-t", aliases = { "--timeout" }, description = "Timeout used when waiting for response(s)", required = false, multiValued = false)

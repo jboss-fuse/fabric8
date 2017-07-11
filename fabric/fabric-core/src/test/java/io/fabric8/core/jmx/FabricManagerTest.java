@@ -38,6 +38,7 @@ public class FabricManagerTest {
         JMXRequest r = new JMXRequest();
         r.setId("id");
         r.withObjectName("io.fabric8:type=manager");
+        r.withParam(Boolean.class, true);
         System.out.println(om().writeValueAsString(r));
 
         JMXResult res = new JMXResult();

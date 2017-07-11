@@ -856,7 +856,20 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
                             result.setCode(1);
                             result.setMessage(msg);
                         } else {
-                            String jmxResult = (String) jmx.invoke(new ObjectName(cmd.getObjectName()), cmd.getMethod(), new Object[0], new String[0]);
+                            List<Object> params = new ArrayList<>(cmd.getParams().size());
+                            List<String> types = new ArrayList<>(cmd.getParams().size());
+                            for (String[] pair : cmd.getParams()) {
+                                types.add(pair[0]);
+                                switch (pair[0]) {
+                                    case "java.lang.Boolean":
+                                        params.add(Boolean.valueOf(pair[1]));
+                                        break;
+                                    default:
+                                        params.add(null);
+                                }
+                            }
+                            String jmxResult = (String) jmx.invoke(new ObjectName(cmd.getObjectName()),
+                                    cmd.getMethod(), params.toArray(new Object[params.size()]), types.toArray(new String[params.size()]));
                             result.setDuration(System.currentTimeMillis() - start);
                             LOGGER.debug("ZK command invocation successful (duration: {})", result.getDuration());
                             result.setResponse(jmxResult);
