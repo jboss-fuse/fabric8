@@ -65,17 +65,24 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
     private final Git git;
     private final String remoteRef;
     private final int gitTimeout;
+    private final boolean gitAllowRemoteUpdate;
 
     @VisibleForExternal
     public DefaultPullPushPolicy(Git git, String remoteRef, int gitTimeout) {
+        this(git, remoteRef, gitTimeout, true);
+    }
+
+    @VisibleForExternal
+    public DefaultPullPushPolicy(Git git, String remoteRef, int gitTimeout, boolean gitAllowRemoteUpdate) {
         this.git = git;
         this.remoteRef = remoteRef;
         this.gitTimeout = gitTimeout;
+        this.gitAllowRemoteUpdate = gitAllowRemoteUpdate;
     }
 
     @Override
     public synchronized PullPolicyResult doPull(GitContext context, CredentialsProvider credentialsProvider, boolean allowVersionDelete) {
-        return doPull(context, credentialsProvider, allowVersionDelete, true);
+        return doPull(context, credentialsProvider, allowVersionDelete, gitAllowRemoteUpdate);
     }
 
     @Override
