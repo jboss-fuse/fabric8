@@ -46,7 +46,7 @@ public class JMXRequest {
      * How long should the execution of the command be delayed?
      */
     @JsonProperty
-    private long delay = 0L;
+    private int delay = 0;
 
     public String getId() {
         return id;
@@ -87,18 +87,18 @@ public class JMXRequest {
         return timestamp;
     }
 
-    public JMXRequest withDelay(long delay) {
+    public JMXRequest withDelay(int delay) {
         this.delay = delay;
         return this;
     }
 
-    public long getDelay() {
+    public int getDelay() {
         return delay;
     }
 
     @Override
     public String toString() {
-        return String.format("[%s] %s.%s()%s", id, objectName, method, delay > 0L ? " (delayed by " + delay + ")" : "");
+        return String.format("[%s] %s.%s()%s", id, objectName, method, delay > 0L ? " (random delay: 0-" + delay + "s)" : "");
     }
 
 }
