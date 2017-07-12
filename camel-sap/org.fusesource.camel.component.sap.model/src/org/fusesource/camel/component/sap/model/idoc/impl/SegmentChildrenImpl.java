@@ -21,6 +21,7 @@ import org.eclipse.emf.common.notify.NotificationChain;
 import org.eclipse.emf.common.util.BasicEList;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EClass;
+import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.emf.ecore.InternalEObject;
@@ -272,5 +273,24 @@ public class SegmentChildrenImpl extends EObjectImpl implements SegmentChildren 
 		result.append(')');
 		return result.toString();
 	}
+	
+	@Override
+	public String eURIFragmentSegment(EStructuralFeature eStructuralFeature, EObject eObject) {
+		String uriFragment = super.eURIFragmentSegment(eStructuralFeature, eObject);
+		if (uriFragment != null && uriFragment.contains("/")) {
+			uriFragment = uriFragment.replaceFirst("/", "").replaceFirst("/", ":");
+		}
+		return uriFragment;
+	}
+	
+	@Override
+	public EObject eObjectForURIFragmentSegment(String uriFragmentSegment) {
+		if (uriFragmentSegment != null && uriFragmentSegment.contains(":")) {
+			uriFragmentSegment = uriFragmentSegment.replaceFirst("@", "@/").replaceFirst(":", "/");
+		}
+		return super.eObjectForURIFragmentSegment(uriFragmentSegment);
+	}
+	
+
 
 } //SegmentChildrenImpl

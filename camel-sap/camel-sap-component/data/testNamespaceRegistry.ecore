@@ -1,0 +1,1976 @@
+<?xml version="1.0" encoding="ASCII"?>
+<xmi:XMI xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore">
+  <ecore:EPackage name="RHT:TEST_RFC" nsURI="http://sap.fusesource.org/rfc/JBF/RHT:TEST_RFC" nsPrefix="RHT_TEST_RFC">
+    <eClassifiers xsi:type="ecore:EClass" name="Request" eSuperTypes="/2/Request">
+      <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+        <details key="documentation" value="Request for /RHT/TEST_RFC"/>
+      </eAnnotations>
+      <eAnnotations source="http://sap.fusesource.org/rfc">
+        <details key="name" value="Request"/>
+        <details key="fieldCount" value="6"/>
+        <details key="recordLength" value="-1"/>
+        <details key="unicodeRecordLength" value="-1"/>
+        <details key="isNestedType1Structure" value="false"/>
+      </eAnnotations>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="FAIL" eType="/5/EString">
+        <eAnnotations source="http://sap.fusesource.org/rfc">
+          <details key="classNameOfField" value="java.lang.String"/>
+          <details key="name" value="FAIL"/>
+          <details key="description" value="Single-Character Flag"/>
+          <details key="type" value="0"/>
+          <details key="typeAsString" value="CHAR"/>
+          <details key="recordTypeName" value="CHAR1"/>
+          <details key="length" value="1"/>
+          <details key="byteLength" value="1"/>
+          <details key="unicodeByteLength" value="2"/>
+          <details key="decimals" value="0"/>
+          <details key="default"/>
+          <details key="recordFieldName"/>
+          <details key="isAbapObject" value="false"/>
+          <details key="isNestedType1Structure" value="false"/>
+          <details key="isStructure" value="false"/>
+          <details key="isTable" value="false"/>
+          <details key="isImport" value="true"/>
+          <details key="isException" value="false"/>
+          <details key="isExport" value="false"/>
+          <details key="isChanging" value="false"/>
+          <details key="isOptional" value="true"/>
+        </eAnnotations>
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="name" value="FAIL"/>
+        </eAnnotations>
+        <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+          <details key="documentation" value="Single-Character Flag"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="MESSAGE" lowerBound="1" eType="/5/EString">
+        <eAnnotations source="http://sap.fusesource.org/rfc">
+          <details key="classNameOfField" value="java.lang.String"/>
+          <details key="name" value="MESSAGE"/>
+          <details key="description"/>
+          <details key="type" value="29"/>
+          <details key="typeAsString" value="STRING"/>
+          <details key="recordTypeName" value="STRING"/>
+          <details key="length" value="0"/>
+          <details key="byteLength" value="8"/>
+          <details key="unicodeByteLength" value="8"/>
+          <details key="decimals" value="0"/>
+          <details key="default"/>
+          <details key="recordFieldName"/>
+          <details key="isAbapObject" value="false"/>
+          <details key="isNestedType1Structure" value="false"/>
+          <details key="isStructure" value="false"/>
+          <details key="isTable" value="false"/>
+          <details key="isImport" value="true"/>
+          <details key="isException" value="false"/>
+          <details key="isExport" value="false"/>
+          <details key="isChanging" value="false"/>
+          <details key="isOptional" value="false"/>
+        </eAnnotations>
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="name" value="MESSAGE"/>
+        </eAnnotations>
+        <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+          <details key="documentation"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="/RHT/PARAMETER1" eType="/5/EString">
+        <eAnnotations source="http://sap.fusesource.org/rfc">
+          <details key="classNameOfField" value="java.lang.String"/>
+          <details key="name" value="/RHT/PARAMETER1"/>
+          <details key="description" value="Single-Character Flag"/>
+          <details key="type" value="0"/>
+          <details key="typeAsString" value="CHAR"/>
+          <details key="recordTypeName" value="CHAR1"/>
+          <details key="length" value="1"/>
+          <details key="byteLength" value="1"/>
+          <details key="unicodeByteLength" value="2"/>
+          <details key="decimals" value="0"/>
+          <details key="default"/>
+          <details key="recordFieldName"/>
+          <details key="isAbapObject" value="false"/>
+          <details key="isNestedType1Structure" value="false"/>
+          <details key="isStructure" value="false"/>
+          <details key="isTable" value="false"/>
+          <details key="isImport" value="false"/>
+          <details key="isException" value="false"/>
+          <details key="isExport" value="false"/>
+          <details key="isChanging" value="true"/>
+          <details key="isOptional" value="true"/>
+        </eAnnotations>
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="name" value="RHT:PARAMETER1"/>
+        </eAnnotations>
+        <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+          <details key="documentation" value="Single-Character Flag"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="/RHT/PARAMETER2" eType="/0/ZNSTST" containment="true">
+        <eAnnotations source="http://sap.fusesource.org/rfc">
+          <details key="classNameOfField" value="org.eclipse.emf.ecore.EObject"/>
+          <details key="name" value="/RHT/PARAMETER2"/>
+          <details key="description" value="Test structure"/>
+          <details key="type" value="17"/>
+          <details key="typeAsString" value="STRUCTURE"/>
+          <details key="recordTypeName" value="ZNSTST"/>
+          <details key="length" value="0"/>
+          <details key="byteLength" value="3"/>
+          <details key="unicodeByteLength" value="6"/>
+          <details key="decimals" value="0"/>
+          <details key="default"/>
+          <details key="recordFieldName"/>
+          <details key="isAbapObject" value="false"/>
+          <details key="isNestedType1Structure" value="false"/>
+          <details key="isStructure" value="true"/>
+          <details key="isTable" value="false"/>
+          <details key="isImport" value="false"/>
+          <details key="isException" value="false"/>
+          <details key="isExport" value="false"/>
+          <details key="isChanging" value="true"/>
+          <details key="isOptional" value="true"/>
+        </eAnnotations>
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="name" value="RHT:PARAMETER2"/>
+        </eAnnotations>
+        <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+          <details key="documentation" value="Test structure"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="/RHT/TABLE2" eType="/0/ZNSTST_TABLE" containment="true">
+        <eAnnotations source="http://sap.fusesource.org/rfc">
+          <details key="classNameOfField" value="org.eclipse.emf.ecore.EObject"/>
+          <details key="name" value="/RHT/TABLE2"/>
+          <details key="description" value="Test structure"/>
+          <details key="type" value="99"/>
+          <details key="typeAsString" value="TABLE"/>
+          <details key="recordTypeName" value="ZNSTST"/>
+          <details key="length" value="0"/>
+          <details key="byteLength" value="3"/>
+          <details key="unicodeByteLength" value="6"/>
+          <details key="decimals" value="0"/>
+          <details key="default"/>
+          <details key="recordFieldName"/>
+          <details key="isAbapObject" value="false"/>
+          <details key="isNestedType1Structure" value="false"/>
+          <details key="isStructure" value="false"/>
+          <details key="isTable" value="true"/>
+          <details key="isImport" value="false"/>
+          <details key="isException" value="false"/>
+          <details key="isExport" value="false"/>
+          <details key="isChanging" value="false"/>
+          <details key="isOptional" value="true"/>
+        </eAnnotations>
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="name" value="RHT:TABLE2"/>
+        </eAnnotations>
+        <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+          <details key="documentation" value="Test structure"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="TABLE1" eType="/0/ZNSTST_TABLE" containment="true">
+        <eAnnotations source="http://sap.fusesource.org/rfc">
+          <details key="classNameOfField" value="org.eclipse.emf.ecore.EObject"/>
+          <details key="name" value="TABLE1"/>
+          <details key="description" value="Test structure"/>
+          <details key="type" value="99"/>
+          <details key="typeAsString" value="TABLE"/>
+          <details key="recordTypeName" value="ZNSTST"/>
+          <details key="length" value="0"/>
+          <details key="byteLength" value="3"/>
+          <details key="unicodeByteLength" value="6"/>
+          <details key="decimals" value="0"/>
+          <details key="default"/>
+          <details key="recordFieldName"/>
+          <details key="isAbapObject" value="false"/>
+          <details key="isNestedType1Structure" value="false"/>
+          <details key="isStructure" value="false"/>
+          <details key="isTable" value="true"/>
+          <details key="isImport" value="false"/>
+          <details key="isException" value="false"/>
+          <details key="isExport" value="false"/>
+          <details key="isChanging" value="false"/>
+          <details key="isOptional" value="true"/>
+        </eAnnotations>
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="name" value="TABLE1"/>
+        </eAnnotations>
+        <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+          <details key="documentation" value="Test structure"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="ZNSTST" eSuperTypes="/2/Structure">
+      <eAnnotations source="http://sap.fusesource.org/rfc">
+        <details key="name" value="ZNSTST"/>
+        <details key="fieldCount" value="3"/>
+        <details key="recordLength" value="3"/>
+        <details key="unicodeRecordLength" value="6"/>
+        <details key="isNestedType1Structure" value="false"/>
+      </eAnnotations>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="/RHT/PARAMETER1" eType="/5/EString">
+        <eAnnotations source="http://sap.fusesource.org/rfc">
+          <details key="classNameOfField" value="java.lang.String"/>
+          <details key="name" value="/RHT/PARAMETER1"/>
+          <details key="description" value="Single-Character Flag"/>
+          <details key="type" value="0"/>
+          <details key="typeAsString" value="CHAR"/>
+          <details key="recordTypeName" value="CHAR1"/>
+          <details key="length" value="1"/>
+          <details key="byteLength" value="1"/>
+          <details key="byteOffset" value="0"/>
+          <details key="unicodeByteLength" value="2"/>
+          <details key="unicodeByteOffset" value="0"/>
+          <details key="decimals" value="0"/>
+          <details key="isAbapObject" value="false"/>
+          <details key="isNestedType1Structure" value="false"/>
+          <details key="isStructure" value="false"/>
+          <details key="isTable" value="false"/>
+        </eAnnotations>
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="name" value="RHT:PARAMETER1"/>
+        </eAnnotations>
+        <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+          <details key="documentation" value="Single-Character Flag"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="PARAMETER2" eType="/5/EString">
+        <eAnnotations source="http://sap.fusesource.org/rfc">
+          <details key="classNameOfField" value="java.lang.String"/>
+          <details key="name" value="PARAMETER2"/>
+          <details key="description" value="Single-Character Flag"/>
+          <details key="type" value="0"/>
+          <details key="typeAsString" value="CHAR"/>
+          <details key="recordTypeName" value="CHAR1"/>
+          <details key="length" value="1"/>
+          <details key="byteLength" value="1"/>
+          <details key="byteOffset" value="1"/>
+          <details key="unicodeByteLength" value="2"/>
+          <details key="unicodeByteOffset" value="2"/>
+          <details key="decimals" value="0"/>
+          <details key="isAbapObject" value="false"/>
+          <details key="isNestedType1Structure" value="false"/>
+          <details key="isStructure" value="false"/>
+          <details key="isTable" value="false"/>
+        </eAnnotations>
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="name" value="PARAMETER2"/>
+        </eAnnotations>
+        <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+          <details key="documentation" value="Single-Character Flag"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="/RHT/PARAMETER3" eType="/5/EString">
+        <eAnnotations source="http://sap.fusesource.org/rfc">
+          <details key="classNameOfField" value="java.lang.String"/>
+          <details key="name" value="/RHT/PARAMETER3"/>
+          <details key="description" value="Single-Character Flag"/>
+          <details key="type" value="0"/>
+          <details key="typeAsString" value="CHAR"/>
+          <details key="recordTypeName" value="CHAR1"/>
+          <details key="length" value="1"/>
+          <details key="byteLength" value="1"/>
+          <details key="byteOffset" value="2"/>
+          <details key="unicodeByteLength" value="2"/>
+          <details key="unicodeByteOffset" value="4"/>
+          <details key="decimals" value="0"/>
+          <details key="isAbapObject" value="false"/>
+          <details key="isNestedType1Structure" value="false"/>
+          <details key="isStructure" value="false"/>
+          <details key="isTable" value="false"/>
+        </eAnnotations>
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="name" value="RHT:PARAMETER3"/>
+        </eAnnotations>
+        <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+          <details key="documentation" value="Single-Character Flag"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="ZNSTST_TABLE">
+      <eAnnotations source="http://sap.fusesource.org/rfc">
+        <details key="name" value="ZNSTST_TABLE"/>
+        <details key="lineType" value="ZNSTST"/>
+      </eAnnotations>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="row" upperBound="-1" eType="/0/ZNSTST" containment="true"/>
+      <eGenericSuperTypes eClassifier="/2/Table">
+        <eTypeArguments eClassifier="/0/ZNSTST"/>
+      </eGenericSuperTypes>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="Response" eSuperTypes="/2/Response">
+      <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+        <details key="documentation" value="Response for /RHT/TEST_RFC"/>
+      </eAnnotations>
+      <eAnnotations source="http://sap.fusesource.org/rfc">
+        <details key="name" value="Response"/>
+        <details key="fieldCount" value="5"/>
+        <details key="recordLength" value="-1"/>
+        <details key="unicodeRecordLength" value="-1"/>
+        <details key="isNestedType1Structure" value="false"/>
+      </eAnnotations>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="RTN_MESSAGE" eType="/5/EString">
+        <eAnnotations source="http://sap.fusesource.org/rfc">
+          <details key="classNameOfField" value="java.lang.String"/>
+          <details key="name" value="RTN_MESSAGE"/>
+          <details key="description"/>
+          <details key="type" value="29"/>
+          <details key="typeAsString" value="STRING"/>
+          <details key="recordTypeName" value="STRING"/>
+          <details key="length" value="0"/>
+          <details key="byteLength" value="8"/>
+          <details key="unicodeByteLength" value="8"/>
+          <details key="decimals" value="0"/>
+          <details key="default"/>
+          <details key="recordFieldName"/>
+          <details key="isAbapObject" value="false"/>
+          <details key="isNestedType1Structure" value="false"/>
+          <details key="isStructure" value="false"/>
+          <details key="isTable" value="false"/>
+          <details key="isImport" value="false"/>
+          <details key="isException" value="false"/>
+          <details key="isExport" value="true"/>
+          <details key="isChanging" value="false"/>
+          <details key="isOptional" value="true"/>
+        </eAnnotations>
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="name" value="RTN_MESSAGE"/>
+        </eAnnotations>
+        <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+          <details key="documentation"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="/RHT/PARAMETER1" eType="/5/EString">
+        <eAnnotations source="http://sap.fusesource.org/rfc">
+          <details key="classNameOfField" value="java.lang.String"/>
+          <details key="name" value="/RHT/PARAMETER1"/>
+          <details key="description" value="Single-Character Flag"/>
+          <details key="type" value="0"/>
+          <details key="typeAsString" value="CHAR"/>
+          <details key="recordTypeName" value="CHAR1"/>
+          <details key="length" value="1"/>
+          <details key="byteLength" value="1"/>
+          <details key="unicodeByteLength" value="2"/>
+          <details key="decimals" value="0"/>
+          <details key="default"/>
+          <details key="recordFieldName"/>
+          <details key="isAbapObject" value="false"/>
+          <details key="isNestedType1Structure" value="false"/>
+          <details key="isStructure" value="false"/>
+          <details key="isTable" value="false"/>
+          <details key="isImport" value="false"/>
+          <details key="isException" value="false"/>
+          <details key="isExport" value="false"/>
+          <details key="isChanging" value="true"/>
+          <details key="isOptional" value="true"/>
+        </eAnnotations>
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="name" value="RHT:PARAMETER1"/>
+        </eAnnotations>
+        <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+          <details key="documentation" value="Single-Character Flag"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="/RHT/PARAMETER2" eType="/0/ZNSTST" containment="true">
+        <eAnnotations source="http://sap.fusesource.org/rfc">
+          <details key="classNameOfField" value="org.eclipse.emf.ecore.EObject"/>
+          <details key="name" value="/RHT/PARAMETER2"/>
+          <details key="description" value="Test structure"/>
+          <details key="type" value="17"/>
+          <details key="typeAsString" value="STRUCTURE"/>
+          <details key="recordTypeName" value="ZNSTST"/>
+          <details key="length" value="0"/>
+          <details key="byteLength" value="3"/>
+          <details key="unicodeByteLength" value="6"/>
+          <details key="decimals" value="0"/>
+          <details key="default"/>
+          <details key="recordFieldName"/>
+          <details key="isAbapObject" value="false"/>
+          <details key="isNestedType1Structure" value="false"/>
+          <details key="isStructure" value="true"/>
+          <details key="isTable" value="false"/>
+          <details key="isImport" value="false"/>
+          <details key="isException" value="false"/>
+          <details key="isExport" value="false"/>
+          <details key="isChanging" value="true"/>
+          <details key="isOptional" value="true"/>
+        </eAnnotations>
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="name" value="RHT:PARAMETER2"/>
+        </eAnnotations>
+        <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+          <details key="documentation" value="Test structure"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="/RHT/TABLE2" eType="/0/ZNSTST_TABLE" containment="true">
+        <eAnnotations source="http://sap.fusesource.org/rfc">
+          <details key="classNameOfField" value="org.eclipse.emf.ecore.EObject"/>
+          <details key="name" value="/RHT/TABLE2"/>
+          <details key="description" value="Test structure"/>
+          <details key="type" value="99"/>
+          <details key="typeAsString" value="TABLE"/>
+          <details key="recordTypeName" value="ZNSTST"/>
+          <details key="length" value="0"/>
+          <details key="byteLength" value="3"/>
+          <details key="unicodeByteLength" value="6"/>
+          <details key="decimals" value="0"/>
+          <details key="default"/>
+          <details key="recordFieldName"/>
+          <details key="isAbapObject" value="false"/>
+          <details key="isNestedType1Structure" value="false"/>
+          <details key="isStructure" value="false"/>
+          <details key="isTable" value="true"/>
+          <details key="isImport" value="false"/>
+          <details key="isException" value="false"/>
+          <details key="isExport" value="false"/>
+          <details key="isChanging" value="false"/>
+          <details key="isOptional" value="true"/>
+        </eAnnotations>
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="name" value="RHT:TABLE2"/>
+        </eAnnotations>
+        <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+          <details key="documentation" value="Test structure"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="TABLE1" eType="/0/ZNSTST_TABLE" containment="true">
+        <eAnnotations source="http://sap.fusesource.org/rfc">
+          <details key="classNameOfField" value="org.eclipse.emf.ecore.EObject"/>
+          <details key="name" value="TABLE1"/>
+          <details key="description" value="Test structure"/>
+          <details key="type" value="99"/>
+          <details key="typeAsString" value="TABLE"/>
+          <details key="recordTypeName" value="ZNSTST"/>
+          <details key="length" value="0"/>
+          <details key="byteLength" value="3"/>
+          <details key="unicodeByteLength" value="6"/>
+          <details key="decimals" value="0"/>
+          <details key="default"/>
+          <details key="recordFieldName"/>
+          <details key="isAbapObject" value="false"/>
+          <details key="isNestedType1Structure" value="false"/>
+          <details key="isStructure" value="false"/>
+          <details key="isTable" value="true"/>
+          <details key="isImport" value="false"/>
+          <details key="isException" value="false"/>
+          <details key="isExport" value="false"/>
+          <details key="isChanging" value="false"/>
+          <details key="isOptional" value="true"/>
+        </eAnnotations>
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="name" value="TABLE1"/>
+        </eAnnotations>
+        <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+          <details key="documentation" value="Test structure"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+    </eClassifiers>
+  </ecore:EPackage>
+  <ecore:EPackage name="idoc" nsURI="http://sap.fusesource.org/idoc" nsPrefix="idoc">
+    <eClassifiers xsi:type="ecore:EClass" name="DocumentList">
+      <eOperations name="add" eType="/1/Document"/>
+      <eOperations name="add" eType="/1/Document">
+        <eParameters name="index" eType="/5/EInt"/>
+      </eOperations>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="idocType" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="idocTypeExtension" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="systemRelease" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="applicationRelease" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="document" upperBound="-1" eType="/1/Document" containment="true" resolveProxies="false"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="Document">
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="archiveKey" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="client" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="creationDate" eType="/5/EDate"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="creationTime" eType="/5/EDate"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="direction" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="EDIMessage" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="EDIMessageGroup" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="EDIMessageType" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="EDIStandardFlag" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="EDIStandardVersion" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="EDITransmissionFile" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="iDocCompoundType" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="iDocNumber" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="iDocSAPRelease" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="iDocType" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="iDocTypeExtension" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="messageCode" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="messageFunction" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="messageType" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="outputMode" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="recipientAddress" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="recipientLogicalAddress" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="recipientPartnerFunction" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="recipientPartnerNumber" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="recipientPartnerType" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="recipientPort" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="senderAddress" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="senderLogicalAddress" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="senderPartnerFunction" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="senderPartnerNumber" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="senderPartnerType" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="senderPort" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="serialization" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="status" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="testFlag" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="rootSegment" eType="/1/Segment" containment="true" resolveProxies="false"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="Segment">
+      <eOperations name="get">
+        <eGenericType eTypeParameter="/1/Segment/get/T"/>
+        <eTypeParameters name="T"/>
+        <eParameters name="key" eType="/5/EJavaObject"/>
+        <eParameters name="type">
+          <eGenericType eClassifier="/5/EJavaClass">
+            <eTypeArguments eTypeParameter="/1/Segment/get/T"/>
+          </eGenericType>
+        </eParameters>
+      </eOperations>
+      <eOperations name="getChildren" upperBound="-1">
+        <eGenericType eTypeParameter="/1/Segment/getChildren/S"/>
+        <eTypeParameters name="S">
+          <eBounds eClassifier="/1/Segment"/>
+        </eTypeParameters>
+      </eOperations>
+      <eOperations name="getChildren">
+        <eGenericType eClassifier="/1/SegmentList">
+          <eTypeArguments eTypeParameter="/1/Segment/getChildren.1/S"/>
+        </eGenericType>
+        <eTypeParameters name="S">
+          <eBounds eClassifier="/1/Segment"/>
+        </eTypeParameters>
+        <eParameters name="segmentType" eType="/5/EString"/>
+      </eOperations>
+      <eOperations name="getTypes" upperBound="-1" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="parent" eType="/1/Segment"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="document" eType="/1/Document"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="description" eType="/5/EString" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="type" eType="/5/EString" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="definition" eType="/5/EString" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="hierarchyLevel" eType="/5/EInt" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="idocType" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="idocTypeExtension" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="systemRelease" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="applicationRelease" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="numFields" eType="/5/EInt" volatile="true" transient="true" defaultValueLiteral="0" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="maxOccurrence" eType="/5/ELong" volatile="true" transient="true" defaultValueLiteral="0" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="minOccurrence" eType="/5/ELong" volatile="true" transient="true" defaultValueLiteral="0" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="mandatory" eType="/5/EBoolean" volatile="true" transient="true" defaultValueLiteral="false" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="qualified" eType="/5/EBoolean" volatile="true" transient="true" defaultValueLiteral="false" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="recordLength" eType="/5/EInt" volatile="true" transient="true" defaultValueLiteral="0" derived="true"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="SegmentChildren">
+      <eOperations name="get">
+        <eGenericType eClassifier="/1/SegmentList">
+          <eTypeArguments eTypeParameter="/1/SegmentChildren/get/S"/>
+        </eGenericType>
+        <eTypeParameters name="S">
+          <eBounds eClassifier="/1/Segment"/>
+        </eTypeParameters>
+        <eParameters name="segmentType" eType="/5/EString"/>
+      </eOperations>
+      <eOperations name="getTypes" upperBound="-1" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="segments" upperBound="-1" eType="/5/EFeatureMapEntry">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="kind" value="group"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="parent" eType="/1/Segment"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="SegmentList">
+      <eTypeParameters name="S">
+        <eBounds eClassifier="/1/Segment"/>
+      </eTypeParameters>
+      <eOperations name="add">
+        <eGenericType eTypeParameter="/1/SegmentList/S"/>
+      </eOperations>
+      <eOperations name="add">
+        <eGenericType eTypeParameter="/1/SegmentList/S"/>
+        <eParameters name="index" eType="/5/EInt"/>
+      </eOperations>
+    </eClassifiers>
+  </ecore:EPackage>
+  <ecore:EPackage name="rfc" nsURI="http://sap.fusesource.org/rfc" nsPrefix="rfc">
+    <eClassifiers xsi:type="ecore:EClass" name="Destination">
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="repositoryName" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="rfcs" upperBound="-1" eType="/2/RFC" containment="true" resolveProxies="false" eOpposite="/2/RFC/destination"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="RFC">
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="group" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="description" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="request" eType="/2/Structure" containment="true" resolveProxies="false"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="response" eType="/2/Structure" containment="true" resolveProxies="false"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="destination" eType="/2/Destination" resolveProxies="false" eOpposite="/2/Destination/rfcs"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="Table">
+      <eTypeParameters name="S">
+        <eBounds eClassifier="/2/Structure"/>
+      </eTypeParameters>
+      <eOperations name="getRows" upperBound="-1">
+        <eGenericType eTypeParameter="/2/Table/S"/>
+      </eOperations>
+      <eOperations name="getRow">
+        <eGenericType eTypeParameter="/2/Table/S"/>
+        <eParameters name="index" eType="/5/EInt"/>
+      </eOperations>
+      <eOperations name="add">
+        <eGenericType eTypeParameter="/2/Table/S"/>
+      </eOperations>
+      <eOperations name="add">
+        <eGenericType eTypeParameter="/2/Table/S"/>
+        <eParameters name="index" eType="/5/EInt"/>
+      </eOperations>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="/5/EString" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="lineType" eType="/5/EString" volatile="true" transient="true" derived="true"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="Structure">
+      <eOperations name="get">
+        <eGenericType eTypeParameter="/2/Structure/get/T"/>
+        <eTypeParameters name="T"/>
+        <eParameters name="key" eType="/5/EJavaObject"/>
+        <eParameters name="type">
+          <eGenericType eClassifier="/5/EJavaClass">
+            <eTypeArguments eTypeParameter="/2/Structure/get/T"/>
+          </eGenericType>
+        </eParameters>
+      </eOperations>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="/5/EString" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="fieldCount" eType="/5/EInt" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="recordLength" eType="/5/EInt" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="unicodeRecordLength" eType="/5/EInt" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="nestedType1Structure" eType="/5/EBoolean" volatile="true" transient="true" derived="true"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="Request" eSuperTypes="/2/Structure"/>
+    <eClassifiers xsi:type="ecore:EClass" name="Response" eSuperTypes="/2/Structure"/>
+    <eClassifiers xsi:type="ecore:EClass" name="SapConnectionConfiguration">
+      <eStructuralFeatures xsi:type="ecore:EReference" name="destinationDataStore" lowerBound="1" eType="/2/DestinationDataStore" containment="true" resolveProxies="false"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="serverDataStore" lowerBound="1" eType="/2/ServerDataStore" containment="true" resolveProxies="false"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="DestinationDataEntry" instanceClassName="java.util.Map$Entry">
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="key" lowerBound="1" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" lowerBound="1" eType="/5/EString"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="DestinationData">
+      <eStructuralFeatures xsi:type="ecore:EReference" name="entries" upperBound="-1" eType="/2/DestinationDataEntry" containment="true" resolveProxies="false"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="aliasUser" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="ashost" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="authType" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="client" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="codepage" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="cpicTrace" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="denyInitialPassword" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="expirationPeriod" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="expirationTime" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="getsso2" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="group" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="gwhost" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="gwserv" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="lang" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="lcheck" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="maxGetTime" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="mshost" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="msserv" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="mysapsso2" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="passwd" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="password" eType="/5/EString" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="pcs" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="peakLimit" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="pingOnCreate" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="poolCapacity" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="r3name" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="repositoryDest" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="repositoryPasswd" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="repositoryRoundtripOptimization" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="repositorySnc" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="repositoryUser" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="saprouter" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="sncLibrary" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="sncMode" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="sncMyname" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="sncPartnername" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="sncQop" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="sysnr" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="tphost" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="tpname" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="trace" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="type" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="userName" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="user" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="userId" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="useSapgui" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="x509cert" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="DestinationDataStoreEntry" instanceClassName="java.util.Map$Entry">
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="key" lowerBound="1" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="value" lowerBound="1" eType="/2/DestinationData"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="DestinationDataStore">
+      <eStructuralFeatures xsi:type="ecore:EReference" name="entries" upperBound="-1" eType="/2/DestinationDataStoreEntry" containment="true" resolveProxies="false"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="destinationData" upperBound="-1" eType="/2/DestinationData" containment="true" resolveProxies="false"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="Server">
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="/5/EString"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="ServerDataEntry" instanceClassName="java.util.Map$Entry">
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="key" lowerBound="1" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" lowerBound="1" eType="/5/EString"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="ServerData">
+      <eStructuralFeatures xsi:type="ecore:EReference" name="entries" upperBound="-1" eType="/2/ServerDataEntry" containment="true" resolveProxies="false"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="gwhost" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="gwserv" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="progid" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="connectionCount" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="saprouter" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="maxStartUpDelay" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="repositoryDestination" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="repositoryMap" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="trace" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="workerThreadCount" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="workerThreadMinCount" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="sncMode" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="sncQop" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="sncMyname" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="sncLib" eType="/5/EString" volatile="true" transient="true" defaultValueLiteral="" derived="true"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="ServerDataStoreEntry" instanceClassName="java.util.Map$Entry">
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="key" lowerBound="1" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="value" lowerBound="1" eType="/2/ServerData"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="ServerDataStore">
+      <eStructuralFeatures xsi:type="ecore:EReference" name="entries" upperBound="-1" eType="/2/ServerDataStoreEntry" containment="true" resolveProxies="false"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="serverData" upperBound="-1" eType="/2/ServerData" containment="true" resolveProxies="false"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="FunctionTemplate">
+      <eStructuralFeatures xsi:type="ecore:EReference" name="imports" upperBound="-1" eType="/2/ListFieldMetaData"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="exports" upperBound="-1" eType="/2/ListFieldMetaData"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="changing" upperBound="-1" eType="/2/ListFieldMetaData"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="tables" upperBound="-1" eType="/2/ListFieldMetaData"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="exceptions" upperBound="-1" eType="/2/AbapException"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="importParameterList" eType="/2/ParameterList" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="exportParameterList" eType="/2/ParameterList" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="changingParameterList" eType="/2/ParameterList" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="tableParameterList" eType="/2/ParameterList" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="exceptionList" eType="/2/AbapExceptionList" volatile="true" transient="true" derived="true"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="RecordMetaData">
+      <eStructuralFeatures xsi:type="ecore:EReference" name="fieldMetaData" upperBound="-1" eType="/2/FieldMetaData" containment="true" resolveProxies="false"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="recordFieldMetaData" eType="/2/FieldList" volatile="true" transient="true" derived="true"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="FieldMetaData">
+      <eStructuralFeatures xsi:type="ecore:EReference" name="fieldMetaData" upperBound="-1" eType="/2/FieldMetaData" containment="true" resolveProxies="false"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="type" lowerBound="1" eType="/2/DataType"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="byteLength" eType="/5/EInt"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="byteOffset" eType="/5/EInt"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="unicodeByteLength" eType="/5/EInt"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="unicodeByteOffset" eType="/5/EInt"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="decimals" eType="/5/EInt"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="description" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="recordMetaData" eType="/2/RecordMetaData"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="ListFieldMetaData">
+      <eStructuralFeatures xsi:type="ecore:EReference" name="fieldMetaData" upperBound="-1" eType="/2/FieldMetaData" containment="true" resolveProxies="false"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="type" lowerBound="1" eType="/2/DataType"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="byteLength" eType="/5/EInt"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="unicodeByteLength" eType="/5/EInt"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="decimals" eType="/5/EInt"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="defaults" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="description" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="import" eType="/5/EBoolean"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="changing" eType="/5/EBoolean"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="export" eType="/5/EBoolean"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="exception" eType="/5/EBoolean"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="optional" eType="/5/EBoolean"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="recordMetaData" eType="/2/RecordMetaData"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="AbapException">
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="key" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="message" eType="/5/EString"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="RepositoryDataEntry" instanceClassName="java.util.Map$Entry">
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="key" lowerBound="1" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="value" lowerBound="1" eType="/2/FunctionTemplate"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="RepositoryData">
+      <eStructuralFeatures xsi:type="ecore:EReference" name="entries" upperBound="-1" eType="/2/RepositoryDataEntry" containment="true" resolveProxies="false"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="functionTemplates" eType="/2/FunctionTemplateMap" volatile="true" transient="true" derived="true"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="RepositoryDataStore">
+      <eStructuralFeatures xsi:type="ecore:EReference" name="entries" upperBound="-1" eType="/2/RepositoryDataStoreEntry" containment="true" resolveProxies="false"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="RepositoryDataStoreEntry" instanceClassName="java.util.Map$Entry">
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="key" lowerBound="1" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="value" lowerBound="1" eType="/2/RepositoryData"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="TIDStoreEntry" instanceClassName="java.util.Map$Entry">
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="key" lowerBound="1" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" lowerBound="1" eType="/5/EString"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="TIDStore">
+      <eStructuralFeatures xsi:type="ecore:EReference" name="entries" upperBound="-1" eType="/2/TIDStoreEntry" containment="true" resolveProxies="false"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EEnum" name="TIDState">
+      <eLiterals name="CREATED"/>
+      <eLiterals name="EXECUTED" value="1"/>
+      <eLiterals name="COMMITTED" value="2"/>
+      <eLiterals name="ROLLED_BACK" value="3"/>
+      <eLiterals name="CONFIRMED" value="4"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EEnum" name="DataType">
+      <eLiterals name="CHAR"/>
+      <eLiterals name="DATE" value="1"/>
+      <eLiterals name="BCD" value="2"/>
+      <eLiterals name="TIME" value="3"/>
+      <eLiterals name="BYTE" value="4"/>
+      <eLiterals name="NUM" value="6"/>
+      <eLiterals name="FLOAT" value="7"/>
+      <eLiterals name="INT" value="8"/>
+      <eLiterals name="INT2" value="9"/>
+      <eLiterals name="INT1" value="10"/>
+      <eLiterals name="STRUCTURE" value="17"/>
+      <eLiterals name="DECF16" value="23"/>
+      <eLiterals name="DECF34" value="24"/>
+      <eLiterals name="STRING" value="29"/>
+      <eLiterals name="XSTRING" value="30"/>
+      <eLiterals name="TABLE" value="99"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="ParameterList" instanceTypeName="java.util.List&lt;org.fusesource.camel.component.sap.model.rfc.ListFieldMetaData>" serializable="false"/>
+    <eClassifiers xsi:type="ecore:EDataType" name="FieldList" instanceTypeName="java.util.List&lt;org.fusesource.camel.component.sap.model.rfc.FieldMetaData>" serializable="false"/>
+    <eClassifiers xsi:type="ecore:EDataType" name="AbapExceptionList" instanceTypeName="java.util.List&lt;org.fusesource.camel.component.sap.model.rfc.AbapException>" serializable="false"/>
+    <eClassifiers xsi:type="ecore:EDataType" name="FunctionTemplateMap" instanceTypeName="java.util.Map&lt;java.lang.String, org.fusesource.camel.component.sap.model.rfc.FunctionTemplate>" serializable="false"/>
+  </ecore:EPackage>
+  <ecore:EPackage name="namespace" nsURI="http://www.w3.org/XML/1998/namespace" nsPrefix="xml">
+    <eAnnotations source="http://www.w3.org/XML/1998/namespace">
+      <details key="lang" value="en"/>
+    </eAnnotations>
+    <eClassifiers xsi:type="ecore:EClass" name="XMLNamespaceDocumentRoot">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value=""/>
+        <details key="kind" value="mixed"/>
+      </eAnnotations>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="mixed" unique="false" upperBound="-1" eType="/5/EFeatureMapEntry">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="kind" value="elementWildcard"/>
+          <details key="name" value=":mixed"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="xMLNSPrefixMap" upperBound="-1" eType="/5/EStringToStringMapEntry" transient="true" containment="true" resolveProxies="false">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="kind" value="attribute"/>
+          <details key="name" value="xmlns:prefix"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="xSISchemaLocation" upperBound="-1" eType="/5/EStringToStringMapEntry" transient="true" containment="true" resolveProxies="false">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="kind" value="attribute"/>
+          <details key="name" value="xsi:schemaLocation"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="base" eType="/6/AnyURI">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="kind" value="attribute"/>
+          <details key="name" value="base"/>
+          <details key="namespace" value="##targetNamespace"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="id" eType="/6/ID" iD="true">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="kind" value="attribute"/>
+          <details key="name" value="id"/>
+          <details key="namespace" value="##targetNamespace"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="lang" eType="/3/LangType">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="kind" value="attribute"/>
+          <details key="name" value="lang"/>
+          <details key="namespace" value="##targetNamespace"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="space" eType="/3/SpaceType" unsettable="true">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="kind" value="attribute"/>
+          <details key="name" value="space"/>
+          <details key="namespace" value="##targetNamespace"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EEnum" name="SpaceType">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="space_._type"/>
+      </eAnnotations>
+      <eLiterals name="default"/>
+      <eLiterals name="preserve" value="1"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="LangType" instanceClassName="java.lang.String">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="lang_._type"/>
+        <details key="memberTypes" value="http://www.eclipse.org/emf/2003/XMLType#language lang_._type_._member_._1"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="LangTypeNull" instanceClassName="java.lang.String">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="lang_._type_._member_._1"/>
+        <details key="baseType" value="http://www.eclipse.org/emf/2003/XMLType#string"/>
+        <details key="enumeration" value=""/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="SpaceTypeObject">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="space_._type:Object"/>
+        <details key="baseType" value="space_._type"/>
+      </eAnnotations>
+    </eClassifiers>
+  </ecore:EPackage>
+  <ecore:EPackage name="RHT:IDC___" nsURI="http://sap.fusesource.org/idoc/JBF/RHT:IDC///" nsPrefix="RHT_IDC---">
+    <eClassifiers xsi:type="ecore:EClass" name="ROOT" eSuperTypes="/1/Segment">
+      <eAnnotations source="http://sap.fusesource.org/idoc">
+        <details key="name" value="ROOT"/>
+        <details key="type" value="ROOT"/>
+        <details key="key" value="/RHT/IDC||||ROOT"/>
+        <details key="definition" value="ROOT"/>
+        <details key="description" value="General root segment"/>
+        <details key="hierarchyLevel" value="0"/>
+        <details key="idocType" value="/RHT/IDC"/>
+        <details key="idocTypeExtension" value=""/>
+        <details key="systemRelease" value=""/>
+        <details key="applicationRelease" value=""/>
+        <details key="numFields" value="0"/>
+        <details key="maxOccurrence" value="1"/>
+        <details key="minOccurrence" value="1"/>
+        <details key="isLocked" value="true"/>
+        <details key="isMandatory" value="true"/>
+        <details key="isQualified" value="false"/>
+        <details key="recordLength" value="0"/>
+        <details key="compoundType" value="/RHT/IDC"/>
+      </eAnnotations>
+      <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+        <details key="documentation" value="Segment type for RHT:IDC___"/>
+      </eAnnotations>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="segmentChildren" eType="/4/ROOT_CHILDREN" containment="true"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="ROOT_CHILDREN" eSuperTypes="/1/SegmentChildren">
+      <eStructuralFeatures xsi:type="ecore:EReference" name="/RHT/S1" upperBound="-1" eType="/4/%2FRHT%2FS1" volatile="true" transient="true" derived="true" containment="true">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="name" value="RHT:S1"/>
+          <details key="group" value="#segments"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="/RHT/S1" eSuperTypes="/1/Segment">
+      <eAnnotations source="http://sap.fusesource.org/idoc">
+        <details key="name" value="/RHT/S1000"/>
+        <details key="type" value="/RHT/S1"/>
+        <details key="key" value="/RHT/IDC||||/RHT/S1000"/>
+        <details key="definition" value="/RHT/S1000"/>
+        <details key="description" value="Test Segment One"/>
+        <details key="hierarchyLevel" value="1"/>
+        <details key="idocType" value="/RHT/IDC"/>
+        <details key="idocTypeExtension" value=""/>
+        <details key="systemRelease" value=""/>
+        <details key="applicationRelease" value=""/>
+        <details key="numFields" value="2"/>
+        <details key="maxOccurrence" value="1"/>
+        <details key="minOccurrence" value="1"/>
+        <details key="isLocked" value="true"/>
+        <details key="isMandatory" value="true"/>
+        <details key="isQualified" value="false"/>
+        <details key="recordLength" value="2"/>
+      </eAnnotations>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="/RHT/FIELD1" eType="/5/EString">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="name" value="RHT:FIELD1"/>
+        </eAnnotations>
+        <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+          <details key="documentation" value="Single-Character Flag"/>
+        </eAnnotations>
+        <eAnnotations source="http://sap.fusesource.org/idoc">
+          <details key="classNameOfField" value="java.lang.String"/>
+          <details key="position" value="0"/>
+          <details key="description" value="Single-Character Flag"/>
+          <details key="checkTableName" value=""/>
+          <details key="dataElementName" value="CHAR1"/>
+          <details key="dataType" value="0"/>
+          <details key="dataTypeName" value="CHAR"/>
+          <details key="domainName" value="CHAR1"/>
+          <details key="internalLength" value="1"/>
+          <details key="length" value="1"/>
+          <details key="offset" value="0"/>
+          <details key="outputLength" value="1"/>
+          <details key="recordType" value="0"/>
+          <details key="typeAsString" value="CHAR"/>
+          <details key="values" value="[]"/>
+          <details key="valueDescriptions" value="[]"/>
+          <details key="valueRanges" value="[]"/>
+          <details key="isoCode" value="false"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="/RHT/FIELD2" eType="/5/EString">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="name" value="RHT:FIELD2"/>
+        </eAnnotations>
+        <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+          <details key="documentation" value="Single-Character Flag"/>
+        </eAnnotations>
+        <eAnnotations source="http://sap.fusesource.org/idoc">
+          <details key="classNameOfField" value="java.lang.String"/>
+          <details key="position" value="1"/>
+          <details key="description" value="Single-Character Flag"/>
+          <details key="checkTableName" value=""/>
+          <details key="dataElementName" value="CHAR1"/>
+          <details key="dataType" value="0"/>
+          <details key="dataTypeName" value="CHAR"/>
+          <details key="domainName" value="CHAR1"/>
+          <details key="internalLength" value="1"/>
+          <details key="length" value="1"/>
+          <details key="offset" value="1"/>
+          <details key="outputLength" value="1"/>
+          <details key="recordType" value="0"/>
+          <details key="typeAsString" value="CHAR"/>
+          <details key="values" value="[]"/>
+          <details key="valueDescriptions" value="[]"/>
+          <details key="valueRanges" value="[]"/>
+          <details key="isoCode" value="false"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="segmentChildren" eType="/4/%2FRHT%2FS1_CHILDREN" containment="true"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="/RHT/S1_CHILDREN" eSuperTypes="/1/SegmentChildren">
+      <eStructuralFeatures xsi:type="ecore:EReference" name="/RHT/S2" upperBound="-1" eType="/4/%2FRHT%2FS2" volatile="true" transient="true" derived="true" containment="true">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="name" value="RHT:S2"/>
+          <details key="group" value="#segments"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="/RHT/S2" eSuperTypes="/1/Segment">
+      <eAnnotations source="http://sap.fusesource.org/idoc">
+        <details key="name" value="/RHT/S2000"/>
+        <details key="type" value="/RHT/S2"/>
+        <details key="key" value="/RHT/IDC||||/RHT/S2000"/>
+        <details key="definition" value="/RHT/S2000"/>
+        <details key="description" value="/"/>
+        <details key="hierarchyLevel" value="2"/>
+        <details key="idocType" value="/RHT/IDC"/>
+        <details key="idocTypeExtension" value=""/>
+        <details key="systemRelease" value=""/>
+        <details key="applicationRelease" value=""/>
+        <details key="numFields" value="2"/>
+        <details key="maxOccurrence" value="1"/>
+        <details key="minOccurrence" value="1"/>
+        <details key="isLocked" value="true"/>
+        <details key="isMandatory" value="true"/>
+        <details key="isQualified" value="false"/>
+        <details key="recordLength" value="2"/>
+      </eAnnotations>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="/RHT/FIELD1" eType="/5/EString">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="name" value="RHT:FIELD1"/>
+        </eAnnotations>
+        <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+          <details key="documentation" value="Single-Character Flag"/>
+        </eAnnotations>
+        <eAnnotations source="http://sap.fusesource.org/idoc">
+          <details key="classNameOfField" value="java.lang.String"/>
+          <details key="position" value="0"/>
+          <details key="description" value="Single-Character Flag"/>
+          <details key="checkTableName" value=""/>
+          <details key="dataElementName" value="CHAR1"/>
+          <details key="dataType" value="0"/>
+          <details key="dataTypeName" value="CHAR"/>
+          <details key="domainName" value="CHAR1"/>
+          <details key="internalLength" value="1"/>
+          <details key="length" value="1"/>
+          <details key="offset" value="0"/>
+          <details key="outputLength" value="1"/>
+          <details key="recordType" value="0"/>
+          <details key="typeAsString" value="CHAR"/>
+          <details key="values" value="[]"/>
+          <details key="valueDescriptions" value="[]"/>
+          <details key="valueRanges" value="[]"/>
+          <details key="isoCode" value="false"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="/RHT/FIELD2" eType="/5/EString">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="name" value="RHT:FIELD2"/>
+        </eAnnotations>
+        <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
+          <details key="documentation" value="Single-Character Flag"/>
+        </eAnnotations>
+        <eAnnotations source="http://sap.fusesource.org/idoc">
+          <details key="classNameOfField" value="java.lang.String"/>
+          <details key="position" value="1"/>
+          <details key="description" value="Single-Character Flag"/>
+          <details key="checkTableName" value=""/>
+          <details key="dataElementName" value="CHAR1"/>
+          <details key="dataType" value="0"/>
+          <details key="dataTypeName" value="CHAR"/>
+          <details key="domainName" value="CHAR1"/>
+          <details key="internalLength" value="1"/>
+          <details key="length" value="1"/>
+          <details key="offset" value="1"/>
+          <details key="outputLength" value="1"/>
+          <details key="recordType" value="0"/>
+          <details key="typeAsString" value="CHAR"/>
+          <details key="values" value="[]"/>
+          <details key="valueDescriptions" value="[]"/>
+          <details key="valueRanges" value="[]"/>
+          <details key="isoCode" value="false"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="segmentChildren" eType="/4/%2FRHT%2FS2_CHILDREN" containment="true"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="/RHT/S2_CHILDREN" eSuperTypes="/1/SegmentChildren"/>
+  </ecore:EPackage>
+  <ecore:EPackage name="ecore" nsURI="http://www.eclipse.org/emf/2002/Ecore" nsPrefix="ecore">
+    <eClassifiers xsi:type="ecore:EClass" name="EAttribute" eSuperTypes="/5/EStructuralFeature">
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="iD" eType="/5/EBoolean"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eAttributeType" lowerBound="1" eType="/5/EDataType" changeable="false" volatile="true" transient="true" derived="true"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="EAnnotation" eSuperTypes="/5/EModelElement">
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="source" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="details" upperBound="-1" eType="/5/EStringToStringMapEntry" containment="true" resolveProxies="false"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eModelElement" eType="/5/EModelElement" transient="true" resolveProxies="false" eOpposite="/5/EModelElement/eAnnotations"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="contents" upperBound="-1" eType="/5/EObject" containment="true" resolveProxies="false"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="references" upperBound="-1" eType="/5/EObject"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="EClass" eSuperTypes="/5/EClassifier">
+      <eOperations name="isSuperTypeOf" eType="/5/EBoolean">
+        <eParameters name="someClass" eType="/5/EClass"/>
+      </eOperations>
+      <eOperations name="getFeatureCount" eType="/5/EInt"/>
+      <eOperations name="getEStructuralFeature" eType="/5/EStructuralFeature">
+        <eParameters name="featureID" eType="/5/EInt"/>
+      </eOperations>
+      <eOperations name="getFeatureID" eType="/5/EInt">
+        <eParameters name="feature" eType="/5/EStructuralFeature"/>
+      </eOperations>
+      <eOperations name="getEStructuralFeature" eType="/5/EStructuralFeature">
+        <eParameters name="featureName" eType="/5/EString"/>
+      </eOperations>
+      <eOperations name="getOperationCount" eType="/5/EInt"/>
+      <eOperations name="getEOperation" eType="/5/EOperation">
+        <eParameters name="operationID" eType="/5/EInt"/>
+      </eOperations>
+      <eOperations name="getOperationID" eType="/5/EInt">
+        <eParameters name="operation" eType="/5/EOperation"/>
+      </eOperations>
+      <eOperations name="getOverride" eType="/5/EOperation">
+        <eParameters name="operation" eType="/5/EOperation"/>
+      </eOperations>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="abstract" eType="/5/EBoolean"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="interface" eType="/5/EBoolean"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eSuperTypes" upperBound="-1" eType="/5/EClass" unsettable="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eOperations" upperBound="-1" eType="/5/EOperation" containment="true" resolveProxies="false" eOpposite="/5/EOperation/eContainingClass"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eAllAttributes" upperBound="-1" eType="/5/EAttribute" changeable="false" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eAllReferences" upperBound="-1" eType="/5/EReference" changeable="false" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eReferences" upperBound="-1" eType="/5/EReference" changeable="false" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eAttributes" upperBound="-1" eType="/5/EAttribute" changeable="false" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eAllContainments" upperBound="-1" eType="/5/EReference" changeable="false" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eAllOperations" upperBound="-1" eType="/5/EOperation" changeable="false" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eAllStructuralFeatures" upperBound="-1" eType="/5/EStructuralFeature" changeable="false" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eAllSuperTypes" upperBound="-1" eType="/5/EClass" changeable="false" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eIDAttribute" eType="/5/EAttribute" changeable="false" volatile="true" transient="true" derived="true" resolveProxies="false"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eStructuralFeatures" upperBound="-1" eType="/5/EStructuralFeature" containment="true" resolveProxies="false" eOpposite="/5/EStructuralFeature/eContainingClass"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eGenericSuperTypes" upperBound="-1" eType="/5/EGenericType" unsettable="true" containment="true" resolveProxies="false"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eAllGenericSuperTypes" upperBound="-1" eType="/5/EGenericType" changeable="false" volatile="true" transient="true" derived="true"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="EClassifier" abstract="true" eSuperTypes="/5/ENamedElement">
+      <eOperations name="isInstance" eType="/5/EBoolean">
+        <eParameters name="object" eType="/5/EJavaObject"/>
+      </eOperations>
+      <eOperations name="getClassifierID" eType="/5/EInt"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="instanceClassName" eType="/5/EString" volatile="true" unsettable="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="instanceClass" changeable="false" volatile="true" transient="true" derived="true">
+        <eGenericType eClassifier="/5/EJavaClass">
+          <eTypeArguments/>
+        </eGenericType>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="defaultValue" eType="/5/EJavaObject" changeable="false" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="instanceTypeName" eType="/5/EString" volatile="true" unsettable="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="ePackage" eType="/5/EPackage" changeable="false" transient="true" eOpposite="/5/EPackage/eClassifiers"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eTypeParameters" upperBound="-1" eType="/5/ETypeParameter" containment="true"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="EDataType" eSuperTypes="/5/EClassifier">
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="serializable" eType="/5/EBoolean" defaultValueLiteral="true"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="EEnum" eSuperTypes="/5/EDataType">
+      <eOperations name="getEEnumLiteral" eType="/5/EEnumLiteral">
+        <eParameters name="name" eType="/5/EString"/>
+      </eOperations>
+      <eOperations name="getEEnumLiteral" eType="/5/EEnumLiteral">
+        <eParameters name="value" eType="/5/EInt"/>
+      </eOperations>
+      <eOperations name="getEEnumLiteralByLiteral" eType="/5/EEnumLiteral">
+        <eParameters name="literal" eType="/5/EString"/>
+      </eOperations>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eLiterals" upperBound="-1" eType="/5/EEnumLiteral" containment="true" resolveProxies="false" eOpposite="/5/EEnumLiteral/eEnum"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="EEnumLiteral" eSuperTypes="/5/ENamedElement">
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" eType="/5/EInt"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="instance" eType="/5/EEnumerator" transient="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="literal" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eEnum" eType="/5/EEnum" changeable="false" transient="true" resolveProxies="false" eOpposite="/5/EEnum/eLiterals"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="EFactory" eSuperTypes="/5/EModelElement">
+      <eOperations name="create" eType="/5/EObject">
+        <eParameters name="eClass" eType="/5/EClass"/>
+      </eOperations>
+      <eOperations name="createFromString" eType="/5/EJavaObject">
+        <eParameters name="eDataType" eType="/5/EDataType"/>
+        <eParameters name="literalValue" eType="/5/EString"/>
+      </eOperations>
+      <eOperations name="convertToString" eType="/5/EString">
+        <eParameters name="eDataType" eType="/5/EDataType"/>
+        <eParameters name="instanceValue" eType="/5/EJavaObject"/>
+      </eOperations>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="ePackage" lowerBound="1" eType="/5/EPackage" transient="true" resolveProxies="false" eOpposite="/5/EPackage/eFactoryInstance"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="EModelElement" abstract="true">
+      <eOperations name="getEAnnotation" eType="/5/EAnnotation">
+        <eParameters name="source" eType="/5/EString"/>
+      </eOperations>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eAnnotations" upperBound="-1" eType="/5/EAnnotation" containment="true" resolveProxies="false" eOpposite="/5/EAnnotation/eModelElement"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="ENamedElement" abstract="true" eSuperTypes="/5/EModelElement">
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="/5/EString"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="EObject">
+      <eOperations name="eClass" eType="/5/EClass"/>
+      <eOperations name="eIsProxy" eType="/5/EBoolean"/>
+      <eOperations name="eResource" eType="/5/EResource"/>
+      <eOperations name="eContainer" eType="/5/EObject"/>
+      <eOperations name="eContainingFeature" eType="/5/EStructuralFeature"/>
+      <eOperations name="eContainmentFeature" eType="/5/EReference"/>
+      <eOperations name="eContents">
+        <eGenericType eClassifier="/5/EEList">
+          <eTypeArguments eClassifier="/5/EObject"/>
+        </eGenericType>
+      </eOperations>
+      <eOperations name="eAllContents">
+        <eGenericType eClassifier="/5/ETreeIterator">
+          <eTypeArguments eClassifier="/5/EObject"/>
+        </eGenericType>
+      </eOperations>
+      <eOperations name="eCrossReferences">
+        <eGenericType eClassifier="/5/EEList">
+          <eTypeArguments eClassifier="/5/EObject"/>
+        </eGenericType>
+      </eOperations>
+      <eOperations name="eGet" eType="/5/EJavaObject">
+        <eParameters name="feature" eType="/5/EStructuralFeature"/>
+      </eOperations>
+      <eOperations name="eGet" eType="/5/EJavaObject">
+        <eParameters name="feature" eType="/5/EStructuralFeature"/>
+        <eParameters name="resolve" eType="/5/EBoolean"/>
+      </eOperations>
+      <eOperations name="eSet">
+        <eParameters name="feature" eType="/5/EStructuralFeature"/>
+        <eParameters name="newValue" eType="/5/EJavaObject"/>
+      </eOperations>
+      <eOperations name="eIsSet" eType="/5/EBoolean">
+        <eParameters name="feature" eType="/5/EStructuralFeature"/>
+      </eOperations>
+      <eOperations name="eUnset">
+        <eParameters name="feature" eType="/5/EStructuralFeature"/>
+      </eOperations>
+      <eOperations name="eInvoke" eType="/5/EJavaObject" eExceptions="/5/EInvocationTargetException">
+        <eParameters name="operation" eType="/5/EOperation"/>
+        <eParameters name="arguments">
+          <eGenericType eClassifier="/5/EEList">
+            <eTypeArguments/>
+          </eGenericType>
+        </eParameters>
+      </eOperations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="EOperation" eSuperTypes="/5/ETypedElement">
+      <eOperations name="getOperationID" eType="/5/EInt"/>
+      <eOperations name="isOverrideOf" eType="/5/EBoolean">
+        <eParameters name="someOperation" eType="/5/EOperation"/>
+      </eOperations>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eContainingClass" eType="/5/EClass" changeable="false" transient="true" resolveProxies="false" eOpposite="/5/EClass/eOperations"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eTypeParameters" upperBound="-1" eType="/5/ETypeParameter" containment="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eParameters" upperBound="-1" eType="/5/EParameter" containment="true" resolveProxies="false" eOpposite="/5/EParameter/eOperation"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eExceptions" upperBound="-1" eType="/5/EClassifier" unsettable="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eGenericExceptions" upperBound="-1" eType="/5/EGenericType" unsettable="true" containment="true" resolveProxies="false"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="EPackage" eSuperTypes="/5/ENamedElement">
+      <eOperations name="getEClassifier" eType="/5/EClassifier">
+        <eParameters name="name" eType="/5/EString"/>
+      </eOperations>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="nsURI" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="nsPrefix" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eFactoryInstance" lowerBound="1" eType="/5/EFactory" transient="true" resolveProxies="false" eOpposite="/5/EFactory/ePackage"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eClassifiers" upperBound="-1" eType="/5/EClassifier" containment="true" eOpposite="/5/EClassifier/ePackage"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eSubpackages" upperBound="-1" eType="/5/EPackage" containment="true" eOpposite="/5/EPackage/eSuperPackage"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eSuperPackage" eType="/5/EPackage" changeable="false" transient="true" eOpposite="/5/EPackage/eSubpackages"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="EParameter" eSuperTypes="/5/ETypedElement">
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eOperation" eType="/5/EOperation" changeable="false" transient="true" resolveProxies="false" eOpposite="/5/EOperation/eParameters"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="EReference" eSuperTypes="/5/EStructuralFeature">
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="containment" eType="/5/EBoolean"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="container" eType="/5/EBoolean" changeable="false" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="resolveProxies" eType="/5/EBoolean" defaultValueLiteral="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eOpposite" eType="/5/EReference"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eReferenceType" lowerBound="1" eType="/5/EClass" changeable="false" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eKeys" upperBound="-1" eType="/5/EAttribute"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="EStructuralFeature" abstract="true" eSuperTypes="/5/ETypedElement">
+      <eOperations name="getFeatureID" eType="/5/EInt"/>
+      <eOperations name="getContainerClass">
+        <eGenericType eClassifier="/5/EJavaClass">
+          <eTypeArguments/>
+        </eGenericType>
+      </eOperations>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="changeable" eType="/5/EBoolean" defaultValueLiteral="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="volatile" eType="/5/EBoolean"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="transient" eType="/5/EBoolean"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="defaultValueLiteral" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="defaultValue" eType="/5/EJavaObject" changeable="false" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="unsettable" eType="/5/EBoolean"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="derived" eType="/5/EBoolean"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eContainingClass" eType="/5/EClass" changeable="false" transient="true" resolveProxies="false" eOpposite="/5/EClass/eStructuralFeatures"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="ETypedElement" abstract="true" eSuperTypes="/5/ENamedElement">
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="ordered" eType="/5/EBoolean" defaultValueLiteral="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="unique" eType="/5/EBoolean" defaultValueLiteral="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="lowerBound" eType="/5/EInt"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="upperBound" eType="/5/EInt" defaultValueLiteral="1"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="many" eType="/5/EBoolean" changeable="false" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="required" eType="/5/EBoolean" changeable="false" volatile="true" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eType" eType="/5/EClassifier" volatile="true" unsettable="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eGenericType" eType="/5/EGenericType" volatile="true" unsettable="true" containment="true" resolveProxies="false"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="EStringToStringMapEntry" instanceClassName="java.util.Map$Entry">
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="key" eType="/5/EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" eType="/5/EString"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="EGenericType">
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eUpperBound" eType="/5/EGenericType" containment="true" resolveProxies="false"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eTypeArguments" upperBound="-1" eType="/5/EGenericType" containment="true" resolveProxies="false"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eRawType" lowerBound="1" eType="/5/EClassifier" changeable="false" transient="true" derived="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eLowerBound" eType="/5/EGenericType" containment="true" resolveProxies="false"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eTypeParameter" eType="/5/ETypeParameter" resolveProxies="false"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eClassifier" eType="/5/EClassifier"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="ETypeParameter" eSuperTypes="/5/ENamedElement">
+      <eStructuralFeatures xsi:type="ecore:EReference" name="eBounds" upperBound="-1" eType="/5/EGenericType" containment="true" resolveProxies="false"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="EBigDecimal" instanceClassName="java.math.BigDecimal">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="baseType" value="http://www.w3.org/2001/XMLSchema#decimal"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="EBigInteger" instanceClassName="java.math.BigInteger">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="baseType" value="http://www.w3.org/2001/XMLSchema#integer"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="EBoolean" instanceClassName="boolean">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="baseType" value="http://www.w3.org/2001/XMLSchema#boolean"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="EBooleanObject" instanceClassName="java.lang.Boolean">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="baseType" value="EBoolean"/>
+        <details key="name" value="EBoolean:Object"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="EByte" instanceClassName="byte">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="baseType" value="http://www.w3.org/2001/XMLSchema#byte"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="EByteArray" instanceClassName="byte[]">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="baseType" value="http://www.w3.org/2001/XMLSchema#hexBinary"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="EByteObject" instanceClassName="java.lang.Byte">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="baseType" value="EByte"/>
+        <details key="name" value="EByte:Object"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="EChar" instanceClassName="char"/>
+    <eClassifiers xsi:type="ecore:EDataType" name="ECharacterObject" instanceClassName="java.lang.Character">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="baseType" value="EChar"/>
+        <details key="name" value="EChar:Object"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="EDate" instanceClassName="java.util.Date"/>
+    <eClassifiers xsi:type="ecore:EDataType" name="EDiagnosticChain" instanceClassName="org.eclipse.emf.common.util.DiagnosticChain" serializable="false"/>
+    <eClassifiers xsi:type="ecore:EDataType" name="EDouble" instanceClassName="double">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="baseType" value="http://www.w3.org/2001/XMLSchema#double"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="EDoubleObject" instanceClassName="java.lang.Double">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="baseType" value="EDouble"/>
+        <details key="name" value="EDouble:Object"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="EEList" instanceClassName="org.eclipse.emf.common.util.EList" serializable="false">
+      <eTypeParameters name="E"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="EEnumerator" instanceClassName="org.eclipse.emf.common.util.Enumerator" serializable="false"/>
+    <eClassifiers xsi:type="ecore:EDataType" name="EFeatureMap" instanceClassName="org.eclipse.emf.ecore.util.FeatureMap" serializable="false"/>
+    <eClassifiers xsi:type="ecore:EDataType" name="EFeatureMapEntry" instanceClassName="org.eclipse.emf.ecore.util.FeatureMap$Entry" serializable="false"/>
+    <eClassifiers xsi:type="ecore:EDataType" name="EFloat" instanceClassName="float">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="baseType" value="http://www.w3.org/2001/XMLSchema#float"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="EFloatObject" instanceClassName="java.lang.Float">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="baseType" value="EFloat"/>
+        <details key="name" value="EFloat:Object"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="EInt" instanceClassName="int">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="baseType" value="http://www.w3.org/2001/XMLSchema#int"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="EIntegerObject" instanceClassName="java.lang.Integer">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="baseType" value="EInt"/>
+        <details key="name" value="EInt:Object"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="EJavaClass" instanceClassName="java.lang.Class">
+      <eTypeParameters name="T"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="EJavaObject" instanceClassName="java.lang.Object"/>
+    <eClassifiers xsi:type="ecore:EDataType" name="ELong" instanceClassName="long">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="baseType" value="http://www.w3.org/2001/XMLSchema#long"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="ELongObject" instanceClassName="java.lang.Long">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="baseType" value="ELong"/>
+        <details key="name" value="ELong:Object"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="EMap" instanceClassName="java.util.Map" serializable="false">
+      <eTypeParameters name="K"/>
+      <eTypeParameters name="V"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="EResource" instanceClassName="org.eclipse.emf.ecore.resource.Resource" serializable="false"/>
+    <eClassifiers xsi:type="ecore:EDataType" name="EResourceSet" instanceClassName="org.eclipse.emf.ecore.resource.ResourceSet" serializable="false"/>
+    <eClassifiers xsi:type="ecore:EDataType" name="EShort" instanceClassName="short">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="baseType" value="http://www.w3.org/2001/XMLSchema#short"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="EShortObject" instanceClassName="java.lang.Short">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="baseType" value="EShort"/>
+        <details key="name" value="EShort:Object"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="EString" instanceClassName="java.lang.String">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="baseType" value="http://www.w3.org/2001/XMLSchema#string"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="ETreeIterator" instanceClassName="org.eclipse.emf.common.util.TreeIterator" serializable="false">
+      <eTypeParameters name="E"/>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="EInvocationTargetException" instanceClassName="java.lang.reflect.InvocationTargetException" serializable="false"/>
+  </ecore:EPackage>
+  <ecore:EPackage name="type" nsURI="http://www.eclipse.org/emf/2003/XMLType" nsPrefix="ecore.xml.type">
+    <eClassifiers xsi:type="ecore:EClass" name="AnyType">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="anyType"/>
+        <details key="kind" value="mixed"/>
+      </eAnnotations>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="mixed" unique="false" upperBound="-1" eType="/5/EFeatureMapEntry">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="kind" value="elementWildcard"/>
+          <details key="name" value=":mixed"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="any" unique="false" upperBound="-1" eType="/5/EFeatureMapEntry" volatile="true" transient="true" derived="true">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="kind" value="elementWildcard"/>
+          <details key="wildcards" value="##any"/>
+          <details key="name" value=":1"/>
+          <details key="processing" value="lax"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="anyAttribute" unique="false" upperBound="-1" eType="/5/EFeatureMapEntry">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="kind" value="attributeWildcard"/>
+          <details key="wildcards" value="##any"/>
+          <details key="name" value=":2"/>
+          <details key="processing" value="lax"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="ProcessingInstruction">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="processingInstruction_._type"/>
+        <details key="kind" value="empty"/>
+      </eAnnotations>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="data" eType="/6/String">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="kind" value="attribute"/>
+          <details key="name" value="data"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="target" lowerBound="1" eType="/6/String">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="kind" value="attribute"/>
+          <details key="name" value="target"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="SimpleAnyType" eSuperTypes="/6/AnyType">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="simpleAnyType"/>
+        <details key="kind" value="simple"/>
+      </eAnnotations>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="rawValue" eType="/6/String" volatile="true" transient="true" derived="true">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="name" value=":3"/>
+          <details key="kind" value="simple"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" eType="/6/AnySimpleType" volatile="true" transient="true" derived="true">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="name" value=":4"/>
+          <details key="kind" value="simple"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="instanceType" lowerBound="1" eType="/5/EDataType" resolveProxies="false">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="name" value=":5"/>
+          <details key="kind" value="simple"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="XMLTypeDocumentRoot">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value=""/>
+        <details key="kind" value="mixed"/>
+      </eAnnotations>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="mixed" unique="false" upperBound="-1" eType="/5/EFeatureMapEntry">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="kind" value="elementWildcard"/>
+          <details key="name" value=":mixed"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="xMLNSPrefixMap" upperBound="-1" eType="/5/EStringToStringMapEntry" transient="true" containment="true" resolveProxies="false">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="kind" value="attribute"/>
+          <details key="name" value="xmlns:prefix"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="xSISchemaLocation" upperBound="-1" eType="/5/EStringToStringMapEntry" transient="true" containment="true" resolveProxies="false">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="kind" value="attribute"/>
+          <details key="name" value="xsi:schemaLocation"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="cDATA" unique="false" upperBound="-2" eType="/6/String" volatile="true" transient="true" derived="true">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="kind" value="element"/>
+          <details key="name" value="cDATA"/>
+          <details key="namespace" value="##targetNamespace"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="comment" unique="false" upperBound="-2" eType="/6/String" volatile="true" transient="true" derived="true">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="kind" value="element"/>
+          <details key="name" value="comment"/>
+          <details key="namespace" value="##targetNamespace"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="processingInstruction" upperBound="-2" eType="/6/ProcessingInstruction" volatile="true" transient="true" derived="true" containment="true" resolveProxies="false">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="kind" value="element"/>
+          <details key="name" value="processingInstruction"/>
+          <details key="namespace" value="##targetNamespace"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="text" unique="false" upperBound="-2" eType="/6/String" volatile="true" transient="true" derived="true">
+        <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+          <details key="kind" value="element"/>
+          <details key="name" value="text"/>
+          <details key="namespace" value="##targetNamespace"/>
+        </eAnnotations>
+      </eStructuralFeatures>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="AnySimpleType" instanceClassName="java.lang.Object">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="anySimpleType"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="AnyURI" instanceClassName="java.lang.String">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="anyURI"/>
+        <details key="whiteSpace" value="collapse"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="Base64Binary" instanceClassName="byte[]">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="base64Binary"/>
+        <details key="whiteSpace" value="collapse"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="Boolean" instanceClassName="boolean">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="boolean"/>
+        <details key="whiteSpace" value="collapse"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="BooleanObject" instanceClassName="java.lang.Boolean">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="boolean:Object"/>
+        <details key="baseType" value="boolean"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="Byte" instanceClassName="byte">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="byte"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="ByteObject" instanceClassName="java.lang.Byte">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="byte:Object"/>
+        <details key="baseType" value="byte"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="Date" instanceClassName="javax.xml.datatype.XMLGregorianCalendar">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="date"/>
+        <details key="whiteSpace" value="collapse"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="DateTime" instanceClassName="javax.xml.datatype.XMLGregorianCalendar">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="dateTime"/>
+        <details key="whiteSpace" value="collapse"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="Decimal" instanceClassName="java.math.BigDecimal">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="decimal"/>
+        <details key="whiteSpace" value="collapse"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="Double" instanceClassName="double">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="double"/>
+        <details key="whiteSpace" value="collapse"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="DoubleObject" instanceClassName="java.lang.Double">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="double:Object"/>
+        <details key="baseType" value="double"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="Duration" instanceClassName="javax.xml.datatype.Duration">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="duration"/>
+        <details key="whiteSpace" value="collapse"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="ENTITIES" instanceClassName="java.util.List">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="ENTITIES"/>
+        <details key="baseType" value="ENTITIES_._base"/>
+        <details key="minLength" value="1"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="ENTITIESBase" instanceClassName="java.util.List">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="ENTITIES_._base"/>
+        <details key="itemType" value="ENTITY"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="ENTITY" instanceClassName="java.lang.String">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="ENTITY"/>
+        <details key="baseType" value="NCName"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="Float" instanceClassName="float">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="float"/>
+        <details key="whiteSpace" value="collapse"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="FloatObject" instanceClassName="java.lang.Float">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="float:Object"/>
+        <details key="baseType" value="float"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="GDay" instanceClassName="javax.xml.datatype.XMLGregorianCalendar">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="gDay"/>
+        <details key="whiteSpace" value="collapse"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="GMonth" instanceClassName="javax.xml.datatype.XMLGregorianCalendar">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="gMonth"/>
+        <details key="whiteSpace" value="collapse"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="GMonthDay" instanceClassName="javax.xml.datatype.XMLGregorianCalendar">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="gMonthDay"/>
+        <details key="whiteSpace" value="collapse"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="GYear" instanceClassName="javax.xml.datatype.XMLGregorianCalendar">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="gYear"/>
+        <details key="whiteSpace" value="collapse"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="GYearMonth" instanceClassName="javax.xml.datatype.XMLGregorianCalendar">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="gYearMonth"/>
+        <details key="whiteSpace" value="collapse"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="HexBinary" instanceClassName="byte[]">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="hexBinary"/>
+        <details key="whiteSpace" value="collapse"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="ID" instanceClassName="java.lang.String">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="ID"/>
+        <details key="baseType" value="NCName"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="IDREF" instanceClassName="java.lang.String">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="IDREF"/>
+        <details key="baseType" value="NCName"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="IDREFS" instanceClassName="java.util.List">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="IDREFS"/>
+        <details key="baseType" value="IDREFS_._base"/>
+        <details key="minLength" value="1"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="IDREFSBase" instanceClassName="java.util.List">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="IDREFS_._base"/>
+        <details key="itemType" value="IDREF"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="Int" instanceClassName="int">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="int"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="Integer" instanceClassName="java.math.BigInteger">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="integer"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="IntObject" instanceClassName="java.lang.Integer">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="int:Object"/>
+        <details key="baseType" value="int"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="Language" instanceClassName="java.lang.String">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="language"/>
+        <details key="baseType" value="token"/>
+        <details key="pattern" value="[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8})*"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="Long" instanceClassName="long">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="long"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="LongObject" instanceClassName="java.lang.Long">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="long:Object"/>
+        <details key="baseType" value="long"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="Name" instanceClassName="java.lang.String">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="Name"/>
+        <details key="baseType" value="token"/>
+        <details key="pattern" value="\i\c*"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="NCName" instanceClassName="java.lang.String">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="NCName"/>
+        <details key="baseType" value="Name"/>
+        <details key="pattern" value="[\i-[:]][\c-[:]]*"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="NegativeInteger" instanceClassName="java.math.BigInteger">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="negativeInteger"/>
+        <details key="baseType" value="nonPositiveInteger"/>
+        <details key="maxInclusive" value="-1"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="NMTOKEN" instanceClassName="java.lang.String">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="NMTOKEN"/>
+        <details key="baseType" value="token"/>
+        <details key="pattern" value="\c+"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="NMTOKENS" instanceClassName="java.util.List">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="NMTOKENS"/>
+        <details key="baseType" value="NMTOKENS_._base"/>
+        <details key="minLength" value="1"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="NMTOKENSBase" instanceClassName="java.util.List">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="NMTOKENS_._base"/>
+        <details key="itemType" value="NMTOKEN"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="NonNegativeInteger" instanceClassName="java.math.BigInteger">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="nonNegativeInteger"/>
+        <details key="baseType" value="integer"/>
+        <details key="minInclusive" value="0"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="NonPositiveInteger" instanceClassName="java.math.BigInteger">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="nonPositiveInteger"/>
+        <details key="baseType" value="integer"/>
+        <details key="maxInclusive" value="0"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="NormalizedString" instanceClassName="java.lang.String">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="normalizedString"/>
+        <details key="baseType" value="string"/>
+        <details key="whiteSpace" value="replace"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="NOTATION" instanceClassName="javax.xml.namespace.QName">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="NOTATION"/>
+        <details key="whiteSpace" value="collapse"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="PositiveInteger" instanceClassName="java.math.BigInteger">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="positiveInteger"/>
+        <details key="baseType" value="nonNegativeInteger"/>
+        <details key="minInclusive" value="1"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="QName" instanceClassName="javax.xml.namespace.QName">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="QName"/>
+        <details key="whiteSpace" value="collapse"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="Short" instanceClassName="short">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="short"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="ShortObject" instanceClassName="java.lang.Short">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="short:Object"/>
+        <details key="baseType" value="short"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="String" instanceClassName="java.lang.String">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="string"/>
+        <details key="whiteSpace" value="preserve"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="Time" instanceClassName="javax.xml.datatype.XMLGregorianCalendar">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="time"/>
+        <details key="whiteSpace" value="collapse"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="Token" instanceClassName="java.lang.String">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="token"/>
+        <details key="baseType" value="normalizedString"/>
+        <details key="whiteSpace" value="collapse"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="UnsignedByte" instanceClassName="short">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="unsignedByte"/>
+        <details key="maxInclusive" value="255"/>
+        <details key="minInclusive" value="0"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="UnsignedByteObject" instanceClassName="java.lang.Short">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="unsignedByte:Object"/>
+        <details key="baseType" value="unsignedByte"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="UnsignedInt" instanceClassName="long">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="unsignedInt"/>
+        <details key="maxInclusive" value="4294967295"/>
+        <details key="minInclusive" value="0"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="UnsignedIntObject" instanceClassName="java.lang.Long">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="unsignedInt:Object"/>
+        <details key="baseType" value="unsignedInt"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="UnsignedLong" instanceClassName="java.math.BigInteger">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="unsignedLong"/>
+        <details key="baseType" value="nonNegativeInteger"/>
+        <details key="maxInclusive" value="18446744073709551615"/>
+        <details key="minInclusive" value="0"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="UnsignedShort" instanceClassName="int">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="unsignedShort"/>
+        <details key="maxInclusive" value="65535"/>
+        <details key="minInclusive" value="0"/>
+      </eAnnotations>
+    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EDataType" name="UnsignedShortObject" instanceClassName="java.lang.Integer">
+      <eAnnotations source="http:///org/eclipse/emf/ecore/util/ExtendedMetaData">
+        <details key="name" value="unsignedShort:Object"/>
+        <details key="baseType" value="unsignedShort"/>
+      </eAnnotations>
+    </eClassifiers>
+  </ecore:EPackage>
+</xmi:XMI>

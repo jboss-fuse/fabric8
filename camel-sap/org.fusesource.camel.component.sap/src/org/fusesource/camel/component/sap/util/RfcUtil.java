@@ -772,7 +772,7 @@ public class RfcUtil extends Util {
 	 * @return The instance or <code>null</code> if <code>eClassName</code> not found.
 	 */
 	public static EObject createInstance(JCoRepository repository, String packageName, String eClassName) {
-		String nsURI = eNS_URI + "/" + repository.getName() + "/" + packageName;
+		String nsURI = eNS_URI + "/" + repository.getName() + "/" + convertSAPNamespaceToXMLName(packageName);
 
 		EPackage ePackage = getEPackage(repository, nsURI);
 		if (ePackage == null) 
@@ -801,7 +801,7 @@ public class RfcUtil extends Util {
 	 * @return The instance or <code>null</code> if <code>eClassName</code> not found.
 	 */
 	public static EObject createInstance(String repositoryName, String packageName, String eClassName) {
-		String nsURI = eNS_URI + "/" + repositoryName + "/" + packageName;
+		String nsURI = eNS_URI + "/" + repositoryName + "/" + convertSAPNamespaceToXMLName(packageName);
 
 		EPackage ePackage = registry.getEPackage(nsURI);
 		if (ePackage == null) 
@@ -849,7 +849,7 @@ public class RfcUtil extends Util {
 																						// of
 																						// "http://sap.fusesource.org/<repo-name>/"
 																						// prefix.
-			String functionModuleName = nsURI.substring(prefixLength);
+			String functionModuleName = Util.convertXMLNameToSAPNamespace(nsURI.substring(prefixLength));
 
 			// Retrieve the function module's meta-data.
 			JCoFunctionTemplate functionTemplate;
@@ -869,8 +869,8 @@ public class RfcUtil extends Util {
 			// Create and initialize package
 			EcoreFactory ecoreFactory = EcoreFactory.eINSTANCE;
 			ePackage = ecoreFactory.createEPackage();
-			ePackage.setName(functionModuleName);
-			ePackage.setNsPrefix(functionModuleName);
+			ePackage.setName(Util.convertSAPNamespaceToXMLName(functionModuleName));
+			ePackage.setNsPrefix(Util.convertSAPNamespaceToXMLPrefix(functionModuleName));
 			ePackage.setNsURI(nsURI);
 
 			// Create Request Class
@@ -964,7 +964,7 @@ public class RfcUtil extends Util {
 				addAnnotation(structuralFeature, eNS_URI, RfcNS_CLASS_NAME_OF_FIELD_KEY, jcoListMetaData.getClassNameOfField(i));
 			}
 			structuralFeature.setName(jcoListMetaData.getName(i));
-			addAnnotation(structuralFeature, ExtendedMetaData.ANNOTATION_URI, "name", xmlAttributeName(jcoListMetaData.getName(i)));
+			addAnnotation(structuralFeature, ExtendedMetaData.ANNOTATION_URI, "name", Util.convertSAPNamespaceToXMLName(jcoListMetaData.getName(i)));
 			if (!jcoListMetaData.isOptional(i))
 				structuralFeature.setLowerBound(1);
 			if (jcoListMetaData.getDefault(i) != null)
@@ -1126,7 +1126,7 @@ public class RfcUtil extends Util {
 				addAnnotation(structuralFeature, eNS_URI, RfcNS_CLASS_NAME_OF_FIELD_KEY, jcoRecordMetaData.getClassNameOfField(i));
 			}
 			structuralFeature.setName(jcoRecordMetaData.getName(i));
-			addAnnotation(structuralFeature, ExtendedMetaData.ANNOTATION_URI, "name", xmlAttributeName(jcoRecordMetaData.getName(i)));
+			addAnnotation(structuralFeature, ExtendedMetaData.ANNOTATION_URI, "name", Util.convertSAPNamespaceToXMLName(jcoRecordMetaData.getName(i)));
 			addAnnotation(structuralFeature, GenNS_URI, GenNS_DOCUMENTATION_KEY, jcoRecordMetaData.getDescription(i));
 			addAnnotation(structuralFeature, eNS_URI, RfcNS_NAME_KEY, jcoRecordMetaData.getName(i));
 			addAnnotation(structuralFeature, eNS_URI, RfcNS_DESCRIPTION_KEY, jcoRecordMetaData.getDescription(i));
@@ -1566,10 +1566,6 @@ public class RfcUtil extends Util {
 			string = string.substring(0, string.length() - 1);
 		}
 		return string;
-	}
-	
-	private static String xmlAttributeName(String name) {
-		return name.replaceFirst("/", "").replaceFirst("/", ":");
 	}
 	
 }
