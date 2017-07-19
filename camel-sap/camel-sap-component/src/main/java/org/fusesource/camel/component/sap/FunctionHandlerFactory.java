@@ -41,7 +41,10 @@ public class FunctionHandlerFactory implements JCoServerFunctionHandlerFactory {
 	private Map<String, SapServerSessionContext> statefulSessionContexts = new HashMap<String, SapServerSessionContext>();
 
 	public void registerHandler(String functionName, JCoServerFunctionHandler handler) {
-		callHandlers.put(functionName, handler);
+		JCoServerFunctionHandler previousHandler = callHandlers.put(functionName, handler);
+		if (previousHandler != null) {
+			LOG.warn("Replacing previous consumer for RFC function '" + functionName + "'");
+		}
 	}
 
 	public JCoServerFunctionHandler unregisterHandler(String functionName) {

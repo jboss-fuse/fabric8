@@ -19,6 +19,9 @@ package org.fusesource.camel.component.sap;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.sap.conn.idoc.IDocDocumentList;
 import com.sap.conn.idoc.jco.JCoIDocHandler;
 import com.sap.conn.idoc.jco.JCoIDocHandlerFactory;
@@ -32,6 +35,8 @@ import com.sap.conn.jco.server.JCoServerContext;
  *
  */
 public class IDocHandlerFactory implements JCoIDocHandlerFactory {
+	private static final Logger LOG = LoggerFactory.getLogger(JCoIDocHandlerFactory.class);
+	
 	private Map<String, JCoIDocHandler> iDocHandlers = new HashMap<String, JCoIDocHandler>();
 
 	JCoIDocHandler iDocHandler = new JCoIDocHandler() {
@@ -46,8 +51,13 @@ public class IDocHandlerFactory implements JCoIDocHandlerFactory {
 		}
 	};
 	
-	public void registerHandler(String iDocType, String iDocTypeExtension, String systemRelease, String applicationRelease, JCoIDocHandler iDocHandler) {
-		iDocHandlers.put(createKey(iDocType, iDocTypeExtension, systemRelease, applicationRelease), iDocHandler);
+	public void registerHandler(String iDocType, String iDocTypeExtension, String systemRelease, String applicationRelease, JCoIDocHandler iDocHandler)
+	{
+		String key = createKey(iDocType, iDocTypeExtension, systemRelease, applicationRelease);
+		JCoIDocHandler previousHandler = iDocHandlers.put(key, iDocHandler);
+		if (previousHandler != null) {
+			LOG.warn("Replacing previous consumer for IDoc '" + key + "'");
+		}
 	}
 
 	public JCoIDocHandler unregisterHandler(String iDocType, String iDocTypeExtension, String systemRelease, String applicationRelease) {
