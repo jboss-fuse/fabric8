@@ -39,6 +39,8 @@ import io.fabric8.api.ProfileService;
 import io.fabric8.api.Profiles;
 import io.fabric8.api.Version;
 import io.fabric8.api.VersionSequence;
+import io.fabric8.api.commands.GitVersion;
+import io.fabric8.api.commands.GitVersions;
 import io.fabric8.api.jmx.FabricManagerMBean;
 import io.fabric8.api.jmx.FabricStatusDTO;
 import io.fabric8.api.jmx.ServiceStatusDTO;
@@ -91,11 +93,13 @@ public final class FabricManager implements FabricManagerMBean {
     private static final transient Logger LOG = LoggerFactory.getLogger(FabricManager.class);
 
     private final ProfileService profileService;
+    private final ProfileRegistry profileRegistry;
     private final FabricServiceImpl fabricService;
     private ObjectName objectName;
 
     public FabricManager(FabricServiceImpl fabricService) {
         this.profileService = fabricService.adapt(ProfileService.class);
+        this.profileRegistry = fabricService.adapt(ProfileRegistry.class);
         this.fabricService = fabricService;
     }
 
@@ -1301,7 +1305,27 @@ public final class FabricManager implements FabricManagerMBean {
         }
         return answer;
     }
-    
+
+    @Override
+    public String gitVersions() {
+        GitVersions gitVersions = profileRegistry.gitVersions();
+        try {
+            return getObjectMapper().writeValueAsString(gitVersions);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    @Override
+    public String gitSynchronize(Boolean allowPush) {
+        GitVersions gitVersions = profileRegistry.gitSynchronize(allowPush);
+        try {
+            return getObjectMapper().writeValueAsString(gitVersions);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
     @Override
     public void copyProfile(String versionId, String sourceId, String targetId, boolean force) {
         Version v = profileService.getVersion(versionId);
@@ -1341,6 +1365,11 @@ public final class FabricManager implements FabricManagerMBean {
     @Override
     public String gitUrl() {
         return fabricService.getGitUrl();
+    }
+
+    @Override
+    public String gitMaster() {
+        return fabricService.getGitMaster();
     }
 
     @Override

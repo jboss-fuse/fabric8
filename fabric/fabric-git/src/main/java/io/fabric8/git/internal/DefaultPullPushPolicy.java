@@ -39,8 +39,7 @@ import org.eclipse.jgit.api.MergeResult.MergeStatus;
 import org.eclipse.jgit.api.RebaseCommand.Operation;
 import org.eclipse.jgit.api.RebaseResult;
 import org.eclipse.jgit.api.ResetCommand;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.api.errors.JGitInternalException;
+import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
@@ -56,8 +55,6 @@ import org.eclipse.jgit.transport.TagOpt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static java.util.Collections.emptyMap;
-
 /**
  * The default {@link PullPushPolicy}.
  */
@@ -68,16 +65,28 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
     private final Git git;
     private final String remoteRef;
     private final int gitTimeout;
+    private final boolean gitAllowRemoteUpdate;
 
     @VisibleForExternal
     public DefaultPullPushPolicy(Git git, String remoteRef, int gitTimeout) {
+        this(git, remoteRef, gitTimeout, true);
+    }
+
+    @VisibleForExternal
+    public DefaultPullPushPolicy(Git git, String remoteRef, int gitTimeout, boolean gitAllowRemoteUpdate) {
         this.git = git;
         this.remoteRef = remoteRef;
         this.gitTimeout = gitTimeout;
+        this.gitAllowRemoteUpdate = gitAllowRemoteUpdate;
     }
 
     @Override
     public synchronized PullPolicyResult doPull(GitContext context, CredentialsProvider credentialsProvider, boolean allowVersionDelete) {
+        return doPull(context, credentialsProvider, allowVersionDelete, gitAllowRemoteUpdate);
+    }
+
+    @Override
+    public synchronized PullPolicyResult doPull(GitContext context, CredentialsProvider credentialsProvider, boolean allowVersionDelete, boolean allowPush) {
         Repository repository = git.getRepository();
         StoredConfig config = repository.getConfig();
         String remoteUrl = config.getString("remote", remoteRef, "url");
@@ -99,7 +108,11 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
 
         // No meaningful processing after GitAPIException
         if (lastException != null) {
-            LOGGER.warn("Pull failed during fetch because of: " + lastException.getMessage(), lastException);
+            if (lastException instanceof InvalidRemoteException) {
+                LOGGER.warn("Pull failed during fetch because remote repository is not ready yet");
+            } else {
+                LOGGER.warn("Pull failed during fetch because of: " + lastException.getMessage(), lastException);
+            }
             return new AbstractPullPolicyResult(lastException);
         }
 
@@ -195,20 +208,35 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                         if (mergeStatus == MergeStatus.FAST_FORWARD) {
                             localUpdate.put(branch, new BranchChange(branch).updated(localObjectId, remoteObjectId, "fast forward"));
                         } else if (mergeStatus == MergeStatus.ALREADY_UP_TO_DATE) {
-                            LOGGER.info("Remote branch {} is behind local version - changes will be pushed", branch);
-                            remoteUpdate = true;
+                            if (allowPush) {
+                                LOGGER.info("Remote branch {} is behind local version - changes will be pushed", branch);
+                                remoteUpdate = true;
+                            } else {
+                                LOGGER.info("Remote branch {} is behind local version - changes won't be pushed - restoring remote tracking branch", branch);
+                                git.checkout().setName(GitHelpers.MASTER_BRANCH).setForce(true).call();
+                                git.branchDelete().setBranchNames(branch).setForce(true).call();
+                                git.checkout().setCreateBranch(true).setName(branch).setStartPoint(remoteRef + "/" + branch).setUpstreamMode(SetupUpstreamMode.TRACK).setForce(true).call();
+                                localUpdate.put(branch, new BranchChange(branch).updated(localObjectId, remoteObjectId, "reset"));
+                            }
                         } else if (mergeStatus == MergeStatus.ABORTED) {
                             // failure to merge using FastForwardMode.FF_ONLY always ends with MergeStatus.ABORTED
-                            LOGGER.info("Cannot fast forward branch {}, attempting rebase", branch);
-                            RebaseResult rebaseResult = git.rebase().setUpstream(remoteCommit).call();
-                            RebaseResult.Status rebaseStatus = rebaseResult.getStatus();
+                            RebaseResult.Status rebaseStatus = null;
+                            if (allowPush) {
+                                LOGGER.info("Cannot fast forward branch {}, attempting rebase", branch);
+                                RebaseResult rebaseResult = git.rebase().setUpstream(remoteCommit).call();
+                                rebaseStatus = rebaseResult.getStatus();
+                            }
                             if (rebaseStatus == RebaseResult.Status.OK) {
                                 LOGGER.info("Rebase successful for branch {}", branch);
                                 localUpdate.put(branch, new BranchChange(branch).updated(localObjectId, remoteObjectId, "rebase"));
                                 remoteUpdate = true;
                             } else {
-                                LOGGER.warn("Rebase on branch {} failed, restoring remote tracking branch", branch);
-                                git.rebase().setOperation(Operation.ABORT).call();
+                                if (allowPush) {
+                                    LOGGER.warn("Rebase on branch {} failed, restoring remote tracking branch", branch);
+                                    git.rebase().setOperation(Operation.ABORT).call();
+                                } else {
+                                    LOGGER.info("Restoring remote tracking branch {}", branch);
+                                }
                                 git.checkout().setName(GitHelpers.MASTER_BRANCH).setForce(true).call();
                                 git.branchDelete().setBranchNames(branch).setForce(true).call();
                                 git.checkout().setCreateBranch(true).setName(branch).setStartPoint(remoteRef + "/" + branch).setUpstreamMode(SetupUpstreamMode.TRACK).setForce(true).call();
