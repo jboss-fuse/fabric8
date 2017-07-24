@@ -259,7 +259,7 @@ public class DeployToProfileMojo extends AbstractProfileMojo {
             // now lets invoke the mbean
             J4pClient client = createJolokiaClient();
 
-            if (upload && isIncludeArtifact()) {
+            if (upload) {
                 uploadDeploymentUnit(client, newUserAdded || customUsernameAndPassword);
             } else {
                 getLog().info("Uploading to the fabric8 maven repository is disabled");
