@@ -75,7 +75,15 @@ public class FabricDiscoveryServlet extends HttpServlet {
                 groupName = "";
             }
             if (groupName.startsWith("/")) {
-                groupName = groupName.substring(1);
+                int start = 0;
+                while(groupName.charAt(start) == '/'){
+                    start++;
+                }
+                int end = groupName.length();
+                while(groupName.charAt(end-1) == '/'){
+                    end--;
+                }
+                groupName = groupName.substring(start, end);
             }
 
             LOG.debug("discovery request for group name={}", groupName);
