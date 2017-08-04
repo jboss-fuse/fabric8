@@ -20,10 +20,12 @@ import io.fabric8.api.CreateContainerMetadata;
 import io.fabric8.api.DataStore;
 import io.fabric8.api.FabricService;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 
 import io.fabric8.commands.support.ContainerGlobSupport;
+import io.fabric8.utils.shell.ShellUtils;
 import org.apache.felix.gogo.commands.Argument;
 import org.apache.felix.gogo.commands.Option;
 import org.apache.karaf.shell.console.AbstractAction;
@@ -35,6 +37,9 @@ public abstract class AbstractContainerLifecycleAction extends AbstractAction {
 
     @Option(name = "--password", description = "The password to use.")
     protected String password;
+
+    @Option(name = "--prompt", description = "Prompt the password to use. This will also hide it.")
+    protected boolean prompt = false;
 
     @Option(name = "-f", aliases = {"--force"}, multiValued = false, required = false, description = "Force the execution of the command regardless of the known state of the container")
     protected boolean force = false;
@@ -50,7 +55,10 @@ public abstract class AbstractContainerLifecycleAction extends AbstractAction {
         this.dataStore = fabricService.adapt(DataStore.class);
     }
 
-    protected void applyUpdatedCredentials(Container container) {
+    protected void applyUpdatedCredentials(Container container) throws IOException {
+        if (user != null && password == null && prompt) {
+            password = ShellUtils.readLine(session, "Password for " + user+ "@" + container + ": ", true);
+        }
         if (user != null || password != null) {
             CreateContainerMetadata<?> metadata = container.getMetadata();
             if (metadata != null) {
