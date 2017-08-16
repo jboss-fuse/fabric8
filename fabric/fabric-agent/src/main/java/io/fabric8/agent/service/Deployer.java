@@ -817,7 +817,20 @@ public class Deployer {
                             ChecksumUtils.CRCInputStream is = new ChecksumUtils.CRCInputStream(getBundleInputStream(resource, providers))
                     ) {
                         bundle = callback.installBundle(name, uri, is);
+                        // calculate CRC normally
                         crc = is.getCRC();
+                        try {
+                            URI resourceURI = new URI(uri);
+                            if ("blueprint".equals(resourceURI.getScheme())) {
+                                // ENTESB-6957 calculate proper blueprint file CRC during installation
+                                InputStream bis = getBlueprintInputStream(getBundleInputStream(resource, providers));
+                                // original stream is closed in either case
+                                if (bis != null) {
+                                    crc = ChecksumUtils.checksum(bis);
+                                }
+                            }
+                        } catch (URISyntaxException ignored) {
+                        }
                     }
                     addToMapSet(managedBundles, name, bundle.getBundleId());
                     deployment.resToBnd.put(resource, bundle);
