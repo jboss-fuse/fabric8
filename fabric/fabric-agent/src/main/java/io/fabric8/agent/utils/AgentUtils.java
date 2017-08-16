@@ -379,6 +379,7 @@ public class AgentUtils {
 
     public static void addMavenProxies(Dictionary<String, String> props, String httpUrl, List<URI> mavenRepoUris) {
         try {
+            boolean appendAdditionalRepositories = false;
             if (httpUrl != null && mavenRepoUris != null) {
                 StringBuilder sb = new StringBuilder();
                 for (URI uri : mavenRepoUris) {
@@ -396,9 +397,15 @@ public class AgentUtils {
                     if (sb.length() > 0) {
                         sb.append(",");
                     }
-                    sb.append(existingRepos);
+                    if (existingRepos.startsWith("+")) {
+                        sb.append(existingRepos.substring(1));
+                        appendAdditionalRepositories = true;
+                    } else {
+                        sb.append(existingRepos);
+                    }
                 }
-                props.put("org.ops4j.pax.url.mvn.repositories", sb.toString());
+                String newValue = (appendAdditionalRepositories ? "+" : "") + sb.toString();
+                props.put("org.ops4j.pax.url.mvn.repositories", newValue);
             } else {
                 if (httpUrl == null) {
                     LOGGER.warn("Could not get httpUrl from fabricService");
