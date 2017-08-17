@@ -15,24 +15,17 @@
  */
 package io.fabric8.commands;
 
-import io.fabric8.api.FabricService;
-import io.fabric8.api.ProfileRegistry;
-import io.fabric8.api.ProfileService;
-import io.fabric8.api.Version;
-import io.fabric8.api.VersionBuilder;
-import io.fabric8.api.VersionSequence;
-import io.fabric8.api.gravia.IllegalStateAssertion;
 import org.apache.felix.gogo.commands.Argument;
 import org.apache.felix.gogo.commands.Command;
 import org.apache.felix.gogo.commands.Option;
 import org.apache.karaf.shell.console.AbstractAction;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import io.fabric8.api.FabricService;
+import io.fabric8.api.ProfileRegistry;
+import io.fabric8.api.ProfileService;
+import io.fabric8.api.Version;
 
-@Command(name = VersionCreate.FUNCTION_VALUE, scope = VersionCreate.SCOPE_VALUE, description = VersionCreate.DESCRIPTION)
+@Command(name = VersionEdit.FUNCTION_VALUE, scope = VersionEdit.SCOPE_VALUE, description = VersionEdit.DESCRIPTION)
 public class VersionEditAction extends AbstractAction {
 
     @Option(name = "--description", description = "The description notes of this version.")
