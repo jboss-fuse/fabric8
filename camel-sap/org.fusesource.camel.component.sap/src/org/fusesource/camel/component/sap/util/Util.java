@@ -589,13 +589,17 @@ public class Util {
 	}
 
 	public static synchronized void ensureBasePackages() {
-		@SuppressWarnings("unused")
 		Object tmp;
 		tmp = XMLTypePackage.eINSTANCE;
+		EPackage.Registry.INSTANCE.put(XMLTypePackage.eNS_URI, tmp);
 		tmp = XMLNamespacePackage.eINSTANCE;
+		EPackage.Registry.INSTANCE.put(XMLNamespacePackage.eNS_URI, tmp);
 		tmp = EcorePackage.eINSTANCE;
+		EPackage.Registry.INSTANCE.put(EcorePackage.eNS_URI, tmp);
 		tmp = RfcPackage.eINSTANCE;
+		EPackage.Registry.INSTANCE.put(RfcPackage.eNS_URI, tmp);
 		tmp = IdocPackage.eINSTANCE;
+		EPackage.Registry.INSTANCE.put(IdocPackage.eNS_URI, tmp);
 	}
 
 	public static void addNameSpaceDeclarations(EObject o, XMLString doc) {
