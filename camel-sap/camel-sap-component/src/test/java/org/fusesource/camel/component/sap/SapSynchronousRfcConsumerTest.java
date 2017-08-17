@@ -17,6 +17,12 @@
 package org.fusesource.camel.component.sap;
 
 
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
@@ -43,13 +49,6 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import com.sap.conn.idoc.jco.JCoIDoc;
 import com.sap.conn.jco.JCoDestinationManager;
 import com.sap.conn.jco.ext.Environment;
-import com.sap.conn.jco.server.JCoServerFactory;
-
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 /**
  * SAP Producer test cases.
@@ -59,19 +58,16 @@ import static org.mockito.Mockito.when;
  */
 @RunWith(PowerMockRunner.class)
 @MockPolicy({Slf4jMockPolicy.class})
-@PrepareForTest({ JCoDestinationManager.class, Environment.class, JCoServerFactory.class })
+@PrepareForTest({ JCoDestinationManager.class, Environment.class, JCoIDoc.class })
 public class SapSynchronousRfcConsumerTest extends SapRfcTestSupport {
 	
-	@SuppressWarnings("deprecation")
 	@Override
 	public void doPreSetup() throws Exception {
 		super.doPreSetup();
 
 		PowerMockito.mockStatic(JCoDestinationManager.class, JCoIDoc.class);
 		when(JCoDestinationManager.getDestination(DESTINATION_NAME)).thenReturn(mockDestination);
-		when(JCoServerFactory.get()).thenReturn(mockServerFactory);
-		when(JCoServerFactory.getServer(SERVER_NAME)).thenReturn(mockServer);
-		
+		when(JCoIDoc.getServer(SERVER_NAME)).thenReturn(mockServer);
 	}
 
 	@Test

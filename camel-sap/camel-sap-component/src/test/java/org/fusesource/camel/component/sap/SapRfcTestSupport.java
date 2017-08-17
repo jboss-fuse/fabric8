@@ -16,6 +16,9 @@
  */
 package org.fusesource.camel.component.sap;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -29,6 +32,7 @@ import org.fusesource.camel.component.sap.util.RfcUtil;
 import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.context.support.StaticApplicationContext;
 
+import com.sap.conn.idoc.jco.JCoIDocServer;
 import com.sap.conn.jco.JCoDestination;
 import com.sap.conn.jco.JCoField;
 import com.sap.conn.jco.JCoFieldIterator;
@@ -43,15 +47,11 @@ import com.sap.conn.jco.JCoRequest;
 import com.sap.conn.jco.JCoResponse;
 import com.sap.conn.jco.JCoStructure;
 import com.sap.conn.jco.JCoTable;
-import com.sap.conn.jco.server.JCoServer;
 import com.sap.conn.jco.server.JCoServerContext;
 import com.sap.conn.jco.server.JCoServerFactory;
 import com.sap.conn.jco.server.JCoServerFunctionHandlerFactory;
 import com.sap.conn.jco.server.JCoServerState;
 import com.sap.conn.jco.server.JCoServerTIDHandler;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * Support base class for SAP test cases. 
@@ -195,7 +195,7 @@ public abstract class SapRfcTestSupport extends JCoTestSupport {
 	protected JCoRequest mockRequest;
 	protected JCoResponse mockResponse;
 	protected JCoDestination mockDestination;
-	protected JCoServer mockServer;
+	protected JCoIDocServer mockServer;
 	protected JCoServerFactory mockServerFactory;
 	protected JCoServerContext mockServerContext;
 	protected JCoServerTIDHandler mockServerTIDHandler;
@@ -208,7 +208,7 @@ public abstract class SapRfcTestSupport extends JCoTestSupport {
 		
 		/* Create mocks for repository and function template */
 		mockDestination = mock(JCoDestination.class);
-		mockServer = mock(JCoServer.class);
+		mockServer = mock(JCoIDocServer.class);
 		mockServerFactory = mock(JCoServerFactory.class);
 		mockServerContext = mock(JCoServerContext.class);
 		mockServerTIDHandler = mock(JCoServerTIDHandler.class);
