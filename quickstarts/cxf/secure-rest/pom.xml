@@ -21,12 +21,12 @@
   <parent>
     <groupId>io.fabric8.quickstarts</groupId>
     <artifactId>fabric8-quickstarts-cxf-parent</artifactId>
-    <version>1.2.0.redhat-630-SNAPSHOT</version>
+    <version>1.2.0.redhat-630283-03</version>
   </parent>
 
     <groupId>io.fabric8.quickstarts</groupId>
     <artifactId>cxf-secure-rest</artifactId>
-    <version>1.2.0.redhat-630-SNAPSHOT</version>
+    <version>1.2.0.redhat-630283-03</version>
     <packaging>bundle</packaging>
     <name>JBoss Fuse Quickstart: secure-rest</name>
     <description>Secure Restful Web Services Example using JAX-RS Basic Authentication with Fabric8</description>
@@ -92,12 +92,12 @@
     <maven.compiler.source>1.7</maven.compiler.source>
     <version.maven-surefire-plugin>2.19.1</version.maven-surefire-plugin>
     <version.maven-bundle-plugin>2.3.7</version.maven-bundle-plugin>
-    <cxf-version>3.0.2</cxf-version>
+    <cxf-version>3.1.5.redhat-630283-03</cxf-version>
     <skipTests>true</skipTests>
 
     <!-- the version of the BOM, defining all the dependency versions -->
-    <fabric8.bom.version>1.2.0.redhat-630-SNAPSHOT</fabric8.bom.version>
-    <fabric.version>1.2.0.redhat-630-SNAPSHOT</fabric.version>
+    <fabric8.bom.version>1.2.0.redhat-630283-03</fabric8.bom.version>
+    <fabric.version>1.2.0.redhat-630283-03</fabric.version>
 
     <!-- fabric8 deploy profile configuration -->
     <fabric8.profile>quickstarts-cxf-secure.rest</fabric8.profile>
