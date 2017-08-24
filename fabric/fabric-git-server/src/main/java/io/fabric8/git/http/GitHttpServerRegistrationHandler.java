@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.management.InstanceNotFoundException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
@@ -226,10 +227,7 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
             initParams.put("export-all", "true");
             httpService.get().registerServlet("/git", new FabricGitServlet(git, curator.get()), initParams, secure);
 
-            if (mbeanServer.getOptional() != null) {
-                StandardMBean mbean = new StandardMBean(new io.fabric8.git.http.GitHttpEndpoint(this), GitHttpEndpointMBean.class);
-                mbeanServer.get().registerMBean(mbean, objectName);
-            }
+            registerGitHttpEndpoint();
         }
     }
 
@@ -238,13 +236,8 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
      * See https://bugs.eclipse.org/bugs/show_bug.cgi?id=300084
      */
     private void unregisterServlet() {
-        try {
-            if (mbeanServer.getOptional() != null) {
-                mbeanServer.get().unregisterMBean(objectName);
-            }
-        } catch (Exception e) {
-            LOGGER.warn("Exception during " + objectName + " unregistration: " + e.getMessage(), e);
-        }
+        unregisterGitHttpEndpoint();
+
         synchronized (gitRemoteUrl) {
             if (basePath != null) {
                 try {
@@ -358,6 +351,35 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
         }
     }
 
+    /**
+     * (Re)registers <code>io.fabric8:type=GitServer</code>
+     */
+    private void registerGitHttpEndpoint() {
+        if (mbeanServer.getOptional() != null) {
+            try {
+                StandardMBean mbean = new StandardMBean(new io.fabric8.git.http.GitHttpEndpoint(this), GitHttpEndpointMBean.class);
+                unregisterGitHttpEndpoint();
+                mbeanServer.get().registerMBean(mbean, objectName);
+            } catch (Exception e) {
+                LOGGER.warn("Exception during " + objectName + " unregistration: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    /**
+     * Unregisters <code>io.fabric8:type=GitServer</code> if registered
+     */
+    private void unregisterGitHttpEndpoint() {
+        try {
+            if (mbeanServer.getOptional() != null && mbeanServer.get().isRegistered(objectName)) {
+                mbeanServer.get().unregisterMBean(objectName);
+            }
+        } catch (InstanceNotFoundException ignored) {
+        } catch (Exception e) {
+            LOGGER.warn("Exception during " + objectName + " unregistration: " + e.getMessage(), e);
+        }
+    }
+
     void bindConfigAdmin(ConfigurationAdmin service) {
         this.configAdmin.bind(service);
     }
@@ -401,4 +423,3 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
     }
 
 }
-

@@ -67,8 +67,6 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.felix.utils.properties.Properties;
 import org.apache.felix.utils.version.VersionRange;
 import org.apache.zookeeper.data.Stat;
-import org.eclipse.jgit.api.errors.TransportException;
-import org.eclipse.jgit.errors.RemoteRepositoryException;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleException;
@@ -701,29 +699,14 @@ public class DeploymentAgent implements ManagedService {
                         Profile profile = fs.getCurrentContainer().getOverlayProfile();
                         Map<String, String> versions = profile.getConfiguration("io.fabric8.version");
                         File localRepository = resolver.getLocalRepository();
-                        if (pm.alignTo(versions, urls, localRepository, new Runnable() {
-                            @Override
-                            public void run() {
-                                ServiceReference<FabricPatchService> srFps = systemBundleContext.getServiceReference(FabricPatchService.class);
-                                if (srFps != null) {
-                                    FabricPatchService fps = systemBundleContext.getService(srFps);
-                                    if (fps != null) {
-                                        try {
-                                            fps.synchronize(false);
-                                        } catch (Exception e) {
-                                            LOGGER.error(e.getMessage(), e);
-                                        }
-                                    }
-                                }
-                            }
-                        })) {
+                        if (pm.alignTo(versions, urls, localRepository, new PatchSynchronization())) {
                             this.updateStatus("requires full restart", true);
                             // let's reuse the same flag
                             restart.set(true);
                             return false;
                         }
 
-                        if (handleRestartJvmFlag(fs, profile, restart)) {
+                        if (handleRestartJvmFlag(profile, restart)) {
                             return false;
                         }
 
@@ -755,17 +738,20 @@ public class DeploymentAgent implements ManagedService {
      * The behavior is useful for situation when a profile provision .jars in lib/ folder, that are picked up only at
      * jvm boot time.
      *
-     * @param fs
      * @param profile
      * @param restart
      * @return
      */
-    protected boolean handleRestartJvmFlag(FabricService fs, Profile profile, AtomicBoolean restart) {
+    protected boolean handleRestartJvmFlag(Profile profile, AtomicBoolean restart) {
         boolean result = false;
         List<String> profilesRequiringRestart = new ArrayList<>();
         ServiceReference<CuratorFramework> curatorServiceReference = systemBundleContext.getServiceReference(CuratorFramework.class);
-        if (curatorServiceReference != null) {
+        ServiceReference<FabricService> fabricServiceReference = systemBundleContext.getServiceReference(FabricService.class);
+        if (curatorServiceReference != null && fabricServiceReference != null) {
             CuratorFramework curator = systemBundleContext.getService(curatorServiceReference);
+            FabricService fs = systemBundleContext.getService(fabricServiceReference);
+            String currentContainerName = fs.getCurrentContainerName();
+            List<String> activeProfiles = fs.getCurrentContainer().getProfileIds();
 
             // check for jvm restart requests
             Map<String, String> agentProperties = profile.getConfiguration("io.fabric8.agent");
@@ -778,12 +764,11 @@ public class DeploymentAgent implements ManagedService {
             }
 
             // clean old entries
-            String basePath = ZkPath.CONTAINER_PROVISION_RESTART.getPath(fs.getCurrentContainerName());
+            String basePath = ZkPath.CONTAINER_PROVISION_RESTART.getPath(currentContainerName);
 
             try {
                 if(ZooKeeperUtils.exists(curator, basePath) != null ){
-                    List<String> zkPaths = ZooKeeperUtils.getAllChildren(curator, ZkPath.CONTAINER_PROVISION_RESTART.getPath(fs.getCurrentContainerName()));
-                    List<String> activeProfiles = fs.getCurrentContainer().getProfileIds();
+                    List<String> zkPaths = ZooKeeperUtils.getAllChildren(curator, ZkPath.CONTAINER_PROVISION_RESTART.getPath(currentContainerName));
                     for(String zkPath : zkPaths){
                         String[] split = zkPath.split("/");
                         String prof = split[split.length -1];
@@ -805,7 +790,7 @@ public class DeploymentAgent implements ManagedService {
                 // if it was already in zk for the current container, do nothing
 
                 try {
-                    String zkPath = ZkPath.CONTAINER_PROVISION_RESTART_PROFILES.getPath(fs.getCurrentContainerName(), profileForcingRestart);
+                    String zkPath = ZkPath.CONTAINER_PROVISION_RESTART_PROFILES.getPath(currentContainerName, profileForcingRestart);
                     Stat exists = exists(curator, zkPath);
                     if(exists == null){
                         ZooKeeperUtils.create(curator, zkPath);
@@ -878,6 +863,26 @@ public class DeploymentAgent implements ManagedService {
 
     protected ScheduledExecutorService getDownloadExecutor() {
         return downloadExecutor;
+    }
+
+    /**
+     * A task that synchronizes patch-related information to master git repository
+     */
+    private class PatchSynchronization implements Runnable {
+        @Override
+        public void run() {
+            ServiceReference<FabricPatchService> srFps = systemBundleContext.getServiceReference(FabricPatchService.class);
+            if (srFps != null) {
+                FabricPatchService fps = systemBundleContext.getService(srFps);
+                if (fps != null) {
+                    try {
+                        fps.synchronize(false);
+                    } catch (Exception e) {
+                        LOGGER.error(e.getMessage(), e);
+                    }
+                }
+            }
+        }
     }
 
 }
