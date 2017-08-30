@@ -190,6 +190,10 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     @Activate
     @VisibleForExternal
     public void activate(Map<String, ?> configuration) throws Exception {
+        if (Boolean.getBoolean("karaf.restart")) {
+            LOGGER.info("Ignoring configuration update - container is being restarted");
+            return;
+        }
         LockFile.unlock(getGit().getRepository().getIndexFile());
         configurer.configure(configuration, this);
 

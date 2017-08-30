@@ -195,8 +195,16 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                         if (mergeStatus == MergeStatus.FAST_FORWARD) {
                             localUpdate.put(branch, new BranchChange(branch).updated(localObjectId, remoteObjectId, "fast forward"));
                         } else if (mergeStatus == MergeStatus.ALREADY_UP_TO_DATE) {
-                            LOGGER.info("Remote branch {} is behind local version - changes will be pushed", branch);
-                            remoteUpdate = true;
+                            if (allowPush) {
+                                LOGGER.info("Remote branch {} is behind local version - changes will be pushed", branch);
+                                remoteUpdate = true;
+                            } else {
+                                LOGGER.info("Remote branch {} is behind local version - changes won't be pushed - restoring remote tracking branch", branch);
+                                GitHelpers.createOrCheckoutBranch(git, GitHelpers.MASTER_BRANCH, GitHelpers.REMOTE_ORIGIN);
+                                git.branchDelete().setBranchNames(branch).setForce(true).call();
+                                git.checkout().setCreateBranch(true).setName(branch).setStartPoint(remoteRef + "/" + branch).setUpstreamMode(SetupUpstreamMode.TRACK).setForce(true).call();
+                                localUpdate.put(branch, new BranchChange(branch).updated(localObjectId, remoteObjectId, "reset"));
+                            }
                         } else if (mergeStatus == MergeStatus.ABORTED) {
                             // failure to merge using FastForwardMode.FF_ONLY always ends with MergeStatus.ABORTED
                             LOGGER.info("Cannot fast forward branch {}, attempting rebase", branch);
@@ -209,7 +217,7 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                             } else {
                                 LOGGER.warn("Rebase on branch {} failed, restoring remote tracking branch", branch);
                                 git.rebase().setOperation(Operation.ABORT).call();
-                                git.checkout().setName(GitHelpers.MASTER_BRANCH).setForce(true).call();
+                                GitHelpers.createOrCheckoutBranch(git, GitHelpers.MASTER_BRANCH, GitHelpers.REMOTE_ORIGIN);
                                 git.branchDelete().setBranchNames(branch).setForce(true).call();
                                 git.checkout().setCreateBranch(true).setName(branch).setStartPoint(remoteRef + "/" + branch).setUpstreamMode(SetupUpstreamMode.TRACK).setForce(true).call();
                                 localUpdate.put(branch, new BranchChange(branch).updated(localObjectId, remoteObjectId, "reset"));

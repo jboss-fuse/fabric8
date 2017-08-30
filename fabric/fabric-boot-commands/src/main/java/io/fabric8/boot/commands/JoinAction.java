@@ -24,6 +24,7 @@ import io.fabric8.api.SystemProperties;
 import io.fabric8.api.ZkDefs;
 import io.fabric8.utils.BundleUtils;
 import io.fabric8.utils.FabricValidations;
+import io.fabric8.utils.OsgiUtils;
 import io.fabric8.utils.PasswordEncoder;
 import io.fabric8.utils.Ports;
 import io.fabric8.utils.shell.ShellUtils;
@@ -41,6 +42,8 @@ import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -50,12 +53,18 @@ import org.apache.felix.gogo.commands.Command;
 import org.apache.felix.gogo.commands.Option;
 import org.apache.felix.utils.properties.Properties;
 import org.apache.karaf.shell.console.AbstractAction;
+import org.apache.log4j.spi.LoggerRepository;
 import org.apache.zookeeper.KeeperException;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleException;
+import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
+import org.osgi.service.cm.ConfigurationEvent;
+import org.osgi.service.cm.ConfigurationListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Command(name = "join", scope = "fabric", description = "Join a container to an existing fabric", detailedDescription = "classpath:join.txt")
 final class JoinAction extends AbstractAction {
@@ -169,9 +178,16 @@ final class JoinAction extends AbstractAction {
         bootProperties.put(ZkDefs.MINIMUM_PORT, String.valueOf(minimumPort));
         bootProperties.put(ZkDefs.MAXIMUM_PORT, String.valueOf(maximumPort));
 
-        Dictionary<String, Object> dataStoreProperties = new Hashtable<String, Object>();
+        Hashtable<String, Object> dataStoreProperties = new Hashtable<String, Object>();
+        Configuration cfg = configAdmin.getConfiguration(Constants.DATASTORE_PID, null);
+        Dictionary<String, Object> props = cfg.getProperties();
+        if (props != null) {
+            for (Enumeration<String> keys = cfg.getProperties().keys(); keys.hasMoreElements(); ) {
+                String k = keys.nextElement();
+                dataStoreProperties.put(k, cfg.getProperties().get(k));
+            }
+        }
         augmentDataStoreProperties(zookeeperPassword, dataStoreProperties);
-
 
         if (!containerName.equals(oldName)) {
             if (force || permissionToRenameContainer()) {
@@ -201,10 +217,28 @@ final class JoinAction extends AbstractAction {
                 if (!nonManaged) {
                     installBundles();
                 }
-                //Restart the container
-                bootConfiguration.update(bootProperties);
-                dataStoreConfiguration.update(dataStoreProperties);
-                persistConfiguration(configAdmin, Constants.DATASTORE_PID, dataStoreProperties );
+
+                // now we're restarting OSGi and updating ConfigAdmin configurations. We have to ensure that
+                // there are no race conditions and no unwanted behavior (like restarting ManagedCuratorFramework
+                // with previous runtimeIdentity!)
+
+                // before we start updating PIDs, register CM listener that'll mark (optimistic) end of work of update.
+                // it's only a(n almost certain) way of synchronizing CM and ManagedService.update()
+                if (!OsgiUtils.updateCmConfigurationAndWait(bundleContext, bootConfiguration, bootProperties, 10, TimeUnit.SECONDS)) {
+                    log.warn("Timeout waiting for update of PID: {}", BootstrapConfiguration.COMPONENT_PID);
+                }
+                if (!OsgiUtils.updateCmConfigurationAndWait(bundleContext, dataStoreConfiguration, dataStoreProperties, 10, TimeUnit.SECONDS)) {
+                    log.warn("Timeout waiting for update of PID: {}", Constants.DATASTORE_PID);
+                }
+
+                // we don't want fileinstall to trigger ConfigAdmin update
+                Bundle fileinstall = new BundleUtils(bundleContext).findBundle("org.apache.felix.fileinstall");
+                if (fileinstall != null) {
+                    fileinstall.stop(Bundle.STOP_TRANSIENT);
+                }
+                persistConfiguration(configAdmin, Constants.DATASTORE_PID, dataStoreProperties);
+
+                // Restart the container
                 bundleContext.getBundle(0).stop();
 
                 return null;
