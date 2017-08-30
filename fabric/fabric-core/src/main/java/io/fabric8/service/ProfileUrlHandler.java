@@ -21,7 +21,7 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.Map;
+import java.util.Collection;
 
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -40,6 +40,9 @@ import io.fabric8.api.scr.ValidatingReference;
 import io.fabric8.api.scr.ValidationSupport;
 
 import io.fabric8.api.gravia.IllegalStateAssertion;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.framework.ServiceReference;
 import org.osgi.service.url.AbstractURLStreamHandlerService;
 import org.osgi.service.url.URLStreamHandlerService;
 
@@ -57,15 +60,17 @@ public final class ProfileUrlHandler extends AbstractURLStreamHandlerService imp
     private final ValidatingReference<FabricService> fabricService = new ValidatingReference<FabricService>();
 
     private final ValidationSupport active = new ValidationSupport();
+    private BundleContext context;
 
     @Activate
-    void activate() {
+    void activate(BundleContext bundleContext) {
+        context = bundleContext;
         active.setValid();
     }
 
     @Deactivate
     void deactivate() {
-        active.setInvalid();;
+        active.setInvalid();
     }
 
     @Override
