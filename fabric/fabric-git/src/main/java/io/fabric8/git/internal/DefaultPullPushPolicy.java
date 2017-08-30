@@ -213,7 +213,7 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                                 remoteUpdate = true;
                             } else {
                                 LOGGER.info("Remote branch {} is behind local version - changes won't be pushed - restoring remote tracking branch", branch);
-                                git.checkout().setName(GitHelpers.MASTER_BRANCH).setForce(true).call();
+                                GitHelpers.createOrCheckoutBranch(git, GitHelpers.MASTER_BRANCH, GitHelpers.REMOTE_ORIGIN);
                                 git.branchDelete().setBranchNames(branch).setForce(true).call();
                                 git.checkout().setCreateBranch(true).setName(branch).setStartPoint(remoteRef + "/" + branch).setUpstreamMode(SetupUpstreamMode.TRACK).setForce(true).call();
                                 localUpdate.put(branch, new BranchChange(branch).updated(localObjectId, remoteObjectId, "reset"));
@@ -237,7 +237,7 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                                 } else {
                                     LOGGER.info("Restoring remote tracking branch {}", branch);
                                 }
-                                git.checkout().setName(GitHelpers.MASTER_BRANCH).setForce(true).call();
+                                GitHelpers.createOrCheckoutBranch(git, GitHelpers.MASTER_BRANCH, GitHelpers.REMOTE_ORIGIN);
                                 git.branchDelete().setBranchNames(branch).setForce(true).call();
                                 git.checkout().setCreateBranch(true).setName(branch).setStartPoint(remoteRef + "/" + branch).setUpstreamMode(SetupUpstreamMode.TRACK).setForce(true).call();
                                 localUpdate.put(branch, new BranchChange(branch).updated(localObjectId, remoteObjectId, "reset"));
