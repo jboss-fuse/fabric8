@@ -31,6 +31,7 @@ import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.errors.CorruptObjectException;
 import org.eclipse.jgit.errors.IncorrectObjectTypeException;
 import org.eclipse.jgit.errors.MissingObjectException;
+import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.Ref;
@@ -126,6 +127,10 @@ public class GitHelpers {
     }
 
     public static void createOrCheckoutBranch(Git git, String branch, String remote) throws GitAPIException {
+        createOrCheckoutBranch(git, branch, remote, Constants.HEAD);
+    }
+
+    public static void createOrCheckoutBranch(Git git, String branch, String remote, String startPoint) throws GitAPIException {
         Ref ref = null;
         String current = currentBranch(git);
         if (!equals(current, branch) && !localBranchExists(git, branch) ) {

@@ -1905,8 +1905,18 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
                             .resolve("refs/remotes/origin/" + gitPatchRepository.getFuseRootContainerPatchBranchName());
                     if (theirs == null || theirs.equals(ours)) {
                         // if ours is null, then we've just started git patch management
-                        master = true;
-                        gitPatchRepository.setMaster(true);
+                        // but there's little chance that we're just doing fabric:join... there's only one
+                        // way to test it
+                        boolean hasZookeeperUrlSetInSystemProperties = false;
+                        Properties systemProperties = new Properties();
+                        try (FileInputStream fis = new FileInputStream(new File(karafBase, "etc/system.properties"))) {
+                            systemProperties.load(fis);
+                            String zookeeperUrl = systemProperties.getProperty("zookeeper.url");
+                            hasZookeeperUrlSetInSystemProperties = zookeeperUrl != null && !zookeeperUrl.trim().equals("");
+                        }
+
+                        master = !hasZookeeperUrlSetInSystemProperties;
+                        gitPatchRepository.setMaster(master);
                     }
                 }
             }
