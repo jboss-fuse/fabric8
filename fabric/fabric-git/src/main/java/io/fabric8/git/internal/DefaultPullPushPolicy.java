@@ -237,7 +237,7 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                                 } else {
                                     LOGGER.info("Restoring remote tracking branch {}", branch);
                                 }
-                                GitHelpers.createOrCheckoutBranch(git, GitHelpers.MASTER_BRANCH, GitHelpers.REMOTE_ORIGIN);
+                                GitHelpers.createOrCheckoutBranch(git, GitHelpers.MASTER_BRANCH, GitHelpers.REMOTE_ORIGIN, remoteCommit);
                                 git.branchDelete().setBranchNames(branch).setForce(true).call();
                                 git.checkout().setCreateBranch(true).setName(branch).setStartPoint(remoteRef + "/" + branch).setUpstreamMode(SetupUpstreamMode.TRACK).setForce(true).call();
                                 localUpdate.put(branch, new BranchChange(branch).updated(localObjectId, remoteObjectId, "reset"));
