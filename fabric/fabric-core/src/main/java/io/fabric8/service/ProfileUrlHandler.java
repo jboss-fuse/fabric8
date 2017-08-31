@@ -21,7 +21,7 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.Map;
+import java.util.Collection;
 
 import io.fabric8.api.CuratorComplete;
 import io.fabric8.api.InvalidComponentException;
@@ -42,6 +42,9 @@ import io.fabric8.api.scr.ValidatingReference;
 import io.fabric8.api.scr.ValidationSupport;
 
 import io.fabric8.api.gravia.IllegalStateAssertion;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.framework.ServiceReference;
 import org.osgi.service.url.AbstractURLStreamHandlerService;
 import org.osgi.service.url.URLStreamHandlerService;
 import org.slf4j.Logger;
@@ -66,15 +69,17 @@ public final class ProfileUrlHandler extends AbstractURLStreamHandlerService imp
     private final ValidatingReference<CuratorComplete> platformReadyService = new ValidatingReference<>();
 
     private final ValidationSupport active = new ValidationSupport();
+    private BundleContext context;
 
     @Activate
-    void activate() {
+    void activate(BundleContext bundleContext) {
+        context = bundleContext;
         active.setValid();
     }
 
     @Deactivate
     void deactivate() {
-        active.setInvalid();;
+        active.setInvalid();
     }
 
     @Override
@@ -127,11 +132,38 @@ public final class ProfileUrlHandler extends AbstractURLStreamHandlerService imp
                     Profile overlayProfile = container.getOverlayProfile();
                     bytes = overlayProfile.getFileConfiguration(path);
                     resolved = true;
-                } catch (IllegalStateException | InvalidComponentException e) {
-                    LOGGER.warn("Connection to fabric service is temporarily not available. Retrying...");
+                } catch (IllegalStateException e) {
+                    LOGGER.warn("Connection to fabric service is temporarily not available. Retrying...: " + e.getMessage());
                     try {
                         iteration = iteration + 1;
                         Thread.sleep(7000L);
+                    } catch (InterruptedException e1) {
+                        Thread.currentThread().interrupt();
+                        throw new IOException("'profile:' resolution operation interrupted.", e1);
+                    }
+                } catch (InvalidComponentException e) {
+                    // we'll try to use newer OSGi services from OSGi assuming that our parent
+                    // ProfileUrlService was @Deactivated (it may happen e.g., during `fabric:join`)
+                    try {
+                        Collection<ServiceReference<URLStreamHandlerService>> refs = context.getServiceReferences(URLStreamHandlerService.class, "(url.handler.protocol=profile)");
+                        if (refs.size() > 0) {
+                            ServiceReference<URLStreamHandlerService> ref = refs.iterator().next();
+                            URLStreamHandlerService handler = context.getService(ref);
+                            if (handler != ProfileUrlHandler.this) {
+                                // we assume not to fall into endless loop
+                                LOGGER.info("profile: URL handler changed (" + ProfileUrlHandler.this + " -> " + handler + ")");
+                                InputStream stream = handler.openConnection(url).getInputStream();
+                                context.ungetService(ref);
+                                return stream;
+                            }
+                        }
+                    } catch (InvalidSyntaxException e2) {
+                        LOGGER.warn("Invalid filter syntax: " + e.getMessage(), e2);
+                    }
+                    LOGGER.warn("Connection to fabric service is temporarily not available. Retrying...: " + e.getMessage());
+                    try {
+                        iteration = iteration + 1;
+                        Thread.sleep(2000L);
                     } catch (InterruptedException e1) {
                         Thread.currentThread().interrupt();
                         throw new IOException("'profile:' resolution operation interrupted.", e1);
