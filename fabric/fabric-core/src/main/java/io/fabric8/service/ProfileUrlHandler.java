@@ -157,7 +157,8 @@ public final class ProfileUrlHandler extends AbstractURLStreamHandlerService imp
                                 return stream;
                             }
                         }
-                    } catch (InvalidSyntaxException ignored) {
+                    } catch (InvalidSyntaxException e2) {
+                        LOGGER.warn("Invalid filter syntax: " + e.getMessage(), e2);
                     }
                     LOGGER.warn("Connection to fabric service is temporarily not available. Retrying...: " + e.getMessage());
                     try {
