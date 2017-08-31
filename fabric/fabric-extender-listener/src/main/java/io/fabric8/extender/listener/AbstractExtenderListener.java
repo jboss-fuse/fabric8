@@ -80,6 +80,10 @@ public abstract class AbstractExtenderListener extends AbstractComponent impleme
     protected abstract String getExtenderType();
 
     void update(final String runtimeIdentity, final long bundleId, final ModuleStatus bundleStatus, final ModuleStatus extenderStatus) {
+        if (!this.isValid()) {
+            // fail fast - we'd get java.util.concurrent.RejectedExecutionException anyway
+            return;
+        }
         executor.submit(new Runnable() {
             @Override
             public void run() {
