@@ -39,8 +39,6 @@ import org.eclipse.jgit.api.MergeResult.MergeStatus;
 import org.eclipse.jgit.api.RebaseCommand.Operation;
 import org.eclipse.jgit.api.RebaseResult;
 import org.eclipse.jgit.api.ResetCommand;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.api.errors.JGitInternalException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
@@ -55,8 +53,6 @@ import io.fabric8.api.gravia.IllegalStateAssertion;
 import org.eclipse.jgit.transport.TagOpt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static java.util.Collections.emptyMap;
 
 /**
  * The default {@link PullPushPolicy}.
@@ -195,16 +191,8 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                         if (mergeStatus == MergeStatus.FAST_FORWARD) {
                             localUpdate.put(branch, new BranchChange(branch).updated(localObjectId, remoteObjectId, "fast forward"));
                         } else if (mergeStatus == MergeStatus.ALREADY_UP_TO_DATE) {
-                            if (allowPush) {
-                                LOGGER.info("Remote branch {} is behind local version - changes will be pushed", branch);
-                                remoteUpdate = true;
-                            } else {
-                                LOGGER.info("Remote branch {} is behind local version - changes won't be pushed - restoring remote tracking branch", branch);
-                                GitHelpers.createOrCheckoutBranch(git, GitHelpers.MASTER_BRANCH, GitHelpers.REMOTE_ORIGIN);
-                                git.branchDelete().setBranchNames(branch).setForce(true).call();
-                                git.checkout().setCreateBranch(true).setName(branch).setStartPoint(remoteRef + "/" + branch).setUpstreamMode(SetupUpstreamMode.TRACK).setForce(true).call();
-                                localUpdate.put(branch, new BranchChange(branch).updated(localObjectId, remoteObjectId, "reset"));
-                            }
+                            LOGGER.info("Remote branch {} is behind local version - changes will be pushed", branch);
+                            remoteUpdate = true;
                         } else if (mergeStatus == MergeStatus.ABORTED) {
                             // failure to merge using FastForwardMode.FF_ONLY always ends with MergeStatus.ABORTED
                             LOGGER.info("Cannot fast forward branch {}, attempting rebase", branch);
