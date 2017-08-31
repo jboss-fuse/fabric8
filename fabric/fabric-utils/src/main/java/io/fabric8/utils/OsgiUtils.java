@@ -16,13 +16,19 @@
 package io.fabric8.utils;
 
 import org.osgi.framework.*;
+import org.osgi.service.cm.Configuration;
+import org.osgi.service.cm.ConfigurationEvent;
+import org.osgi.service.cm.ConfigurationListener;
 import org.osgi.util.tracker.ServiceTracker;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Enumeration;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class OsgiUtils {
 
@@ -96,4 +102,37 @@ public class OsgiUtils {
     private static Collection<ServiceReference> asCollection(ServiceReference[] references) {
         return references != null ? Arrays.asList(references) : Collections.<ServiceReference>emptyList();
     }
+
+    /**
+     * Updates CM configuration and waits for CM_UPDATE event to be send
+     * @param bundleContext
+     * @param config
+     * @param properties
+     * @param timeout
+     * @param unit
+     * @return
+     */
+    public static boolean updateCmConfigurationAndWait(BundleContext bundleContext, final Configuration config,
+                                                       Dictionary<String, Object> properties,
+                                                       long timeout, TimeUnit unit) throws IOException, InterruptedException {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final ServiceRegistration<ConfigurationListener> registration = bundleContext.registerService(ConfigurationListener.class, new ConfigurationListener() {
+            @Override
+            public void configurationEvent(ConfigurationEvent event) {
+                if (event.getType() == ConfigurationEvent.CM_UPDATED && event.getPid() != null
+                        && event.getPid().equals(config.getPid())) {
+                    latch.countDown();
+                }
+            }
+        }, null);
+
+        config.update(properties);
+
+        try {
+            return latch.await(timeout, unit);
+        } finally {
+            registration.unregister();
+        }
+    }
+
 }
