@@ -56,7 +56,7 @@ public class ApmAgent implements ApmAgentMBean, ApmConfigurationChangeListener {
             ApmAgent agent = ApmAgent.INSTANCE;
             if (agent.initialize(instrumentation, args)) {
                 if (agent.getConfiguration().isStartJolokiaAgent()) {
-                    JvmAgent.agentmain(args);
+                    JvmAgent.agentmain(args, instrumentation);
                 }
             }
         } catch (Exception e) {
@@ -72,7 +72,7 @@ public class ApmAgent implements ApmAgentMBean, ApmConfigurationChangeListener {
             ApmAgent agent = ApmAgent.INSTANCE;
             if (agent.initialize(instrumentation, args)) {
                 if (agent.getConfiguration().isStartJolokiaAgent()) {
-                    JvmAgent.premain(args);
+                    JvmAgent.premain(args, instrumentation);
                 }
                 if (agent.getConfiguration().isAutoStartMetrics()) {
                     agent.startMetrics();
