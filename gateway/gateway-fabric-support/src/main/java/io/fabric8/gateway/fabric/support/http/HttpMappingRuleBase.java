@@ -117,6 +117,7 @@ public class HttpMappingRuleBase implements HttpMappingRule {
             boolean versionSpecificUri = pathTemplate.getParameterNames().contains("version");
 
             String versionId = defaultParams.get("version");
+
             if (!remove && Strings.isNotBlank(versionId) && !versionSpecificUri && gatewayVersion != null) {
                 // lets ignore this mapping if the version does not match
                 if (!gatewayVersion.equals(versionId)) {
@@ -129,6 +130,12 @@ public class HttpMappingRuleBase implements HttpMappingRule {
                 params.putAll(defaultParams);
             }
             params.put("servicePath", path);
+
+            if(!versionSpecificUri && Strings.isNotBlank(this.enabledVersion)){
+                if(!serviceDetails.getVersion().equals(this.enabledVersion)){
+                    remove = true;
+                }
+            }
 
             for (String service : services) {
                 populateUrlParams(params, service);
