@@ -20,8 +20,6 @@ import io.fabric8.api.Profile;
 import io.fabric8.api.ProfileService;
 import io.fabric8.api.Profiles;
 import io.fabric8.api.Version;
-import io.fabric8.api.ZkDefs;
-import io.fabric8.utils.FabricValidations;
 
 import org.apache.felix.gogo.commands.Argument;
 import org.apache.felix.gogo.commands.Command;
@@ -34,7 +32,7 @@ public class ProfileRefreshAction extends AbstractAction {
 	private String profileName;
 
 	@Argument(index = 1, name = "version", description = "The version of the profile to edit. Defaults to the current default version.", required = false, multiValued = false)
-	private String versionId = ZkDefs.DEFAULT_VERSION;
+	private String versionId;
 
     private final FabricService fabricService;
 
