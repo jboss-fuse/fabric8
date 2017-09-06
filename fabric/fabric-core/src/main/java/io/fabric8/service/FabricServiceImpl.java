@@ -1214,13 +1214,17 @@ public final class FabricServiceImpl extends AbstractComponent implements Fabric
         }
         Set<String> profileIds = new HashSet<>(Profiles.profileIds(version.getProfiles()));
         List<ProfileRequirements> profileRequirements = requirements.getProfileRequirements();
+        List<String> profilesToBeRemoved = new ArrayList<>();
         for (ProfileRequirements profileRequirement : profileRequirements) {
             try {
                 validateProfileRequirements(fabricService, requirements, profileRequirement, profileIds);
             } catch (IllegalArgumentException e) {
                 LOGGER.info("Removing {}; {}", profileRequirement, e.getMessage());
-                requirements.removeProfileRequirements(profileRequirement.getProfile());
+                profilesToBeRemoved.add(profileRequirement.getProfile());
             }
+        }
+        for(String profile : profilesToBeRemoved){
+            requirements.removeProfileRequirements(profile);
         }
     }
 
