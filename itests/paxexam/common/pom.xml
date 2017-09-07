@@ -40,6 +40,16 @@
     </properties>
 
     <dependencies>
+        <!--marker dependency to verify artifacts are available -->
+        <dependency>
+            <groupId>org.apache.camel.karaf</groupId>
+            <artifactId>apache-camel</artifactId>
+            <version>${camel-version}</version>
+            <type>xml</type>
+            <classifier>features</classifier>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
           <groupId>io.fabric8</groupId>
           <artifactId>fabric-api</artifactId>
