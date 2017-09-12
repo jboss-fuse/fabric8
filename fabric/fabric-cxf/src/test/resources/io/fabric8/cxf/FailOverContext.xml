@@ -35,14 +35,14 @@
         <property name="connectString" value="localhost:2183"/>
     </bean>
 
-  <bean id="fabicLoadBalancerFeature" class="io.fabric8.cxf.FabricFailOverFeature">
+  <bean id="fabricFailOverFeature" class="io.fabric8.cxf.FabricFailOverFeature">
       <property name="curator" ref="curator" />
       <property name="fabricPath" value="simple/test" />
   </bean>
   <!-- configure the feature on the bus -->
   <cxfcore:bus>
     <cxfcore:features>
-      <ref bean="fabicLoadBalancerFeature" />
+      <ref bean="fabricFailOverFeature" />
     </cxfcore:features>
   </cxfcore:bus>
 
