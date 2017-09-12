@@ -68,6 +68,9 @@ public class FailOverTargetSelector extends LoadBalanceTargetSelector {
     }
 
     public synchronized void prepare(Message message) {
+        // Conduit needs to be set and the address needs to be overridden before traversing the interceptor chain
+        // specifically in CXF JAX-RS
+        super.prepare(message);
         Exchange exchange = message.getExchange();
         InvocationKey key = new InvocationKey(exchange);
         if (!inProgress.containsKey(key)) {
