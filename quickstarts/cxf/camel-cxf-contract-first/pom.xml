@@ -21,12 +21,12 @@
   <parent>
     <groupId>io.fabric8.quickstarts</groupId>
     <artifactId>fabric8-quickstarts-cxf-parent</artifactId>
-    <version>1.2.0.redhat-630-SNAPSHOT</version>
+    <version>1.2.0.redhat-630301</version>
   </parent>
 
     <groupId>io.fabric8.quickstarts</groupId>
     <artifactId>cxf-camel-cxf-contract-first</artifactId>
-    <version>1.2.0.redhat-630-SNAPSHOT</version>
+    <version>1.2.0.redhat-630301</version>
     <packaging>bundle</packaging>
     <name>JBoss Fuse Quickstart: camel-cxf-contract-first</name>
     <description>Creates a web service using the WSDL contract first</description>
@@ -93,10 +93,10 @@
     <maven.compiler.source>1.7</maven.compiler.source>
     <version.maven-surefire-plugin>2.19.1</version.maven-surefire-plugin>
     <skipTests>true</skipTests>
-    <cxf-version>3.0.2</cxf-version>
+    <cxf-version>3.1.5.redhat-630301</cxf-version>
     <!-- the version of the BOM, defining all the dependency versions -->
-    <fabric8.bom.version>1.2.0.redhat-630-SNAPSHOT</fabric8.bom.version>
-    <fabric.version>1.2.0.redhat-630-SNAPSHOT</fabric.version>
+    <fabric8.bom.version>1.2.0.redhat-630301</fabric8.bom.version>
+    <fabric.version>1.2.0.redhat-630301</fabric.version>
 
     <!-- fabric8 deploy profile configuration -->
     <fabric8.profile>quickstarts-cxf-camel.cxf.contract.first</fabric8.profile>
