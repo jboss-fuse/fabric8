@@ -253,9 +253,11 @@ public class ZookeeperBackingEngine implements BackingEngine {
                 }
             }
         }
-
-        // nobody is using this group any more, remote it
-        deleteUser(GROUP_PREFIX + group, withoutGroupDeletionOnLastUser);
+        
+        if (!withoutGroupDeletionOnLastUser) {
+            // nobody is using this group any more, remote it
+            deleteUser(GROUP_PREFIX + group, withoutGroupDeletionOnLastUser);
+        }
     }
 
     @Override
