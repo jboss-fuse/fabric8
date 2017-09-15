@@ -15,7 +15,7 @@
 	<parent>
 		<groupId>org.apache.camel</groupId>
 		<artifactId>camel-parent</artifactId>
-		<version>2.17.0.redhat-630133</version>
+		<version>2.20.0.fuse-000095</version>
 	</parent>
 
 	<groupId>org.fusesource</groupId>
@@ -29,13 +29,14 @@
 	<properties>
 		<tycho-version>0.24.0</tycho-version>
 		<!-- JBoss Tools Integration Stack version -->
-    	<jbtis.version>4.4.3.Final</jbtis.version>
+    		<jbtis.version>4.4.3.Final</jbtis.version>
 		
 		<maven.compiler.target>1.7</maven.compiler.target>
 		<maven.compiler.source>1.7</maven.compiler.source>
 		<maven-surefire-plugin-version>2.19</maven-surefire-plugin-version>
-		<camel-version>2.17.0.redhat-630133</camel-version>
+		<camel-version>2.20.0.fuse-000095</camel-version>
 		<camel.sap.plugin.version>7.0.0-SNAPSHOT</camel.sap.plugin.version>
+		<karaf-version>4.2.0.fuse-000093</karaf-version>
 
 		
         <!-- OSGi bundles properties -->
@@ -102,6 +103,12 @@
 				<version>${camel-version}</version>
 				<scope>provided</scope>
 			</dependency>
+			<dependency>
+				<groupId>org.apache.camel</groupId>
+				<artifactId>spi-annotations</artifactId>
+				<version>${camel-version}</version>
+			</dependency>
+			
 			<dependency>
 				<groupId>org.fusesource</groupId>
 				<artifactId>org.fusesource.camel.component.sap</artifactId>
@@ -184,7 +191,7 @@
 			<dependency>
 				<groupId>org.mockito</groupId>
 				<artifactId>mockito-core</artifactId>
-				<version>1.9.5</version>
+				<version>1.10.19</version>
 				<scope>test</scope>
 			</dependency>
 			<dependency>
@@ -658,6 +665,17 @@
 			</releases>
 		</repository>
 		<repository>
+            <id>ea</id>
+            <name>Fuse Early Access Repository</name>
+            <url>https://repository.jboss.org/nexus/content/groups/ea</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
+		<repository>
             <id>brewroot</id>
             <name>Brew Repository</name>
             <url>http://download.eng.bos.redhat.com/brewroot/repos/jb-fuse-6.2-build/latest/maven</url>
@@ -698,6 +716,11 @@
     </repository>
 	</repositories>
 	<pluginRepositories>
+		<pluginRepository>
+			<id>ea</id>
+			<url>https://repository.jboss.org/nexus/content/groups/ea</url>
+			<layout>default</layout>
+		</pluginRepository>
 		<pluginRepository>
 			<id>RH2</id>
 			<url>http://download.eng.bos.redhat.com/brewroot/repos/jb-fsw-6.2-build/latest/maven</url>

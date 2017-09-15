@@ -24,7 +24,6 @@ import org.powermock.modules.junit4.PowerMockRunner;
 
 import com.sap.conn.idoc.jco.JCoIDoc;
 import com.sap.conn.jco.JCoDestinationManager;
-import com.sap.conn.jco.ext.Environment;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -34,7 +33,7 @@ import static org.hamcrest.number.BigDecimalCloseTo.closeTo;
 
 @RunWith(PowerMockRunner.class)
 @MockPolicy({Slf4jMockPolicy.class})
-@PrepareForTest({ JCoDestinationManager.class, Environment.class, JCoIDoc.class })
+@PrepareForTest({ JCoDestinationManager.class, JCoIDoc.class })
 public class DocumentConverterTest extends SapIDocTestSupport {
 
 	public static final String DOCUMENT_STRING = 
@@ -57,9 +56,8 @@ public class DocumentConverterTest extends SapIDocTestSupport {
 
 	@Override
 	public void doPreSetup() throws Exception {
-		super.doPreSetup();
-		
 		PowerMockito.mockStatic(JCoDestinationManager.class, JCoIDoc.class);
+		super.doPreSetup();
 		when(JCoDestinationManager.getDestination(TEST_DEST)).thenReturn(mockDestination);
 		when(JCoIDoc.getIDocRepository(mockDestination)).thenReturn(mockIDocRepository);
 		when(JCoIDoc.getIDocFactory()).thenReturn(mockIDocFactory);

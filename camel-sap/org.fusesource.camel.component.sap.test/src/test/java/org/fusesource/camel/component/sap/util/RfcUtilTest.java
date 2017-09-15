@@ -505,6 +505,7 @@ public class RfcUtilTest {
 	public ExpectedException thrown = ExpectedException.none();
 
 	@Test
+	@Ignore("This test requires some SAP setup")
 	public void testFunctionNotFoundAvailableThrowsComprehensiveError() throws Exception {
 		thrown.expect(NoSuchElementException.class);
 		JCoDestination jcoDestination = mock(JCoDestination.class);

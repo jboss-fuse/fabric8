@@ -11,12 +11,6 @@ import org.fusesource.camel.component.sap.model.rfc.impl.ServerDataImpl;
 import org.fusesource.camel.component.sap.model.rfc.impl.ServerDataStoreImpl;
 import org.fusesource.camel.component.sap.util.ComponentDestinationDataProvider;
 import org.fusesource.camel.component.sap.util.ComponentServerDataProvider;
-import org.powermock.api.mockito.PowerMockito;
-
-import com.sap.conn.idoc.jco.JCoIDoc;
-import com.sap.conn.jco.JCoDestinationManager;
-import com.sap.conn.jco.ext.Environment;
-import com.sap.conn.jco.server.JCoServerFactory;
 
 public abstract class JCoTestSupport extends CamelSpringTestSupport {
 	
@@ -36,15 +30,6 @@ public abstract class JCoTestSupport extends CamelSpringTestSupport {
 	public static final String TEST_REPOSITORY = "TEST_REPOSITORY";
 	public static final String TEST_CONNECTION_COUNT = "2";
 	
-	static  {
-
-		PowerMockito.mockStatic(Environment.class);
-		PowerMockito.mockStatic(JCoIDoc.class);
-		PowerMockito.mockStatic(JCoDestinationManager.class);
-		PowerMockito.mockStatic(JCoServerFactory.class);
-
-	}
-
 	@Override
 	public void doPreSetup() throws Exception {
 		super.doPreSetup();

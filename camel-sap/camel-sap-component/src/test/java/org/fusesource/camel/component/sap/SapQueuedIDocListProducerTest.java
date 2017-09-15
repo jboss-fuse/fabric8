@@ -102,7 +102,7 @@ public class SapQueuedIDocListProducerTest extends SapIDocTestSupport {
 		verify(mockIDocDocument, times(1)).setStatus(STATUS_VALUE);
 		verify(mockIDocDocument, times(1)).setTestFlag(TEST_FLAG_VALUE);
 		
-		verify(mockRootSegment, times(0)).setValue(anyString(), anyObject());
+		verify(mockRootSegment, times(0)).setValue(anyString(), (byte[])anyObject());
 		
 		verify(mockLevel1Segment, times(1)).setValue(CHAR_FIELD, (String) CHAR_FIELD_VALUE);
 		verify(mockLevel1Segment, times(1)).setValue(QUAN_FIELD, (String) QUAN_FIELD_VALUE.toString());
