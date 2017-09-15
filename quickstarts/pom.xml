@@ -84,6 +84,17 @@
             <updatePolicy>never</updatePolicy>
         </releases>
     </repository>
+    <repository>
+      <id>redhat-product</id>
+      <url>https://maven.repository.redhat.com/ga</url>
+      <releases>
+          <updatePolicy>never</updatePolicy>
+      </releases>
+      <snapshots>
+          <updatePolicy>never</updatePolicy>
+          <enabled>false</enabled>
+      </snapshots>
+    </repository> 
   </repositories>
 
   <pluginRepositories>
@@ -110,6 +121,18 @@
             <enabled>true</enabled>
             <updatePolicy>never</updatePolicy>
         </releases>
+    </pluginRepository>
+    <pluginRepository>
+      <id>redhat-product_plugin</id>
+      <name>redhat-product_plugin</name>
+      <url>https://maven.repository.redhat.com/ga</url>
+      <releases>
+          <updatePolicy>never</updatePolicy>
+      </releases>
+      <snapshots>
+          <updatePolicy>never</updatePolicy>
+          <enabled>false</enabled>
+      </snapshots>
     </pluginRepository>
   </pluginRepositories>
 
