@@ -19,6 +19,8 @@ import io.fabric8.api.scr.AbstractComponent;
 import io.fabric8.api.scr.Configurer;
 import io.fabric8.api.scr.ValidatingReference;
 import org.apache.felix.scr.annotations.*;
+import org.jolokia.config.ConfigKey;
+import org.jolokia.config.Configuration;
 import org.jolokia.osgi.servlet.JolokiaServlet;
 import org.jolokia.restrictor.Restrictor;
 import org.osgi.framework.BundleContext;
@@ -61,9 +63,10 @@ public class FabricJolokia extends AbstractComponent {
         context = new JolokiaSecureHttpContext(realm, role);
         Hashtable<String,String> initProps = new Hashtable<>();
         //initProps.put("restrictorClass", RBACRestrictor.class.getName()); // This requires Jolokia 1.3.3
-        httpService.get().registerServlet(getServletAlias(), new JolokiaServlet(bundleContext) {
+        httpService.get().registerServlet(getServletAlias(), new JolokiaServlet(bundleContext){
             @Override
-            protected Restrictor createRestrictor(String policyLocation) {
+            protected Restrictor createRestrictor(Configuration config) {
+                String policyLocation = config.get(ConfigKey.POLICY_LOCATION);
                 return new RBACRestrictor(policyLocation);
             }
         }, initProps, context);
