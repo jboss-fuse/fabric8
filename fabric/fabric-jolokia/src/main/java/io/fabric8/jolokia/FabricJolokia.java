@@ -20,6 +20,7 @@ import io.fabric8.api.scr.Configurer;
 import io.fabric8.api.scr.ValidatingReference;
 import org.apache.felix.scr.annotations.*;
 import org.jolokia.config.ConfigKey;
+import org.jolokia.config.Configuration;
 import org.jolokia.osgi.servlet.JolokiaServlet;
 import org.jolokia.restrictor.Restrictor;
 import org.osgi.framework.BundleContext;
