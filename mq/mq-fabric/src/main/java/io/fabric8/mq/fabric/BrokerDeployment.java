@@ -66,7 +66,6 @@ public class BrokerDeployment {
         properties.remove("component.id");
         properties.remove("component.name");
         properties.remove("service.factoryPid");
-        properties.remove("fabric.zookeeper.pid");
         String pid = (String) properties.remove("service.pid");
         properties.put("mq.fabric.server.pid", pid);
         properties.put("mq.fabric.server.ts", LOAD_TS);
