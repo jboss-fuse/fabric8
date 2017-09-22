@@ -15,6 +15,8 @@
  */
 package io.fabric8.utils;
 
+import java.io.File;
+import java.net.URI;
 import java.net.URISyntaxException;
 
 import org.junit.Test;
@@ -22,6 +24,10 @@ import org.junit.Test;
 import static io.fabric8.utils.FabricValidations.isValidContainerName;
 import static io.fabric8.utils.FabricValidations.isValidProfileName;
 import static io.fabric8.utils.FabricValidations.validateProfileName;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static io.fabric8.utils.FabricValidations.validateContainerName;
@@ -86,7 +92,7 @@ public class FabricValidationsTest {
     }
 
     @Test
-    public void uris() {
+    public void uris() throws URISyntaxException {
         assertFalse(isURIValid("http:///path"));
         assertFalse(isURIValid("http://:/path"));
         assertFalse(isURIValid("http://:8181/path"));
@@ -102,6 +108,25 @@ public class FabricValidationsTest {
         assertTrue(isURIValid("http://host.name:8181/path"));
         assertTrue(isURIValid("http://u@host.name:8181/path"));
         assertTrue(isURIValid("http://u:p@host.name:8181/path"));
+        // ENTESB-7303
+        assertTrue(isURIValid(new File("/tmp/x").toURI().toString()));
+        // authority (user:password@host:port) == null, path == //tmp/x
+        assertTrue(isURIValid("file:////tmp/x"));
+        assertThat(new URI("file:////tmp/x").getAuthority(), nullValue());
+        assertThat(new URI("file:////tmp/x").getPath(), is("//tmp/x"));
+        // authority (user:password@host:port) == null, path == /tmp/x
+        assertTrue(isURIValid("file:///tmp/x"));
+        assertThat(new URI("file:///tmp/x").getAuthority(), nullValue());
+        assertThat(new URI("file:///tmp/x").getPath(), is("/tmp/x"));
+        // authority (user:password@host:port) == tmp,  path == /x
+        assertTrue(isURIValid("file://tmp/x"));
+        assertThat(new URI("file://tmp/x").getAuthority(), is("tmp"));
+        assertThat(new URI("file://tmp/x").getPath(), is("/x"));
+        // authority (user:password@host:port) == null, path == /tmp/x
+        // https://stackoverflow.com/a/17870390/250517
+        assertTrue(isURIValid("file:/tmp/x"));
+        assertThat(new URI("file:/tmp/x").getAuthority(), nullValue());
+        assertThat(new URI("file:/tmp/x").getPath(), is("/tmp/x"));
     }
 
 }
