@@ -23,7 +23,7 @@
     <parent>
         <groupId>io.fabric8.archetypes</groupId>
         <artifactId>archetypes</artifactId>
-        <version>1.2.0-SNAPSHOT</version>
+        <version>1.2.0.redhat-621214</version>
     </parent>
 
     <artifactId>war-camel-servlet-archetype</artifactId>
