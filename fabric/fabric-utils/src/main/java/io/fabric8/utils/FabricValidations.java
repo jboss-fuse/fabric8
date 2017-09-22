@@ -99,7 +99,7 @@ public final class FabricValidations {
             return false;
         }
 
-        if (Strings.isEmpty(uri.getHost())) {
+        if (!"file".equals(uri.getScheme()) && Strings.isEmpty(uri.getHost())) {
             return false;
         }
         String userInfo = uri.getUserInfo();
@@ -108,7 +108,7 @@ public final class FabricValidations {
         if (userInfo != null && hostPort.contains("@")) {
             hostPort = hostPort.substring(hostPort.lastIndexOf("@"));
         }
-        if (uri.getPort() == -1 && !hostPort.equals(uri.getHost())) {
+        if (!"file".equals(uri.getScheme()) && uri.getPort() == -1 && !hostPort.equals(uri.getHost())) {
             return false;
         }
 
