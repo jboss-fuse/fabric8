@@ -81,7 +81,7 @@ public class GitDataStoreImplProfilesIT {
         File repo = new File("target/fabric-git");
         FileUtils.deleteDirectory(repo);
         repo.mkdirs();
-        git = Git.init().setDirectory(repo).call();
+        git = Git.init().setDirectory(repo).setGitDir(new File(repo, ".git")).call();
         git.commit().setMessage("init").call();
         git.tag().setName(GitHelpers.ROOT_TAG).call();
 

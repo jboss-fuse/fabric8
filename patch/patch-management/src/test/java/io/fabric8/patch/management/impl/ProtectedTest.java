@@ -47,7 +47,7 @@ public class ProtectedTest {
         gitDir = new File("target/ProtectedTest");
         gitDir.mkdirs();
         FileUtils.deleteDirectory(gitDir);
-        git = Git.init().setDirectory(this.gitDir).call();
+        git = Git.init().setDirectory(this.gitDir).setGitDir(new File(this.gitDir, ".git")).call();
         git.commit()
                 .setMessage("init")
                 .setAuthor("me", "my@email").call();

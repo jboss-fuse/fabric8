@@ -91,12 +91,12 @@ public class CachingGitDataStoreTest {
         delete(root);
 
         new File(root, "remote").mkdirs();
-        remote = Git.init().setDirectory(new File(root, "remote")).call();
+        remote = Git.init().setDirectory(new File(root, "remote")).setGitDir(new File(root, "remote/.git")).call();
         remote.commit().setMessage("First Commit").setCommitter("fabric", "user@fabric").call();
         String remoteUrl = "file://" + new File(root, "remote").getCanonicalPath();
 
         new File(root, "local").mkdirs();
-        git = Git.init().setDirectory(new File(root, "local")).call();
+        git = Git.init().setDirectory(new File(root, "local")).setGitDir(new File(root, "local/.git")).call();
         git.commit().setMessage("First Commit").setCommitter("fabric", "user@fabric").call();
         StoredConfig config = git.getRepository().getConfig();
         config.setString("remote", "origin", "url", remoteUrl);

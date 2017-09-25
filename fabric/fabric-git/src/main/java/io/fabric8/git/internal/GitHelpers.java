@@ -68,7 +68,7 @@ public class GitHelpers {
      * Returns the root directory of the git repo which contains the ".git" directory
      */
     public static File getRootGitDirectory(Git git) {
-        return git.getRepository().getDirectory().getParentFile();
+        return git.getRepository().getWorkTree();
     }
 
     public static File getProfilesDirectory(Git git) {
