@@ -24,7 +24,6 @@ import org.junit.Test;
 import static io.fabric8.utils.FabricValidations.isValidContainerName;
 import static io.fabric8.utils.FabricValidations.isValidProfileName;
 import static io.fabric8.utils.FabricValidations.validateProfileName;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -127,6 +126,21 @@ public class FabricValidationsTest {
         assertTrue(isURIValid("file:/tmp/x"));
         assertThat(new URI("file:/tmp/x").getAuthority(), nullValue());
         assertThat(new URI("file:/tmp/x").getPath(), is("/tmp/x"));
+        // windows
+        assertTrue(isURIValid("file:/c:/tmp/x"));
+        assertTrue(isURIValid("file://c:/tmp/x"));
+        assertTrue(isURIValid("file:///c:/tmp/x"));
+        assertTrue(isURIValid("file:////c:/tmp/x"));
+        assertThat(new URI("file:/c:/tmp/x").getAuthority(), nullValue());
+        assertThat(new URI("file:/c:/tmp/x").getPath(), is("/c:/tmp/x"));
+        assertThat(new URI("file://c:/tmp/x").getAuthority(), is("c:")); // UNC path with authority (host)
+        assertThat(new URI("file://c:/tmp/x").getPath(), is("/tmp/x"));
+        assertThat(new URI("file://share/tmp/x").getAuthority(), is("share")); // UNC path with authority (host)
+        assertThat(new URI("file://share/tmp/x").getPath(), is("/tmp/x"));
+        assertThat(new URI("file:///c:/tmp/x").getAuthority(), nullValue());
+        assertThat(new URI("file:///c:/tmp/x").getPath(), is("/c:/tmp/x"));
+        assertThat(new URI("file:////c:/tmp/x").getAuthority(), nullValue());
+        assertThat(new URI("file:////c:/tmp/x").getPath(), is("//c:/tmp/x"));
     }
 
 }
