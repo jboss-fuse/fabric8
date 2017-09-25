@@ -91,7 +91,7 @@ public class OpenShiftPomDeployerTest {
         Files.copy(pomSource, pom);
         assertFileExists(pom);
 
-        git = Git.init().setDirectory(outputDir).call();
+        git = Git.init().setDirectory(outputDir).setGitDir(new File(outputDir, ".git")).call();
         assertDirectoryExists(new File(outputDir, ".git"));
 
         git.add().addFilepattern("pom.xml").call();

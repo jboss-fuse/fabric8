@@ -37,6 +37,7 @@ import org.apache.felix.scr.annotations.Service;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.errors.RepositoryNotFoundException;
+import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.RepositoryCache;
 
 @ThreadSafe
@@ -83,7 +84,9 @@ public final class FabricGitServiceImpl extends AbstractComponent implements Git
             return Git.open(localRepo);
         } catch (RepositoryNotFoundException e) {
             try {
-                return Git.init().setDirectory(localRepo).call();
+                return Git.init().setDirectory(localRepo)
+                        .setGitDir(new File(localRepo, Constants.DOT_GIT))
+                        .call();
             } catch (GitAPIException ex) {
                 throw new IOException(ex);
             }

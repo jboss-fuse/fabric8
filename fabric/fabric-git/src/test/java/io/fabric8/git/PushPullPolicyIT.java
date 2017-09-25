@@ -66,7 +66,7 @@ public class PushPullPolicyIT {
         dirServlet = new File("target/data-servlet");
         FileUtils.deleteDirectory(dirLocal);
         FileUtils.deleteDirectory(dirServlet);
-        local = Git.init().setDirectory(dirLocal).call();
+        local = Git.init().setDirectory(dirLocal).setGitDir(new File(dirLocal, ".git")).call();
         servlet = Git.init().setDirectory(dirServlet).setBare(true).call();
 
         // local -> servlet
@@ -637,7 +637,9 @@ public class PushPullPolicyIT {
                 FileUtils.deleteDirectory(dirTmp);
                 git = Git.cloneRepository()
                         .setURI(dirServlet.toURI().toString())
-                        .setDirectory(dirTmp).call();
+                        .setDirectory(dirTmp)
+                        .setGitDir(new File(dirTmp, ".git"))
+                        .call();
             }
 
             boolean create = true;

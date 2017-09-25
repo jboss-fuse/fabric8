@@ -42,6 +42,7 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.errors.RepositoryNotFoundException;
+import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.ObjectReader;
@@ -249,6 +250,7 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
                 Git git = Git.init()
                         .setBare(bare && !isFabric)
                         .setDirectory(directory)
+                        .setGitDir(bare ? directory : new File(directory, Constants.DOT_GIT))
                         .call();
 
                 // first commit - it's in master branch
@@ -279,7 +281,9 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
     @Override
     public Git cloneRepository(Git git, boolean fetchAndCheckout) throws GitAPIException, IOException {
         File tmpLocation = new File(tmpPatchManagement, TS.format(new Date()));
-        Git fork = Git.init().setBare(false).setDirectory(tmpLocation).call();
+        Git fork = Git.init().setBare(false)
+                .setGitDir(new File(tmpLocation, Constants.DOT_GIT))
+                .setDirectory(tmpLocation).call();
         StoredConfig config = fork.getRepository().getConfig();
         config.setString("remote", "origin", "url", git.getRepository().getDirectory().getCanonicalPath());
         config.setString("remote", "origin", "fetch", "+refs/heads/*:refs/remotes/origin/*");
@@ -305,7 +309,8 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
     public void closeRepository(Git git, boolean deleteWorkingCopy) {
         git.getRepository().close();
         if (deleteWorkingCopy) {
-            FileUtils.deleteQuietly(git.getRepository().getDirectory().getParentFile());
+            FileUtils.deleteQuietly(git.getRepository().getDirectory());
+            FileUtils.deleteQuietly(git.getRepository().getWorkTree());
         }
     }
 

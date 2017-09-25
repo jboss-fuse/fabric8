@@ -50,7 +50,7 @@ public class GitIT {
     public void initGitRepoCreateTwoBranchesCheckoutFirstBranch() throws Exception {
         dir = new File("target/git-test-repo");
         FileUtils.deleteDirectory(dir);
-        git = Git.init().setDirectory(dir).call();
+        git = Git.init().setDirectory(dir).setGitDir(new File(dir, ".git")).call();
 
         // master branch
         FileWriter writer = new FileWriter(new File(dir, "version.attributes"));
