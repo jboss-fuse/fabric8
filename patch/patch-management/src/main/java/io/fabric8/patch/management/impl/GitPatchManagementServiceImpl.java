@@ -2779,7 +2779,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
      * @param git non-bare repository to perform the operation
      */
     public void applyUserChanges(Git git) throws GitAPIException, IOException {
-        File wcDir = git.getRepository().getDirectory().getParentFile();
+        File wcDir = git.getRepository().getWorkTree();
 
         try {
             // let's simply copy all user files on top of git working copy
@@ -2915,7 +2915,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
         boolean modified = false;
         boolean installed = false;
 
-        File etcStartupProperties = new File(git.getRepository().getDirectory().getParent(), "etc/startup.properties");
+        File etcStartupProperties = new File(git.getRepository().getWorkTree(), "etc/startup.properties");
         List<String> lines = FileUtils.readLines(etcStartupProperties);
         List<String> newVersion = new LinkedList<>();
         for (String line : lines) {
@@ -2952,7 +2952,7 @@ public class GitPatchManagementServiceImpl implements PatchManagement, GitPatchM
             for (String newLine : newVersion) {
                 sb.append(newLine).append("\n");
             }
-            FileUtils.write(new File(git.getRepository().getDirectory().getParent(), "etc/startup.properties"), sb.toString());
+            FileUtils.write(new File(git.getRepository().getWorkTree(), "etc/startup.properties"), sb.toString());
 
             // now to git working copy
             git.add()

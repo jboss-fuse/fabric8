@@ -66,7 +66,7 @@ public class GitConflictResolutionIT extends PatchTestSupport {
 
         when(systemContext.getDataFile("patches")).thenReturn(new File(karafHome, "data/cache/bundle0/data/patches"));
 
-        git = Git.init().setDirectory(new File(karafBase, "data/git-repository")).setBare(false).call();
+        git = Git.init().setDirectory(new File(karafBase, "data/git-repository")).setGitDir(new File(karafBase, "data/git-repository/.git")).setBare(false).call();
         commit("init").call();
     }
 

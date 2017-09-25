@@ -199,6 +199,7 @@ public class CreateBranchMojo extends AbstractProfileMojo {
             } else {
                 InitCommand initCommand = Git.init();
                 initCommand.setDirectory(buildDir);
+                initCommand.setGitDir(gitDir);
                 git = initCommand.call();
                 getLog().info("Initialised an empty git configuration repo at " + getGitBuildPathDescription());
 
