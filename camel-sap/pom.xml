@@ -34,7 +34,7 @@
 		<maven.compiler.target>1.7</maven.compiler.target>
 		<maven.compiler.source>1.7</maven.compiler.source>
 		<maven-surefire-plugin-version>2.19</maven-surefire-plugin-version>
-		<camel-version>2.20.0.fuse-000095</camel-version>
+		<camel-version>2.20.0.fuse-000101</camel-version>
 		<camel.sap.plugin.version>7.0.0-SNAPSHOT</camel.sap.plugin.version>
 		<karaf-version>4.2.0.fuse-000093</karaf-version>
 
