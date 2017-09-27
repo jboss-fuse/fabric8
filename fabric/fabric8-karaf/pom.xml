@@ -212,6 +212,10 @@
            </dependency>
            <dependency>
                 <groupId>io.fabric8.insight</groupId>
+                <artifactId>insight-elasticsearch-auth-plugin</artifactId>
+           </dependency>
+           <dependency>
+                <groupId>io.fabric8.insight</groupId>
                 <artifactId>insight-elasticsearch-log-storage</artifactId>
            </dependency>
            <dependency>

@@ -39,6 +39,9 @@ discovery.publish.port = ${env:OPENSHIFT_FUSE_ES_TCP_PROXY_PORT}
 # Enable HTTP
 http.enabled = true
 
+# CORS allow headers
+http.cors.allow-headers=X-Requested-With,Content-Type,Content-Length,Authorization
+
 discovery.zookeeper.node=/fabric/registry/clusters/elasticsearch
 
 # Thread pools
