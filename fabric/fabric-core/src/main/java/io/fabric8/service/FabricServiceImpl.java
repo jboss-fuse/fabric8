@@ -93,6 +93,7 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.Service;
+import org.jasypt.exceptions.EncryptionOperationNotPossibleException;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
@@ -1326,19 +1327,21 @@ public final class FabricServiceImpl extends AbstractComponent implements Fabric
             for (Map.Entry<String, String> e : original.entrySet()) {
                 final String key = e.getKey();
                 final String value = e.getValue();
-                try{
-                props.put(key, InterpolationHelper.substVars(value, key, null, props, new InterpolationHelper.SubstitutionCallback() {
-                    public String getValue(String toSubstitute) {
-                        if (toSubstitute != null && toSubstitute.contains(":")) {
-                            String scheme = toSubstitute.substring(0, toSubstitute.indexOf(":"));
-                            return resolversSnapshot.get(scheme).resolve(fabricService, mutableConfigurations, pid, key, toSubstitute);
-                        }
-                        return substituteBundleProperty(toSubstitute, bundleContext);
-                    }
-                }));
-                }catch(Exception exception){
-                	LOGGER.warn("Error resolving "+ key, exception);
-                }
+				try {
+					props.put(key, InterpolationHelper.substVars(value, key, null, props,
+							new InterpolationHelper.SubstitutionCallback() {
+								public String getValue(String toSubstitute) {
+									if (toSubstitute != null && toSubstitute.contains(":")) {
+										String scheme = toSubstitute.substring(0, toSubstitute.indexOf(":"));
+										return resolversSnapshot.get(scheme).resolve(fabricService,
+												mutableConfigurations, pid, key, toSubstitute);
+									}
+									return substituteBundleProperty(toSubstitute, bundleContext);
+								}
+							}));
+				} catch (Exception exception) {
+					LOGGER.warn("Error resolving " + key, exception);
+				}
             }
         }
         
