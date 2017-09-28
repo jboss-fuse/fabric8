@@ -1328,17 +1328,15 @@ public final class FabricServiceImpl extends AbstractComponent implements Fabric
                 final String key = e.getKey();
                 final String value = e.getValue();
 				try {
-					props.put(key, InterpolationHelper.substVars(value, key, null, props,
-							new InterpolationHelper.SubstitutionCallback() {
-								public String getValue(String toSubstitute) {
-									if (toSubstitute != null && toSubstitute.contains(":")) {
-										String scheme = toSubstitute.substring(0, toSubstitute.indexOf(":"));
-										return resolversSnapshot.get(scheme).resolve(fabricService,
-												mutableConfigurations, pid, key, toSubstitute);
-									}
-									return substituteBundleProperty(toSubstitute, bundleContext);
-								}
-							}));
+					props.put(key, InterpolationHelper.substVars(value, key, null, props, new InterpolationHelper.SubstitutionCallback() {
+                    public String getValue(String toSubstitute) {
+                        if (toSubstitute != null && toSubstitute.contains(":")) {
+                            String scheme = toSubstitute.substring(0, toSubstitute.indexOf(":"));
+                            return resolversSnapshot.get(scheme).resolve(fabricService, mutableConfigurations, pid, key, toSubstitute);
+                        }
+                        return substituteBundleProperty(toSubstitute, bundleContext);
+                    }
+                }));
 				} catch (Exception exception) {
 					LOGGER.warn("Error resolving " + key, exception);
 				}
