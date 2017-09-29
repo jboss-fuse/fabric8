@@ -298,22 +298,31 @@ public class ServiceFactoryTest {
     @Test
     public void testStartRetryOnLockIOException() throws Exception {
 
-        underTest = new ActiveMQServiceFactory();
-        underTest.curator = curator;
+        ActiveMQConnection connection = null;
+        try {
+            underTest = new ActiveMQServiceFactory();
+            underTest.curator = curator;
 
-        Properties props = new Properties();
-        props.put("config", "amq-ioe-lock.xml");
-        props.put("broker-name", "amq");
-        props.put("connectors", "openwire");
+            Properties props = new Properties();
+            props.put("config", "amq-ioe-lock.xml");
+            props.put("broker-name", "amq");
+            props.put("connectors", "openwire");
+            props.put("startRetryDelay", String.valueOf(2000));
 
-        underTest.updated("b", props);
+            underTest.updated("b", props);
 
-        ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("failover:(tcp://localhost:61616)?useExponentialBackOff=false&timeout=15000");
+            ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("failover:(tcp://localhost:61616)?useExponentialBackOff=false&timeout=15000&initialReconnectDelay=500");
 
-        final ActiveMQConnection connection = (ActiveMQConnection) cf.createConnection();
-        connection.start();
+            connection = (ActiveMQConnection) cf.createConnection();
+            connection.start();
 
-        assertTrue("is connected", connection.getTransport().isConnected());
+            assertTrue("is connected", connection.getTransport().isConnected());
+        } finally {
+            underTest.destroy();
+            if (connection != null) {
+                connection.close();
+            }
+        }
     }
 
     @Test
