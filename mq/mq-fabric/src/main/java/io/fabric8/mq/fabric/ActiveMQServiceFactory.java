@@ -368,6 +368,7 @@ public class ActiveMQServiceFactory  {
         private boolean standalone;
         private boolean registerService;
         private boolean configCheck;
+        private int startRetryDelay = 10000;
 
         private boolean pool_enabled = false;
         private long lastModified = -1L;
@@ -415,6 +416,13 @@ public class ActiveMQServiceFactory  {
             this.standalone = "true".equalsIgnoreCase(properties.getProperty("standalone"));
             this.registerService = "true".equalsIgnoreCase(properties.getProperty("registerService"));
             this.configCheck = "true".equalsIgnoreCase(properties.getProperty("config.check"));
+            if (properties.containsKey("startRetryDelay")) {
+                try {
+                    this.startRetryDelay = Integer.parseInt(properties.getProperty("startRetryDelay"));
+                } catch (NumberFormatException e) {
+                    LOG.warn("ignoring invalid startRetryDelay config property: " + e.toString());
+                }
+            }
 
             // code directly invoked in Scala case class
             ensure_broker_name_is_set();
@@ -496,10 +504,10 @@ public class ActiveMQServiceFactory  {
                                     LOG.info("Broker " + name + " interrupted while starting");
                                     break;
                                 }
-                                LOG.info("Broker " + name + " failed to start.  Will try again in 10 seconds");
+                                LOG.info("Broker " + name + " failed to start.  Will try again in " + startRetryDelay + " millis");
                                 LOG.error("Exception on start: " + e, e);
                                 try {
-                                    Thread.sleep(1000 * 10);
+                                    Thread.sleep(startRetryDelay);
                                 } catch (InterruptedException ignore) {
                                     LOG.info("Broker " + name + " interrupted while starting");
                                     break;
@@ -772,6 +780,11 @@ public class ActiveMQServiceFactory  {
                                             disconnect();
                                         }
                                     } catch (Exception e) {
+                                        LOG.warn("disconnect on error", e);
+                                        try {
+                                            disconnect();
+                                        } catch (Exception ignored) {
+                                        }
                                         throw new RuntimeException(e.getMessage(), e);
                                     }
                                 }
