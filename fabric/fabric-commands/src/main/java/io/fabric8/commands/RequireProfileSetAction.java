@@ -48,6 +48,8 @@ public class RequireProfileSetAction extends ChangeRequirementSupport {
     protected boolean updateRequirements(FabricRequirements requirements) {
         if(v != null){
             setVersion(v);
+        } else {
+            setVersion(getFabricService().getDefaultVersionId());
         }
         ProfileRequirements requirement = new ProfileRequirements(profile);
         if (minimumInstances != null) {
