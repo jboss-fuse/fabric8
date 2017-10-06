@@ -32,7 +32,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.jms.JMSException;
@@ -48,10 +47,12 @@ import org.apache.activemq.broker.AbstractLocker;
 import org.apache.activemq.broker.BrokerService;
 import org.apache.activemq.command.DiscoveryEvent;
 import org.apache.activemq.store.PersistenceAdapter;
+import org.apache.activemq.store.kahadb.KahaDBPersistenceAdapter;
 import org.apache.activemq.transport.discovery.DiscoveryListener;
 import org.apache.activemq.util.ServiceStopper;
 import org.apache.activemq.util.SocketProxy;
 import org.apache.activemq.transport.TransportListener;
+import org.apache.activemq.util.Wait;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryNTimes;
@@ -293,6 +294,60 @@ public class ServiceFactoryTest {
             }
             return true;
         }
+    }
+
+
+    /**
+     * Test for ENTMQ-2146.
+     * Broker does not get restarted after it shuts down due to IOException
+     * from KahaDB.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testStartRetryOnIOException() throws Exception {
+
+        final String brokerName = "amq-kahadb";
+        underTest = new ActiveMQServiceFactory();
+        underTest.curator = curator;
+
+        Properties props = new Properties();
+        props.put("config", "amq-kahadb.xml");
+        props.put("broker-name", brokerName);
+        props.put("connectors", "openwire");
+
+        underTest.updated("b", props);
+
+        Wait.waitFor(new Wait.Condition() {
+            @Override
+            public boolean isSatisified() throws Exception {
+                return underTest.getBrokerService(brokerName) != null;
+            }
+        });
+        underTest.getBrokerService(brokerName).waitUntilStarted(2000);
+        final BrokerService brokerService = underTest.getBrokerService(brokerName);
+        KahaDBPersistenceAdapter kahaDBPersistenceAdapter =
+                (KahaDBPersistenceAdapter) brokerService.getPersistenceAdapter();
+
+        // have the broker stop with an IOException on next checkpoint so it
+        // has a pending local transaction to recover
+        kahaDBPersistenceAdapter.getStore().getJournal().close();
+
+        Wait.waitFor(new Wait.Condition() {
+            @Override
+            public boolean isSatisified() throws Exception {
+                return brokerService.isStopped();
+            }
+        });
+
+        assertTrue("Broker running again", Wait.waitFor(new Wait.Condition() {
+            @Override
+            public boolean isSatisified() throws Exception {
+                // check if broker is running
+                BrokerService broker = underTest.getBrokerService(brokerName);
+                return broker != null && broker.isStarted();
+            }
+        }));
     }
 
     @Test
