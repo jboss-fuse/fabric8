@@ -246,6 +246,7 @@ public class ActiveMQServiceFactory  {
             ownedPools.remove(cc.pool);
             fire_pool_change(cc);
         }
+        cc.pool_enabled = false;
     }
 
     private void fire_pool_change(final ClusteredConfiguration cc) {
@@ -718,7 +719,6 @@ public class ActiveMQServiceFactory  {
                             stop();
                             waitForStop();
                             return_pool(this);
-                            pool_enabled = false;
                         }
                     }
                     waitForStop();
