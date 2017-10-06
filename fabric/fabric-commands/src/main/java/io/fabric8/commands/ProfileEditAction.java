@@ -553,7 +553,7 @@ public class ProfileEditAction extends AbstractAction {
 
         }  else {
             key = configs;
-            value = null;
+            value = "";
         }
         if (key != null && !key.isEmpty()) {
             configMap.put(key, value);
