@@ -263,7 +263,7 @@ public class ProfileEditAction extends AbstractAction {
         boolean validationResult = true;
         final Pattern pattern = Pattern.compile(PROFILE_EDIT_INPUT_REGEX);
         for (String pidProperty : pidProperties) {
-            if (!pattern.matcher(pidProperty).matches()) {
+            if (!((!pidProperty.contains(PID_KEY_SEPARATOR)) || (pidProperty.contains(PID_KEY_SEPARATOR) && pattern.matcher(pidProperty).matches()))) {
                 validationResult = false;
             }
         }
