@@ -259,6 +259,7 @@ public class ProfileEditAction extends AbstractAction {
     
     
     private boolean validateProfileEditInput(String[] pidProperties) {
+        System.out.println("pidProperties:"+Arrays.toString(pidProperties));
         boolean validationResult = true;
         final Pattern pattern = Pattern.compile(PROFILE_EDIT_INPUT_REGEX);
         for (String pidProperty : pidProperties) {
