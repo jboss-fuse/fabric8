@@ -225,7 +225,7 @@ public class ProfileEditAction extends AbstractAction {
             else {
                 System.out.println("Enter pid value in proper format like --pid <PID>/<Property>=<Value>");
                 LOGGER.error("Error validating pid property value for profile edit. Enter pid value in proper format like --pid <PID>/<Property>=<Value>");
-                editInLine = true;
+                return;
             }
         }
 
