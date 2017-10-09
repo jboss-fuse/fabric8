@@ -219,6 +219,7 @@ public class ProfileEditAction extends AbstractAction {
         if (pidProperties != null && pidProperties.length > 0) {
             
             if(validateProfileEditInput(pidProperties)){
+                
                 editInLine = handlePid(builder, pidProperties, profile);
             }
             else {
