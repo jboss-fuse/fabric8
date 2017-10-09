@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import jline.Terminal;
 
@@ -70,6 +71,7 @@ public class ProfileEditAction extends AbstractAction {
     static final String EXT_PREFIX = "ext.";
     static final String DELIMITER = ",";
     static final String PID_KEY_SEPARATOR = "/";
+    static final String PROFILE_EDIT_INPUT_REGEX="^..*/..*=.*";
 
     static final String FILE_INSTALL_FILENAME_PROPERTY = "felix.fileinstall.filename";
 
@@ -215,7 +217,15 @@ public class ProfileEditAction extends AbstractAction {
         }
 
         if (pidProperties != null && pidProperties.length > 0) {
-            editInLine = handlePid(builder, pidProperties, profile);
+            
+            if(validateProfileEditInput(pidProperties)){
+                editInLine = handlePid(builder, pidProperties, profile);
+            }
+            else {
+                System.out.println("Enter pid value in proper format like --pid <PID>/<Property>=<Value>");
+                LOGGER.error("Error validating pid property value for profile edit. Enter pid value in proper format like --pid <PID>/<Property>=<Value>");
+                editInLine = true;
+            }
         }
 
         if (systemProperties != null && systemProperties.length > 0) {
@@ -245,6 +255,20 @@ public class ProfileEditAction extends AbstractAction {
                 openInEditor(profile, resource);
         }
     }
+    
+    
+    private boolean validateProfileEditInput(String[] pidProperties) {
+        boolean validationResult = true;
+        final Pattern pattern = Pattern.compile(PROFILE_EDIT_INPUT_REGEX);
+        for (String pidProperty : pidProperties) {
+            if (!pattern.matcher(pidProperty).matches()) {
+                validationResult = false;
+            }
+        }
+        return validationResult;
+
+    }
+    
 
     /**
      * Adds or remove the specified features to the specified profile.
@@ -553,7 +577,7 @@ public class ProfileEditAction extends AbstractAction {
 
         }  else {
             key = configs;
-            value = "";
+            value = null;
         }
         if (key != null && !key.isEmpty()) {
             configMap.put(key, value);
