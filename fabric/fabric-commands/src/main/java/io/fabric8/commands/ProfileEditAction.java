@@ -218,7 +218,7 @@ public class ProfileEditAction extends AbstractAction {
 
         if (pidProperties != null && pidProperties.length > 0) {
             
-            if(validateProfileEditInput(pidProperties)){
+            if(validateProfileEditInput(pidProperties) || (delete || remove)){
                 
                 editInLine = handlePid(builder, pidProperties, profile);
             }
@@ -259,7 +259,6 @@ public class ProfileEditAction extends AbstractAction {
     
     
     private boolean validateProfileEditInput(String[] pidProperties) {
-        System.out.println("pidProperties:"+Arrays.toString(pidProperties));
         boolean validationResult = true;
         final Pattern pattern = Pattern.compile(PROFILE_EDIT_INPUT_REGEX);
         for (String pidProperty : pidProperties) {
