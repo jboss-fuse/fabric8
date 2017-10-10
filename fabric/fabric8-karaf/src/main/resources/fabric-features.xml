@@ -462,13 +462,17 @@
         <feature version="${project.version}">insight-metrics</feature>
         <feature>fabric-zookeeper</feature>
         <feature>fabric-groups</feature>
-        <!--<feature>insight-kibana</feature>-->
         <bundle dependency="true">mvn:com.google.guava/guava/${guava-version}</bundle>
         <bundle>mvn:io.fabric8.insight/insight-storage/${project.version}</bundle>
         <bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.elasticsearch/${elasticsearch-smx4-bundle.version}</bundle>
         <bundle>mvn:io.fabric8.insight/insight-elasticsearch-plugin/${project.version}</bundle>
         <bundle>mvn:io.fabric8.insight/insight-elasticsearch-discovery/${project.version}</bundle>
         <bundle>mvn:io.fabric8.insight/insight-elasticsearch-factory/${project.version}</bundle>
+    </feature>
+
+    <feature name="insight-elasticsearch-auth" version="${project.version}" resolver="(obr)">
+        <feature>insight-elasticsearch</feature>
+        <bundle>mvn:io.fabric8.insight/insight-elasticsearch-auth-plugin/${project.version}</bundle>
     </feature>
 
     <feature name="insight-elasticsearch-log-storage" version="${project.version}" resolver="(obr)">
