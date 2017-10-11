@@ -808,7 +808,9 @@ public class ActiveMQServiceFactory  {
               stop();
             } else {
               LOG.info("Disconnecting the broker " + name + ".");
-              discoveryAgent.setServices(new String[0]);
+              if (discoveryAgent != null) {
+                discoveryAgent.setServices(new String[0]);
+              }
               pool_enabled = false;
             }
         }
