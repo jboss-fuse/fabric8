@@ -5,9 +5,9 @@ function karaf_kill() {
    $KARAF_HOME/bin/stop
       for i in {1..20};
         do
-            if ps -p $PID > /dev/null; then
+            if ! ps -p $PID > /dev/null; then
                 echo "Fabric has been successfully stopped"
-                break
+                return
             else
                 sleep 3
             fi
