@@ -144,6 +144,9 @@ public final class FabricMBeanRegistrationListener extends AbstractComponent imp
                 }
             } catch (IllegalStateException e){
                 handleException(e);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                LOGGER.info("Thread was interrupted while waiting for Zookeeper connection. Skipping JMX notification.");
             } catch (Exception e) {
                 LOGGER.warn("Exception while jmx domain synchronization from event: " + notif + ". This exception will be ignored.", e);
             }
