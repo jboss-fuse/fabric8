@@ -16,7 +16,6 @@
 package io.fabric8.mq.fabric;
 
 import java.util.Map;
-import java.util.Properties;
 
 import io.fabric8.api.scr.ValidatingReference;
 import org.apache.felix.scr.annotations.Activate;
@@ -24,13 +23,8 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Modified;
-import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferenceCardinality;
-import org.apache.felix.scr.annotations.ReferencePolicy;
-import org.apache.felix.scr.annotations.ReferencePolicyOption;
 import org.osgi.service.cm.ConfigurationAdmin;
-import org.osgi.service.url.URLStreamHandlerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

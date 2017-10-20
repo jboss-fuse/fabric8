@@ -32,6 +32,18 @@ import org.osgi.service.cm.ConfigurationAdmin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * <p>Main SCR component responsible for broker management (standalone or clustered).</p>
+ * <p>This is SCR component with {@link Component#configurationFactory()} set to <code>true</code>. So each PID from
+ * <code>io.fabric8.mq.fabric.server</code> <em>factory PID</em> will have corresponding SCR component instance.</p>
+ * <p>The responsibility of this SCR is to create either <code>io.fabric8.mq.fabric.standalone.server</code> or
+ * <code>io.fabric8.mq.fabric.clustered.server</code> <em>factory PID</em> and create <strong>single</strong>
+ * PID out of it. The PID is removed when this instance of SCR component is deactivated. This means that when container
+ * is stopped, there are <strong>no standalone/clustered</strong> PIDs available - they'll be created again. If the
+ * container is not stopped gracefully, another instance of standalone/clustered factory PID will be created, but
+ * only recent broker will be active, old standalone/clustered PID will be deleted (see
+ * {@link StandaloneBrokerDeployment#activate(Map)}).</p>
+ */
 @Component(
     name = "io.fabric8.mq.fabric.server",
     label = "Fabric8 ActiveMQ Deployment",
@@ -46,10 +58,43 @@ public class BrokerDeployment {
     @Reference(referenceInterface = ConfigurationAdmin.class)
     private final ValidatingReference<ConfigurationAdmin> configurationAdmin = new ValidatingReference<>();
 
+    /**
+     * Each instance of this SCR component manages corresponding PID from one of
+     * [<code>io.fabric8.mq.fabric.standalone.server</code>, <code>io.fabric8.mq.fabric.clustered.server</code>]
+     * factory PIDs.
+     */
     Configuration config;
 
     @Activate
     void activate(Map<String, ?> configuration) throws Exception {
+        boolean fabricManaged = "true".equalsIgnoreCase((String) configuration.get("fabric.managed"));
+        if (fabricManaged) {
+            LOG.info("AMQ broker configuration is managed by fabric, skipping configuration.");
+            return;
+        }
+
+        boolean profileConfiguration = isConfiguredFromProfile(configuration);
+        if (!profileConfiguration) {
+            // it means we're activated using file from ${karaf.etc} directory
+            boolean connectedToFabric = System.getProperty("zookeeper.url") != null && !"".equals(System.getProperty("zookeeper.url").trim());
+            if (!connectedToFabric) {
+                Configuration[] configurations = configurationAdmin.get().listConfigurations("(service.pid=io.fabric8.zookeeper)");
+                if (configurations != null) {
+                    for (Configuration config : configurations) {
+                        if (config.getProperties() != null && config.getProperties().get("zookeeper.url") != null
+                                && !"".equals(((String)config.getProperties().get("zookeeper.url")).trim())) {
+                            connectedToFabric = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (connectedToFabric) {
+                LOG.info("AMQ broker configuration is managed by fabric, skipping configuration.");
+                return;
+            }
+        }
+
         boolean standalone = "true".equalsIgnoreCase((String) configuration.get("standalone"));
 
         String factoryPid = standalone ?
@@ -57,18 +102,53 @@ public class BrokerDeployment {
                 "io.fabric8.mq.fabric.clustered.server";
 
         config = configurationAdmin.get().createFactoryConfiguration(factoryPid, null);
-        config.update(toDictionary(configuration));
+        config.update(toDictionary(configuration, profileConfiguration));
 
     }
 
-    private Dictionary<String, ?> toDictionary(Map<String, ?> configuration) {
+    /**
+     * Adjust configuration coming from configadmin for the needs of {@link StandaloneBrokerDeployment} or
+     * {@link ClusteredBrokerDeployment}
+     * @param configuration
+     * @param profileConfiguration
+     * @return
+     */
+    private Dictionary<String, ?> toDictionary(Map<String, ?> configuration, boolean profileConfiguration) {
         Hashtable<String, Object> properties = new Hashtable<String, Object>(configuration);
+
+        // we don't need configadmin/scr properties - configadmin ones will be added anyway automatically
         properties.remove("component.id");
         properties.remove("component.name");
         properties.remove("service.factoryPid");
+
+        // we'll have new PID (io.fabric8.mq.fabric.server -> io.fabric8.mq.fabric.[standalone|clustered].server
         String pid = (String) properties.remove("service.pid");
+
+        // but we'll remember original PID
         properties.put("mq.fabric.server.pid", pid);
+
+        // and "current" configuration indicated by timestamp. When container is not shut down cleanly, we'll be able
+        // to check if the configuration is an old one (failed to be deleted in this.deactivate())
         properties.put("mq.fabric.server.ts", LOAD_TS);
+
+        // if broker is created from etc/*.cfg, we are *not* removing fabric.zookeeper.pid property, so
+        // FabricConfigAdminBridge will be able to match PID from special PID in default profile
+        // with standalone broker when entering fabric. This special PID changes the configuration from
+        // etc/io.fabric8.mq.fabric.server-broker.cfg using fabric.zookeeper.pid property matching.
+        // This broker config will become "fabric.managed = true", so it won't lead to creation of new
+        // factory PID (either standalone or cluster)
+        // if broker is created from profile, we have to remove this property, because it's this
+        // SCR component that manages given (standalone or clustered) PID, and not FabricConfigAdminBridge
+        if (profileConfiguration) {
+            properties.remove("fabric.zookeeper.pid");
+        }
+
+        // TRICK: we are not removing "felix.fileinstall.filename" property, so even if we're creating new PID,
+        // the CM_UPDATED event will be reflected inside original etc/io.fabric8.mq.fabric.server-broker.cfg file
+        // This will ensure that even if StandaloneBrokerDeployment (and subclasses) will be activated multiple times
+        // (once in this SCR's activate() when calling config.update(c) and for each existing configadmin PID),
+        // only the "current" concrete SCR component will start the broker.
+
         return properties;
     }
 
@@ -77,7 +157,13 @@ public class BrokerDeployment {
         if( config!=null ) {
            try
            {
-              config.update(toDictionary(configuration));
+               boolean fabricManaged = "true".equalsIgnoreCase((String) configuration.get("fabric.managed"));
+               if (fabricManaged) {
+                   LOG.info("AMQ broker configuration is managed by fabric, skipping configuration.");
+                   config.delete();
+                   return;
+               }
+              config.update(toDictionary(configuration, isConfiguredFromProfile(configuration)));
            }
            catch (IllegalStateException e)
            {
@@ -97,6 +183,17 @@ public class BrokerDeployment {
            catch (IllegalStateException ignore) {
            }
         }
+    }
+
+    /**
+     * Checks whether the configuration was creted from fabric profile or from
+     * <code>${karaf.etc}/*.cfg</code> file
+     * @param configuration
+     * @return
+     */
+    private boolean isConfiguredFromProfile(Map<String, ?> configuration) {
+        String etcFileName = (String) configuration.get("felix.fileinstall.filename");
+        return etcFileName == null || "".equals(etcFileName.trim());
     }
 
     void bindConfigurationAdmin(ConfigurationAdmin service) {

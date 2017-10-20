@@ -24,14 +24,18 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Modified;
-import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
-import org.osgi.service.url.URLStreamHandlerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * <p>SCR component responsible for standalone broker management using configadmin.</p>
+ * <p>This component may be activated in multiple instances - for each PID related to <code>io.fabric8.mq.fabric.standalone.server</code>
+ * <em>factory PID</em> - either existing one, or one just created by an activated {@link BrokerDeployment} SCR
+ * instance</p>
+ */
 @Component(
     name = "io.fabric8.mq.fabric.standalone.server",
     label = "Fabric8 ActiveMQ Standalone Deployment",
@@ -57,9 +61,13 @@ public class StandaloneBrokerDeployment {
         // Make sure the original config we are linked to still exists.
         if( !BrokerDeployment.LOAD_TS.equals(properties.getProperty("mq.fabric.server.ts") ) ) {
             // Our pid is now stale.
+            // The properties we were activated with come from stale, not correctly deleted
+            // configuration, which should be deleted in io.fabric8.mq.fabric.BrokerDeployment.deactivate()
+            // we don't have to remove any real broker instance, because we've simply not created one
             Configuration ourConfig = getConfigurationAdmin().getConfiguration(properties.getProperty("service.pid"));
             ourConfig.delete();
         } else {
+            // Our pid is "fresh", we may procede with broker creation
             pid = properties.getProperty("service.pid");
             getBrokerDeploymentManager().updated(pid, properties);
         }
