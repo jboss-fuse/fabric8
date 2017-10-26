@@ -73,8 +73,7 @@ public class BrokerDeployment {
             return;
         }
 
-        boolean profileConfiguration = isConfiguredFromProfile(configuration);
-        if (!profileConfiguration) {
+        if (!isConfiguredFromProfile(configuration)) {
             // it means we're activated using file from ${karaf.etc} directory
             boolean connectedToFabric = System.getProperty("zookeeper.url") != null && !"".equals(System.getProperty("zookeeper.url").trim());
             if (!connectedToFabric) {
@@ -102,7 +101,7 @@ public class BrokerDeployment {
                 "io.fabric8.mq.fabric.clustered.server";
 
         config = configurationAdmin.get().createFactoryConfiguration(factoryPid, null);
-        config.update(toDictionary(configuration, profileConfiguration));
+        config.update(toDictionary(configuration));
 
     }
 
@@ -110,10 +109,9 @@ public class BrokerDeployment {
      * Adjust configuration coming from configadmin for the needs of {@link StandaloneBrokerDeployment} or
      * {@link ClusteredBrokerDeployment}
      * @param configuration
-     * @param profileConfiguration
      * @return
      */
-    private Dictionary<String, ?> toDictionary(Map<String, ?> configuration, boolean profileConfiguration) {
+    private Dictionary<String, ?> toDictionary(Map<String, ?> configuration) {
         Hashtable<String, Object> properties = new Hashtable<String, Object>(configuration);
 
         // we don't need configadmin/scr properties - configadmin ones will be added anyway automatically
@@ -131,23 +129,17 @@ public class BrokerDeployment {
         // to check if the configuration is an old one (failed to be deleted in this.deactivate())
         properties.put("mq.fabric.server.ts", LOAD_TS);
 
-        // if broker is created from etc/*.cfg, we are *not* removing fabric.zookeeper.pid property, so
-        // FabricConfigAdminBridge will be able to match PID from special PID in default profile
-        // with standalone broker when entering fabric. This special PID changes the configuration from
-        // etc/io.fabric8.mq.fabric.server-broker.cfg using fabric.zookeeper.pid property matching.
-        // This broker config will become "fabric.managed = true", so it won't lead to creation of new
-        // factory PID (either standalone or cluster)
-        // if broker is created from profile, we have to remove this property, because it's this
-        // SCR component that manages given (standalone or clustered) PID, and not FabricConfigAdminBridge
-        if (profileConfiguration) {
-            properties.remove("fabric.zookeeper.pid");
-        }
+        // This SCR component manages given (standalone or clustered) PID, and not FabricConfigAdminBridge, so we
+        // don't need fabric.zookeeper.pid in io.fabric8.mq.fabric.[standalone|clustered].server
+        // we'll still have it in io.fabric8.mq.fabric.server, so FCAB will update it on the basis of new special
+        // profile with "fabric.managed = true" property
+        properties.remove("fabric.zookeeper.pid");
 
-        // TRICK: we are not removing "felix.fileinstall.filename" property, so even if we're creating new PID,
-        // the CM_UPDATED event will be reflected inside original etc/io.fabric8.mq.fabric.server-broker.cfg file
-        // This will ensure that even if StandaloneBrokerDeployment (and subclasses) will be activated multiple times
-        // (once in this SCR's activate() when calling config.update(c) and for each existing configadmin PID),
-        // only the "current" concrete SCR component will start the broker.
+        // we have to remove fileinstall reference, so FCAB updates won't be propagated back to
+        // etc/io.fabric8.mq.fabric.server-broker.cfg file When updating
+        // io.fabric8.mq.fabric.[standalone|clustered].server PIDs. However update to
+        // io.fabric8.mq.fabric.server PID *will be* propaged
+        properties.remove("felix.fileinstall.filename");
 
         return properties;
     }
@@ -163,7 +155,7 @@ public class BrokerDeployment {
                    config.delete();
                    return;
                }
-              config.update(toDictionary(configuration, isConfiguredFromProfile(configuration)));
+              config.update(toDictionary(configuration));
            }
            catch (IllegalStateException e)
            {
