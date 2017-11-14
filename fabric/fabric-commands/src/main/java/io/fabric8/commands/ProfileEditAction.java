@@ -71,8 +71,7 @@ public class ProfileEditAction extends AbstractAction {
     static final String EXT_PREFIX = "ext.";
     static final String DELIMITER = ",";
     static final String PID_KEY_SEPARATOR = "/";
-    static final String PROFILE_EDIT_INPUT_REGEX="^..*/..*=.*";
-
+    static final String PROFILE_EDIT_INPUT_REGEX="^.+/.+=.*";
     static final String FILE_INSTALL_FILENAME_PROPERTY = "felix.fileinstall.filename";
 
 
@@ -215,14 +214,11 @@ public class ProfileEditAction extends AbstractAction {
             editInLine = true;
             handleOverrides(builder, overrides, profile);
         }
-
+        
         if (pidProperties != null && pidProperties.length > 0) {
-            
-            if(validateProfileEditInput(pidProperties) || (delete || remove)){
-                
+            if ((delete || remove) || validateProfileEditInput(pidProperties)) {
                 editInLine = handlePid(builder, pidProperties, profile);
-            }
-            else {
+            } else {
                 System.out.println("Enter pid value in proper format like --pid <PID>/<Property>=<Value>");
                 LOGGER.error("Error validating pid property value for profile edit. Enter pid value in proper format like --pid <PID>/<Property>=<Value>");
                 return;
@@ -260,7 +256,6 @@ public class ProfileEditAction extends AbstractAction {
     /**
      * Validate the pid input value
      */
-    
     private boolean validateProfileEditInput(String[] pidProperties) {
         boolean validationResult = true;
         final Pattern pattern = Pattern.compile(PROFILE_EDIT_INPUT_REGEX);
@@ -270,9 +265,7 @@ public class ProfileEditAction extends AbstractAction {
             }
         }
         return validationResult;
-
     }
-    
 
     /**
      * Adds or remove the specified features to the specified profile.
