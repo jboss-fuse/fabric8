@@ -17,6 +17,8 @@ package io.fabric8.service;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.util.Dictionary;
+import java.util.Hashtable;
 import java.util.Map;
 
 import io.fabric8.api.FabricException;
@@ -43,6 +45,7 @@ import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.Service;
 import org.jasypt.encryption.pbe.PBEStringEncryptor;
 import org.jasypt.encryption.pbe.StandardPBEStringEncryptor;
+import org.jasypt.exceptions.EncryptionOperationNotPossibleException;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.ServiceRegistration;
@@ -153,6 +156,28 @@ public final class EncryptedPropertyResolver extends AbstractComponent implement
                 pmField.setAccessible(true);
                 PersistenceManager originalPM = (PersistenceManager) pmField.get(persistenceManagersValue[0]);
                 pmField.set(persistenceManagersValue[0], pm);
+                // decrypt org.apache.felix.cm.impl.CachingPersistenceManagerProxy.cache
+                Field cacheField = persistenceManagersValue[0].getClass().getDeclaredField("cache");
+                cacheField.setAccessible(true);
+                Hashtable<String,Dictionary> hashMap = (Hashtable<String,Dictionary>) cacheField.get(persistenceManagersValue[0]);
+                for (Dictionary<String, String> storedProps : hashMap.values()) {
+                    String encryptedValuesList = storedProps.get("fabric.zookeeper.encrypted.values");
+                    if (encryptedValuesList == null) {
+                        continue;
+                    }
+                    String[] encryptedValues = encryptedValuesList.split("\\s*,\\s");
+                    for (String encryptedValue : encryptedValues) {
+                        String value = storedProps.get(encryptedValue);
+                        if (value != null && value.startsWith("crypt:")) {
+                            storedProps.put(encryptedValue + ".encrypted", value);
+                            try {
+                                storedProps.put(encryptedValue, encryptor.decrypt(value.substring("crypt:".length())));
+                            } catch (EncryptionOperationNotPossibleException e) {
+                                LOG.error(e.getMessage(), e);
+                            }
+                        }
+                    }
+                }
                 return originalPM;
             }
         } catch (Exception e) {
