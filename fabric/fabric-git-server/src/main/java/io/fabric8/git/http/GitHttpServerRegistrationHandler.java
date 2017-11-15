@@ -361,7 +361,7 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
                 unregisterGitHttpEndpoint();
                 mbeanServer.get().registerMBean(mbean, objectName);
             } catch (Exception e) {
-                LOGGER.warn("Exception during " + objectName + " unregistration: " + e.getMessage(), e);
+                LOGGER.warn("Exception during " + objectName + " registration: " + e.getMessage(), e);
             }
         }
     }

@@ -63,6 +63,8 @@
         <!-- referenced from $KARAF_HOME/etc/org.apache.karaf.features.cfg -->
         <feature>jsr-311</feature>
         <!-- bundles required before entering fabric mode - for child containers created from ssh containers -->
+        <bundle dependency="true">mvn:io.fabric8/fabric-api/${project.version}</bundle>
+        <bundle dependency="true">mvn:io.fabric8/fabric-boot-commands/${project.version}</bundle>
         <bundle dependency="true">mvn:io.fabric8/fabric-maven/${project.version}</bundle>
         <bundle dependency="true">mvn:io.fabric8.patch/patch-core-api/${project.version}</bundle>
         <bundle dependency="true">mvn:io.fabric8.patch/patch-core/${project.version}</bundle>
@@ -255,6 +257,7 @@
         <bundle>mvn:org.apache.felix/org.apache.felix.metatype/${felix-metatype-version}</bundle>
         <bundle>mvn:io.fabric8/common-util/${project.version}</bundle>
         <bundle>mvn:io.fabric8/fabric-api/${project.version}</bundle>
+        <bundle>mvn:io.fabric8/fabric-boot-commands/${project.version}</bundle>
         <bundle>mvn:io.fabric8/fabric-core/${project.version}</bundle>
         <bundle>mvn:io.fabric8/fabric-groups/${project.version}</bundle>
         <bundle>mvn:io.fabric8/fabric-git/${project.version}</bundle>
