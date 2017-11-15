@@ -111,7 +111,7 @@ public final class FabricValidations {
      }
     
     public static boolean isValidPidProperty(String pidProperty){
-        return pidProperty != null && !pidProperty.isEmpty() &&  (!pidProperty.contains(PID_KEY_SEPARATOR)) || (pidProperty.contains(PID_KEY_SEPARATOR) && PID_PROPERTY_PATTERN.matcher(pidProperty).matches());
+        return pidProperty != null && !pidProperty.isEmpty() &&  ( !pidProperty.contains(PID_KEY_SEPARATOR) ||  PID_PROPERTY_PATTERN.matcher(pidProperty).matches() );
     }
 
     public static boolean isURIValid(String uriString) {
