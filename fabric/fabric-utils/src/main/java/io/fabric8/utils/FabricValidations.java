@@ -33,6 +33,11 @@ public final class FabricValidations {
     
     // we allow using dot in service names
     private static final Pattern ALLOWED_VERSION_NAMES_PATTERN = Pattern.compile("^[a-zA-Z0-9]+[\\.a-zA-Z0-9_-]*$");
+    
+    // check the pid property contains the pid name and it's key and value
+    private static final Pattern PID_PROPERTY_PATTERN= Pattern.compile("^.+/.+=.*");
+
+    private static final String PID_KEY_SEPARATOR= "/";
 
     private FabricValidations() {
         //Utility Class
@@ -71,6 +76,20 @@ public final class FabricValidations {
         }
     }
 
+    public static void validatePidProperties(String[] pidProperties){
+        if (pidProperties != null && pidProperties.length > 0) {
+            for (String pidProperty : pidProperties) {
+                validatePidProperty(pidProperty);
+            }
+        } 
+    }
+
+    public static void validatePidProperty(String pidProperty){
+        if (!isValidPidProperty(pidProperty)) {
+            throw new IllegalArgumentException("Enter pid value in proper format like --pid <PID>/<Property>=<Value>");
+        }
+    }
+
     /**
      * @deprecated use {@link #isValidContainerName(String)}
      */
@@ -90,6 +109,10 @@ public final class FabricValidations {
     public static boolean isValidVersionName(String name) {
         return name != null && !name.isEmpty() && ALLOWED_VERSION_NAMES_PATTERN.matcher(name).matches();
      }
+    
+    public static boolean isValidPidProperty(String pidProperty){
+        return pidProperty != null && !pidProperty.isEmpty() &&  (!pidProperty.contains(PID_KEY_SEPARATOR)) || (pidProperty.contains(PID_KEY_SEPARATOR) && PID_PROPERTY_PATTERN.matcher(pidProperty).matches());
+    }
 
     public static boolean isURIValid(String uriString) {
         URI uri = null;
