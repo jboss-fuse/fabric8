@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+
+     Copyright 2005-2017 Red Hat, Inc.
+
+     Red Hat licenses this file to you under the Apache License, version
+     2.0 (the "License"); you may not use this file except in compliance
+     with the License.  You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+     implied.  See the License for the specific language governing
+     permissions and limitations under the License.
+
+-->
+
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+
+    <!-- localRepository used if org.ops4j.pax.url.mvn.localRepository property is not configured -->
+    <localRepository />
+
+    <!--
+        This is the place to configure http proxies used by Aether.
+        If there's no proxy for "https" protocol, proxy for "http" will be used when accessing remote repository
+    -->
+    <proxies>
+        <!--
+        <proxy>
+            <id>proxy</id>
+            <host>127.0.0.1</host>
+            <port>3128</port>
+            <protocol>http</protocol>
+            <username></username>
+            <password></password>
+            <nonProxyHosts>127.0.0.*|*.repository.corp</nonProxyHosts>
+        </proxy>
+        -->
+    </proxies>
+
+    <!--
+        pax-url-aether may use the below configuration to:
+         - add custom HTTP headers when accessing remote repositories with a given identifier
+         - use HTTP Basic authentication. Password may be in plaintext or encrypted form
+        Server configuration is effective also for repositories configured in org.ops4j.pax.url.mvn.repositories
+        property (matched by @id=server-id parameter in Maven repository URI)
+    -->
+    <servers>
+        <!--
+        <server>
+            <id>maven.central.repo</id>
+            <configuration>
+                <httpHeaders>
+                    <httpHeader>
+                        <name>User-Agent</name>
+                        <value>Karaf</value>
+                    </httpHeader>
+                </httpHeaders>
+            </configuration>
+            <username>username</username>
+            <password>password</password>
+        </server>
+        -->
+    </servers>
+
+    <mirrors />
+
+    <!--
+        If org.ops4j.pax.url.mvn.repositories property is _prepended_ with '+' sign, repositories from all active
+        profiles will be _appended_ to the list of searched remote repositories
+    -->
+    <profiles>
+        <profile>
+            <id>default</id>
+            <!--
+            <repositories>
+                <repository>
+                    <id>private.repository</id>
+                    <url>http://localhost/maven-repository</url>
+                </repository>
+            </repositories>
+            -->
+        </profile>
+    </profiles>
+
+    <activeProfiles>
+        <activeProfile>default</activeProfile>
+    </activeProfiles>
+
+</settings>

@@ -101,6 +101,20 @@
             <groupId>io.fabric8</groupId>
             <artifactId>common-util</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.fabric8</groupId>
+            <artifactId>fabric-boot-commands</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.karaf.shell</groupId>
+            <artifactId>org.apache.karaf.shell.console</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.felix</groupId>
+            <artifactId>org.apache.felix.scr.annotations</artifactId>
+            <scope>provided</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.ops4j.base</groupId>
@@ -178,7 +192,13 @@
                             resolution:=optional,
                             javax.*,
                             org.ietf.jgss;resolution:=optional,
+                            io.fabric8.api*,
+                            io.fabric8.boot.commands*,
                             io.fabric8.common.util.*,
+                            jline*,
+                            org.apache.felix.gogo*,
+                            org.apache.felix.service.command,
+                            org.apache.karaf.shell*,
                             org.osgi.*,
                             org.slf4j.*,
                             org.ops4j.util.property.*,
@@ -189,11 +209,13 @@
                         </Import-Package>
                         <Export-Package>
                             io.fabric8.maven*;version=${project.version},
-                            org.eclipse.*,
+                            org.eclipse.aether.*,
+                            org.eclipse.sisu.*,
                             org.apache.maven.*;version=${maven-version};-split-package:=merge-first,
                             org.codehaus.*
                         </Export-Package>
                         <Private-Package>
+                            io.fabric8.utils.shell;-split-package:=first,
                             org.apache.http*,
                             org.sonatype.plexus.components.cipher.*,
                             org.sonatype.plexus.components.sec.*
@@ -205,6 +227,22 @@
                         <Bundle-Activator>io.fabric8.maven.url.internal.Activator</Bundle-Activator>
                     </instructions>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-scr-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>scr</goal>
+                        </goals>
+                        <configuration>
+                            <specVersion>1.2</specVersion>
+                            <strictMode>false</strictMode>
+                            <includes>io/fabric8/maven/commands/**</includes>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
