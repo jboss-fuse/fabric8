@@ -70,7 +70,6 @@ public class ProfileEditAction extends AbstractAction {
     static final String EXT_PREFIX = "ext.";
     static final String DELIMITER = ",";
     static final String PID_KEY_SEPARATOR = "/";
-
     static final String FILE_INSTALL_FILENAME_PROPERTY = "felix.fileinstall.filename";
 
 
@@ -152,6 +151,9 @@ public class ProfileEditAction extends AbstractAction {
     protected Object doExecute() throws Exception {
         try {
             FabricValidations.validateProfileName(profileName);
+            if (!(delete || remove)) {
+                FabricValidations.validatePidProperties(pidProperties);
+            }
         } catch (IllegalArgumentException e) {
             // we do not want exception in the server log, so print the error message to the console
             System.out.println(e.getMessage());
@@ -213,7 +215,7 @@ public class ProfileEditAction extends AbstractAction {
             editInLine = true;
             handleOverrides(builder, overrides, profile);
         }
-
+        
         if (pidProperties != null && pidProperties.length > 0) {
             editInLine = handlePid(builder, pidProperties, profile);
         }
