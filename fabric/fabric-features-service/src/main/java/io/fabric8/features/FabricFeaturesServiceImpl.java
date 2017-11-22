@@ -292,9 +292,7 @@ public final class FabricFeaturesServiceImpl extends AbstractComponent implement
                             f = versionMap.lastEntry().getValue();
                         }
                         addFeatures(f, installed);
-                    } catch (Throwable ex) {
-                        // may also throw java.lang.NoClassDefFoundError when
-                        // bundle wiring is no longer active - ignoring
+                    } catch (Exception ex) {
                         LOGGER.debug("Error while adding {} to the features list");
                     }
                 }
@@ -302,8 +300,6 @@ public final class FabricFeaturesServiceImpl extends AbstractComponent implement
                 if ("Client is not started".equals(e.getMessage())){
                     LOGGER.warn("Zookeeper connection not available. It's not yet possible to compute features.");
                 }
-            } catch (InvalidComponentException e) {
-                LOGGER.info("FeaturesService was deactivated");
             } catch (Exception e) {
                 LOGGER.error("Error retrieving features.", e);
             }
