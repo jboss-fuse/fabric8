@@ -250,7 +250,7 @@ public class GitPatchRepositoryImpl implements GitPatchRepository {
                 Git git = Git.init()
                         .setBare(bare && !isFabric)
                         .setDirectory(directory)
-                        .setGitDir(bare ? directory : new File(directory, Constants.DOT_GIT))
+                        .setGitDir(bare && !isFabric ? directory : new File(directory, Constants.DOT_GIT))
                         .call();
 
                 // first commit - it's in master branch
