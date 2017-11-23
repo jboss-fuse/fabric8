@@ -1,9 +1,10 @@
 package org.fusesource.camel.component.sap.springboot;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.camel.spring.boot.ComponentConfigurationPropertiesCommon;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
@@ -40,9 +41,9 @@ public class SapConnectionConfiguration extends ComponentConfigurationProperties
 
 	@Configuration
 	public static class SapConnectionConfigurationNestedConfiguration {
-		private Map<String, DestinationData> destinationDataStore;
-		private Map<String, ServerData> serverDataStore;
-		// private Map<String, RepositoryData> repositoryDataStore;
+		private Map<String, DestinationData> destinationDataStore = new HashMap<String, DestinationData>();
+		private Map<String, ServerData> serverDataStore = new HashMap<String, ServerData>();
+		private Map<String, RepositoryData> repositoryDataStore = new HashMap<String, RepositoryData>();
 
 		public Map<String, DestinationData> getDestinationDataStore() {
 			return destinationDataStore;
@@ -59,15 +60,14 @@ public class SapConnectionConfiguration extends ComponentConfigurationProperties
 		public void setServerDataStore(Map<String, ServerData> serverDataStore) {
 			this.serverDataStore = serverDataStore;
 		}
-		// public Map<String, RepositoryData> getRepositoryDataStore() {
-		// return repositoryDataStore;
-		// }
-		// public void setRepositoryDataStore(Map<String, RepositoryData>
-		// repositoryDataStore) {
-		// this.repositoryDataStore = repositoryDataStore;
-		// }
 
-		// }
+		public Map<String, RepositoryData> getRepositoryDataStore() {
+			return repositoryDataStore;
+		}
+
+		public void setRepositoryDataStore(Map<String, RepositoryData> repositoryDataStore) {
+			this.repositoryDataStore = repositoryDataStore;
+		}
 
 		public static class DestinationData {
 			private String aliasUser;
@@ -633,8 +633,327 @@ public class SapConnectionConfiguration extends ComponentConfigurationProperties
 				this.sncLib = sncLib;
 			}
 		}
+		
+		 public static class RepositoryData {
+			 
+			 private Map<String, FunctionTemplate> functionTemplates;
+
+			public Map<String, FunctionTemplate> getFunctionTemplates() {
+				return functionTemplates;
+			}
+
+			public void setFunctionTemplates(Map<String, FunctionTemplate> functionTemplates) {
+				this.functionTemplates = functionTemplates;
+			}
+				
+		 }
+		 
+		public static class FunctionTemplate {
+
+			private List<ListFieldMetaData> importParameterList;
+			private List<ListFieldMetaData> exportParameterList;
+			private List<ListFieldMetaData> changingParameterList;
+			private List<ListFieldMetaData> tableParameterList;
+			private List<AbapException> exceptionList;
+
+			public List<ListFieldMetaData> getImportParameterList() {
+				return importParameterList;
+			}
+
+			public void setImportParameterList(List<ListFieldMetaData> importParameterList) {
+				this.importParameterList = importParameterList;
+			}
+
+			public List<ListFieldMetaData> getExportParameterList() {
+				return exportParameterList;
+			}
+
+			public void setExportParameterList(List<ListFieldMetaData> exportParameterList) {
+				this.exportParameterList = exportParameterList;
+			}
+
+			public List<ListFieldMetaData> getChangingParameterList() {
+				return changingParameterList;
+			}
+
+			public void setChangingParameterList(List<ListFieldMetaData> changingParameterList) {
+				this.changingParameterList = changingParameterList;
+			}
+
+			public List<ListFieldMetaData> getTableParameterList() {
+				return tableParameterList;
+			}
+
+			public void setTableParameterList(List<ListFieldMetaData> tableParameterList) {
+				this.tableParameterList = tableParameterList;
+			}
+
+			public List<AbapException> getExceptionList() {
+				return exceptionList;
+			}
+
+			public void setExceptionList(List<AbapException> exceptionList) {
+				this.exceptionList = exceptionList;
+			}
+
+		}
+		 
+		public static class AbapException {
+
+			private String key;
+			private String message;
+
+			public String getKey() {
+				return key;
+			}
+
+			public void setKey(String key) {
+				this.key = key;
+			}
+
+			public String getMessage() {
+				return message;
+			}
+
+			public void setMessage(String message) {
+				this.message = message;
+			}
+
+		}
+
+		public static class ListFieldMetaData {
+
+			private String name;
+			private String description;
+			private String type;
+			private boolean export;
+			private boolean import_;
+			private boolean changing;
+			private boolean exception;
+			private boolean optional;
+			private String defaults;
+			private int decimals;
+			private int byteLength;
+			private int unicodeByteLength;
+
+			private RecordMetaData recordMetaData;
+
+			public String getName() {
+				return name;
+			}
+
+			public void setName(String name) {
+				this.name = name;
+			}
+
+			public String getDescription() {
+				return description;
+			}
+
+			public void setDescription(String description) {
+				this.description = description;
+			}
+
+			public String getType() {
+				return type;
+			}
+
+			public void setType(String type) {
+				this.type = type;
+			}
+
+			public boolean isExport() {
+				return export;
+			}
+
+			public void setExport(boolean export) {
+				this.export = export;
+			}
+
+			public boolean isImport() {
+				return import_;
+			}
+
+			public void setImport(boolean import_) {
+				this.import_ = import_;
+			}
+
+			public boolean isChanging() {
+				return changing;
+			}
+
+			public void setChanging(boolean changing) {
+				this.changing = changing;
+			}
+
+			public boolean isException() {
+				return exception;
+			}
+
+			public void setException(boolean exception) {
+				this.exception = exception;
+			}
+
+			public boolean isOptional() {
+				return optional;
+			}
+
+			public void setOptional(boolean optional) {
+				this.optional = optional;
+			}
+
+			public String getDefaults() {
+				return defaults;
+			}
+
+			public void setDefaults(String defaults) {
+				this.defaults = defaults;
+			}
+
+			public int getDecimals() {
+				return decimals;
+			}
+
+			public void setDecimals(int decimals) {
+				this.decimals = decimals;
+			}
+
+			public int getByteLength() {
+				return byteLength;
+			}
+
+			public void setByteLength(int byteLength) {
+				this.byteLength = byteLength;
+			}
+
+			public int getUnicodeByteLength() {
+				return unicodeByteLength;
+			}
+
+			public void setUnicodeByteLength(int unicodeByteLength) {
+				this.unicodeByteLength = unicodeByteLength;
+			}
+
+			public RecordMetaData getRecordMetaData() {
+				return recordMetaData;
+			}
+
+			public void setRecordMetaData(RecordMetaData recordMetaData) {
+				this.recordMetaData = recordMetaData;
+			}
+
+		}
+		 
+		public static class FieldMetaData {
+
+			private String name;
+			private String description;
+			private String type;
+			private int decimals;
+			private int byteLength;
+			private int byteOffset;
+			private int unicodeByteLength;
+			private int unicodeByteOffset;
+
+			private RecordMetaData recordMetaData;
+
+			public String getName() {
+				return name;
+			}
+
+			public void setName(String name) {
+				this.name = name;
+			}
+
+			public String getDescription() {
+				return description;
+			}
+
+			public void setDescription(String description) {
+				this.description = description;
+			}
+
+			public String getType() {
+				return type;
+			}
+
+			public void setType(String type) {
+				this.type = type;
+			}
+
+			public int getDecimals() {
+				return decimals;
+			}
+
+			public void setDecimals(int decimals) {
+				this.decimals = decimals;
+			}
+
+			public int getByteLength() {
+				return byteLength;
+			}
+
+			public void setByteLength(int byteLength) {
+				this.byteLength = byteLength;
+			}
+
+			public int getByteOffset() {
+				return byteOffset;
+			}
+
+			public void setByteOffset(int byteOffset) {
+				this.byteOffset = byteOffset;
+			}
+
+			public int getUnicodeByteLength() {
+				return unicodeByteLength;
+			}
+
+			public void setUnicodeByteLength(int unicodeByteLength) {
+				this.unicodeByteLength = unicodeByteLength;
+			}
+
+			public int getUnicodeByteOffset() {
+				return unicodeByteOffset;
+			}
+
+			public void setUnicodeByteOffset(int unicodeByteOffset) {
+				this.unicodeByteOffset = unicodeByteOffset;
+			}
+
+			public RecordMetaData getRecordMetaData() {
+				return recordMetaData;
+			}
+
+			public void setRecordMetaData(RecordMetaData recordMetaData) {
+				this.recordMetaData = recordMetaData;
+			}
+
+		}
+		 
+		public static class RecordMetaData {
+
+			private String name;
+			private List<FieldMetaData> recordFieldMetaData;
+
+			public String getName() {
+				return name;
+			}
+
+			public void setName(String name) {
+				this.name = name;
+			}
+
+			public List<FieldMetaData> getRecordFieldMetaData() {
+				return recordFieldMetaData;
+			}
+
+			public void setRecordFieldMetaData(List<FieldMetaData> recordFieldMetaData) {
+				this.recordFieldMetaData = recordFieldMetaData;
+			}
+
+		}
+
 	}
-	// public static class RepositoryData {
-	//
-	// }
+	
 }
