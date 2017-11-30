@@ -272,7 +272,9 @@ public class DeploymentAgent implements ManagedService {
     }
 
     public void updated(final Dictionary<String, ?> props) throws ConfigurationException {
-        LOGGER.info("DeploymentAgent {} updated with {}", deploymentAgentId, props);
+        // ENTESB-7459 do not log decrypted properties
+        Dictionary filteredProps = filterDecryptedProperties(props);
+        LOGGER.info("DeploymentAgent {} updated with {}", deploymentAgentId, filteredProps);
         synchronized (executor) {
             if (executor.isShutdown() || props == null) {
                 return;
@@ -294,6 +296,26 @@ public class DeploymentAgent implements ManagedService {
                 }
             });
         }
+    }
+
+    private Dictionary filterDecryptedProperties(Dictionary<String, ?> props) {
+        Dictionary encryptedProps = props;
+        if (props != null && props.get("fabric.zookeeper.encrypted.values") != null) {
+            String encryptedValuesList = (String) props.get("fabric.zookeeper.encrypted.values");
+            Hashtable<Object, Object> newProps = new Hashtable<>();
+            for (Enumeration<?> e = props.keys(); e.hasMoreElements(); ) {
+                Object k = e.nextElement();
+                newProps.put(k, props.get(k));
+            }
+
+            String[] encryptedValues = encryptedValuesList.split("\\s*,\\s");
+            for (String encryptedValue : encryptedValues) {
+                newProps.put(encryptedValue, props.get(encryptedValue + ".encrypted"));
+                newProps.remove(encryptedValue + ".encrypted");
+            }
+            encryptedProps = newProps;
+        }
+        return encryptedProps;
     }
 
     private void updateStatus(String status, Throwable result) {
