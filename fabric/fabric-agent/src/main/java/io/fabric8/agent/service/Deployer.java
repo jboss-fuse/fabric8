@@ -655,9 +655,11 @@ public class Deployer {
             toStop.addAll(regionDeployment.toUpdate.keySet());
             toStop.addAll(regionDeployment.toDelete);
         }
-        Set<Bundle> toRefreshToStopEarly = new HashSet<>(toRefresh.keySet());
-        toRefreshToStopEarly.remove(dstate.serviceBundle);
-        toStop.addAll(toRefreshToStopEarly);
+        if (!noRefresh) {
+            Set<Bundle> toRefreshToStopEarly = new HashSet<>(toRefresh.keySet());
+            toRefreshToStopEarly.remove(dstate.serviceBundle);
+            toStop.addAll(toRefreshToStopEarly);
+        }
         removeFragmentsAndBundlesInState(toStop, UNINSTALLED | RESOLVED | STOPPING);
         if (!toStop.isEmpty()) {
             callback.phase("updating (stopping bundles)");
