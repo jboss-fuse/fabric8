@@ -15,6 +15,7 @@
  */
 package io.fabric8.mq.fabric;
 
+import java.util.Dictionary;
 import java.util.Map;
 import java.util.Properties;
 
@@ -60,12 +61,22 @@ public class StandaloneBrokerDeployment {
 
         // Make sure the original config we are linked to still exists.
         if( !BrokerDeployment.LOAD_TS.equals(properties.getProperty("mq.fabric.server.ts") ) ) {
-            // Our pid is now stale.
+            // Our pid is now stale (or there's inactive=true property inside).
             // The properties we were activated with come from stale, not correctly deleted
             // configuration, which should be deleted in io.fabric8.mq.fabric.BrokerDeployment.deactivate()
             // we don't have to remove any real broker instance, because we've simply not created one
             Configuration ourConfig = getConfigurationAdmin().getConfiguration(properties.getProperty("service.pid"));
-            ourConfig.delete();
+            // ENTESB-7515: we have to be careful to NOT delete etc/io.fabric8.mq.fabric.server-broker.cfg
+            Dictionary<String, Object> props = ourConfig.getProperties();
+            if (props != null && props.get("felix.fileinstall.filename") != null) {
+                props.remove("felix.fileinstall.filename");
+                props.put("inactive", "true");
+                ourConfig.update(props);
+                // we can't delete such configuration, because fileinstall will remove the file even
+                // if there's no "felix.fileinstall.filename" property - that's how CM_DELETED is handled
+            } else {
+                ourConfig.delete();
+            }
         } else {
             // Our pid is "fresh", we may procede with broker creation
             pid = properties.getProperty("service.pid");
