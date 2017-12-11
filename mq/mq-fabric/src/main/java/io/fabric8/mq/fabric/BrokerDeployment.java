@@ -167,13 +167,20 @@ public class BrokerDeployment {
 
     @Deactivate
     void deactivate() throws IOException {
-        if( config!=null ) {
-           try
-           {
-              config.delete();
-           }
-           catch (IllegalStateException ignore) {
-           }
+        if (config != null) {
+            try {
+                Dictionary<String, Object> props = config.getProperties();
+                if (props != null && props.get("felix.fileinstall.filename") != null) {
+                    props.remove("felix.fileinstall.filename");
+                    props.put("inactive", "true");
+                    config.update(props);
+                    // we can't delete such configuration, because fileinstall will remove the file even
+                    // if there's no "felix.fileinstall.filename" property - that's how CM_DELETED is handled
+                } else {
+                    config.delete();
+                }
+            } catch (IllegalStateException ignore) {
+            }
         }
     }
 
