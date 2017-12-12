@@ -22,7 +22,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<java.version>1.8</java.version>
-		<camel-version>2.21.0.fuse-000011</camel-version>
+		<camel-version>2.21.0.fuse-000007</camel-version>
 		<sapjco3-version>3.0.11</sapjco3-version>
 		<sapidoc3-version>3.0.10</sapidoc3-version>
 		<lib.directory>${project.build.directory}/lib</lib.directory>
