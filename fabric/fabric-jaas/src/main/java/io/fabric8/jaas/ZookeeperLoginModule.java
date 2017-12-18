@@ -58,8 +58,10 @@ public class ZookeeperLoginModule implements LoginModule {
     private String rolePolicy;
     private Subject subject;
     private boolean debug = false;
-    private Properties users = new Properties();
-    private Properties containers = new Properties();
+    private static Properties users = new Properties();
+    private static long usersTs = -1L;
+    private static Properties containers = new Properties();
+    private static long containersTs = -1L;
     private EncryptionSupport encryptionSupport;
     private String path;
 
@@ -80,8 +82,8 @@ public class ZookeeperLoginModule implements LoginModule {
             CuratorFramework curator = CuratorFrameworkLocator.getCuratorFramework();
             if (curator != null) {
                 try {
-                    users = getProperties(curator, path);
-                    containers = getContainerTokens(curator);
+                    users = getCachedUsers(curator, path, false);
+                    containers = getCachedContainerTokens(curator, false);
                 } catch (IllegalStateException e) {
                     if ("Client is not started".equals(e.getMessage())) {
                         LOG.warn("Zookeeper connection not available. ZK authentication module is not enabled.");
@@ -93,6 +95,28 @@ public class ZookeeperLoginModule implements LoginModule {
             }
         } catch (Exception e) {
             LOG.warn("Failed fetching authentication data.", e);
+        }
+    }
+
+    private Properties getCachedUsers(CuratorFramework curator, String path, boolean force) throws Exception {
+        if (!force && usersTs + 60000L > System.currentTimeMillis()) {
+            return users;
+        }
+        synchronized (this) {
+            users = getProperties(curator, path);
+            usersTs = System.currentTimeMillis();
+            return users;
+        }
+    }
+
+    private Properties getCachedContainerTokens(CuratorFramework curator, boolean force) throws Exception {
+        if (!force && containersTs + 60000L > System.currentTimeMillis()) {
+            return containers;
+        }
+        synchronized (this) {
+            containers = getContainerTokens(curator);
+            containersTs = System.currentTimeMillis();
+            return containers;
         }
     }
 
@@ -130,12 +154,40 @@ public class ZookeeperLoginModule implements LoginModule {
 
             if (isContainerLogin(user)) {
                 String token = containers.getProperty(user);
-                if (token == null)
-                    throw new FailedLoginException("Container doesn't exist");
+                if (token == null) {
+                    // force reload cache of container tokens
+                    CuratorFramework curator = CuratorFrameworkLocator.getCuratorFramework();
+                    if (curator != null) {
+                        try {
+                            getCachedContainerTokens(curator, true);
+                            token = containers.getProperty(user);
+                        } catch (Exception e) {
+                            LOG.warn(e.getMessage());
+                        }
+                    }
+                    // didn't help
+                    if (token == null) {
+                        throw new FailedLoginException("Container doesn't exist");
+                    }
+                }
 
                 // the password is in the first position
-                if (!new String(tmpPassword).equals(token))
-                    throw new FailedLoginException("Tokens do not match");
+                if (!new String(tmpPassword).equals(token)) {
+                    // force reload cache of container tokens
+                    CuratorFramework curator = CuratorFrameworkLocator.getCuratorFramework();
+                    if (curator != null) {
+                        try {
+                            getCachedContainerTokens(curator, true);
+                            token = containers.getProperty(user);
+                        } catch (Exception e) {
+                            LOG.warn(e.getMessage());
+                        }
+                    }
+                    // didn't help
+                    if (!new String(tmpPassword).equals(token)) {
+                        throw new FailedLoginException("Tokens do not match");
+                    }
+                }
 
                 principals = new HashSet<Principal>();
                 principals.add(new UserPrincipal(user));
@@ -145,15 +197,48 @@ public class ZookeeperLoginModule implements LoginModule {
                 result = true;
             } else {
                 String userInfos = users.getProperty(user);
-                if (userInfos == null)
-                    throw new FailedLoginException("User doesn't exist");
+                if (userInfos == null) {
+                    // force reload cache of user tokens
+                    CuratorFramework curator = CuratorFrameworkLocator.getCuratorFramework();
+                    if (curator != null) {
+                        try {
+                            getCachedUsers(curator, path, true);
+                            userInfos = users.getProperty(user);
+                        } catch (Exception e) {
+                            LOG.warn(e.getMessage());
+                        }
+                    }
+                    // didn't help
+                    if (userInfos == null) {
+                        throw new FailedLoginException("User doesn't exist");
+                    }
+                }
 
                 // the password is in the first position
                 String[] infos = userInfos.split(",");
                 String password = infos[0];
 
-                if (!checkPassword(new String(tmpPassword), password))
-                    throw new FailedLoginException("Password does not match");
+                if (!checkPassword(new String(tmpPassword), password)) {
+                    // force reload cache of user tokens
+                    CuratorFramework curator = CuratorFrameworkLocator.getCuratorFramework();
+                    if (curator != null) {
+                        try {
+                            getCachedUsers(curator, path, true);
+                            userInfos = users.getProperty(user);
+                        } catch (Exception e) {
+                            LOG.warn(e.getMessage());
+                        }
+                    }
+                    // didn't help
+                    if (userInfos == null) {
+                        throw new FailedLoginException("User doesn't exist");
+                    }
+                    infos = userInfos.split(",");
+                    password = infos[0];
+                    if (!checkPassword(new String(tmpPassword), password)) {
+                        throw new FailedLoginException("Password does not match");
+                    }
+                }
 
                 principals = new HashSet<Principal>();
                 principals.add(new UserPrincipal(user));
