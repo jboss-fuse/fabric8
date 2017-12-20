@@ -225,7 +225,9 @@ public class FabricTestSupport extends FabricKarafTestSupport {
                 KarafDistributionOption.editConfigurationFilePut("fabric/import/fabric/profiles/default.profile/io.fabric8.maven.properties", "io.fabric8.maven.localRepository", "${karaf.data}/repository"),
                 // disable fetching maven-metadata.xml for SNAPSHOTS
                 KarafDistributionOption.editConfigurationFilePut("fabric/import/fabric/profiles/default.profile/io.fabric8.agent.properties", "org.ops4j.pax.url.mvn.globalUpdatePolicy", "never"),
+                KarafDistributionOption.editConfigurationFilePut("fabric/import/fabric/profiles/default.profile/io.fabric8.maven.properties", "io.fabric8.maven.globalUpdatePolicy", "never"),
                 KarafDistributionOption.editConfigurationFilePut("fabric/import/fabric/profiles/default.profile/io.fabric8.agent.properties", "org.ops4j.pax.url.mvn.globalChecksumPolicy", "ignore"),
+                KarafDistributionOption.editConfigurationFilePut("fabric/import/fabric/profiles/default.profile/io.fabric8.maven.properties", "io.fabric8.maven.globalChecksumPolicy", "ignore"),
                 KarafDistributionOption.editConfigurationFilePut("etc/org.ops4j.pax.url.mvn.cfg", "org.ops4j.pax.url.mvn.globalUpdatePolicy", "never"),
                 KarafDistributionOption.editConfigurationFilePut("etc/org.ops4j.pax.url.mvn.cfg", "org.ops4j.pax.url.mvn.globalChecksumPolicy", "ignore"),
                 // we removed ~/.m2/repository from default configuration - add this repository for tests
