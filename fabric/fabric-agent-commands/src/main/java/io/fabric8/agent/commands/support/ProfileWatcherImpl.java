@@ -32,9 +32,9 @@ import io.fabric8.api.scr.ValidatingReference;
 import io.fabric8.common.util.Closeables;
 import io.fabric8.deployer.JavaContainers;
 import io.fabric8.internal.Objects;
+import io.fabric8.maven.MavenResolver;
 import io.fabric8.maven.util.MavenConfiguration;
 import io.fabric8.maven.util.MavenConfigurationImpl;
-import io.fabric8.maven.util.MavenRepositoryURL;
 import io.fabric8.maven.util.Parser;
 import io.fabric8.service.child.ChildContainers;
 import io.fabric8.utils.Base64Encoder;
@@ -58,6 +58,7 @@ import java.util.Collections;
 import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -75,6 +76,7 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
+import org.eclipse.aether.repository.LocalRepository;
 import org.ops4j.util.property.DictionaryPropertyResolver;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.cm.Configuration;
@@ -96,6 +98,8 @@ public class ProfileWatcherImpl extends AbstractComponent implements ProfileWatc
     private final ValidatingReference<ConfigurationAdmin> configurationAdmin = new ValidatingReference<ConfigurationAdmin>();
     @Reference(referenceInterface = FabricService.class)
     private final ValidatingReference<FabricService> fabricService = new ValidatingReference<FabricService>();
+    @Reference(referenceInterface = MavenResolver.class)
+    private final ValidatingReference<MavenResolver> mavenResolver = new ValidatingReference<MavenResolver>();
 
     private AtomicBoolean running = new AtomicBoolean(false);
     private long interval = 1000L;
@@ -196,7 +200,15 @@ public class ProfileWatcherImpl extends AbstractComponent implements ProfileWatc
             refreshProfiles.clear();
 
             if (profileArtifacts != null) {
-                File localRepository = getLocalRepository();
+                List<File> localRepositories = new LinkedList<>();
+                if (mavenResolver.get().getLocalRepository() != null) {
+                    localRepositories.add(mavenResolver.get().getLocalRepository());
+                }
+                if (mavenResolver.get().getDefaultRepositories() != null) {
+                    for (LocalRepository repository : mavenResolver.get().getDefaultRepositories()) {
+                        localRepositories.add(repository.getBasedir());
+                    }
+                }
 
                 Set<Map.Entry<ProfileVersionKey, Map<String, Parser>>> entries = profileArtifacts.entrySet();
                 for (Map.Entry<ProfileVersionKey, Map<String, Parser>> entry : entries) {
@@ -227,7 +239,15 @@ public class ProfileWatcherImpl extends AbstractComponent implements ProfileWatc
                                         LOG.warn("Could not find checksum for location " + location);
                                     }
                                 } else {
-                                    File file = new File(localRepository.getPath() + File.separator + parser.getArtifactPath());
+                                    File file = null;
+                                    for (File localRepository : localRepositories) {
+                                        File _file = new File(localRepository.getPath() + File.separator + parser.getArtifactPath());
+                                        if (_file.isFile()) {
+                                            file = _file;
+                                            break;
+                                        }
+                                    }
+
                                     if (!file.exists()) {
                                         LOG.info("Ignoring file " + file.getPath() + " as it does not exist");
                                     } else {
@@ -246,6 +266,7 @@ public class ProfileWatcherImpl extends AbstractComponent implements ProfileWatc
                                                 if (localChecksum == null || !localChecksum.equals(fileChecksum)) {
                                                     localChecksums.put(file, fileChecksum);
                                                     LOG.info("Checksums don't match for " + location + ", container: " + checksum + " and local file: " + fileChecksum);
+                                                    LOG.info("Updated version of " + location + " detected in " + file);
                                                     if (isUpload()) {
                                                         uploadFile(location, parser, file);
                                                     }
@@ -256,7 +277,9 @@ public class ProfileWatcherImpl extends AbstractComponent implements ProfileWatc
                                     }
                                 }
                             } else {
-                                LOG.info("Ignoring " + location);
+                                if (LOG.isTraceEnabled()) {
+                                    LOG.trace("Ignoring " + location);
+                                }
                             }
                         }
                     }
@@ -279,7 +302,7 @@ public class ProfileWatcherImpl extends AbstractComponent implements ProfileWatc
      */
     public Map<ProfileVersionKey, Map<String, Parser>> getProfileArtifacts() {
         if (profileArtifacts == null) {
-            return Collections.EMPTY_MAP;
+            return Collections.emptyMap();
         }
         return profileArtifacts;
     }
@@ -411,21 +434,6 @@ public class ProfileWatcherImpl extends AbstractComponent implements ProfileWatc
         return profileArtifacts;
     }
 
-    public File getLocalRepository() {
-        assertValid();
-        // Attempt to retrieve local repository location from MavenConfiguration
-        MavenConfiguration configuration = retrieveMavenConfiguration();
-        if (configuration != null) {
-            MavenRepositoryURL localRepositoryURL = configuration.getLocalRepository();
-            if (localRepositoryURL != null) {
-                return localRepositoryURL.getFile().getAbsoluteFile();
-            }
-        }
-        // If local repository not found assume default.
-        String localRepo = System.getProperty("user.home") + File.separator + ".m2" + File.separator + "repository";
-        return new File(localRepo).getAbsoluteFile();
-    }
-
     protected MavenConfiguration retrieveMavenConfiguration() {
         MavenConfiguration mavenConfiguration = null;
         try {
@@ -546,4 +554,13 @@ public class ProfileWatcherImpl extends AbstractComponent implements ProfileWatc
     void unbindFabricService(FabricService fabricService) {
         this.fabricService.unbind(fabricService);
     }
+
+    void bindMavenResolver(MavenResolver mavenResolver) {
+        this.mavenResolver.bind(mavenResolver);
+    }
+
+    void unbindMavenResolver(MavenResolver mavenResolver) {
+        this.mavenResolver.unbind(mavenResolver);
+    }
+
 }

@@ -47,6 +47,12 @@ public interface MavenResolver {
     List<RemoteRepository> getRepositories();
 
     /**
+     * Retrieve the list of configured default repositories
+     * @return
+     */
+    List<LocalRepository> getDefaultRepositories();
+
+    /**
      * Resolve and download a maven based url
      */
     File download(String url) throws IOException;
