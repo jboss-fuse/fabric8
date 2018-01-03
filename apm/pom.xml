@@ -21,7 +21,7 @@
     <parent>
         <groupId>io.fabric8</groupId>
         <artifactId>fabric8-project</artifactId>
-        <version>1.2.0.redhat-630-SNAPSHOT</version>
+        <version>1.2.0.redhat-630310-08</version>
         <relativePath>../parent</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -138,7 +138,7 @@
                     <executable>java</executable>
                     <arguments>
                         <argument>
-                            -javaagent:${basedir}/target/apmagent-project-1.2.0.redhat-630-SNAPSHOT.jar=startJolokiaAgent=true
+                            -javaagent:${basedir}/target/apmagent-project-1.2.0.redhat-630310-08.jar=startJolokiaAgent=true
                         </argument>
                         <argument>-classpath</argument>
                         <classpath/>
