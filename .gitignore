@@ -15,3 +15,4 @@ overlays
 .cache
 dependency-reduced-pom.xml
 tooling/rh-support/redhat-support-lib-java/build.properties
+mq/mq-fabric/data/
