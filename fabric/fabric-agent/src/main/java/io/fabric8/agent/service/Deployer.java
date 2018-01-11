@@ -20,6 +20,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
@@ -1072,6 +1073,22 @@ public class Deployer {
             AgentUtils.downloadLocations(manager, urls, true);
         } catch (Exception e) {
             LOGGER.warn(e.getMessage(), e);
+        }
+
+        if (!noRefresh) {
+            // ENTESB-7544, PAXLOGGING-247 - if pax-logging-service was refreshed, pax-logging-api may
+            // loose MDC context connection/relation with pax-logging-service.
+            // We want to avoid upgrading pax-logging to 1.10.x, thus the below reflection based fix
+            // (similar to KARAF-4686/ENTESB-6045 - Cleaning sun.rmi.transport.tcp.TCPEndpointlocalEndpoints cache)
+            try {
+                Class<?> cls = getClass().getClassLoader().loadClass("org.ops4j.pax.logging.slf4j.Slf4jMDCAdapter");
+                Field m_contextField = cls.getDeclaredField("m_context");
+                m_contextField.setAccessible(true);
+                // nullify org.ops4j.pax.logging.slf4j.Slf4jMDCAdapter.m_context, so it'll be reinitialized from
+                // fresh pax-logging-service wiring
+                m_contextField.set(null, null);
+            } catch (Exception ignored) {
+            }
         }
 
         if (callback.done(agentStarted[0], urls)) {
