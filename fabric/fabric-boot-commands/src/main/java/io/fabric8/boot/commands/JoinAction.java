@@ -16,6 +16,8 @@
 package io.fabric8.boot.commands;
 
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.exists;
+import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getStringData;
+
 import io.fabric8.api.Constants;
 import io.fabric8.api.ContainerOptions;
 import io.fabric8.api.FabricConstants;
@@ -81,7 +83,7 @@ final class JoinAction extends AbstractAction {
     private String profile = "fabric";
 
     @Option(name = "-v", aliases = "--version", multiValued = false, description = "Chooses the version of the container.")
-    private String version = ContainerOptions.DEFAULT_VERSION;
+    private String version;
 
     @Option(name = "--min-port", multiValued = false, description = "The minimum port of the allowed port range")
     private int minimumPort = Ports.MIN_PORT_NUMBER;
@@ -337,6 +339,16 @@ final class JoinAction extends AbstractAction {
             curator.start();
             curator.getZookeeperClient().blockUntilConnectedOrTimedOut();
             exists = exists(curator, ZkPath.CONTAINER.getPath(name)) != null;
+
+            if (version == null) {
+                // ENTESB-7554: let's find default version
+                version = getStringData(curator, ZkPath.CONFIG_DEFAULT_VERSION.getPath());
+                System.out.println("No version specified, using default version: " + version);
+            } else {
+                // ENTESB-7554: verify the version exists - not that easy, because after deleting a version
+                // we still have it in ZK... to do?
+            }
+
             if (!exists || force) {
                 ZkPath.createContainerPaths(curator, containerName, version, profile);
             }
