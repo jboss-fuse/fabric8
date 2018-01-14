@@ -281,11 +281,12 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
      * Set chunkedEncoding header based on HTTP specs
      */
     protected void applyChunkedEncoding(HttpServerResponse re){
-        re.setChunked(true);
-        if (HTTP_NO_CONTENT == re.getStatusCode()){
-            re.setChunked(false);
-        } else if ( re.headers() != null && re.headers().contains( CONTENT_LENGTH ) ){
-            re.setChunked(false);
+        switch (re.getStatusCode()){
+            case HTTP_NO_CONTENT:
+                re.setChunked(false);
+                break;
+            default:
+                re.setChunked(true);
         }
     }
 }
