@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vertx.java.core.AsyncResult;
 import org.vertx.java.core.Handler;
+import org.vertx.java.core.MultiMap;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.VertxFactory;
 import org.vertx.java.core.buffer.Buffer;
@@ -44,6 +45,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.vertx.java.core.http.HttpHeaders.CONTENT_LENGTH;
+import static org.vertx.java.core.http.HttpHeaders.CONTENT_TYPE;
+import static org.vertx.java.core.http.HttpHeaders.TRANSFER_ENCODING;
 
 /**
  */
@@ -195,6 +200,31 @@ public class HttpGatewayTest {
             }
         }).end();
         assertEquals( "Hello: wsdl", future.await());
+
+        stopHttpGateway();
+        stopVertx();
+    }
+
+    @Test
+    public void testENTESB7600() throws Exception {
+        //response can not contain CONTENT_LENGTH and TRANSFER_ENCODING see https://tools.ietf.org/html/rfc7230#section-3.3.3
+        startRestEndpoint();
+        startHttpGateway();
+
+        System.out.println("Requesting...");
+
+        final FutureHandler<HttpClientResponse> future = new FutureHandler<>();
+        vertx.createHttpClient().setHost("localhost").setPort(8080).get("/hello/world?wsdl", new Handler<HttpClientResponse>() {
+            @Override
+            public void handle(HttpClientResponse event) {
+                future.handle(event);
+            }
+        }).end();
+
+        MultiMap responseHeaders = future.await().headers();
+
+        assertTrue( ( responseHeaders.contains( CONTENT_LENGTH ) &&  !responseHeaders.contains( TRANSFER_ENCODING ) )
+                    || ( !responseHeaders.contains( CONTENT_LENGTH ) &&  responseHeaders.contains( TRANSFER_ENCODING )) );
 
         stopHttpGateway();
         stopVertx();
