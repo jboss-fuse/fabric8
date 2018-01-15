@@ -32,6 +32,7 @@ import java.io.StringReader;
 import java.net.ServerSocket;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -95,5 +96,31 @@ public class InterpolationHelperTest {
         assertThat(result, equalTo(val));
     }
 
+    @Test
+    public void testEscaping() {
+        Hashtable<String, Object> props = new Hashtable<>();
+        props.put("a", "abcd");
+        props.put("b", "abcd{");
+        props.put("c", "abcd${");
+        props.put("d", "abc}d");
+        props.put("e", "{abcd}");
+        props.put("f", "${abcd}");
+        props.put("g", "$\\{abcd\\}");
+        props.put("h", "${abcd{}}");
+        props.put("i", "${abcd${x}}");
+        props.put("j", "abcd$e{");
+        InterpolationHelper.escapePropertyPlaceholders(props);
+
+        assertThat(props.get("a").toString(), equalTo("abcd"));
+        assertThat(props.get("b").toString(), equalTo("abcd{"));
+        assertThat(props.get("c").toString(), equalTo("abcd$\\{"));
+        assertThat(props.get("d").toString(), equalTo("abc}d"));
+        assertThat(props.get("e").toString(), equalTo("{abcd}"));
+        assertThat(props.get("f").toString(), equalTo("$\\{abcd\\}"));
+        assertThat(props.get("g").toString(), equalTo("$\\{abcd\\}"));
+        assertThat(props.get("h").toString(), equalTo("$\\{abcd{}\\}"));
+        assertThat(props.get("i").toString(), equalTo("$\\{abcd$\\{x\\}\\}"));
+        assertThat(props.get("j").toString(), equalTo("abcd$e{"));
+    }
 
 }

@@ -51,16 +51,12 @@ public class ProfileUtils {
     }
 
     public static Properties toProperties(Map<String, String> source) {
-        try {
-            if (source instanceof Properties) {
-                return (Properties) source;
-            }
-            Properties rc = new Properties(false);
-            rc.putAll(source);
-            return rc;
-        } catch (IOException ex) {
-            throw new IllegalArgumentException("Cannot load properties", ex);
+        if (source instanceof Properties) {
+            return (Properties) source;
         }
+        Properties rc = new Properties(false);
+        rc.putAll(source);
+        return rc;
     }
 
 }
