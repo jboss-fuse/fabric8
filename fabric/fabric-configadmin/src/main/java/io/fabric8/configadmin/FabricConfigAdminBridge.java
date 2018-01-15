@@ -24,6 +24,13 @@ import io.fabric8.api.jcip.ThreadSafe;
 import io.fabric8.api.scr.AbstractComponent;
 import io.fabric8.api.scr.ValidatingReference;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -38,10 +45,13 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import io.fabric8.utils.NamedThreadFactory;
+import io.fabric8.zookeeper.utils.InterpolationHelper;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.utils.properties.TypedProperties;
+import org.osgi.framework.BundleContext;
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.url.URLStreamHandlerService;
@@ -54,6 +64,7 @@ public final class FabricConfigAdminBridge extends AbstractComponent implements 
 
     public static final String FABRIC_ZOOKEEPER_PID = "fabric.zookeeper.pid";
     public static final String FELIX_FILE_INSTALL_FILE_NAME = "felix.fileinstall.filename";
+    public static final String FELIX_FILE_INSTALL_DIR = "felix.fileinstall.dir";
     /**
      * Configuration property that indicates if old configuration should be preserved.
      * By default, previous configuration is discarded and new is used instead.
@@ -74,10 +85,19 @@ public final class FabricConfigAdminBridge extends AbstractComponent implements 
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor(new NamedThreadFactory("fabric-configadmin"));
 
+    private File fileinstallDir;
+
     @Activate
-    void activate() {
+    void activate(BundleContext context) {
         fabricService.get().trackConfiguration(this);
         activateComponent();
+        String fileinstallDirName = context.getProperty(FELIX_FILE_INSTALL_DIR);
+        if (fileinstallDirName != null) {
+            File dir = new File(fileinstallDirName);
+            if (dir.isDirectory() && dir.canWrite()) {
+                fileinstallDir = dir;
+            }
+        }
         submitUpdateJob();
     }
 
@@ -160,8 +180,7 @@ public final class FabricConfigAdminBridge extends AbstractComponent implements 
             // Process all configurations but agent
             for (String pid : configurations.keySet()) {
                 if (!pid.equals(Constants.AGENT_PID)) {
-                    Hashtable<String, Object> c = new Hashtable<String, Object>();
-                    c.putAll(configurations.get(pid));
+                    Hashtable<String, Object> c = new Hashtable<String, Object>(configurations.get(pid));
                     if (!updateConfig(zkConfigs, pid, c)) {
                         return;
                     }
@@ -170,8 +189,7 @@ public final class FabricConfigAdminBridge extends AbstractComponent implements 
             // Process agent configuration last
             for (String pid : configurations.keySet()) {
                 if (pid.equals(Constants.AGENT_PID)) {
-                    Hashtable<String, Object> c = new Hashtable<String, Object>();
-                    c.putAll(configurations.get(pid));
+                    Hashtable<String, Object> c = new Hashtable<String, Object>(configurations.get(pid));
                     c.put(Profile.HASH, String.valueOf(effectiveProfile.getProfileHash()));
                     if (!updateConfig(zkConfigs, pid, c)) {
                         return;
@@ -257,7 +275,8 @@ public final class FabricConfigAdminBridge extends AbstractComponent implements 
             if (felix_file_install_name != null && !c.containsKey(FELIX_FILE_INSTALL_FILE_NAME)) {
                 c.put(FELIX_FILE_INSTALL_FILE_NAME, felix_file_install_name);
             }
-            config.update(c);
+
+            performUpdate(config, c);
         } else {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("Ignoring configuration {} (no changes)", config.getPid());
@@ -291,6 +310,72 @@ public final class FabricConfigAdminBridge extends AbstractComponent implements 
         } else {
             return new String[]{pid, null};
         }
+    }
+
+    /**
+     * Update the configuration with all necessary activities (like fileinstall handling)
+     * @param config
+     * @param c
+     */
+    private void performUpdate(Configuration config, Hashtable<String, Object> c) throws IOException {
+        // ENTESB-7584 here's where problems may arise. When configuration is tied to etc/*.cfg file
+        // by felix.fileinstall.filename property, updating a configuration via configadmin will propagate
+        // to fileinstall with CM_UPDATED event which will change the file.
+        // if we write an unescaped placeholder to configadmin, fileinstall will write it too, BUT
+        // then (e.g., during container restart) it'll read the property, RESOLVE the placeholder (most
+        // probably to "") and update configuration admin (and the update will be overwritten by FCAB again)
+        // so we must manually write to etc/ (when fileinstall is stopped!) to have everything in sync.
+        if (fileinstallDir == null || !c.containsKey(FELIX_FILE_INSTALL_FILE_NAME)) {
+            // we don't care about fileinstall at all
+            config.update(c);
+            return;
+        }
+
+        try {
+            boolean anyEscape = InterpolationHelper.escapePropertyPlaceholders(c);
+            if (!anyEscape) {
+                // we follow the easy path, where we don't have to stop fileinstall
+                config.update(c);
+                return;
+            }
+
+            // the hard way:
+            //  - update etc/pid.cfg manually with proper escaping
+            //  - read file again
+            //  - update configadmin - but without felix.fileinstall.filename property, so we don't
+            //    propagate CM_UPDATED event again to fileinstall and back to configadmin...
+            // note that saving file in etc/*.cfg will make fileinstall update the configuration
+            // but there's no better way of synchronizing...
+
+            TypedProperties props = new TypedProperties();
+            File etcFile = getCfgFileFromProperty(c.get(FELIX_FILE_INSTALL_FILE_NAME));
+            props.load(etcFile);
+            props.putAll(c);
+            props.keySet().retainAll(c.keySet());
+            props.save(etcFile);
+            props.clear();
+            props.load(etcFile);
+
+            props.remove(FELIX_FILE_INSTALL_FILE_NAME);
+            config.update(new Hashtable<>(props));
+        } catch (FileNotFoundException e) {
+            LOGGER.warn("Can't load {}", c.get(FELIX_FILE_INSTALL_FILE_NAME));
+        } catch (URISyntaxException e) {
+            LOGGER.debug(e.getMessage(), e);
+        }
+    }
+
+    private File getCfgFileFromProperty(Object val) throws URISyntaxException, MalformedURLException {
+        if (val instanceof URL) {
+            return new File(((URL) val).toURI());
+        }
+        if (val instanceof URI) {
+            return new File((URI) val);
+        }
+        if (val instanceof String) {
+            return new File(new URL((String) val).toURI());
+        }
+        return null;
     }
 
     private Configuration getConfiguration(ConfigurationAdmin configAdmin, String zooKeeperPid, String pid, String factoryPid) throws Exception {
