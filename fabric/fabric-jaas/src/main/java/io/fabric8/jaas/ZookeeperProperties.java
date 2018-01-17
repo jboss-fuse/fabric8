@@ -59,7 +59,7 @@ public class ZookeeperProperties extends Properties  {
             throw new IOException("Curator not bound");
         }
         StringWriter writer = new StringWriter();
-        saveLayout(writer);
+        saveLayout(writer, false);
         try {
             curator.setData().forPath(path, writer.toString().getBytes());
         } catch (Exception e) {
