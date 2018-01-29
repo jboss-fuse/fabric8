@@ -232,7 +232,7 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
             //  lets return a 404
             LOG.info("Could not find matching proxy path for {} from paths: {}", uri, mappingRules.keySet());
             request.response().setStatusCode(404);
-            request.response().close();
+            request.response().end();
         }
     }
 
