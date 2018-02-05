@@ -205,11 +205,14 @@ public class FabricDetectingGateway extends AbstractComponent implements FabricD
 
     @Deactivate
     void deactivate() throws Exception {
+        LOG.trace("FabricDetectingGateway deactivate started");
         JMXUtils.unregisterMBean(mbeanServer, new ObjectName("io.fabric8.gateway:type=DetectingGateway"));
         deactivateComponent();
         if (detectingGateway != null) {
             cache.destroy();
-            detectingGateway.destroy(); 
+            LOG.trace("FabricDetectingGateway DESTROYING detectingGateway");
+            detectingGateway.destroy();
+            LOG.trace("FabricDetectingGateway detectingGateway DESTROYED");
             detectingGateway = null;
         }
         try {
@@ -222,6 +225,7 @@ public class FabricDetectingGateway extends AbstractComponent implements FabricD
         } catch (ShutdownException e){
             LOG.error("Exception while shutting down Detecting Gateway", e);
         }
+        LOG.trace("FabricDetectingGateway deactivate finished");
     }
 
     @Modified

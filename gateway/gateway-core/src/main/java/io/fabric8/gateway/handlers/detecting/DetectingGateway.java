@@ -109,16 +109,31 @@ public class DetectingGateway implements DetectingGatewayMBean {
     }
 
     public void destroy() {
-        server.close();
-        for (SocketWrapper socket : new ArrayList<>(socketsConnecting)) {
-            handleConnectFailure(socket, null);
-        }
-        for (ConnectedSocketInfo socket : new ArrayList<>(socketsConnected)) {
-            handleShutdown(socket);
-        }
-        server = null;
-        connectHandler.setGateway(null);
-        connectHandler = null;
+        LOG.info("{} destroy() invoked.", DetectingGateway.class.getName());
+
+        Handler<AsyncResult<Void>> closeHandler = new Handler<AsyncResult<Void>>() {
+            @Override
+            public void handle(AsyncResult<Void> voidAsyncResult) {
+                try {
+                    synchronized (socketsConnecting) {
+                        for (SocketWrapper socket : new ArrayList<>(socketsConnecting)) {
+                            handleConnectFailure(socket, "Triggered destroy() on DetectingGateway class");
+                        }
+                    }
+                    synchronized (socketsConnected) {
+                        for (ConnectedSocketInfo socket : new ArrayList<>(socketsConnected)) {
+                            handleShutdown(socket);
+                        }
+                    }
+                } finally {
+                    server = null;
+                    connectHandler.setGateway(null);
+                    connectHandler = null;
+                }
+                LOG.info("Finished close() server {}.", server);
+            }
+        };
+        server.close(closeHandler);
     }
 
     public String getHost() {
@@ -205,55 +220,79 @@ public class DetectingGateway implements DetectingGatewayMBean {
             this.from = from;
             this.to = to;
         }
+
+        public String toString() {
+            return "ConnectedSocketInfo{params=" + this.params + ", url=" + this.url + ", from=" + this.from.localAddress() + ", to=" + this.from.remoteAddress() + '}';
+        }
     }
 
     public void handle(final SocketWrapper socket) {
-        try {
-            shutdownTracker.retain();
-            if( !socketsConnecting.add(socket) ) {
-                throw new AssertionError("Socket existed in the socketsConnecting set");
-            }
-        } catch (Throwable e) {
-            LOG.debug("Could not accept connection from: "+socket.remoteAddress(), e);
-            socket.close();
-            // shutdownTracker.release();
-            return;
-        }
-        receivedConnectionAttempts.incrementAndGet();
+        LOG.trace("Handling Socket: {}", socket.remoteAddress());
 
-        if( connectionTimeout > 0 ) {
-            vertx.setTimer(connectionTimeout, new Handler<Long>() {
-                public void handle(Long timerID) {
-                    if( socketsConnecting.contains(socket) ) {
+        ReadStream<ReadStream> readStream;
+
+        synchronized (socketsConnecting) {
+            //check if we are not handling same socket already
+            try {
+                if (socketsConnecting.contains(socket)) {
+                    throw new AssertionError("Socket existed in the socketsConnecting set");
+                }
+            } catch (Throwable e) {
+                LOG.debug("Could not accept connection from: " + socket.remoteAddress(), e);
+                socket.close();
+                return;
+            }
+            //check if we can retain
+            try {
+                shutdownTracker.retain();
+            } catch (Throwable e) {
+                LOG.debug("Was not able to shutdownTracker.retain(): Could not accept connection from: " + socket.remoteAddress(), e);
+                socket.close();
+                return;
+            }
+
+            receivedConnectionAttempts.incrementAndGet();
+            //adding socket to the list of connecting on
+            socketsConnecting.add(socket);
+
+            //set timout handler
+            if (connectionTimeout > 0) {
+                vertx.setTimer(connectionTimeout, new Handler<Long>() {
+                    public void handle(Long timerID) {
                         handleConnectFailure(socket, String.format("Gateway client '%s' protocol detection timeout.", socket.remoteAddress()));
                     }
+                });
+            }
+
+            readStream = socket.readStream();
+            //set exception handler
+            readStream.exceptionHandler(new Handler<Throwable>() {
+                @Override
+                public void handle(Throwable e) {
+                    handleConnectFailure(socket, String.format("Failed to route gateway client '%s' due to: %s", socket.remoteAddress(), e));
+                }
+            });
+            //set termination handler
+            readStream.endHandler(new Handler<Void>() {
+                @Override
+                public void handle(Void event) {
+                    handleConnectFailure(socket, String.format("Gateway client '%s' closed the connection before it could be routed.", socket.remoteAddress()));
                 }
             });
         }
 
-        ReadStream<ReadStream> readStream = socket.readStream();
-        readStream.exceptionHandler(new Handler<Throwable>() {
-            @Override
-            public void handle(Throwable e) {
-                handleConnectFailure(socket, String.format("Failed to route gateway client '%s' due to: %s", socket.remoteAddress(), e));
-            }
-        });
-        readStream.endHandler(new Handler<Void>() {
-            @Override
-            public void handle(Void event) {
-                handleConnectFailure(socket, String.format("Gateway client '%s' closed the connection before it could be routed.", socket.remoteAddress()));
-            }
-        });
         readStream.dataHandler(new Handler<Buffer>() {
             Buffer received = new Buffer();
+
             {
                 LOG.debug("Inititalized new Handler[{}] for socket: {}", this, socket.remoteAddress());
             }
+
             @Override
             public void handle(Buffer event) {
                 received.appendBuffer(event);
-                if(LOG.isTraceEnabled()) {
-                    LOG.trace("Socket received following data: {}", event.copy().toString().replaceAll("\r"," " ));
+                if (LOG.isTraceEnabled()) {
+                    LOG.trace("Socket received following data: {}", event.copy().toString().replaceAll("\r", " "));
                     LOG.trace("Data handled by Handler {}", this.toString());
                 }
                 for (final Protocol protocol : protocols) {
@@ -261,8 +300,8 @@ public class DetectingGateway implements DetectingGatewayMBean {
                         if ("ssl".equals(protocol.getProtocolName())) {
 
                             LOG.info(String.format("SSL Connection from '%s'", socket.remoteAddress()));
-                            String disabledCypherSuites=null;
-                            String enabledCipherSuites=null;
+                            String disabledCypherSuites = null;
+                            String enabledCipherSuites = null;
                             if (sslConfig != null) {
                                 disabledCypherSuites = sslConfig.getDisabledCypherSuites();
                                 enabledCipherSuites = sslConfig.getEnabledCipherSuites();
@@ -281,38 +320,39 @@ public class DetectingGateway implements DetectingGatewayMBean {
                                 }
                             }
 
-                            // lets wrap it up in a SslSocketWrapper.
-                            SslSocketWrapper sslSocketWrapper = new SslSocketWrapper(socket);
-                            sslSocketWrapper.putBackHeader(received);
-                            sslSocketWrapper.initServer(sslContext, clientAuth, disabledCypherSuites, enabledCipherSuites);
 
-                            // Undo initial connection accounting since we will be redoing @ the SSL level.
-                            boolean removed = socketsConnecting.remove(socket);
-                            assert removed;
-                            receivedConnectionAttempts.decrementAndGet();
-
-                            try {
-                                DetectingGateway.this.handle(sslSocketWrapper);
-                            } finally {
-                                shutdownTracker.release();
+                            if( socketsConnecting.remove(socket) ){
+                                // lets wrap it up in a SslSocketWrapper.
+                                SslSocketWrapper sslSocketWrapper = new SslSocketWrapper(socket);
+                                sslSocketWrapper.putBackHeader(received);
+                                sslSocketWrapper.initServer(sslContext, clientAuth, disabledCypherSuites, enabledCipherSuites);
+                                receivedConnectionAttempts.decrementAndGet();
+                                try {
+                                    DetectingGateway.this.handle(sslSocketWrapper);
+                                } finally {
+                                    shutdownTracker.release();
+                                }
+                                return;
+                            } else {
+                                handleConnectFailure(socket,"Could not accept SSL connection from: " + socket.remoteAddress() + "socket wasn't present in connecting socket set.");
+                                return;
                             }
-                            return;
-
                         } else if ("http".equals(protocol.getProtocolName())) {
                             InetSocketAddress target = getHttpGateway();
                             if (target != null) {
+                                URI url;
                                 try {
-                                    URI url = new URI("http://" + target.getHostString() + ":" + target.getPort());
+                                    url = new URI("http://" + target.getHostString() + ":" + target.getPort());
                                     LOG.info(String.format("Connecting '%s' to '%s:%d' using the http protocol",
                                             socket.remoteAddress(), url.getHost(), url.getPort()));
-                                    ConnectionParameters params = new ConnectionParameters();
-                                    params.protocol = "http";
-                                    createClient(params, socket, url, received);
-                                    return;
                                 } catch (URISyntaxException e) {
-                                    handleConnectFailure(socket, "Could not build valid connect URI: "+e);
+                                    handleConnectFailure(socket, "Could not build valid connect URI: " + e);
                                     return;
                                 }
+                                ConnectionParameters params = new ConnectionParameters();
+                                params.protocol = "http";
+                                createClient(params, socket, url, received);
+                                return;
                             } else {
                                 handleConnectFailure(socket, "No http gateway available for the http protocol");
                                 return;
@@ -341,15 +381,19 @@ public class DetectingGateway implements DetectingGatewayMBean {
     }
 
     private void handleConnectFailure(SocketWrapper socket, String reason) {
+        LOG.debug("Handling ConnectFailure for Socket: [{}] with reason: [{}]", socket.remoteAddress(), reason);
         if( socketsConnecting.remove(socket) ) {
+            LOG.trace("Socket: [{}] found and removed from socketsConnecting Set", socket.remoteAddress());
             try{
                 if( reason!=null ) {
                     LOG.warn(reason);
                 }
                 failedConnectionAttempts.incrementAndGet();
+                LOG.trace("Closing Socket: [{}]", socket.remoteAddress());
                 socket.close();
 
             } finally {
+                LOG.trace("Releasing shutdownTracker for Socket: [{}]", socket.remoteAddress());
                 shutdownTracker.release();
             }
         }
@@ -430,48 +474,58 @@ public class DetectingGateway implements DetectingGatewayMBean {
                     final NetSocket socketToServer = asyncSocket.result();
 
                     successfulConnectionAttempts.incrementAndGet();
-                    boolean removed = socketsConnecting.remove(socketFromClient);
-                    assert removed;
 
-                    final ConnectedSocketInfo connectedInfo = new ConnectedSocketInfo(params, url, socketFromClient, netClient);
-                    boolean added = socketsConnected.add(connectedInfo);
-                    assert added;
+                    if(socketsConnecting.remove(socketFromClient)) {
+                        final ConnectedSocketInfo connectedInfo = new ConnectedSocketInfo(params, url, socketFromClient, netClient);
+                        synchronized (socketsConnected) {
+                            socketsConnected.add(connectedInfo);
 
-                    Handler<Void> endHandler = new Handler<Void>() {
-                        @Override
-                        public void handle(Void event) {
-                            handleShutdown(connectedInfo);
+                            Handler<Void> endHandler = new Handler<Void>() {
+                                @Override
+                                public void handle(Void event) {
+                                    handleShutdown(connectedInfo);
+                                }
+                            };
+                            Handler<Throwable> exceptionHandler = new Handler<Throwable>() {
+                                @Override
+                                public void handle(Throwable event) {
+                                    handleShutdown(connectedInfo);
+                                }
+                            };
+                            socketFromClient.readStream().endHandler(endHandler);
+                            socketFromClient.readStream().exceptionHandler(exceptionHandler);
+                            socketToServer.endHandler(endHandler);
+                            socketToServer.exceptionHandler(exceptionHandler);
                         }
-                    };
-                    Handler<Throwable> exceptionHandler = new Handler<Throwable>() {
-                        @Override
-                        public void handle(Throwable event) {
-                            handleShutdown(connectedInfo);
+                        if(LOG.isTraceEnabled()){
+                            LOG.trace("Sending out to destination socket: {}", received);
                         }
-                    };
-                    socketFromClient.readStream().endHandler(endHandler);
-                    socketFromClient.readStream().exceptionHandler(exceptionHandler);
-                    socketToServer.endHandler(endHandler);
-                    socketToServer.exceptionHandler(exceptionHandler);
-
-                    if(LOG.isTraceEnabled()){
-                        LOG.trace("Sending out to destination socket: {}", received);
+                        socketToServer.write(received);
+                        Pump.createPump(socketToServer, socketFromClient.writeStream()).start();
+                        Pump.createPump(socketFromClient.readStream(), socketToServer).start();
+                        LOG.debug("socketFromClient {} has been connected to socketToServer {}", socketFromClient.remoteAddress(), socketToServer.remoteAddress());
+                    } else {
+                        handleConnectFailure(socketFromClient,"Could not create a new client for: " + socketFromClient.remoteAddress() + "socket wasn't present in connecting socket set.");
+                        return;
                     }
-                    socketToServer.write(received);
-                    Pump.createPump(socketToServer, socketFromClient.writeStream()).start();
-                    Pump.createPump(socketFromClient.readStream(), socketToServer).start();
-                    LOG.debug("socketFromClient {} has been connected to socketToServer {}", socketFromClient.remoteAddress(), socketToServer.remoteAddress());
+
                 }
             }
         });
     }
 
     private void handleShutdown(ConnectedSocketInfo connectedInfo) {
+        LOG.debug("Handling Shutdown for Socket: [{}]", connectedInfo);
         if (socketsConnected.remove(connectedInfo)) {
+            LOG.trace("Socket: [{}] found and removed from socketsConnected Set", connectedInfo);
             try {
-                connectedInfo.from.close();
-                connectedInfo.to.close();
+                try {
+                    connectedInfo.from.close();
+                } finally {
+                    connectedInfo.to.close();
+                }
             } finally {
+                LOG.trace("Releasing shutdownTracker for Socket: [{}]", connectedInfo);
                 shutdownTracker.release();
             }
         }
