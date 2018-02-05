@@ -56,7 +56,7 @@ public class ProfileExportAction extends AbstractAction {
             } else {
                 System.out.println("No default version available!");
             }
-            return null;
+            return 1;
         }
 
         fabricService.adapt(ProfileRegistry.class).exportProfiles(ver.getId(), outputZipFileName.getAbsolutePath(), wildcard);

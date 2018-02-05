@@ -52,7 +52,7 @@ public class VersionInfoAction extends AbstractAction {
     protected Object doExecute() throws Exception {
         if (!profileService.hasVersion(versionId)) {
             System.out.println("Version " + versionId + " does not exists!");
-            return null;
+            return 1;
         }
         Version version = profileService.getRequiredVersion(versionId);
         String description = version.getAttributes().get(Version.DESCRIPTION);

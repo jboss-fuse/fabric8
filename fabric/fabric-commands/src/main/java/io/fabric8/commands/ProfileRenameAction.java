@@ -61,7 +61,7 @@ public class ProfileRenameAction extends AbstractAction {
         } catch (IllegalArgumentException e) {
             // we do not want exception in the server log, so print the error message to the console
             System.out.println(e.getMessage());
-            return null;
+            return 1;
         }
 
         Version version;
@@ -72,7 +72,7 @@ public class ProfileRenameAction extends AbstractAction {
         }
         if (!version.hasProfile(profileName)) {
             System.out.println("Profile " + profileName + " not found.");
-            return null;
+            return 1;
         } else if (version.hasProfile(newName)) {
             if (!force) {
                 System.out.println("New name " + newName + " already exists. Use --force if you want to overwrite.");
@@ -84,6 +84,7 @@ public class ProfileRenameAction extends AbstractAction {
         } catch (Exception ex) {
             System.err.println("Profile rename failed: " + ex.getMessage());
             log.error("Profile rename failed: ", ex);
+            return 1;
         }
         return null;
     }

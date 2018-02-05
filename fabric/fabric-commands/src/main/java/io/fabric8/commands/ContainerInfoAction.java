@@ -57,8 +57,8 @@ public class ContainerInfoAction extends AbstractAction {
 
         validateContainerName(containerName);
 		if (!containerExists(containerName)) {
-			System.out.println("Container " + containerName + " does not exists!");
-			return null;
+            System.out.println("Container " + containerName + " does not exists!");
+			return 1;
 		}
 		Container container = fabricService.getContainer(containerName);
 

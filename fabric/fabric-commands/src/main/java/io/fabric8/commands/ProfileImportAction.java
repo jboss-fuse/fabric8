@@ -55,7 +55,7 @@ public class ProfileImportAction extends AbstractAction {
             } else {
                 System.out.println("No default version available!");
             }
-            return null;
+            return 1;
         }
 
         fabricService.adapt(ProfileRegistry.class).importProfiles(ver.getId(), profileUrls);
