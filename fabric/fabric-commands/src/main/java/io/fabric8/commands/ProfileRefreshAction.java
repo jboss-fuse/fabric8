@@ -49,6 +49,7 @@ public class ProfileRefreshAction extends AbstractAction {
             Profiles.refreshProfile(fabricService, profile);
         } else {
             System.out.println("Profile " + profileName + " not found.");
+            return 1;
         }
 		return null;
 	}

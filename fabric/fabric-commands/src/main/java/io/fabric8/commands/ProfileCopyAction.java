@@ -61,7 +61,7 @@ public class ProfileCopyAction extends AbstractAction {
         } catch (IllegalArgumentException e) {
             // we do not want exception in the server log, so print the error message to the console
             System.out.println(e.getMessage());
-            return null;
+            return 1;
         }
 
         Version version = versionParam != null ? profileService.getRequiredVersion(versionParam) : fabricService.getRequiredDefaultVersion();
@@ -69,7 +69,7 @@ public class ProfileCopyAction extends AbstractAction {
 
         if (!version.hasProfile(source)) {
             System.out.println("Source profile " + source + " not found.");
-            return null;
+            return 1;
         } else if (version.hasProfile(target)) {
             if (!force) {
                 System.out.println("Target profile " + target + " already exists. Use --force if you want to overwrite.");

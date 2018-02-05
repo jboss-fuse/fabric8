@@ -157,7 +157,7 @@ public class ProfileEditAction extends AbstractAction {
         } catch (IllegalArgumentException e) {
             // we do not want exception in the server log, so print the error message to the console
             System.out.println(e.getMessage());
-            return null;
+            return 1;
         }
         if (delete) {
             set = false;
@@ -169,6 +169,7 @@ public class ProfileEditAction extends AbstractAction {
             editProfile(profile);
         } else {
             System.out.println("Profile " + profileName + " does not exists!");
+            return 1;
         }
         
         return null;
