@@ -463,8 +463,6 @@ public final class ZooKeeperClusterServiceImpl extends AbstractComponent impleme
             for (String c : containers) {
                 if (current.contains(c)) {
                     throw new EnsembleModificationFailed("Container " + c + " is already part of the ensemble." , EnsembleModificationFailed.Reason.CONTAINERS_ALREADY_IN_ENSEMBLE);
-                } else if (!c.equals(c.toLowerCase())) {
-                    throw new EnsembleModificationFailed("Only lower case names are supported for containers. Current name: " + c , EnsembleModificationFailed.Reason.INVALID_ARGUMENTS);
                 } else {
                     current.add(c);
                 }
