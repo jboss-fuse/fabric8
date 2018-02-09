@@ -87,6 +87,11 @@ public final class FabricHTTPGateway extends AbstractComponent implements HttpGa
     @Property(name = "addMissingTrailingSlashes", label = "Adds slashes at the end of proxied urls", description = "Adds slashes at the end of proxied urls in case they don't already end with a slash character")
     private boolean addMissingTrailingSlashes = true;
 
+    @Property(name = "connectionTimeout", intValue = 60000, label = "Connection Timeout", description = "Timeout for the HTTP connection")
+    private int connectionTimeout = 60000;
+
+    @Property(name = "requestTimeout", longValue = -1L, label = "Request idle Timeout", description = "HTTP Request idle timeout")
+    private long requestTimeout = -1L;
 
     @Reference
     private Configurer configurer;
@@ -137,6 +142,8 @@ public final class FabricHTTPGateway extends AbstractComponent implements HttpGa
         Vertx vertx = getVertx();
         handler = new HttpGatewayHandler(vertx, this);
         handler.setAddMissingTrailingSlashes(addMissingTrailingSlashes);
+        handler.setConnectionTimeout(connectionTimeout);
+        handler.setRequestTimeout(requestTimeout);
         websocketHandler.setPathPrefix(websocketGatewayPrefix);
         server = new HttpGatewayServer(vertx, handler, enableWebSocketGateway ? websocketHandler : null, port);
         server.init();

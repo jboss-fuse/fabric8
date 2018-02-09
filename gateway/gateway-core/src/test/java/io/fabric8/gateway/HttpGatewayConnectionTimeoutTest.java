@@ -24,52 +24,35 @@ import io.fabric8.gateway.handlers.http.HttpMappingRule;
 import io.fabric8.gateway.handlers.http.MappedServices;
 import io.fabric8.gateway.loadbalancer.LoadBalancer;
 import io.fabric8.gateway.loadbalancer.RoundRobinLoadBalancer;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vertx.java.core.AsyncResult;
 import org.vertx.java.core.Handler;
-import org.vertx.java.core.MultiMap;
-import org.vertx.java.core.Vertx;
-import org.vertx.java.core.VertxFactory;
-import org.vertx.java.core.buffer.Buffer;
 import org.vertx.java.core.http.HttpClientResponse;
 import org.vertx.java.core.http.HttpServer;
 import org.vertx.java.core.http.HttpServerRequest;
 
-import java.io.File;
+import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.HashMap;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.vertx.java.core.http.HttpHeaders.CONTENT_LENGTH;
-import static org.vertx.java.core.http.HttpHeaders.CONTENT_TYPE;
-import static org.vertx.java.core.http.HttpHeaders.TRANSFER_ENCODING;
 
 /**
  */
-public class HttpGatewayTest extends AbstractHttpGatewayTest {
+public class HttpGatewayConnectionTimeoutTest extends AbstractHttpGatewayTest {
 
-    private static final transient Logger LOG = LoggerFactory.getLogger(HttpGatewayTest.class);
+    private static final transient Logger LOG = LoggerFactory.getLogger(HttpGatewayConnectionTimeoutTest.class);
 
     @Override
     public HttpServer startRestEndpoint() throws InterruptedException {
         restEndpointServer = vertx.createHttpServer();
-        restEndpointServer.requestHandler(new Handler<HttpServerRequest>() {
-            @Override
-            public void handle(HttpServerRequest request) {
-                request.response().putHeader("content-type", "text/plain");
-                request.response().end("Hello: "+request.query());
-            }
-        });
-
-        FutureHandler<AsyncResult<HttpServer>> future = new FutureHandler<>();
-        restEndpointServer.listen(8181, "0.0.0.0", future);
-        future.await();
         return restEndpointServer;
     }
 
@@ -83,7 +66,8 @@ public class HttpGatewayTest extends AbstractHttpGatewayTest {
             serviceDetails.setContainer("local");
             serviceDetails.setVersion("1");
 
-            mappedServices.put("/hello/world", new MappedServices("http://localhost:8181", serviceDetails, loadBalancer, false));
+            //XXX: pick a non routable address to simulate connection refused (in this case 10.0.0.0 )
+            mappedServices.put("/hello/world", new MappedServices("http://10.0.0.0:8181", serviceDetails, loadBalancer, false));
         }
 
         HttpGatewayHandler handler = new HttpGatewayHandler(vertx, new HttpGateway(){
@@ -114,51 +98,19 @@ public class HttpGatewayTest extends AbstractHttpGatewayTest {
             public void addCallDetailRecord(CallDetailRecord cdr) {
             }
         });
+        handler.setConnectionTimeout(1000);
         httpGatewayServer = new HttpGatewayServer(vertx, handler, null, 8080);
         httpGatewayServer.setHost("localhost");
         httpGatewayServer.init();
         return httpGatewayServer;
     }
 
-    /**
-     * Validates that query params are passed to the proxied service.
-     * Used to verify that ENTESB-5437 is fixed.
-     *
-     * @throws Exception
-     */
     @Test
-    public void testENTESB5437() throws Exception {
-
+    public void testConnectionTimeout() throws Exception {
         startRestEndpoint();
         startHttpGateway();
 
         LOG.info("Requesting...");
-
-        final FutureHandler<String> future = new FutureHandler<>();
-        vertx.createHttpClient().setHost("localhost").setPort(8080).get("/hello/world?wsdl", new Handler<HttpClientResponse>() {
-            @Override
-            public void handle(HttpClientResponse event) {
-                event.bodyHandler(new Handler<Buffer>() {
-                    @Override
-                    public void handle(Buffer event) {
-                        future.handle(event.toString());
-                    }
-                });
-            }
-        }).end();
-        assertEquals( "Hello: wsdl", future.await());
-
-        stopHttpGateway();
-        stopVertx();
-    }
-
-    @Test
-    public void testENTESB7600() throws Exception {
-        //response can not contain CONTENT_LENGTH and TRANSFER_ENCODING see https://tools.ietf.org/html/rfc7230#section-3.3.3
-        startRestEndpoint();
-        startHttpGateway();
-
-        System.out.println("Requesting...");
 
         final FutureHandler<HttpClientResponse> future = new FutureHandler<>();
         vertx.createHttpClient().setHost("localhost").setPort(8080).get("/hello/world?wsdl", new Handler<HttpClientResponse>() {
@@ -168,10 +120,9 @@ public class HttpGatewayTest extends AbstractHttpGatewayTest {
             }
         }).end();
 
-        MultiMap responseHeaders = future.await().headers();
+        HttpClientResponse response = future.await();
 
-        assertTrue( ( responseHeaders.contains( CONTENT_LENGTH ) &&  !responseHeaders.contains( TRANSFER_ENCODING ) )
-                    || ( !responseHeaders.contains( CONTENT_LENGTH ) &&  responseHeaders.contains( TRANSFER_ENCODING )) );
+        assertEquals( response.statusCode(), 504 );
 
         stopHttpGateway();
         stopVertx();

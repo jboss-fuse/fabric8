@@ -16,7 +16,8 @@
 package io.fabric8.gateway.handlers.http;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import io.fabric8.gateway.CallDetailRecord;
+import io.netty.channel.ConnectTimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vertx.java.core.Handler;
@@ -26,11 +27,8 @@ import org.vertx.java.core.buffer.Buffer;
 import org.vertx.java.core.http.HttpClient;
 import org.vertx.java.core.http.HttpClientRequest;
 import org.vertx.java.core.http.HttpClientResponse;
-import static org.vertx.java.core.http.HttpHeaders.*;
 import org.vertx.java.core.http.HttpServerRequest;
 import org.vertx.java.core.http.HttpServerResponse;
-
-import io.fabric8.gateway.CallDetailRecord;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -44,20 +42,27 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
-import static java.net.HttpURLConnection.*;
+
+import static java.net.HttpURLConnection.HTTP_NO_CONTENT;
+import static org.vertx.java.core.http.HttpHeaders.CONTENT_LENGTH;
+import static org.vertx.java.core.http.HttpHeaders.CONTENT_TYPE;
 
 /**
  * Vert.x HTTP Gateway web handler
  */
 public class HttpGatewayHandler implements Handler<HttpServerRequest> {
     private static final transient Logger LOG = LoggerFactory.getLogger(HttpGatewayHandler.class);
+    private static final long DEFAULT_REQUEST_TIMEOUT = -1L;
 
     private final Vertx vertx;
     private final HttpGateway httpGateway;
     private final ObjectMapper mapper = new ObjectMapper();
 
     private boolean addMissingTrailingSlashes = true;
+    private int connectionTimeout = 60000;
+    private long requestTimeout = DEFAULT_REQUEST_TIMEOUT;
 
     public HttpGatewayHandler(Vertx vertx, HttpGateway httpGateway) {
         this.vertx = vertx;
@@ -186,6 +191,19 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
                 servicePath += remaining;
             }
 
+            client.exceptionHandler(new Handler<Throwable>() {
+                @Override
+                public void handle(Throwable throwable) {
+                    if(throwable instanceof ConnectTimeoutException) {
+                        request.response().setStatusCode(504);
+                        request.response().end();
+                    } else {
+                        LOG.error("Unhandled exception", throwable);
+                    }
+                }
+            });
+            client.setConnectTimeout( connectionTimeout );
+
             LOG.info("Proxying request {} to service path: {} on service: {} reverseServiceUrl: {}", uri, servicePath, proxyServiceUrl, reverseServiceUrl);
             final HttpClient finalClient = client;
             Handler<HttpClientResponse> responseHandler = new Handler<HttpClientResponse>() {
@@ -212,9 +230,24 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
                 ProxyMappingDetails proxyMappingDetails = new ProxyMappingDetails(proxyServiceUrl, reverseServiceUrl, servicePath);
                 responseHandler = mappedServices.wrapResponseHandlerInPolicies(request, responseHandler, proxyMappingDetails);
             }
+
             final HttpClientRequest clientRequest = client.request(request.method(), servicePath, responseHandler);
             clientRequest.headers().set(request.headers());
             clientRequest.setChunked(true);
+            if( requestTimeout != DEFAULT_REQUEST_TIMEOUT ) {
+                clientRequest.exceptionHandler(new Handler<Throwable>() {
+                    @Override
+                    public void handle(Throwable throwable) {
+                        if(throwable instanceof TimeoutException) {
+                            request.response().setStatusCode(504);
+                            request.response().end();
+                        } else {
+                            LOG.error("Unhandled exception", throwable);
+                        }
+                    }
+                });
+                clientRequest.setTimeout(requestTimeout);
+            }
             request.dataHandler(new Handler<Buffer>() {
                 public void handle(Buffer data) {
                     LOG.debug("Proxying request body: {}", data);
@@ -287,5 +320,13 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
         } else if ( re.headers() != null && re.headers().contains( CONTENT_LENGTH ) ){
             re.setChunked(false);
         }
+    }
+
+    public void setConnectionTimeout(int connectionTimeout) {
+        this.connectionTimeout = connectionTimeout;
+    }
+
+    public void setRequestTimeout(long requestTimeout) {
+        this.requestTimeout = requestTimeout;
     }
 }
