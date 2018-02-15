@@ -520,9 +520,14 @@ public class TreeCacheExtended implements Closeable
     {
         ensurePath.ensure(client.getZookeeperClient());
         Stat stat = new Stat();
-        List<String> children = client.getChildren().storingStatIn(stat).usingWatcher(watcher).forPath(path);
-        processChildren(path, children, mode);
-        updateIfNeeded(path, stat, children);
+        try {
+            List<String> children = client.getChildren().storingStatIn(stat).usingWatcher(watcher).forPath(path);
+            processChildren(path, children, mode);
+            updateIfNeeded(path, stat, children);
+        } catch (KeeperException.NoNodeException e) {
+            // node no longer exists - ignore
+            log.debug("Node {} is no longer available.", path);
+        }
     }
 
     void callListeners(final PathChildrenCacheEvent event)
