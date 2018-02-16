@@ -87,12 +87,12 @@
     </feature>
 
     <feature name="karaf" version="${karaf-version}" resolver="(obr)">
-        <bundle>mvn:io.fabric8/fabric-ssl/${project.version}</bundle>
-        <bundle>mvn:org.apache.felix/org.apache.felix.configadmin/${felix-configadmin-version}</bundle>
+        <bundle start-level="4">mvn:io.fabric8/fabric-ssl/${project.version}</bundle>
+        <bundle start-level="10">mvn:org.apache.felix/org.apache.felix.configadmin/${felix-configadmin-version}</bundle>
 
         <bundle dependency="true">mvn:javax.servlet/javax.servlet-api/${servlet31-api-version}</bundle>
         <bundle>mvn:io.fabric8/fabric-maven/${project.version}</bundle>
-        <bundle>mvn:org.ops4j.pax.url/pax-url-wrap/${pax.url.version}/jar/uber</bundle>
+        <bundle start-level="5">mvn:org.ops4j.pax.url/pax-url-wrap/${pax.url.version}/jar/uber</bundle>
 
         <bundle start-level="8">mvn:org.ops4j.pax.logging/pax-logging-api/${pax.logging.version}</bundle>
         <bundle start-level="8">mvn:org.ops4j.pax.logging/pax-logging-service/${pax.logging.version}</bundle>
@@ -133,7 +133,7 @@
 
         <bundle start-level="10">mvn:org.apache.karaf.service/org.apache.karaf.service.guard/${karaf-version}</bundle>
 
-        <bundle>mvn:org.apache.karaf.services/org.apache.karaf.services.eventadmin/${karaf-version}</bundle>
+        <bundle start-level="30">mvn:org.apache.karaf.services/org.apache.karaf.services.eventadmin/${karaf-version}</bundle>
 
 
         <!-- TODO: Either decouple diagonstic common from org.apache.karaf.features or provide a dummy FeatureServiceImpl.
@@ -143,7 +143,7 @@
         <bundle>mvn:org.apache.karaf.diagnostic/org.apache.karaf.diagnostic.command/${karaf-version}</bundle>
         <bundle>mvn:org.apache.karaf.diagnostic/org.apache.karaf.diagnostic.common/${karaf-version}</bundle-->
 
-        <bundle>mvn:org.apache.felix/org.apache.felix.fileinstall/${felix-fileinstall-version}</bundle>
+        <bundle start-level="11">mvn:org.apache.felix/org.apache.felix.fileinstall/${felix-fileinstall-version}</bundle>
         <bundle>mvn:org.apache.karaf.deployer/org.apache.karaf.deployer.blueprint/${karaf-version}</bundle>
         <bundle>mvn:org.apache.karaf.deployer/org.apache.karaf.deployer.spring/${karaf-version}</bundle>
         <bundle>mvn:org.apache.karaf.deployer/org.apache.karaf.deployer.wrap/${karaf-version}</bundle>
@@ -177,7 +177,7 @@
         <feature version="${project.version}">fabric-boot-commands</feature>
         <bundle dependency="true">mvn:org.ops4j.pax.url/pax-url-aether/${pax.url.version}</bundle>
         <bundle dependency="true">mvn:org.ops4j.pax.url/pax-url-wrap/${pax.url.version}/jar/uber</bundle>
-        <bundle dependency="true">mvn:org.apache.felix/org.apache.felix.metatype/${felix-metatype-version}</bundle>
+        <bundle start-level="19" dependency="true">mvn:org.apache.felix/org.apache.felix.metatype/${felix-metatype-version}</bundle>
         <bundle>mvn:org.apache.karaf.features/org.apache.karaf.features.command/${karaf-version}</bundle>
         <bundle>mvn:io.fabric8/fabric-agent-commands/${project.version}</bundle>
     </feature>
@@ -254,7 +254,7 @@
         <bundle dependency='true'>mvn:org.ops4j.pax.swissbox/pax-swissbox-property/${ops4j-pax-swissbox-property.version}</bundle>
         <bundle dependency='true'>mvn:org.ops4j.pax.url/pax-url-commons/${pax.url.version}</bundle>
 
-        <bundle>mvn:org.apache.felix/org.apache.felix.metatype/${felix-metatype-version}</bundle>
+        <bundle start-level="19">mvn:org.apache.felix/org.apache.felix.metatype/${felix-metatype-version}</bundle>
         <bundle>mvn:io.fabric8/common-util/${project.version}</bundle>
         <bundle>mvn:io.fabric8/fabric-api/${project.version}</bundle>
         <bundle>mvn:io.fabric8/fabric-boot-commands/${project.version}</bundle>
