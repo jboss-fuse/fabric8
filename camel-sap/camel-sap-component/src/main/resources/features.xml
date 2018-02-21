@@ -15,7 +15,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
   -->
-<features name="camel-sap-${project.version}">
+<features name="camel-sap-${project.version}" xmlns="http://karaf.apache.org/xmlns/features/v1.2.1">
     <repository>mvn:org.apache.camel.karaf/apache-camel/${camel-version}/xml/features</repository>
 
     <feature name="camel-sap" version="${project.version}" resolver="(obr)">
