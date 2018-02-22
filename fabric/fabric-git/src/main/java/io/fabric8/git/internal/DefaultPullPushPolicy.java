@@ -61,10 +61,13 @@ import org.slf4j.LoggerFactory;
 public final class DefaultPullPushPolicy implements PullPushPolicy  {
 
     private static final transient Logger LOGGER = LoggerFactory.getLogger(DefaultPullPushPolicy.class);
+    private static final int MAX_MERGES_WITHOUT_GC = 100;
 
     private final Git git;
     private final String remoteRef;
     private final int gitTimeout;
+
+    private int mergesWithoutGC = MAX_MERGES_WITHOUT_GC;
 
     @VisibleForExternal
     public DefaultPullPushPolicy(Git git, String remoteRef, int gitTimeout) {
@@ -85,8 +88,24 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
 
         LOGGER.info("Performing a pull on remote URL: {}", remoteUrl);
 
+        // Get local and remote branches
+        Map<String, Ref> localBranches = new HashMap<String, Ref>();
+        Map<String, Ref> remoteBranches = new HashMap<String, Ref>();
+        Set<String> allBranches = new HashSet<String>();
+
         Exception lastException = null;
         try {
+            // list remote branches
+            // ENTESB-7704: we have to do it before actual fetching, otherwise we can get org.eclipse.jgit.errors.MissingObjectException
+            // when trying to fast-forward to commit done upstream between fetch and ls-remote!
+            for (Ref ref : git.lsRemote().setCredentialsProvider(credentialsProvider).setTags(false).setRemote(remoteRef).setHeads(true).call()) {
+                if (ref.getName().startsWith("refs/heads/")) {
+                    String name = ref.getName().substring(("refs/heads/").length());
+                    remoteBranches.put(name, ref);
+                    allBranches.add(name);
+                }
+            }
+
             git.fetch().setTimeout(gitTimeout).setCredentialsProvider(credentialsProvider)
                     .setTagOpt(TagOpt.FETCH_TAGS)
                     .setRemote(remoteRef).call();
@@ -104,10 +123,6 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
             return new AbstractPullPolicyResult(lastException);
         }
 
-        // Get local and remote branches
-        Map<String, Ref> localBranches = new HashMap<String, Ref>();
-        Map<String, Ref> remoteBranches = new HashMap<String, Ref>();
-        Set<String> allBranches = new HashSet<String>();
         try {
             // list local branches
             for (Ref ref : git.branchList().setListMode(ListBranchCommand.ListMode.ALL).call()) {
@@ -121,14 +136,6 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                 if (ref.getName().startsWith("refs/heads/")) {
                     String name = ref.getName().substring(("refs/heads/").length());
                     localBranches.put(name, ref);
-                    allBranches.add(name);
-                }
-            }
-            // list remote branches
-            for (Ref ref : git.lsRemote().setCredentialsProvider(credentialsProvider).setTags(false).setRemote(remoteRef).setHeads(true).call()) {
-                if (ref.getName().startsWith("refs/heads/")) {
-                    String name = ref.getName().substring(("refs/heads/").length());
-                    remoteBranches.put(name, ref);
                     allBranches.add(name);
                 }
             }
@@ -223,6 +230,17 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                         git.reset().setMode(ResetCommand.ResetType.HARD).call();  // for other changes
                     }
                     versions.add(branch);
+                }
+            }
+            if (localUpdate.size() > 0) {
+                if (--mergesWithoutGC < 0) {
+                    mergesWithoutGC = MAX_MERGES_WITHOUT_GC;
+                    LOGGER.info("Performing 'git gc' after {} merges", MAX_MERGES_WITHOUT_GC);
+                    try {
+                        git.gc().setAggressive(true).call();
+                    } catch (Exception e) {
+                        LOGGER.warn("Problem invoking 'git gc': {}", e.getMessage());
+                    }
                 }
             }
 
