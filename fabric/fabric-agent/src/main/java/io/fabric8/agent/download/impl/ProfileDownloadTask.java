@@ -38,6 +38,13 @@ public class ProfileDownloadTask extends SimpleDownloadTask {
         try {
             LOG.info("Downloading {}, attempt {}", this.url, scheduleNbRun + 1);
             return super.download(previousException);
+        } catch (IOException e) {
+            if (e.getMessage() != null && e.getMessage().startsWith("URL [profile:")) {
+                // there's tiny chance that new URL(url) was successfull, but url.openStream() - wasn't
+                LOG.info("profile: URL handler is not available, will try another attempt.");
+                throw new ProfileUrlHandlerNotAvailableException(e.getMessage(), e);
+            }
+            throw e;
         } catch (IllegalStateException e) {
             // org.apache.felix.framework.URLHandlersStreamHandlerProxy.toExternalForm(java.net.URL, java.lang.Object)
             // specific
