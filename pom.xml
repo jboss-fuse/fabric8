@@ -241,8 +241,9 @@
         <http-core-version>4.4.4</http-core-version>
         <influxdb-version>1.2</influxdb-version>
         <jackson-version>1.9.13</jackson-version>
-        <jackson2-community-version>2.6.3</jackson2-community-version>
-        <jackson2-version>2.6.3</jackson2-version>
+        <snakeyaml-version>1.17</snakeyaml-version>
+        <jackson2-community-version>2.8.7</jackson2-community-version>
+        <jackson2-version>2.8.7</jackson2-version>
         <jackson-module-scala-version>2.1.5_3</jackson-module-scala-version>
         <jansi-version>1.11.redhat-1</jansi-version>
         <jasypt-smx-version>1.9.3.redhat_3</jasypt-smx-version>
@@ -281,6 +282,7 @@
         <jsch-smx-version>0.1.54_1</jsch-smx-version>
         <json4s-version>3.2.8_1</json4s-version>
         <jsr311-api-smx-version>2.7.0</jsr311-api-smx-version>
+        <jsr339-api-smx-version>2.7.0</jsr339-api-smx-version>
         <junit-version>4.11</junit-version>
         <karaf-version>2.4.0.redhat-630310</karaf-version>
         <libvirt-bundle-version>1.1</libvirt-bundle-version>
@@ -356,7 +358,7 @@
         <spring-version>3.2.18.RELEASE</spring-version>
         <sshd-version>0.14.0.redhat-002</sshd-version>
         <sshj.version>0.10.0</sshj.version>
-        <swagger15-version>1.5.8</swagger15-version>
+        <swagger15-version>1.5.12</swagger15-version>
         <swagger-community-version>1.3.12</swagger-community-version>
         <swagger-version>1.3.12_1</swagger-version>
         <swagger-core-version>1.3.12_2</swagger-core-version>
