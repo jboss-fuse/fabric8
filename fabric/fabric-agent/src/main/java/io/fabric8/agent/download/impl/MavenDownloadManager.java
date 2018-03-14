@@ -138,10 +138,12 @@ public class MavenDownloadManager implements DownloadManager {
                 @Override
                 public void operationComplete(AbstractDownloadTask future) {
                     try {
-                        downloadTask.getFile();
+                        // Call the callback
                         if (downloadCallback != null) {
                             downloadCallback.downloaded(downloadTask);
                         }
+                        // Make sure we log any download error if the callback suppressed it
+                        downloadTask.getFile();
                         for (DownloadCallback listener : listeners) {
                             listener.downloaded(downloadTask);
                         }
@@ -201,16 +203,22 @@ public class MavenDownloadManager implements DownloadManager {
                                             setFile(future.getFile());
                                         } catch (IOException e) {
                                             setException(e);
+                                        } catch (Throwable t) {
+                                            setException(new IOException(t));
                                         }
                                     }
                                 });
                             } catch (IOException e) {
                                 setException(e);
+                            } catch (Throwable t) {
+                                setException(new IOException(t));
                             }
                         }
                     });
                 } catch (IOException e) {
                     setException(e);
+                } catch (Throwable t) {
+                    setException(new IOException(t));
                 }
             }
 
