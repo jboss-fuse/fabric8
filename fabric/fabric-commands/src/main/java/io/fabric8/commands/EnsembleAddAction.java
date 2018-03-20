@@ -118,12 +118,9 @@ public class EnsembleAddAction extends AbstractAction {
                     }
                     current = filtered;
                     for (String c : this.containers) {
-                        if (!c.equals(c.toLowerCase())) {
-                            throw new EnsembleModificationFailed("Only lower case names are supported for containers. Current name: " + c , EnsembleModificationFailed.Reason.INVALID_ARGUMENTS);
-                        }  else {
-                            // let's add it only if it wasn't already there
-                            if (!current.contains(c))
-                                current.add(c);
+                        // let's add it only if it wasn't already there
+                        if (!current.contains(c)) {
+                            current.add(c);
                         }
                     }
                     clusterService.createCluster(current, builder.build());
