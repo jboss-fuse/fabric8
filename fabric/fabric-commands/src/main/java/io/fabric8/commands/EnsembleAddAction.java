@@ -118,7 +118,8 @@ public class EnsembleAddAction extends AbstractAction {
                     }
                     current = filtered;
                     for (String c : this.containers) {
-                    	if (!current.contains(c)){
+                    	// let's add it only if it wasn't already there
+                    	if (!current.contains(c)) {
                             current.add(c);
                     	}
                     }
