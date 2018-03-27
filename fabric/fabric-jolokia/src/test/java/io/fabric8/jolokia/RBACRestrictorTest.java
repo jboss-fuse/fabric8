@@ -78,6 +78,7 @@ public class RBACRestrictorTest {
         assertThat(restrictor.isAttributeReadAllowed(new ObjectName("java.lang:type=Memory"), "Verbose"), is(true));
         assertThat(restrictor.isAttributeReadAllowed(new ObjectName("java.lang:type=Runtime"), "VmVersion"), is(false));
         assertThat(restrictor.isAttributeReadAllowed(new ObjectName("java.lang:type=Runtime"), "xxx"), is(false));
+        assertThat(restrictor.isAttributeReadAllowed(new ObjectName("fabric:type=NoSuchType"), "Whatever"), is(false));
     }
 
     @Test
@@ -86,6 +87,7 @@ public class RBACRestrictorTest {
         assertThat(restrictor.isAttributeWriteAllowed(new ObjectName("java.lang:type=Memory"), "Verbose"), is(true));
         assertThat(restrictor.isAttributeWriteAllowed(new ObjectName("java.lang:type=Runtime"), "VmVersion"), is(false));
         assertThat(restrictor.isAttributeWriteAllowed(new ObjectName("java.lang:type=Runtime"), "xxx"), is(false));
+        assertThat(restrictor.isAttributeWriteAllowed(new ObjectName("fabric:type=NoSuchType"), "Whatever"), is(false));
     }
 
     public interface JMXSecurityMBean {
