@@ -241,7 +241,6 @@
         <http-core-version>4.4.4</http-core-version>
         <influxdb-version>1.2</influxdb-version>
         <jackson-version>1.9.13</jackson-version>
-        <snakeyaml-version>1.17</snakeyaml-version>
         <jackson2-community-version>2.8.7</jackson2-community-version>
         <jackson2-version>2.8.7</jackson2-version>
         <jackson-module-scala-version>2.1.5_3</jackson-module-scala-version>
@@ -282,7 +281,6 @@
         <jsch-smx-version>0.1.54_1</jsch-smx-version>
         <json4s-version>3.2.8_1</json4s-version>
         <jsr311-api-smx-version>2.7.0</jsr311-api-smx-version>
-        <jsr339-api-smx-version>2.7.0</jsr339-api-smx-version>
         <junit-version>4.11</junit-version>
         <karaf-version>2.4.0.redhat-630310</karaf-version>
         <libvirt-bundle-version>1.1</libvirt-bundle-version>

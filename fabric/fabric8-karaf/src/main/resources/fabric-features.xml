@@ -674,8 +674,6 @@
 
     <feature name="swagger-java" version="${project.version}" resolver="(obr)">
         <feature>http</feature>
-        <bundle>mvn:org.yaml/snakeyaml/${snakeyaml-version}</bundle>
-        <bundle>mvn:org.apache.servicemix.specs/org.apache.servicemix.specs.jsr339-api-2.0.1/${jsr339-api-smx-version}</bundle>
         <bundle>mvn:org.codehaus.woodstox/stax2-api/${woodstox-stax2-api-version}</bundle>
         <bundle>mvn:com.fasterxml.jackson.core/jackson-databind/${jackson2-version}</bundle>
         <bundle>mvn:com.fasterxml.jackson.core/jackson-core/${jackson2-version}</bundle>
