@@ -237,7 +237,7 @@ public class VerifyFeatureResolutionMojo extends AbstractMojo {
             properties.put("feature.totest", feature);
 
             FakeSystemBundle systemBundle = getSystemBundleResource(getMetadata(properties, "metadata#"));
-            FakeServiceReference profileHandlerSR = new FakeServiceReference(URLStreamHandlerService.class.getName(), "(url.handler.protocol=profile)");
+            FakeServiceReference profileHandlerSR = new FakeServiceReference(URLStreamHandlerService.class.getName(), "(url.handler.protocol=profile2)");
             systemBundle.setServiceReferences(URLStreamHandlerService.class.getName(), null, new ServiceReference[] {
                     profileHandlerSR
             });
