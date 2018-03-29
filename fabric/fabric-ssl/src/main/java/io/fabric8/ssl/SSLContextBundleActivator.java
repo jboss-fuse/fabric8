@@ -15,8 +15,11 @@
  */
 package io.fabric8.ssl;
 
+import io.fabric8.protocols.ProfileSafeUrlHandler;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceRegistration;
+import org.osgi.service.url.URLStreamHandlerService;
 
 import javax.net.ssl.*;
 import java.io.FileInputStream;
@@ -27,6 +30,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Hashtable;
 
 /**
  * A BundleActivator that replaces the JVM default SSLContext
@@ -35,11 +39,14 @@ import java.security.cert.X509Certificate;
  * The replaced SSL context will trust all presented SSL certificates
  * including self signed certs.
  *
+ * Taking the opportunity of low start level, we'll also register safe profile: URI handler that delegates
+ * to real profile2: URI handler which uses Git and ZK (please forgive).
  *
  * Created by chirino on 8/7/14.
  */
 public class SSLContextBundleActivator implements BundleActivator {
     SSLContext original;
+    ServiceRegistration<URLStreamHandlerService> safeProfileHandlerRegistration;
 
     @Override
     public void start(BundleContext bundleContext) throws Exception {
@@ -57,6 +64,11 @@ public class SSLContextBundleActivator implements BundleActivator {
             System.err.println("Invalid system property configuration:  The javax.net.ssl.trustStore and javax.net.ssl.trustAll cannot both be set.  Ignoring the javax.net.ssl.trustAll property");
             System.err.println();
         }
+
+        // ENTESB-7843: register profile: URI handler that delegates to profile2:
+        Hashtable<String, Object> properties = new Hashtable<>();
+        properties.put("url.handler.protocol", "profile");
+        safeProfileHandlerRegistration = bundleContext.registerService(URLStreamHandlerService.class, new ProfileSafeUrlHandler(), properties);
     }
 
     @Override
@@ -64,6 +76,10 @@ public class SSLContextBundleActivator implements BundleActivator {
         if( original!=null ) {
             SSLContext.setDefault(original);
             original = null;
+        }
+
+        if (safeProfileHandlerRegistration != null) {
+            safeProfileHandlerRegistration.unregister();
         }
     }
 

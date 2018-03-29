@@ -19,6 +19,8 @@ import io.fabric8.api.GitContext;
 import io.fabric8.api.visibility.VisibleForExternal;
 import io.fabric8.git.PullPushPolicy;
 
+import java.net.ConnectException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,6 +42,7 @@ import org.eclipse.jgit.api.RebaseCommand.Operation;
 import org.eclipse.jgit.api.RebaseResult;
 import org.eclipse.jgit.api.ResetCommand;
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
+import org.eclipse.jgit.errors.NoRemoteRepositoryException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
@@ -90,6 +93,11 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
 
     @Override
     public synchronized PullPolicyResult doPull(GitContext context, CredentialsProvider credentialsProvider, boolean allowVersionDelete, boolean allowPush) {
+        return doPull(context, credentialsProvider, allowVersionDelete, allowPush, gitTimeout);
+    }
+
+    @Override
+    public synchronized PullPolicyResult doPull(GitContext context, CredentialsProvider credentialsProvider, boolean allowVersionDelete, boolean allowPush, int timeoutInSeconds) {
         Repository repository = git.getRepository();
         StoredConfig config = repository.getConfig();
         String remoteUrl = config.getString("remote", remoteRef, "url");
@@ -110,7 +118,10 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
             // list remote branches
             // ENTESB-7704: we have to do it before actual fetching, otherwise we can get org.eclipse.jgit.errors.MissingObjectException
             // when trying to fast-forward to commit done upstream between fetch and ls-remote!
-            for (Ref ref : git.lsRemote().setCredentialsProvider(credentialsProvider).setTags(false).setRemote(remoteRef).setHeads(true).call()) {
+            for (Ref ref : git.lsRemote().setTimeout(timeoutInSeconds).setCredentialsProvider(credentialsProvider)
+                    .setTags(false)
+                    .setHeads(true)
+                    .setRemote(remoteRef).call()) {
                 if (ref.getName().startsWith("refs/heads/")) {
                     String name = ref.getName().substring(("refs/heads/").length());
                     remoteBranches.put(name, ref);
@@ -118,7 +129,7 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
                 }
             }
 
-            git.fetch().setTimeout(gitTimeout).setCredentialsProvider(credentialsProvider)
+            git.fetch().setTimeout(timeoutInSeconds).setCredentialsProvider(credentialsProvider)
                     .setTagOpt(TagOpt.FETCH_TAGS)
                     .setRemote(remoteRef).call();
         } catch (Exception ex) {
@@ -127,11 +138,7 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
 
         // No meaningful processing after GitAPIException
         if (lastException != null) {
-            if (lastException instanceof InvalidRemoteException) {
-                LOGGER.warn("Pull failed during fetch because remote repository is not ready yet");
-            } else {
-                LOGGER.warn("Pull failed during fetch because of: " + lastException.getMessage(), lastException);
-            }
+            logPullException(lastException);
             return new AbstractPullPolicyResult(lastException);
         }
 
@@ -278,6 +285,26 @@ public final class DefaultPullPushPolicy implements PullPushPolicy  {
             LOGGER.error(ex.getMessage(), ex);
             return new AbstractPullPolicyResult(ex);
         }
+    }
+
+    /**
+     * Print appropriate exception message when doing <em>pull</em> operation (including ls-remote, fetch, ...)
+     * @param exception
+     */
+    private void logPullException(Throwable exception) {
+        Throwable t = exception;
+        while (t != null) {
+            if (t instanceof InvalidRemoteException
+                    || t instanceof NoRemoteRepositoryException
+                    || t instanceof ConnectException
+                    || t instanceof SocketTimeoutException) {
+                LOGGER.warn("Pull failed during fetch because remote repository is not ready yet (pull will be retried): {}", t.getMessage());
+                return;
+            }
+            t = t.getCause();
+        }
+
+        LOGGER.warn("Pull failed during fetch because of: " + exception.getMessage(), exception);
     }
 
     @Override

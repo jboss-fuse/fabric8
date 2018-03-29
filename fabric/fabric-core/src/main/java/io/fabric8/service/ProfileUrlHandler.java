@@ -51,14 +51,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @ThreadSafe
-@Component(name = "io.fabric8.profile.urlhandler", label = "Fabric8 Profile URL Handler", immediate = true, metatype = false)
+@Component(name = "io.fabric8.profile2.urlhandler", label = "Fabric8 Profile URL Handler", immediate = true, metatype = false)
 @Service(URLStreamHandlerService.class)
 @Properties({
-        @Property(name = "url.handler.protocol", value = "profile")
+        @Property(name = "url.handler.protocol", value = "profile2")
 })
 public final class ProfileUrlHandler extends AbstractURLStreamHandlerService implements Validatable {
 
-    private static final String SYNTAX = "profile:<resource name>";
+    private static final String SYNTAX = "profile2:<resource name>";
 
     public static final Logger LOGGER = LoggerFactory.getLogger(ProfileUrlHandler.class);
 
@@ -190,6 +190,5 @@ public final class ProfileUrlHandler extends AbstractURLStreamHandlerService imp
     void unbindPlatformReadyService(CuratorComplete platformReadyService) {
         this.platformReadyService.unbind(platformReadyService);
     }
-
 
 }

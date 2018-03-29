@@ -46,7 +46,7 @@ public class ClusteredBrokerDeploymentManager extends StandaloneBrokerDeployment
     @Reference(referenceInterface = CuratorFramework.class)
     private final ValidatingReference<CuratorFramework> curatorFramework = new ValidatingReference<>();
 
-    @Reference(referenceInterface = URLStreamHandlerService.class, target = "(&(objectClass=org.osgi.service.url.URLStreamHandlerService)(url.handler.protocol=profile))")
+    @Reference(referenceInterface = URLStreamHandlerService.class, target = "(&(objectClass=org.osgi.service.url.URLStreamHandlerService)(url.handler.protocol=profile2))")
     private final ValidatingReference<URLStreamHandlerService> urlStreamHandlerService = new ValidatingReference<>();
 
     @Activate
