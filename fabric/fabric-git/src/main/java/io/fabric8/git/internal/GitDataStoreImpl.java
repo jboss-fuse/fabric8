@@ -166,6 +166,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     private Configurer configurer;
     
     private final ScheduledExecutorService threadPool = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("git-ds"));
+    private final ScheduledExecutorService threadPoolInitial = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("git-ds-init"));
 
     private final ImportExportHandler importExportHandler = new ImportExportHandler();
     private final GitDataStoreListener gitListener = new GitDataStoreListener();
@@ -421,7 +422,18 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         // failing to activate the component
         if (readWriteLock.isWriteLockedByCurrentThread() || readWriteLock.getWriteHoldCount() == 0) {
             try {
-                doPullInternal();
+                // let's delegate to other thread in order to free MCF thread
+                // ENTESB-7843: there's a problem when jetty is configured with TLS and keystore location using
+                // profile: URI. while Jetty continues to be configured if profile:jetty.xml isn't available
+                // (and it isn't initially), it fails trying to access keystore via profile: URI.
+                // we should optimistically assume we can pull, but there's nothing wrong if we can't
+                // - we'll be able to pull later
+                threadPoolInitial.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        doPullInternal(5/*seconds*/);
+                    }
+                });
             } catch (IllegalStateException e) {
                 LOGGER.info("Another thread acquired write lock and GitDataStore can't pull from remote repository.");
             }
@@ -436,15 +448,20 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         
         // Shutdown the thread pool
         threadPool.shutdown();
+        threadPoolInitial.shutdown();
         try {
-            // Give some time to the running task to complete.
-            if (!threadPool.awaitTermination(5, TimeUnit.SECONDS)) {
-                threadPool.shutdownNow();
+            for (ScheduledExecutorService ses : new ScheduledExecutorService[] { threadPool, threadPoolInitial }) {
+                try {
+                    // Give some time to the running task to complete.
+                    if (!ses.awaitTermination(5, TimeUnit.SECONDS)) {
+                        ses.shutdownNow();
+                    }
+                } catch (InterruptedException ex) {
+                    ses.shutdownNow();
+                    // Preserve interrupt status.
+                    Thread.currentThread().interrupt();
+                }
             }
-        } catch (InterruptedException ex) {
-            threadPool.shutdownNow();
-            // Preserve interrupt status.
-            Thread.currentThread().interrupt();
         } catch (Exception ex) {
             throw FabricException.launderThrowable(ex);
         } finally {
@@ -753,7 +770,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
     @Override
     public GitVersions gitSynchronize(boolean allowPush) {
-        doPullInternal(allowPush);
+        doPullInternal(allowPush, gitTimeout);
         return gitVersions();
     }
 
@@ -1184,7 +1201,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
             }
 
             if (context.isRequirePull()) {
-                doPullInternal(context, getCredentialsProvider(), false);
+                doPullInternal(context, getCredentialsProvider(), false, gitTimeout);
             }
 
             T result = operation.call(git, context);
@@ -1253,13 +1270,17 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     }
 
     private void doPullInternal() {
-        doPullInternal(gitAllowRemoteUpdate);
+        doPullInternal(gitAllowRemoteUpdate, gitTimeout);
     }
 
-    private void doPullInternal(boolean allowPush) {
+    private void doPullInternal(int forcedTimeoutInSeconds) {
+        doPullInternal(gitAllowRemoteUpdate, forcedTimeoutInSeconds);
+    }
+
+    private void doPullInternal(boolean allowPush, int forcedTimeoutInSeconds) {
         LockHandle writeLock = aquireWriteLock();
         try {
-           doPullInternal(new GitContext(), getCredentialsProvider(), true, allowPush);
+           doPullInternal(new GitContext(), getCredentialsProvider(), true, allowPush, forcedTimeoutInSeconds);
         } catch (Throwable e) {
             LOGGER.debug("Error during pull due " + e.getMessage(), e);
             LOGGER.warn("Error during pull due " + e.getMessage() + ". This exception is ignored.");
@@ -1268,12 +1289,12 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         }
     }
 
-    private PullPolicyResult doPullInternal(GitContext context, CredentialsProvider credentialsProvider, boolean allowVersionDelete) {
-        return doPullInternal(context, credentialsProvider, allowVersionDelete, true);
+    private PullPolicyResult doPullInternal(GitContext context, CredentialsProvider credentialsProvider, boolean allowVersionDelete, int forcedTimeoutInSeconds) {
+        return doPullInternal(context, credentialsProvider, allowVersionDelete, true, forcedTimeoutInSeconds);
     }
 
-    private PullPolicyResult doPullInternal(GitContext context, CredentialsProvider credentialsProvider, boolean allowVersionDelete, boolean allowPush) {
-        PullPolicyResult pullResult = pullPushPolicy.doPull(context, credentialsProvider, allowVersionDelete, allowPush);
+    private PullPolicyResult doPullInternal(GitContext context, CredentialsProvider credentialsProvider, boolean allowVersionDelete, boolean allowPush, int forcedTimeoutInSeconds) {
+        PullPolicyResult pullResult = pullPushPolicy.doPull(context, credentialsProvider, allowVersionDelete, allowPush, forcedTimeoutInSeconds);
         if (pullResult.getLastException() == null) {
             Map<String, PullPushPolicy.BranchChange> updatedVersions = pullResult.localUpdateVersions();
             if (!updatedVersions.isEmpty()) {
@@ -1539,7 +1560,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                             config.setString("remote", GitHelpers.REMOTE_ORIGIN, "fetch", "+refs/heads/*:refs/remotes/origin/*");
                             config.save();
 
-                            doPullInternal(context, getCredentialsProvider(), false);
+                            doPullInternal(context, getCredentialsProvider(), false, gitTimeout);
 
                             if (currentUrl == null) {
                                 initialVersionsAvailable.countDown();

@@ -178,6 +178,11 @@ public interface PullPushPolicy {
     PullPolicyResult doPull(GitContext context, CredentialsProvider credentialsProvider, boolean allowVersionDelete, boolean allowPush);
 
     /**
+     * Pull the version/profile state from the remote repository. May control local -&gt; central pushing.
+     */
+    PullPolicyResult doPull(GitContext context, CredentialsProvider credentialsProvider, boolean allowVersionDelete, boolean allowPush, int forcedTimeoutInSeconds);
+
+    /**
      * Push the version/profile state to the remote repository
      */
     PushPolicyResult doPush(GitContext context, CredentialsProvider credentialsProvider);

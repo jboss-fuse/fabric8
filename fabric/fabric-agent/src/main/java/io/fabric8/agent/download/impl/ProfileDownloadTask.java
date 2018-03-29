@@ -36,7 +36,11 @@ public class ProfileDownloadTask extends SimpleDownloadTask {
     @Override
     protected File download(Exception previousException) throws Exception {
         try {
-            LOG.info("Downloading {}, attempt {}", this.url, scheduleNbRun + 1);
+            if (scheduleNbRun == 0) {
+                LOG.info("Downloading {}");
+            } else {
+                LOG.info("Downloading {}, attempt {}", this.url, scheduleNbRun + 1);
+            }
             return super.download(previousException);
         } catch (IOException e) {
             if (e.getMessage() != null && e.getMessage().startsWith("URL [profile:")) {
@@ -48,7 +52,7 @@ public class ProfileDownloadTask extends SimpleDownloadTask {
         } catch (IllegalStateException e) {
             // org.apache.felix.framework.URLHandlersStreamHandlerProxy.toExternalForm(java.net.URL, java.lang.Object)
             // specific
-            if (e.getMessage() != null && e.getMessage().equals("Unknown protocol: profile")) {
+            if (e.getMessage() != null && e.getMessage().startsWith("Unknown protocol: profile")) {
                 LOG.info("profile: URL handler is not available, will try another attempt.");
                 throw new ProfileUrlHandlerNotAvailableException(e.getMessage(), e);
             }
