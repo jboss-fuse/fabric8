@@ -22,7 +22,7 @@
   <parent>
     <groupId>io.fabric8.insight</groupId>
     <artifactId>insight-project</artifactId>
-    <version>1.2.0.redhat-630-SNAPSHOT</version>
+    <version>1.2.0.redhat-630344</version>
   </parent>
 
   <artifactId>insight-elasticsearch-metrics-storage</artifactId>
