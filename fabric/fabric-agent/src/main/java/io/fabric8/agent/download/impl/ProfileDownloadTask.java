@@ -37,7 +37,7 @@ public class ProfileDownloadTask extends SimpleDownloadTask {
     protected File download(Exception previousException) throws Exception {
         try {
             if (scheduleNbRun == 0) {
-                LOG.info("Downloading {}");
+                LOG.info("Downloading {}", this.url);
             } else {
                 LOG.info("Downloading {}, attempt {}", this.url, scheduleNbRun + 1);
             }
