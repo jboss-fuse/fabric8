@@ -70,9 +70,9 @@ public final class ProfileSafeUrlHandler extends AbstractURLStreamHandlerService
             while (count < SLEEPS.length) {
                 try {
                     if (count == 0) {
-                        LOGGER.info("Resolving {}", url);
+                        LOGGER.debug("Resolving {}", url);
                     } else {
-                        LOGGER.info("Resolving {}, attempt {}", url, count + 1);
+                        LOGGER.debug("Resolving {}, attempt {}", url, count + 1);
                     }
                     return new URL("profile2:" + url.getPath()).openStream();
                 } catch (MalformedURLException e) {
