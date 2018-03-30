@@ -70,7 +70,7 @@ public final class ProfileSafeUrlHandler extends AbstractURLStreamHandlerService
             while (count < SLEEPS.length) {
                 try {
                     if (count == 0) {
-                        LOGGER.info("Resolving {}");
+                        LOGGER.info("Resolving {}", url);
                     } else {
                         LOGGER.info("Resolving {}, attempt {}", url, count + 1);
                     }
