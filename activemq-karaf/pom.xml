@@ -165,7 +165,7 @@
                 <feature>framework</feature>
               </framework>
               <features>
-                <feature>activemq-*</feature>
+                <feature>activemq-*|camel-activemq</feature>
               </features>
             </configuration>
           </execution>
