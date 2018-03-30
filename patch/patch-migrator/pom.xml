@@ -23,7 +23,7 @@
   <parent>
     <groupId>io.fabric8.patch</groupId>
     <artifactId>patch-project</artifactId>
-    <version>1.2.0.redhat-630-SNAPSHOT</version>
+    <version>1.2.0.redhat-630343</version>
   </parent>
 
   <artifactId>patch-migrator</artifactId>
