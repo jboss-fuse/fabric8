@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2018 Red Hat, Inc. Red Hat licenses this file to you under
+	the Apache License, version 2.0 (the "License"); you may not use this file
+	except in compliance with the License. You may obtain a copy of the License
+	at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable
+	law or agreed to in writing, software distributed under the License is distributed
+	on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+	express or implied. See the License for the specific language governing permissions
+	and limitations under the License. -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.apache.camel</groupId>
+        <artifactId>camel-parent</artifactId>
+        <version>2.20.0.fuse-000101</version>
+    </parent>
+
+    <groupId>org.fusesource</groupId>
+    <artifactId>camel-fusesource-parent</artifactId>
+    <version>7.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>JBoss Fuse :: Components </name>
+    <description>Provides Camel Components for JBoss Fuse</description>
+    <url>http://www.jboss.org/products/fuse/overview/</url>
+
+    <properties>
+        <geronimo-annotation_1.0_spec.version>1.1.1</geronimo-annotation_1.0_spec.version>
+        <camel-version>2.20.0.fuse-000101</camel-version>
+        <activemq-version>5.11.0.redhat-630337</activemq-version>
+        <karaf-version>4.2.0.fuse-000100</karaf-version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.apache.camel</groupId>
+                <artifactId>apt</artifactId>
+                <version>${camel-version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.camel</groupId>
+                <artifactId>camel-test</artifactId>
+                <version>${camel-version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.camel</groupId>
+                <artifactId>camel-test-spring</artifactId>
+                <version>${camel-version}</version>
+                <type>bundle</type>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.camel</groupId>
+                <artifactId>camel-core</artifactId>
+                <version>${camel-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.camel</groupId>
+                <artifactId>camel-jms</artifactId>
+                <version>${camel-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.camel</groupId>
+                <artifactId>camel-spring</artifactId>
+                <version>${camel-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.camel</groupId>
+                <artifactId>spi-annotations</artifactId>
+                <version>${camel-version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+    <modules>
+        <module>activemq-client-osgi</module>
+        <module>camel-activemq</module>
+        <module>activemq-karaf</module>
+        <module>camel-sap</module>
+    </modules>
+    <repositories>
+        <repository>
+            <id>ea</id>
+            <name>Fuse Early Access Repository</name>
+            <url>https://origin-repository.jboss.org/nexus/content/groups/ea</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
+        <repository>
+            <id>jboss.public.repo</id>
+            <name>JBoss Public Repository</name>
+            <url>http://repository.jboss.org/nexus/content/repositories/public</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>ea</id>
+            <url>http://origin-repository.jboss.org/nexus/content/groups/ea</url>
+            <layout>default</layout>
+        </pluginRepository>
+    </pluginRepositories>
+</project>

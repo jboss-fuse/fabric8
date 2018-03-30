@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.fusesource</groupId>
+    <artifactId>camel-fusesource-parent</artifactId>
+    <version>7.0.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+
+  <artifactId>activemq-client-osgi</artifactId>
+  <packaging>bundle</packaging>
+  <name>ActiveMQ :: OSGi bundle</name>
+  <description>Puts together an ActiveMQ Client OSGi bundle</description>
+
+  <properties>
+    <camel.osgi.import>
+      !org.apache.activemq.store,
+      !org.apache.xbean.spring*,
+      javax.jmdns*;resolution:=optional,
+      org.apache.geronimo.transaction.manager*;resolution:=optional,
+      org.springframework.jms*;version="[4,6)";resolution:=optional,
+      org.springframework.transaction*;version="[4,6)";resolution:=optional,
+      org.springframework*;version="[4,6)";resolution:=optional,
+      javax.annotation*,
+      javax.jms*;version="[1.1,3)",
+      javax.management*,
+      javax.transaction*,
+      javax.naming*;resolution:=optional,
+      org.apache.commons.pool*;resolution:=optional,
+      org.apache.commons.net*;resolution:=optional,
+      org.json*;resolution:=optional,
+        *
+    </camel.osgi.import>
+    <camel.osgi.export>
+      org.apache.activemq*;version=${project.version};-noimport:=true;-split-package:=merge-first,
+    </camel.osgi.export>
+    <camel.osgi.private.pkg>
+      org.fusesource.hawtbuf*,
+      !org.apache.activemq.store,
+    </camel.osgi.private.pkg>
+    <camel.osgi.dynamic>*</camel.osgi.dynamic>
+  </properties>
+
+  <dependencies>
+
+    <!-- Additional Dependencies. -->
+    <dependency>
+      <groupId>org.apache.activemq</groupId>
+      <artifactId>activemq-client</artifactId>
+      <version>${activemq-version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.activemq</groupId>
+      <artifactId>activemq-pool</artifactId>
+      <version>${activemq-version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.activemq</groupId>
+      <artifactId>activemq-spring</artifactId>
+      <version>${activemq-version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.activemq</groupId>
+          <artifactId>activemq-broker</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.core</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.compendium</artifactId>
+       <scope>provided</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>unpack</id>
+            <goals>
+              <goal>unpack</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>org.apache.camel</groupId>
+                  <artifactId>camel-spring</artifactId>
+                  <version>${camel-version}</version>
+                  <type>jar</type>
+                  <overWrite>false</overWrite>
+                  <outputDirectory>${basedir}/target/extra-resources/</outputDirectory>
+                  <includes>camel-spring.xsd</includes>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>org.apache.camel</groupId>
+                  <artifactId>camel-blueprint</artifactId>
+                  <version>${camel-version}</version>
+                  <type>jar</type>
+                  <overWrite>false</overWrite>
+                  <outputDirectory>${basedir}/target/extra-resources/</outputDirectory>
+                  <includes>camel-blueprint.xsd</includes>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>org.apache.activemq</groupId>
+                  <artifactId>activemq-spring</artifactId>
+                  <version>${activemq-version}</version>
+                  <type>jar</type>
+                  <overWrite>false</overWrite>
+                  <outputDirectory>${basedir}/target/extra-resources/</outputDirectory>
+                  <includes>activemq.xsd*</includes>
+                </artifactItem>
+              </artifactItems>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <extensions>true</extensions>
+        <configuration>
+          <instructions>
+            <Embed-Dependency>*;scope=compile|runtime;groupId=org.apache.activemq|org.fusesource.hawtbuf;inline=META-INF/services/*</Embed-Dependency>
+            <Embed-Transitive>true</Embed-Transitive>
+            <_exportcontents>org.apache.activemq.*;-noimport:=true</_exportcontents>
+          </instructions>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
