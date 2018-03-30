@@ -37,7 +37,7 @@
         <bundle>mvn:org.fusesource/activemq-client-osgi/${project.version}</bundle>
     </feature>
 
-    <feature name="activemq-camel" version="${project.version}">
+    <feature name="camel-activemq" version="${project.version}">
         <feature>camel-jms</feature>
         <feature version="${project.version}">activemq-client</feature>
         <bundle>mvn:org.fusesource/camel-activemq/${project.version}</bundle>
