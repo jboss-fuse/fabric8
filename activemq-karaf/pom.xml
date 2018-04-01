@@ -46,11 +46,6 @@
   <dependencies>
     <dependency>
       <groupId>org.fusesource</groupId>
-      <artifactId>activemq-karaf</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.fusesource</groupId>
       <artifactId>camel-activemq</artifactId>
       <version>${project.version}</version>
     </dependency>
