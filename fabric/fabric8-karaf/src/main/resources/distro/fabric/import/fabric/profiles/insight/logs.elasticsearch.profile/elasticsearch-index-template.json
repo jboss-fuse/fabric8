@@ -6,24 +6,24 @@
   "mappings" : {
     "_default_" : {
       "_all" : {"enabled" : true},
-      "dynamic_templates" : [ 
+      "dynamic_templates" : [
         {
-          "integers": {
+          "timestamp": {
             "match_pattern": "regex",
-            "match": ".*(Exchanges|Failures|Redeliveries).*",
+            "match": ".*(Timestamp|TimerFiredTime|Date).*",
             "match_mapping_type": "string",
             "mapping": {
-              "type": "long"
+              "type": "date"
             }
           }
         },
         {
-          "date": {
+          "integers": {
             "match_pattern": "regex",
-            "match": ".*(Time(?!rName)|Date).*",
+            "match": ".*(Exchanges|Failures|Redeliveries|Time(?!rName)).*",
             "match_mapping_type": "string",
             "mapping": {
-              "type": "date"
+              "type": "long"
             }
           }
         },
