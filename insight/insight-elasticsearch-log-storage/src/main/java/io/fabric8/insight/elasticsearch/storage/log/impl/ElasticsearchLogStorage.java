@@ -30,7 +30,7 @@ public class ElasticsearchLogStorage extends AbstractElasticsearchStorage {
     @Reference(name = "node", referenceInterface = org.elasticsearch.node.Node.class, target = "(cluster.name=insight)")
     private final ValidatingReference<Node> node = new ValidatingReference<>();
 
-    @Property(name = INDEX_TEMPLATE_LOCATION, label = "Index Template LOcation", description = "Location of the json file containing the index template", boolValue = false)
+    @Property(name = INDEX_TEMPLATE_LOCATION, label = "Index Template Location", description = "Location of the json file containing the index template", boolValue = false)
     private String indexTemplateLocation = "profile:elasticsearch-index-template.json";
 
     @Activate
