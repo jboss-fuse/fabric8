@@ -27,10 +27,10 @@
   </parent>
 
 
-  <artifactId>activemq-client-osgi</artifactId>
+  <artifactId>activemq-client</artifactId>
   <packaging>bundle</packaging>
-  <name>ActiveMQ :: OSGi bundle</name>
-  <description>Puts together an ActiveMQ Client OSGi bundle</description>
+  <name>ActiveMQ :: Client</name>
+  <description>Puts together an ActiveMQ client</description>
 
   <properties>
     <camel.osgi.import>

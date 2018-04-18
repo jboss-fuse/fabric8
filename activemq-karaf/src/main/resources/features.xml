@@ -34,7 +34,7 @@
         <bundle dependency='true'>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.jaxb-impl/2.2.11_1</bundle>
         <bundle dependency="false">mvn:commons-pool/commons-pool/1.6.0.redhat-9</bundle>
         <bundle dependency="false">mvn:commons-net/commons-net/3.3.0.redhat-3</bundle>
-        <bundle>mvn:org.fusesource/activemq-client-osgi/${project.version}</bundle>
+        <bundle>mvn:org.fusesource/activemq-client/${project.version}</bundle>
     </feature>
 
     <feature name="camel-activemq" version="${project.version}">

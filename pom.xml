@@ -78,7 +78,7 @@
         </dependencies>
     </dependencyManagement>
     <modules>
-        <module>activemq-client-osgi</module>
+        <module>activemq-client</module>
         <module>camel-activemq</module>
         <module>activemq-karaf</module>
         <module>camel-sap</module>
