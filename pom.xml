@@ -30,7 +30,7 @@
     <properties>
         <geronimo-annotation_1.0_spec.version>1.1.1</geronimo-annotation_1.0_spec.version>
         <camel-version>2.20.0.fuse-000101</camel-version>
-        <activemq-version>5.11.0.redhat-630337</activemq-version>
+        <activemq-version>5.11.0.redhat-630343</activemq-version>
         <karaf-version>4.2.0.fuse-000100</karaf-version>
     </properties>
 
