@@ -169,6 +169,10 @@ public class MavenDownloadManager implements DownloadManager {
                 } else {
                     return new MavenDownloadTask(executorService, mavenResolver, mvnUrl);
                 }
+            } else if (mvnUrl.startsWith("profile:")) {
+                // ENTESB-7506 - "profile:" handler may get republished in OSGi registry during launch
+                // phase of fabric container, so we should allow repeating download attempts
+                return new ProfileDownloadTask(executorService, url, tmpPath);
             } else {
                 return new SimpleDownloadTask(executorService, url, tmpPath);
             }

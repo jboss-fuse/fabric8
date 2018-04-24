@@ -28,7 +28,7 @@ public abstract class AbstractRetryableDownloadTask extends AbstractDownloadTask
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractRetryableDownloadTask.class);
 
     private long scheduleDelay = 250;
-    private int scheduleNbRun = 0;
+    protected int scheduleNbRun = 0;
 
     private Exception previousException = null;
 
