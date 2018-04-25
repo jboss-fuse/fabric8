@@ -85,9 +85,9 @@
     </modules>
     <repositories>
         <repository>
-            <id>ea</id>
+            <id>jboss-ea</id>
             <name>Fuse Early Access Repository</name>
-            <url>https://origin-repository.jboss.org/nexus/content/groups/ea</url>
+            <url>https://repository.jboss.org/nexus/content/groups/ea</url>
             <snapshots>
                 <enabled>true</enabled>
             </snapshots>
@@ -109,8 +109,8 @@
     </repositories>
     <pluginRepositories>
         <pluginRepository>
-            <id>ea</id>
-            <url>http://origin-repository.jboss.org/nexus/content/groups/ea</url>
+            <id>jboss-ea</id>
+            <url>http://repository.jboss.org/nexus/content/groups/ea</url>
             <layout>default</layout>
         </pluginRepository>
     </pluginRepositories>
