@@ -1649,6 +1649,7 @@
                                           <exclude>org.springframework.boot:spring-boot-starter-data-cassandra</exclude>
                                           <exclude>org.springframework.boot:spring-boot-starter-data-couchbase</exclude>
                                           <exclude>org.springframework.boot:spring-boot-starter-data-elasticsearch</exclude>
+                                          <exclude>org.springframework.boot:spring-boot-starter-data-gemfire</exclude>
                                           <exclude>org.springframework.boot:spring-boot-starter-data-ldap</exclude>
                                           <exclude>org.springframework.boot:spring-boot-starter-data-mongodb</exclude>
                                           <exclude>org.springframework.boot:spring-boot-starter-data-neo4j</exclude>
