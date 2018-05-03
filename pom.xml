@@ -1555,11 +1555,12 @@
                                   <include>org.apache.cxf:cxf-spring-boot-starter-jaxws</include>
                                   <include>org.apache.cxf:cxf-rt-rs-service-description-swagger</include>
                                   <include>org.apache.httpcomponents:*</include>
-                                  <include>io.swagger:*</include>
                                   <include>io.undertow:*</include>
                                   <include>junit:junit</include>
                               </includes>
                               <excludes>
+                                  <exclude>io.swagger:*</exclude>
+                                  <exclude>javax.servlet:servlet-api</exclude>
                                   <exclude>javax.servlet:javax.servlet-api</exclude>
                                   <exclude>javax.activation:activation:1.1</exclude>
                               </excludes>
@@ -1595,7 +1596,6 @@
                                           <include>org.springframework*:*</include>
 
                                           <include>commons-codec:*</include>
-                                          <include>commons-collections:*</include>
                                           <include>commons-dbcp:*</include>
                                           <include>org.apache.commons:commons-dbcp2</include>
                                           <include>commons-pool:*</include>
@@ -1606,7 +1606,6 @@
                                           <include>com.fasterxml.jackson.*:*</include>
 
                                           <include>com.google.code.gson:*</include>
-                                          <include>javax.servlet:javax.servlet-api</include>
                                           <include>junit:*</include>
                                           <include>net.sf.ehcache:ehcache</include>
 
@@ -1619,8 +1618,6 @@
                                           <include>org.jolokia:jolokia-core</include>
                                           <include>org.jboss:jboss-transaction-spi</include>
                                           <include>org.jboss.logging:jboss-logging</include>
-                                          <include>org.jboss.narayana.jta:*</include>
-                                          <include>org.jboss.narayana.jts:*</include>
 
                                           <include>org.springframework.boot:spring-boot-starter</include>
                                           <include>org.springframework.boot:spring-boot-starter-activemq</include>
@@ -1639,7 +1636,10 @@
                                       </includes>
                                       <excludes>
                                           <exclude>org.apache.activemq:activemq-camel</exclude>
+                                          <exclude>org.apache.activemq:artemis-*</exclude>
                                           <exclude>org.assertj*:*</exclude>
+                                          <exclude>javax.servlet:servlet-api</exclude>
+                                          <exclude>javax.servlet:javax.servlet-api</exclude>
 
                                           <!-- Out of scope sb starters -->
                                           <exclude>org.springframework.boot:spring-boot-starter-aop</exclude>
@@ -1696,7 +1696,10 @@
                                       </includes>
                                       <excludes>
                                           <exclude>io.fabric8*:*</exclude>
+                                          <exclude>javax.servlet:servlet-api</exclude>
+                                          <exclude>javax.servlet:javax.servlet-api</exclude>
 
+					  <exclude>org.apache.qpid:*</exclude>
                                           <!-- Deprecated components -->
                                           <exclude>org.apache.camel:camel-context</exclude>
                                           <exclude>org.apache.camel:camel-context-starter</exclude>
@@ -1755,6 +1758,8 @@
                                           <include>*:*</include>
                                       </includes>
                                       <excludes>
+                                          <exclude>javax.servlet:servlet-api</exclude>
+                                          <exclude>javax.servlet:javax.servlet-api</exclude>
                                           <exclude>org.springframework:*</exclude>
                                           <exclude>org.springframework.boot:*</exclude>
                                           <exclude>commons-lang:commons-lang</exclude>
@@ -1762,6 +1767,25 @@
                                           <exclude>io.fabric8:openshift-*</exclude>
                                           <exclude>com.squareup.okhttp:*</exclude>
                                           <exclude>com.squareup.okio:*</exclude>
+                                      </excludes>
+                                  </dependencyManagement>
+                              </import>
+                              <import>
+                                  <groupId>org.jboss.fuse</groupId>
+                                  <artifactId>jboss-fuse-parent</artifactId>
+                                  <version>${fuse.version}</version>
+                                  <repository>https://maven.repository.redhat.com/ga</repository>
+                                  <dependencyManagement>
+                                      <includes>
+                                          <include>org.jboss.narayana.jta:*</include>
+                                          <include>org.jboss.narayana.jts:*</include>
+                                          <include>commons-collections:*</include>
+                                          <include>io.swagger:*</include>
+                                          <include>javax.servlet:javax.servlet-api</include>
+                                          <include>org.apache.activemq:artemis-*</include>
+                                          <include>org.apache.qpid:*</include>
+                                      </includes>
+                                      <excludes>
                                       </excludes>
                                   </dependencyManagement>
                               </import>
