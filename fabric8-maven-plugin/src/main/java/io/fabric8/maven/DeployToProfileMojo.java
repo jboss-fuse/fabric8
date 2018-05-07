@@ -121,6 +121,12 @@ public class DeployToProfileMojo extends AbstractProfileMojo {
     private boolean upload;
 
     /**
+     * Whether or not we should override the existing profile.
+     */
+    @Parameter(property = "fabric8.overrideProfile", defaultValue = "true")
+    private boolean overrideProfile;
+
+    /**
      * Parameter used to control how many times a failed deployment will be retried before giving up and failing. If a
      * value outside the range 1-10 is specified it will be pulled to the nearest value within the range 1-10.
      */
@@ -600,9 +606,8 @@ public class DeployToProfileMojo extends AbstractProfileMojo {
         getLog().info("About to invoke mbean " + mbeanName + " on jolokia URL: " + jolokiaUrl + " with user: " + fabricServer.getUsername());
         getLog().debug("JSON: " + json);
         try {
-            // Append bundles to existing profile bundles if we're not running the plugin at project root 
-            Boolean appendBundles = !mavenSession.getExecutionRootDirectory().equalsIgnoreCase(project.getBasedir().toString());
-            J4pExecRequest request = new J4pExecRequest(mbeanName, "deployProjectJsonMergeOption(java.lang.String,boolean)", json, appendBundles);
+            boolean mergeProfile = !overrideProfile;
+            J4pExecRequest request = new J4pExecRequest(mbeanName, "deployProjectJsonMergeOption(java.lang.String,boolean)", json, mergeProfile);
             J4pResponse<J4pExecRequest> response = client.execute(request, "POST");
             Object value = response.getValue();
             if (value == null) {
