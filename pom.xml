@@ -89,7 +89,7 @@
         <cxf.version>3.1.11</cxf.version>
         <cxf.plugin.version>3.1.11</cxf.plugin.version>
 
-        <commons.collections.version>3.2.2</commons.collections.version>
+        <commons.collections.version>3.2.2.redhat-2</commons.collections.version>
         <fuse.version>7.0.0.fuse-000181</fuse.version>
         <hibernate-validator.version>5.4.2.Final</hibernate-validator.version>
         <jansi.version>1.11</jansi.version>
@@ -133,7 +133,7 @@
         <felix-scr-annotations.version>1.9.12</felix-scr-annotations.version>
         <felix-scr-plugin.version>1.21.0</felix-scr-plugin.version>
         <guava.version>19.0</guava.version>
-        <httpclient.version>4.3.3</httpclient.version>
+        <httpclient.version>4.5.5</httpclient.version>
         <jackson2.version>2.7.4</jackson2.version>
         <jar.plugin.version>2.6</jar.plugin.version>
         <javax.cdi-api.version>1.2</javax.cdi-api.version>
@@ -180,6 +180,7 @@
         <validation-api.version>1.1.0.Final</validation-api.version>
         <zookeeper.version>3.4.9</zookeeper.version>
         <commons-codec.version>1.11</commons-codec.version>
+        <commons-io.version>2.6</commons-io.version>
         <commons-lang3.version>3.7</commons-lang3.version>
 
         <!-- OSGi bundles properties -->
@@ -1559,6 +1560,8 @@
                                   <include>junit:junit</include>
                               </includes>
                               <excludes>
+                                  <exclude>commons-collections:*</exclude>
+                                  <exclude>commons-io:*</exclude>
                                   <exclude>io.swagger:*</exclude>
                                   <exclude>javax.servlet:servlet-api</exclude>
                                   <exclude>javax.servlet:javax.servlet-api</exclude>
@@ -1635,6 +1638,8 @@
                                           <include>org.springframework.boot:spring-boot-maven-plugin</include>
                                       </includes>
                                       <excludes>
+                                          <exclude>commons-collections:commons-collections</exclude>
+                                          <exclude>commons-io:commons-io</exclude>
                                           <exclude>org.apache.activemq:activemq-camel</exclude>
                                           <exclude>org.apache.activemq:artemis-*</exclude>
                                           <exclude>org.assertj*:*</exclude>
@@ -1695,6 +1700,7 @@
                                           <include>*:*</include>
                                       </includes>
                                       <excludes>
+                                          <exclude>commons-collections:*</exclude>
                                           <exclude>io.fabric8*:*</exclude>
                                           <exclude>javax.servlet:servlet-api</exclude>
                                           <exclude>javax.servlet:javax.servlet-api</exclude>
@@ -1765,6 +1771,8 @@
                                           <exclude>javax.servlet:javax.servlet-api</exclude>
                                           <exclude>org.springframework:*</exclude>
                                           <exclude>org.springframework.boot:*</exclude>
+                                          <exclude>commons-collections:commons-collections</exclude>
+                                          <exclude>commons-io:commons-io</exclude>
                                           <exclude>commons-lang:commons-lang</exclude>
                                           <exclude>io.fabric8:kubernetes-*</exclude>
                                           <exclude>io.fabric8:openshift-*</exclude>
@@ -1783,6 +1791,7 @@
                                           <include>org.jboss.narayana.jta:*</include>
                                           <include>org.jboss.narayana.jts:*</include>
                                           <include>commons-collections:*</include>
+                                          <include>commons-io:commons-io</include>
                                           <include>io.swagger:*</include>
                                           <include>javax.servlet:javax.servlet-api</include>
                                           <include>org.apache.activemq:artemis-*</include>
@@ -1794,6 +1803,22 @@
                               </import>
                           </imports>
                           <overrides>
+                              <override>
+                                  <dependencies>
+                                      <includes>
+                                          <include>commons-collections:commons-collections</include>
+                                      </includes>
+                                  </dependencies>
+                                  <version>${commons.collections.version}</version>
+                              </override>
+                              <override>
+                                  <dependencies>
+                                      <includes>
+                                          <include>commons-io:commons-io</include>
+                                      </includes>
+                                  </dependencies>
+                                  <version>${commons-io.version}</version>
+                              </override>
                               <override>
                                   <dependencies>
                                       <includes>
