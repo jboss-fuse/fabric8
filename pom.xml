@@ -1733,6 +1733,9 @@
                                           <exclude>org.apache.camel:camel-routebox-starter</exclude>
                                           <exclude>org.apache.camel:camel-swagger</exclude>
 
+                                          <!-- ENTESB-8107 : exclude camel-tika -->
+                                          <exclude>org.apache.camel:camel-tika</exclude>
+                                          <exclude>org.apache.camel:camel-tika-starter</exclude>
                                           <exclude>org.apache.camel:camel-xmlrpc</exclude>
                                           <exclude>org.apache.camel:camel-xmlrpc-starter</exclude>
 
