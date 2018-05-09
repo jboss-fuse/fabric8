@@ -63,7 +63,6 @@ public class FabricJolokia extends AbstractComponent {
         configurer.configure(properties, this);
         context = new JolokiaSecureHttpContext(realm, role);
         Hashtable<String,String> initProps = new Hashtable<>();
-        //initProps.put("restrictorClass", RBACRestrictor.class.getName()); // This requires Jolokia 1.3.3
         injectSystemProperties(initProps);
         httpService.get().registerServlet(getServletAlias(), new JolokiaServlet(bundleContext){
             @Override
