@@ -68,6 +68,7 @@ import org.slf4j.LoggerFactory;
 
 
 import static org.apache.zookeeper.server.ServerCnxnFactory.createFactory;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -83,6 +84,8 @@ public class ServiceFactoryTest {
 
     @Before
     public void infraUp() throws Exception {
+        failOnVal.set(0);
+        destroyCount.set(0);
         int tickTime = 500;
         int numConnections = 5000;
         File dir = new File("target", "zookeeper" + random.nextInt()).getAbsoluteFile();
@@ -268,10 +271,20 @@ public class ServiceFactoryTest {
         underTest.destroy();
     }
 
+    static AtomicInteger destroyCount = new AtomicInteger();
+    public static class CheckDestroyCall {
+        public CheckDestroyCall() {}
+
+        public void doDestroyWork() {
+            LOG.info("doDestroyWork: callCount " + destroyCount.get());
+            destroyCount.incrementAndGet();
+        }
+    }
+
+    static AtomicInteger failOnVal = new AtomicInteger(0);
     public static class IOLockTester extends AbstractLocker {
         public IOLockTester() {}
 
-        static AtomicInteger failOnVal = new AtomicInteger(0);
         @Override
         public void configure(PersistenceAdapter persistenceAdapter) throws IOException {
             LOG.info("Configure: " + persistenceAdapter);
@@ -348,6 +361,55 @@ public class ServiceFactoryTest {
                 return broker != null && broker.isStarted();
             }
         }));
+        assertTrue("Destroy method called", destroyCount.get() > 0);
+    }
+
+    @Test
+    public void testStandaloneRestartAllowedRetryOnIOExceptionDestroyCheck() throws Exception {
+
+        final String brokerName = "amq-kahadb";
+        underTest = new ActiveMQServiceFactory();
+
+        Properties props = new Properties();
+        props.put("config", "amq-kahadb-restartAllowed-destroy-check.xml");
+        props.put("broker-name", brokerName);
+        props.put("connectors", "openwire");
+        props.put("standalone", "true");
+
+        underTest.updated("b", props);
+
+        Wait.waitFor(new Wait.Condition() {
+            @Override
+            public boolean isSatisified() throws Exception {
+                return underTest.getBrokerService(brokerName) != null;
+            }
+        });
+        underTest.getBrokerService(brokerName).waitUntilStarted(2000);
+        final BrokerService brokerService = underTest.getBrokerService(brokerName);
+        KahaDBPersistenceAdapter kahaDBPersistenceAdapter =
+           (KahaDBPersistenceAdapter) brokerService.getPersistenceAdapter();
+
+        // have the broker stop with an IOException on next checkpoint so it
+        // has a pending local transaction to recover
+        kahaDBPersistenceAdapter.getStore().getJournal().close();
+
+        Wait.waitFor(new Wait.Condition() {
+            @Override
+            public boolean isSatisified() throws Exception {
+                return brokerService.isStopped();
+            }
+        });
+
+        assertTrue("Broker running again", Wait.waitFor(new Wait.Condition() {
+            @Override
+            public boolean isSatisified() throws Exception {
+                // check if broker is running
+                BrokerService broker = underTest.getBrokerService(brokerName);
+                return broker != null && broker.isStarted();
+            }
+        }));
+
+        assertEquals("DestroyMethod called", 1, destroyCount.get());
     }
 
     @Test
