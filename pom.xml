@@ -171,7 +171,7 @@
         <selenium.htmlunit.driver.version>2.21</selenium.htmlunit.driver.version>
         <servlet-api.version>2.5</servlet-api.version>
         <shrinkwrap-resolver.version>2.2.2</shrinkwrap-resolver.version>
-        <slf4j.version>1.7.12</slf4j.version>
+        <slf4j.version>1.7.22.redhat-2</slf4j.version>
         <spring.version>4.3.16.RELEASE</spring.version>
         <spring.boot.version>1.5.12.RELEASE</spring.boot.version>
         <spring-cloud-kubernetes.version>0.1.6.fuse-000035</spring-cloud-kubernetes.version>
@@ -1555,6 +1555,7 @@
                                   <include>org.apache.cxf:cxf-spring-boot-starter-jaxws</include>
                                   <include>org.apache.cxf:cxf-rt-rs-service-description-swagger</include>
                                   <include>org.apache.httpcomponents:*</include>
+                                  <include>org.slf4j:*</include>
                                   <include>io.swagger:*</include>
                                   <include>io.undertow:*</include>
                                   <include>junit:junit</include>
@@ -1589,8 +1590,6 @@
                                           <include>org.hibernate:hibernate-entitymanager</include>
                                           <include>org.hsqldb:*</include>
                                           <include>org.mockito:*</include>
-
-                                          <include>org.slf4j:*</include>
 
                                           <include>org.springframework*:*</include>
 
@@ -1640,6 +1639,7 @@
                                       <excludes>
                                           <exclude>org.apache.activemq:activemq-camel</exclude>
                                           <exclude>org.assertj*:*</exclude>
+                                          <exclude>org.slf4j:*</exclude>
 
                                           <!-- Out of scope sb starters -->
                                           <exclude>org.springframework.boot:spring-boot-starter-aop</exclude>
@@ -1695,6 +1695,7 @@
                                       </includes>
                                       <excludes>
                                           <exclude>io.fabric8*:*</exclude>
+                                          <exclude>org.slf4j:*</exclude>
 
                                           <!-- Deprecated components -->
                                           <exclude>org.apache.camel:camel-context</exclude>
@@ -1754,6 +1755,7 @@
                                           <include>*:*</include>
                                       </includes>
                                       <excludes>
+                                          <exclude>org.slf4j:*</exclude>
                                           <exclude>org.springframework:*</exclude>
                                           <exclude>org.springframework.boot:*</exclude>
                                           <exclude>commons-lang:commons-lang</exclude>
@@ -1766,6 +1768,22 @@
                               </import>
                           </imports>
                           <overrides>
+                              <override>
+                                  <dependencies>
+                                      <includes>
+                                          <include>org.slf4j:jcl-over-slf4j</include>
+                                      </includes>
+                                  </dependencies>
+                                  <version>${slf4j.version}</version>
+                              </override>
+                              <override>
+                                  <dependencies>
+                                      <includes>
+                                          <include>org.slf4j:log4j-over-slf4j</include>
+                                      </includes>
+                                  </dependencies>
+                                  <version>${slf4j.version}</version>
+                              </override>
                               <override>
                                   <dependencies>
                                       <includes>
