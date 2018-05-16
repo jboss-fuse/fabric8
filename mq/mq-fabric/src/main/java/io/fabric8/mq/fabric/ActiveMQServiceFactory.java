@@ -495,6 +495,7 @@ public class ActiveMQServiceFactory  {
                         boolean started = false;
                         while (!started) {
                             try {
+                                doStop();
                                 doStart();
                                 if (server != null && server.getResource() != null) {
                                     lastModified = server.getResource().lastModified();
