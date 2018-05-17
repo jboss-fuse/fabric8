@@ -93,7 +93,7 @@
         <fuse.version>7.0.0.fuse-000181</fuse.version>
         <hibernate-validator.version>5.4.2.Final</hibernate-validator.version>
         <jansi.version>1.11</jansi.version>
-        <jolokia.version>1.3.7</jolokia.version>
+        <jolokia.version>1.5.0.redhat-1</jolokia.version>
         <jgroups.version>3.6.13.Final</jgroups.version>
         <jsonschema2pojo.version>0.5.1</jsonschema2pojo.version>
         <snakeyaml.version>1.19</snakeyaml.version>
