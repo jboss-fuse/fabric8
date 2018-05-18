@@ -34,7 +34,7 @@
             brokerName="${broker-name}"
             dataDirectory="${data}"
             persistent="true"
-            start="false" restartAllowed="false">
+            start="false" restartAllowed="true">
 
         <managementContext>
             <managementContext createConnector="false"/>
