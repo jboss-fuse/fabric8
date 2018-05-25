@@ -91,7 +91,7 @@
 
         <commons.collections.version>3.2.2</commons.collections.version>
         <fuse.version>7.0.0.fuse-000181</fuse.version>
-        <hibernate-validator.version>5.4.2.Final</hibernate-validator.version>
+        <hibernate-validator.version>5.3.5.Final-redhat-2</hibernate-validator.version>
         <jansi.version>1.11</jansi.version>
         <jolokia.version>1.5.0.redhat-1</jolokia.version>
         <jgroups.version>3.6.13.Final</jgroups.version>
@@ -1556,6 +1556,8 @@
                                   <include>org.apache.cxf:cxf-rt-rs-service-description-swagger</include>
                                   <include>org.apache.httpcomponents:*</include>
                                   <include>org.slf4j:*</include>
+
+                                  <include>org.hibernate:hibernate-validator</include>
                                   <include>io.swagger:*</include>
                                   <include>io.undertow:*</include>
                                   <include>junit:junit</include>
