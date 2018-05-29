@@ -225,7 +225,7 @@
         <gitective-version>0.9.11</gitective-version>
         <gson-version>2.4</gson-version>
         <groovy1-version>1.8.6</groovy1-version>
-        <groovy-version>2.4.8</groovy-version>
+        <groovy-version>2.4.9</groovy-version>
         <guava-version>18.0.0.redhat-1</guava-version>
         <guava.osgi.version.clean>17.0</guava.osgi.version.clean>
         <guice.version>3.0</guice.version>
