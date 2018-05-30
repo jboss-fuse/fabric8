@@ -186,7 +186,7 @@ public final class ProjectDeployerImpl extends AbstractComponent implements Proj
         ProfileBuilder builder = ProfileBuilder.Factory.createFrom(profile);
         builder.addAttribute(Profile.ABSTRACT, "" + isAbstract);
 
-        ProjectRequirements oldRequirements = writeRequirementsJson(requirements, profile, builder);
+        ProjectRequirements oldRequirements = getOldProjectRequirements(requirements, profile, builder);
         updateProfileConfiguration(version, profile, requirements, oldRequirements, builder, merge);
 
         return resolveProfileDeployments(requirements, fabricService.get(), profile, builder,merge);
@@ -397,6 +397,8 @@ public final class ProjectDeployerImpl extends AbstractComponent implements Proj
             builder.setBundles(bundles);
         }
 
+        updateRequirements(requirements, builder);
+        writeRequirementsJson(requirements, profile, builder);
         profile = profileService.updateProfile(builder.getProfile());
 
         Integer minimumInstances = requirements.getMinimumInstances();
@@ -419,6 +421,14 @@ public final class ProjectDeployerImpl extends AbstractComponent implements Proj
         String profilePath = Profiles.convertProfileIdToPath(profile.getId());
         profileUrl += "index.html#/wiki/branch/" + profile.getVersion() + "/view/fabric/profiles/" + profilePath;
         return new DeployResults(profile, profileUrl);
+    }
+
+    private void updateRequirements(ProjectRequirements requirements, ProfileBuilder builder) {
+        Profile profile = builder.getProfile();
+        requirements.setBundles(profile.getBundles());
+        requirements.setFeatureRepositories(profile.getRepositories());
+        requirements.setFeatures(profile.getFeatures());
+        requirements.setParentProfiles(profile.getParentIds());
     }
 
     protected  String findBundleUri(Set<String> bundleLocations, String prefix) {
@@ -614,24 +624,26 @@ public final class ProjectDeployerImpl extends AbstractComponent implements Proj
         return profileId;
     }
 
-
-    private ProjectRequirements writeRequirementsJson(ProjectRequirements requirements, Profile profile, ProfileBuilder builder) throws IOException {
+    private ProjectRequirements getOldProjectRequirements(ProjectRequirements requirements, Profile profile, ProfileBuilder builder) throws IOException {
         ObjectMapper mapper = DtoHelper.getMapper();
-        byte[] json = mapper.writeValueAsBytes(requirements);
         String fileName = DtoHelper.getRequirementsConfigFileName(requirements);
 
         // lets read the previous requirements if there are any
-        ProfileRegistry profileRegistry = fabricService.get().adapt(ProfileRegistry.class);
         byte[] oldData = profile.getFileConfiguration(fileName);
-
-        LOG.info("Writing file " + fileName + " to profile " + profile);
-        builder.addFileConfiguration(fileName, json);
 
         if (oldData == null || oldData.length == 0) {
             return null;
         } else {
             return mapper.reader(ProjectRequirements.class).readValue(oldData);
         }
+    }
+
+    private void writeRequirementsJson(ProjectRequirements requirements, Profile profile, ProfileBuilder builder) throws IOException {
+        ObjectMapper mapper = DtoHelper.getMapper();
+        byte[] json = mapper.writeValueAsBytes(requirements);
+        String fileName = DtoHelper.getRequirementsConfigFileName(requirements);
+        LOG.info("Writing file " + fileName + " to profile " + profile);
+        builder.addFileConfiguration(fileName, json);
     }
 
     private synchronized Map<String, String> getAllServiceMixBundles() throws InterruptedException {
