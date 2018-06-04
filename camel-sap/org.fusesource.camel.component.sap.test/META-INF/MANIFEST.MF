@@ -2,9 +2,9 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: %Bundle-Name
 Bundle-SymbolicName: org.fusesource.camel.component.sap.test
-Bundle-Version: 7.0.0.qualifier
+Bundle-Version: 7.1.0.qualifier
 Bundle-Vendor: %Bundle-Vendor
-Fragment-Host: org.fusesource.camel.component.sap;bundle-version="7.0.0"
+Fragment-Host: org.fusesource.camel.component.sap;bundle-version="7.1.0"
 Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Require-Bundle: org.junit,
  org.jboss.tools.locus.mockito;bundle-version="1.9.5"
