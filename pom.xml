@@ -1557,6 +1557,7 @@
                                   <include>org.apache.httpcomponents:*</include>
                                   <include>org.slf4j:*</include>
 
+                                  <include>org.jolokia:jolokia-core</include>
                                   <include>org.hibernate:hibernate-validator</include>
                                   <include>io.swagger:*</include>
                                   <include>io.undertow:*</include>
@@ -1617,7 +1618,6 @@
                                           <include>mysql:*</include>
                                           <include>org.apache.tomcat*:*</include>
                                           <include>org.eclipse.jetty*:*</include>
-                                          <include>org.jolokia:jolokia-core</include>
                                           <include>org.jboss:jboss-transaction-spi</include>
                                           <include>org.jboss.logging:jboss-logging</include>
                                           <include>org.jboss.narayana.jta:*</include>
