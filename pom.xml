@@ -1773,6 +1773,14 @@
                               <override>
                                   <dependencies>
                                       <includes>
+                                          <include>org.springframework.cloud:spring-cloud-stream-binder-kafka-test-support</include>
+                                      </includes>
+                                  </dependencies>
+                                  <version>1.1.2</version>
+                              </override>
+                              <override>
+                                  <dependencies>
+                                      <includes>
                                           <include>org.slf4j:jcl-over-slf4j</include>
                                       </includes>
                                   </dependencies>
@@ -1830,6 +1838,7 @@
                                   <include>org.fusesource:camel-activemq</include>
                                   <include>javax*:*</include>
 
+                                  <include>org.easymock:easymockclassextension</include>
                                   <include>org.jboss.arquillian*:*</include>
                                   <include>org.jboss.shrinkwrap*:*</include>
 
@@ -1854,7 +1863,10 @@
                                           <include>*:*</include>
                                       </includes>
                                       <excludes>
+                                          <exclude>org.easymock:easymockclassextension</exclude>
+                                          <exclude>org.apache.cxf:cxf-rt-ws-security-oauth2</exclude>
                                           <exclude>org.apache.activemq:activemq-camel</exclude>
+                                          <exclude>org.jboss.fuse.features:base</exclude>
                                           <exclude>org.fusesource:camel-sap</exclude>
                                       </excludes>
                                   </dependencyManagement>
