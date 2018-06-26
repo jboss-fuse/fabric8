@@ -1699,6 +1699,9 @@
                                           <exclude>io.fabric8*:*</exclude>
                                           <exclude>org.slf4j:*</exclude>
 
+                                          <!-- Exclude community docs --> 
+                                          <exclude>org.apache.camel:camel-manual</exclude>
+
                                           <!-- Deprecated components -->
                                           <exclude>org.apache.camel:camel-context</exclude>
                                           <exclude>org.apache.camel:camel-context-starter</exclude>
@@ -1854,6 +1857,7 @@
                                           <include>*:*</include>
                                       </includes>
                                       <excludes>
+                                          <exclude>org.apache.camel:camel-manual</exclude>
                                           <exclude>org.apache.activemq:activemq-camel</exclude>
                                           <exclude>org.fusesource:camel-sap</exclude>
                                       </excludes>
