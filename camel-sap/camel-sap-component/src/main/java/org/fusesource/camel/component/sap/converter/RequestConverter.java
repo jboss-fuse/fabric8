@@ -40,7 +40,7 @@ public enum RequestConverter {
 	
 	private static final Logger LOG = LoggerFactory.getLogger(RequestConverter.class);
 
-	@Converter
+	@Converter(allowNull = true)
 	public static Request toRequest(String string) {
 		try {
 			EObject eObject = Util.unmarshal(string);
@@ -55,7 +55,7 @@ public enum RequestConverter {
 		return null; 
 	}
 
-	@Converter
+	@Converter(allowNull = true)
 	public static Request toRequest(InputStream in) {
 		try {
 			EObject eObject = Util.fromInputStream(in);
@@ -70,7 +70,7 @@ public enum RequestConverter {
 		return null; 
 	}
 
-	@Converter
+	@Converter(allowNull = true)
 	public static Request toRequest(byte[] byteArray) {
 		try {
 			EObject eObject = Util.unmarshal(new String(byteArray));
@@ -85,7 +85,7 @@ public enum RequestConverter {
 		return null; 
 	}
 
-	@Converter
+	@Converter(allowNull = true)
 	public static String toString(RequestImpl structure) {
 		try {
 			return Util.marshal(structure);
@@ -95,7 +95,7 @@ public enum RequestConverter {
 		}
 	}
 	
-	@Converter
+	@Converter(allowNull = true)
 	public static OutputStream toOutputStream(RequestImpl structure) {
 		try {
 			return Util.toOutputStream(structure);
@@ -105,7 +105,7 @@ public enum RequestConverter {
 		}
 	}
 	
-	@Converter
+	@Converter(allowNull = true)
 	public static InputStream toInputStream(RequestImpl structure) {
 		try {
 			return Util.toInputStream(structure);

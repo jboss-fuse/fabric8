@@ -53,7 +53,7 @@ public class SapQueuedIDocProducer extends DefaultProducer {
 		
 		Document document = message.getBody(Document.class);
 		if (document == null) {
-			LOG.warn("Exchange input message body does not contain IDoc document");
+			LOG.warn("Exchange input message body does not contain a valid IDoc document");
 			return;
 		}
 		if (LOG.isDebugEnabled()) {

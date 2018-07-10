@@ -40,7 +40,7 @@ public enum DocumentListConverter {
 	
 	private static final Logger LOG = LoggerFactory.getLogger(DocumentListConverter.class);
 
-	@Converter
+	@Converter(allowNull = true)
 	public static DocumentList toDocumentList(String string) {
 		try {
 			EObject eObject = Util.unmarshal(string);
@@ -55,7 +55,7 @@ public enum DocumentListConverter {
 		return null; 
 	}
 
-	@Converter
+	@Converter(allowNull = true)
 	public static DocumentList toDocumentList(InputStream in) {
 		try {
 			EObject eObject = Util.fromInputStream(in);
@@ -70,7 +70,7 @@ public enum DocumentListConverter {
 		return null; 
 	}
 
-	@Converter
+	@Converter(allowNull = true)
 	public static DocumentList toDocumentList(byte[] byteArray) {
 		try {
 			EObject eObject = Util.unmarshal(new String(byteArray));
@@ -85,7 +85,7 @@ public enum DocumentListConverter {
 		return null; 
 	}
 
-	@Converter
+	@Converter(allowNull = true)
 	public static String toString(DocumentListImpl documentList) {
 		try {
 			return Util.marshal(documentList);
@@ -95,7 +95,7 @@ public enum DocumentListConverter {
 		}
 	}
 	
-	@Converter
+	@Converter(allowNull = true)
 	public static OutputStream toOutputStream(DocumentListImpl documentList) {
 		try {
 			return Util.toOutputStream(documentList);
@@ -105,7 +105,7 @@ public enum DocumentListConverter {
 		}
 	}
 	
-	@Converter
+	@Converter(allowNull = true)
 	public static InputStream toInputStream(DocumentListImpl documentList) {
 		try {
 			return Util.toInputStream(documentList);

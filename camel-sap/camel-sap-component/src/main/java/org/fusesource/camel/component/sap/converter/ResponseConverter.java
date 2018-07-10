@@ -40,7 +40,7 @@ public enum ResponseConverter {
 	
 	private static final Logger LOG = LoggerFactory.getLogger(ResponseConverter.class);
 
-	@Converter
+	@Converter(allowNull = true)
 	public static Response toResponse(String string) {
 		try {
 			EObject eObject = Util.unmarshal(string);
@@ -55,7 +55,7 @@ public enum ResponseConverter {
 		return null; 
 	}
 
-	@Converter
+	@Converter(allowNull = true)
 	public static Response toResponse(InputStream in) {
 		try {
 			EObject eObject = Util.fromInputStream(in);
@@ -70,7 +70,7 @@ public enum ResponseConverter {
 		return null; 
 	}
 
-	@Converter
+	@Converter(allowNull = true)
 	public static Response toResponse(byte[] byteArray) {
 		try {
 			EObject eObject = Util.unmarshal(new String(byteArray));
@@ -85,7 +85,7 @@ public enum ResponseConverter {
 		return null; 
 	}
 
-	@Converter
+	@Converter(allowNull = true)
 	public static String toString(ResponseImpl structure) {
 		try {
 			return Util.marshal(structure);
@@ -95,7 +95,7 @@ public enum ResponseConverter {
 		}
 	}
 	
-	@Converter
+	@Converter(allowNull = true)
 	public static OutputStream toOutputStream(ResponseImpl structure) {
 		try {
 			return Util.toOutputStream(structure);
@@ -105,7 +105,7 @@ public enum ResponseConverter {
 		}
 	}
 	
-	@Converter
+	@Converter(allowNull = true)
 	public static InputStream toInputStream(ResponseImpl structure) {
 		try {
 			return Util.toInputStream(structure);

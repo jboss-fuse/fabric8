@@ -11,6 +11,8 @@ import org.fusesource.camel.component.sap.model.rfc.impl.ServerDataImpl;
 import org.fusesource.camel.component.sap.model.rfc.impl.ServerDataStoreImpl;
 import org.fusesource.camel.component.sap.util.ComponentDestinationDataProvider;
 import org.fusesource.camel.component.sap.util.ComponentServerDataProvider;
+import org.junit.Rule;
+import org.junit.rules.TestName;
 
 public abstract class JCoTestSupport extends CamelSpringTestSupport {
 	
@@ -30,6 +32,9 @@ public abstract class JCoTestSupport extends CamelSpringTestSupport {
 	public static final String TEST_REPOSITORY = "TEST_REPOSITORY";
 	public static final String TEST_CONNECTION_COUNT = "2";
 	
+    @Rule
+    public final TestName testName = new TestName();	
+
 	@Override
 	public void doPreSetup() throws Exception {
 		super.doPreSetup();
@@ -63,4 +68,14 @@ public abstract class JCoTestSupport extends CamelSpringTestSupport {
 		
 		ComponentServerDataProvider.INSTANCE.addServerDataStore(serverDataStore);
 	}
+	
+    /**
+     * Gets the current test method name
+     *
+     * @return the method name
+     */
+    public String getTestMethodName() {
+        return testName.getMethodName();
+    }
+
 }

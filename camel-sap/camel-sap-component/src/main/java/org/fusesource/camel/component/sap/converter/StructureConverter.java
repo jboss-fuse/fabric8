@@ -40,7 +40,7 @@ public enum StructureConverter {
 	
 	private static final Logger LOG = LoggerFactory.getLogger(StructureConverter.class);
 
-	@Converter
+	@Converter(allowNull = true)
 	public static Structure toStructure(String string) {
 		try {
 			EObject eObject = Util.unmarshal(string);
@@ -55,7 +55,7 @@ public enum StructureConverter {
 		return null; 
 	}
 
-	@Converter
+	@Converter(allowNull = true)
 	public static Structure toStructure(InputStream in) {
 		try {
 			EObject eObject = Util.fromInputStream(in);
@@ -70,7 +70,7 @@ public enum StructureConverter {
 		return null; 
 	}
 
-	@Converter
+	@Converter(allowNull = true)
 	public static Structure toStructure(byte[] byteArray) {
 		try {
 			EObject eObject = Util.unmarshal(new String(byteArray));
@@ -85,7 +85,7 @@ public enum StructureConverter {
 		return null; 
 	}
 
-	@Converter
+	@Converter(allowNull = true)
 	public static String toString(StructureImpl structure) {
 		try {
 			return Util.marshal(structure);
@@ -95,7 +95,7 @@ public enum StructureConverter {
 		}
 	}
 	
-	@Converter
+	@Converter(allowNull = true)
 	public static OutputStream toOutputStream(StructureImpl structure) {
 		try {
 			return Util.toOutputStream(structure);
@@ -105,7 +105,7 @@ public enum StructureConverter {
 		}
 	}
 	
-	@Converter
+	@Converter(allowNull = true)
 	public static InputStream toInputStream(StructureImpl structure) {
 		try {
 			return Util.toInputStream(structure);
