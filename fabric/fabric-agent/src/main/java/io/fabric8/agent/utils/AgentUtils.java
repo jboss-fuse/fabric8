@@ -98,7 +98,7 @@ public class AgentUtils {
         Bundle bundle = FrameworkUtil.getBundle(AgentUtils.class);
         if (bundle != null) {
             BundleContext context = bundle.getBundleContext();
-            if (context.getProperty("karaf.home") != null
+            if (context != null && context.getProperty("karaf.home") != null
                     && context.getProperty("karaf.default.repository") != null) {
                 File target = new File(context.getProperty("karaf.home"), context.getProperty("karaf.default.repository"));
                 if (target.isDirectory()) {
