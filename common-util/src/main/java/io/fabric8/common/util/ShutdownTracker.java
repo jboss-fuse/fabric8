@@ -102,6 +102,9 @@ public class ShutdownTracker {
                     onStopCallback = null;
                     stopping.set(false);
                     LOG.trace("{} Completely released. retained:{}, stopping:{}",this, retained.get(), stopping.get());
+                } else {
+                    stopping.set(false);
+                    LOG.trace("{} Completely released without a callback. retained:{}, stopping:{}",this, retained.get(), stopping.get());
                 }
             }
         } else {
@@ -157,6 +160,7 @@ public class ShutdownTracker {
      * @throws InterruptedException if this thread is interrupted before the shutdown completes.
      */
     public void stop() throws ShutdownException, InterruptedException {
+        LOG.trace("ShutdownException.stop() called on resource {}.", this);
         final CountDownLatch latch = new CountDownLatch(1);
         shutdown(new Runnable(){
             @Override
@@ -165,6 +169,7 @@ public class ShutdownTracker {
             }
         });
         latch.await();
+        LOG.trace("ShutdownException.stop() terminated on resource {}.", this);
     }
 
     /**
