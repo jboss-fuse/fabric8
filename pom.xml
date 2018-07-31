@@ -90,7 +90,7 @@
         <cxf.plugin.version>3.1.11</cxf.plugin.version>
 
         <commons.collections.version>3.2.2</commons.collections.version>
-        <fuse.version>7.0.0.fuse-000181</fuse.version>
+        <version.fuse-karaf>7.0.0.fuse-000181</version.fuse-karaf>
         <hibernate-validator.version>5.3.5.Final-redhat-2</hibernate-validator.version>
         <jansi.version>1.11</jansi.version>
         <jolokia.version>1.5.0.redhat-1</jolokia.version>
@@ -944,7 +944,7 @@
                 <groupId>org.jboss.fuse</groupId>
                 <artifactId>fuse-karaf-framework</artifactId>
                 <type>kar</type>
-                <version>${fuse.version}</version>
+                <version>${version.fuse-karaf}</version>
             </dependency>
 
             <dependency>
@@ -1525,7 +1525,7 @@
                                   <include>xml-apis:xml-apis</include>
 
                                   <!-- JBoss Fuse kar -->
-                                  <include>org.jboss.fuse:fuse-karaf-framework:${fuse.version}:kar</include>
+                                  <include>org.jboss.fuse:fuse-karaf-framework:${version.fuse-karaf}:kar</include>
                               </includes>
                               <excludes>
                                   <exclude>javax.servlet:javax.servlet-api</exclude>
@@ -1536,7 +1536,7 @@
                               <import>
                                   <groupId>org.jboss.fuse</groupId>
                                   <artifactId>jboss-fuse-parent</artifactId>
-                                  <version>${fuse.version}</version>
+                                  <version>${version.fuse-karaf}</version>
                                   <repository>https://maven.repository.redhat.com/ga</repository>
                                   <dependencyManagement>
                                       <includes>
