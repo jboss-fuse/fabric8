@@ -144,6 +144,8 @@
         <jetty-plugin.version>8.1.16.v20140903</jetty-plugin.version>
         <jetty.version>8.1.17.v20150415</jetty.version>
 
+        <narayana-spring-boot.version>1.0.2.fuse-720002</narayana-spring-boot.version>
+
 <!--
         We've released a new version of gitective (0.9.50) with the latest jgit support (4.10.0.201712302008-r)
 -->
@@ -570,6 +572,29 @@
                 <artifactId>camel-sap-starter</artifactId>
                 <version>${version.org.fusesource.camel-sap}</version>
             </dependency>
+
+            <!-- Narayana spring-boot -->
+            <dependency>
+                <groupId>me.snowdrop</groupId>
+                <artifactId>narayana-spring-boot-starter</artifactId>
+                <version>${narayana-spring-boot.version}</version>
+            </dependency>
+             <dependency>
+                <groupId>me.snowdrop</groupId>
+                <artifactId>narayana-spring-boot-recovery-controller</artifactId>
+                <version>${narayana-spring-boot.version}</version>
+            </dependency>
+             <dependency>
+                <groupId>me.snowdrop</groupId>
+                <artifactId>narayana-spring-boot-core</artifactId>
+                <version>${narayana-spring-boot.version}</version>
+            </dependency>
+             <dependency>
+                <groupId>me.snowdrop</groupId>
+                <artifactId>narayana-spring-boot-starter-it</artifactId>
+                <version>${narayana-spring-boot.version}</version>
+            </dependency>
+
 
           <!-- Undertow -->
             <dependency>
@@ -1223,6 +1248,8 @@
                                   <include>org.jboss.shrinkwrap*:*</include>
                                   <include>org.assertj*:*</include>
 
+                                  <include>me.snowdrop:*</include>
+
                                   <include>xml-apis:xml-apis</include>
                                   <include>org.fusesource:camel-activemq</include>
                                   <include>org.fusesource:camel-sap</include>
@@ -1294,6 +1321,7 @@
                                           <!-- Others that we need -->
                                           <include>mysql:*</include>
                                           <include>org.apache.tomcat*:*</include>
+                                          <include>org.postgresql:*</include>
                                           <include>org.eclipse.jetty*:*</include>
                                           <include>org.jboss:jboss-transaction-spi</include>
                                           <include>org.jboss.logging:jboss-logging</include>
