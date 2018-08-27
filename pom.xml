@@ -1445,6 +1445,7 @@
                                           <exclude>io.fabric8:openshift-*</exclude>
                                           <exclude>com.squareup.okhttp:*</exclude>
                                           <exclude>com.squareup.okio:*</exclude>
+                                          <exclude>io.zipkin.java:*</exclude>
                                       </excludes>
                                   </dependencyManagement>
                               </import>
