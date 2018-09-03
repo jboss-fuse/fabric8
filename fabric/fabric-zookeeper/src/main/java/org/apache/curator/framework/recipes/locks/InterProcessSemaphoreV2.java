@@ -23,7 +23,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
-import com.google.common.io.Closeables;
+import org.apache.curator.utils.CloseableUtils;
 import org.apache.curator.RetryLoop;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.api.PathAndBytesable;
@@ -39,8 +39,6 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.Closeable;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -186,7 +184,7 @@ public class InterProcessSemaphoreV2
     {
         for ( Lease l : leases )
         {
-            close(l);
+            CloseableUtils.closeQuietly(l);
         }
     }
 
@@ -197,7 +195,7 @@ public class InterProcessSemaphoreV2
      */
     public void returnLease(Lease lease)
     {
-        close(lease);
+        CloseableUtils.closeQuietly(lease);
     }
 
     /**
@@ -323,25 +321,6 @@ public class InterProcessSemaphoreV2
         return builder.build();
     }
 
-    private void close(Closeable closeable){
-        if (closeable == null) {
-            return;
-        }
-        try {
-            closeable.close();
-        } catch (IOException e) {
-            if(e.getCause() instanceof IllegalStateException ){
-                IllegalStateException cause = (IllegalStateException) e.getCause();
-                if("Client is not started".equals(cause.getMessage())){
-                    log.debug("IOException thrown while closing Closeable.", e);
-                }
-            }else{
-                log.warn("IOException thrown while closing Closeable.", e);
-            }
-        }
-
-    }
-
     private enum InternalAcquireResult
     {
         CONTINUE,
@@ -461,10 +440,6 @@ public class InterProcessSemaphoreV2
                 {
                     log.warn("Lease already released", e);
                 }
-                catch ( InterruptedException e )
-                {
-                    throw new RuntimeException("This is actually an InterruptedException", e);
-                }
                 catch ( Exception e )
                 {
                     ThreadUtils.checkInterrupted(e);
@@ -476,6 +451,11 @@ public class InterProcessSemaphoreV2
             public byte[] getData() throws Exception
             {
                 return client.getData().forPath(path);
+            }
+
+            @Override
+            public String getNodeName() {
+                return ZKPaths.getNodeFromPath(path);
             }
         };
     }
