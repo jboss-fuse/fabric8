@@ -40,7 +40,7 @@ public final class ProfileSafeUrlHandler extends AbstractURLStreamHandlerService
     }
 
     // sleeps between attempts to delegate to internal profile2: URI handler. total sleep: 20s
-    static int[] SLEEPS = new int[] { 1000, 1000, 2000, 2000, 2000, 4000, 4000, 4000 };
+    static int[] SLEEPS = new int[] { 1000, 1000, 2000, 2000, 2000, 4000, 4000, 4000, 5000, 5000, 5000, 5000 };
 
     private class Connection extends URLConnection {
 
