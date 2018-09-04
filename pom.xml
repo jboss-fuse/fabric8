@@ -307,7 +307,7 @@
         <openshift.client.version>2.5.0.Final</openshift.client.version>
         <ops4j-base.version>1.5.0</ops4j-base.version>
         <ops4j-base-lang.version>1.5.0</ops4j-base-lang.version>
-        <ops4j-pax-exam-version>3.5.0</ops4j-pax-exam-version>
+        <ops4j-pax-exam-version>4.8.0</ops4j-pax-exam-version>
         <ops4j-pax-swissbox.version>1.8.2</ops4j-pax-swissbox.version>
         <ops4j-pax-swissbox-bnd.version>1.8.2</ops4j-pax-swissbox-bnd.version>
         <ops4j-pax-swissbox-property.version>1.8.2</ops4j-pax-swissbox-property.version>
