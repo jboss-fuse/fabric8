@@ -137,20 +137,21 @@ public class ZooKeeperServerFactory extends AbstractComponent {
             NIOServerCnxnFactory cnxnFactory = new NIOServerCnxnFactory();
             cnxnFactory.configure(peerConfig.getClientPortAddress(), peerConfig.getMaxClientCnxns());
 
-            QuorumPeer quorumPeer = new QuorumPeer();
-            quorumPeer.setClientPortAddress(peerConfig.getClientPortAddress());
-            quorumPeer.setTxnFactory(new FileTxnSnapLog(new File(peerConfig.getDataLogDir()), new File(peerConfig.getDataDir())));
-            quorumPeer.setQuorumPeers(peerConfig.getServers());
-            quorumPeer.setElectionType(peerConfig.getElectionAlg());
-            quorumPeer.setMyid(peerConfig.getServerId());
-            quorumPeer.setTickTime(peerConfig.getTickTime());
+            QuorumPeer quorumPeer = new QuorumPeer(
+                    peerConfig.getServers(),
+                    new File(peerConfig.getDataDir()),
+                    new File(peerConfig.getDataLogDir()),
+                    peerConfig.getElectionAlg(),
+                    peerConfig.getServerId(),
+                    peerConfig.getTickTime(),
+                    peerConfig.getInitLimit(),
+                    peerConfig.getSyncLimit(),
+                    false,
+                    cnxnFactory,
+                    peerConfig.getQuorumVerifier()
+            );
             quorumPeer.setMinSessionTimeout(peerConfig.getMinSessionTimeout());
             quorumPeer.setMaxSessionTimeout(peerConfig.getMaxSessionTimeout());
-            quorumPeer.setInitLimit(peerConfig.getInitLimit());
-            quorumPeer.setSyncLimit(peerConfig.getSyncLimit());
-            quorumPeer.setQuorumVerifier(peerConfig.getQuorumVerifier());
-            quorumPeer.setCnxnFactory(cnxnFactory);
-            quorumPeer.setZKDatabase(new ZKDatabase(quorumPeer.getTxnFactory()));
             quorumPeer.setLearnerType(peerConfig.getPeerType());
 
             try {

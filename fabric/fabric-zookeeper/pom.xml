@@ -43,7 +43,8 @@
             !javax.xml.parsers,
             !com.sun.management,
             !org.jboss.netty*,
-            com.google.common*;version="[16,20)"
+            com.google.common*;version="[16,20)",
+            !com.sun.*
         </fuse.osgi.import.before.defaults>
         <fuse.osgi.import.additional>
             org.apache.log4j*;version="[1.2,2)"
@@ -56,6 +57,8 @@
             org.apache.jute*,
             io.fabric8.utils,
             org.apache.felix.utils.properties;-split-package:=first,
+            org.apache.yetus.audience,
+            org.apache.yetus.audience.tools
         </fuse.osgi.private.pkg>
     </properties>
 
@@ -67,6 +70,10 @@
         <dependency>
             <groupId>org.apache.curator</groupId>
             <artifactId>curator-framework</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.yetus</groupId>
+            <artifactId>audience-annotations</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.curator</groupId>
