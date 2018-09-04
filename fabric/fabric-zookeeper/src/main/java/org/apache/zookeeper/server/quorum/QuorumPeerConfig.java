@@ -480,4 +480,24 @@ public class QuorumPeerConfig {
     public Boolean getQuorumListenOnAllIPs() {
         return quorumListenOnAllIPs;
     }
+
+    public boolean isQuorumServerRequireSasl() {
+        return quorumServerRequireSasl;
+    }
+
+    public boolean isQuorumLearnerRequireSasl() {
+        return quorumLearnerRequireSasl;
+    }
+
+    public boolean isQuorumEnableSasl() {
+        return quorumEnableSasl;
+    }
+
+    public String getQuorumLearnerLoginContext() {
+        return quorumLearnerLoginContext;
+    }
+
+    public String getQuorumServerLoginContext() {
+        return quorumServerLoginContext;
+    }
 }

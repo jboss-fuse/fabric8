@@ -1451,19 +1451,19 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         }
     }
 
-    void setQuorumServerSaslRequired(boolean serverSaslRequired) {
+    public void setQuorumServerSaslRequired(boolean serverSaslRequired) {
         quorumServerSaslAuthRequired = serverSaslRequired;
         LOG.info("{} set to {}", QuorumAuth.QUORUM_SERVER_SASL_AUTH_REQUIRED,
                 serverSaslRequired);
     }
 
-    void setQuorumLearnerSaslRequired(boolean learnerSaslRequired) {
+    public void setQuorumLearnerSaslRequired(boolean learnerSaslRequired) {
         quorumLearnerSaslAuthRequired = learnerSaslRequired;
         LOG.info("{} set to {}", QuorumAuth.QUORUM_LEARNER_SASL_AUTH_REQUIRED,
                 learnerSaslRequired);
     }
 
-    void setQuorumSaslEnabled(boolean enableAuth) {
+    public void setQuorumSaslEnabled(boolean enableAuth) {
         quorumSaslEnableAuth = enableAuth;
         if (!quorumSaslEnableAuth) {
             LOG.info("QuorumPeer communication is not secured!");
@@ -1479,13 +1479,13 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                 quorumServicePrincipal);
     }
 
-    void setQuorumLearnerLoginContext(String learnerContext) {
+    public void setQuorumLearnerLoginContext(String learnerContext) {
         quorumLearnerLoginContext = learnerContext;
         LOG.info("{} set to {}", QuorumAuth.QUORUM_LEARNER_SASL_LOGIN_CONTEXT,
                 quorumLearnerLoginContext);
     }
 
-    void setQuorumServerLoginContext(String serverContext) {
+    public void setQuorumServerLoginContext(String serverContext) {
         quorumServerLoginContext = serverContext;
         LOG.info("{} set to {}", QuorumAuth.QUORUM_SERVER_SASL_LOGIN_CONTEXT,
                 quorumServerLoginContext);

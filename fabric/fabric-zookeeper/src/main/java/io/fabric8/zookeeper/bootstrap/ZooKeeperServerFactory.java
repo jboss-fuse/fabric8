@@ -153,6 +153,12 @@ public class ZooKeeperServerFactory extends AbstractComponent {
             quorumPeer.setMinSessionTimeout(peerConfig.getMinSessionTimeout());
             quorumPeer.setMaxSessionTimeout(peerConfig.getMaxSessionTimeout());
             quorumPeer.setLearnerType(peerConfig.getPeerType());
+            quorumPeer.setQuorumSaslEnabled(peerConfig.isQuorumEnableSasl());
+            quorumPeer.setQuorumLearnerSaslRequired(peerConfig.isQuorumLearnerRequireSasl());
+            quorumPeer.setQuorumServerSaslRequired(peerConfig.isQuorumServerRequireSasl());
+            quorumPeer.setQuorumLearnerLoginContext(peerConfig.getQuorumLearnerLoginContext());
+            quorumPeer.setQuorumServerLoginContext(peerConfig.getQuorumServerLoginContext());
+            quorumPeer.initialize();
 
             try {
                 LOGGER.debug("Starting quorum peer \"{}\" on address {}", quorumPeer.getMyid(), peerConfig.getClientPortAddress());
