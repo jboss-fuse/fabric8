@@ -43,11 +43,17 @@ public class EnsembleSummaryAction extends AbstractAction {
         System.out.println("Ensemble containers: " + (containers.toString().length() > 2 ? containers.toString().substring(2)
                 : "Can't find container names"));
         Map<String, String> configuration = zooKeeperClusterService.getEnsembleConfiguration();
-        boolean saslEnabled = false;
-        if (configuration != null) {
-            saslEnabled = "true".equalsIgnoreCase(configuration.get("quorum.auth.enableSasl"));
+        switch (EnsembleSecurity.isSASLEnabled(configuration)) {
+            case ENABLED:
+                System.out.println("SASL/DIGEST-MD5 mutual peer authentication is enabled");
+                break;
+            case DISABLED:
+                System.out.println("SASL/DIGEST-MD5 mutual peer authentication is disabled");
+                break;
+            case NO_QUORUM:
+                System.out.println("SASL/DIGEST-MD5 mutual peer authentication is disabled - Zookeeper works in single server mode");
+                break;
         }
-        System.out.println("SASL Peer authentication enabled: " + saslEnabled);
 
         return null;
     }
