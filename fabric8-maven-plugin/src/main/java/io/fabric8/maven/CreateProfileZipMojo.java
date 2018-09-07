@@ -101,7 +101,7 @@ public class CreateProfileZipMojo extends AbstractProfileMojo {
     /**
      * Files to be excluded
      */
-    @Parameter(property = "fabric8.excludedFiles", defaultValue = "io.fabric8.agent.properties")
+    @Parameter(property = "fabric8.excludedFiles", defaultValue = "")
     private String[] filesToBeExcluded;
 
     /**
@@ -417,7 +417,11 @@ public class CreateProfileZipMojo extends AbstractProfileMojo {
             if (isIncludeArtifact()) {
                 writeProfileRequirements(requirements, profileBuildDir);
             }
-            generateFabricAgentProperties(requirements, new File(profileBuildDir, "io.fabric8.agent.properties"));
+            if (new File(profileConfigDir, "io.fabric8.agent.properties").isFile()) {
+                getLog().info("The profile configuration files directory contains io.fabric8.agent.properties, so it won't be generated");
+            } else {
+                generateFabricAgentProperties(requirements, new File(profileBuildDir, "io.fabric8.agent.properties"));
+            }
             // only generate if its a WAR project
             if ("war".equals(project.getPackaging())) {
                 generateFabricContextPathProperties(requirements, new File(profileBuildDir, Constants.WEB_CONTEXT_PATHS_PID + ".properties"));
