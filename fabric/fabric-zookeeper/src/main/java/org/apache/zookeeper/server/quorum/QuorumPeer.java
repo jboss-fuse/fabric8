@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.security.auth.Subject;
 import javax.security.sasl.SaslException;
 
 import org.apache.zookeeper.common.AtomicFileOutputStream;
@@ -571,7 +572,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     protected QuorumPeer() throws SaslException {
         super("QuorumPeer");
         quorumStats = new QuorumStats(this);
-        initialize();
+        initialize(new Subject(), new HashMap<String, String>());
     }
     
    
@@ -610,17 +611,20 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         else this.quorumConfig = quorumConfig;
     }
 
-    public void initialize() throws SaslException {
+    /**
+     * We have to fix ZOOKEEPER-3138 and prevent race conditions during mutual authentication - that's why we'll
+     * use forked and changed versions of {@link SaslQuorumAuthServer} and {@link SaslQuorumAuthLearner}
+     * @throws SaslException
+     */
+    public void initialize(Subject peerSubject, Map<String, String> peerCredentials) throws SaslException {
         // init quorum auth server & learner
         if (isQuorumSaslAuthEnabled()) {
             Set<String> authzHosts = new HashSet<String>();
             for (QuorumServer qs : getView().values()) {
                 authzHosts.add(qs.hostname);
             }
-            authServer = new SaslQuorumAuthServer(isQuorumServerSaslAuthRequired(),
-                    quorumServerLoginContext, authzHosts);
-            authLearner = new SaslQuorumAuthLearner(isQuorumLearnerSaslAuthRequired(),
-                    quorumServicePrincipal, quorumLearnerLoginContext);
+            authServer = new SaslQuorumAuthServer(isQuorumServerSaslAuthRequired(), authzHosts, peerCredentials);
+            authLearner = new SaslQuorumAuthLearner(isQuorumLearnerSaslAuthRequired(), peerSubject);
             authInitialized = true;
         } else {
             authServer = new NullQuorumAuthServer();

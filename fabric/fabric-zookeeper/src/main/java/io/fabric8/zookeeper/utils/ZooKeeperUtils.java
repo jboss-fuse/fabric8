@@ -27,12 +27,17 @@ import org.apache.zookeeper.data.Stat;
 
 import io.fabric8.api.RuntimeProperties;
 import io.fabric8.zookeeper.ZkPath;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -42,11 +47,15 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.TreeMap;
 
 public final class ZooKeeperUtils {
 
+    public static Logger LOG = LoggerFactory.getLogger(ZooKeeperUtils.class);
+
     private static final Charset UTF_8 = Charset.forName("UTF-8");
     private static final String CONTAINERS_NODE = "/fabric/authentication/containers";
+    private static final char[] DIGITS_LOWER = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 
     private ZooKeeperUtils() {
         //Utility Class
@@ -482,6 +491,60 @@ public final class ZooKeeperUtils {
             throw new IllegalStateException("Cannot generate container token", ex);
         }
         return password;
+    }
+
+
+    /**
+     * Digests common configuration properties and one peer-specific property into given peer password
+     * @param props
+     * @param serverId
+     * @return
+     */
+    public static String derivePeerPassword(Properties props, int serverId) throws GeneralSecurityException {
+        Map<String, String> c14n = new TreeMap<>();
+        for (String property : props.stringPropertyNames()) {
+            if (property.startsWith("clientPort")
+                    || property.equals("component.id")
+                    || property.equals("server.id") // this will be handled specially
+                    || property.equals("dataDir") // this is also container-specific
+                    || property.equals("service.pid")
+                    || property.equals("felix.fileinstall.filename")) {
+                continue;
+            }
+            String v = props.getProperty(property);
+            if (v != null) {
+                c14n.put(property, v.trim());
+            }
+        }
+        MessageDigest sha = MessageDigest.getInstance("SHA");
+        LOG.info(String.format("== Deriving password for peer %d", serverId));
+        for (Map.Entry<String, String> entry : c14n.entrySet()) {
+            sha.update(entry.getKey().getBytes(StandardCharsets.UTF_8));
+            sha.update(entry.getValue().getBytes(StandardCharsets.UTF_8));
+        }
+
+        // and now, given peer's id
+        sha.update("server.id".getBytes(StandardCharsets.UTF_8));
+        sha.update(Integer.toString(serverId).getBytes(StandardCharsets.UTF_8));
+        byte[] digest = sha.digest();
+        return new String(encodeHex(digest, DIGITS_LOWER));
+    }
+
+    /**
+     * See org.apache.commons.codec.binary.Hex#encodeHex(byte[], char[])
+     * @param data
+     * @param toDigits
+     * @return
+     */
+    protected static char[] encodeHex(final byte[] data, final char[] toDigits) {
+        final int l = data.length;
+        final char[] out = new char[l << 1];
+        // two characters form the hex value.
+        for (int i = 0, j = 0; i < l; i++) {
+            out[j++] = toDigits[(0xF0 & data[i]) >>> 4];
+            out[j++] = toDigits[0x0F & data[i]];
+        }
+        return out;
     }
 
 }

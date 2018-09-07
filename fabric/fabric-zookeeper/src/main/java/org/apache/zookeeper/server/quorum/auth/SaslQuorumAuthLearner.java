@@ -27,16 +27,11 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
 import javax.security.auth.Subject;
-import javax.security.auth.login.AppConfigurationEntry;
-import javax.security.auth.login.Configuration;
-import javax.security.auth.login.LoginException;
 import javax.security.sasl.SaslClient;
 import javax.security.sasl.SaslException;
 
 import org.apache.jute.BinaryInputArchive;
 import org.apache.jute.BinaryOutputArchive;
-import org.apache.zookeeper.Login;
-import org.apache.zookeeper.SaslClientCallbackHandler;
 import org.apache.zookeeper.server.quorum.QuorumAuthPacket;
 import org.apache.zookeeper.util.SecurityUtils;
 import org.slf4j.Logger;
@@ -46,30 +41,15 @@ public class SaslQuorumAuthLearner implements QuorumAuthLearner {
     private static final Logger LOG = LoggerFactory
             .getLogger(SaslQuorumAuthLearner.class);
 
-    private final Login learnerLogin;
     private final boolean quorumRequireSasl;
-    private final String quorumServicePrincipal;
+    private final Subject peerSubject;
 
-    public SaslQuorumAuthLearner(boolean quorumRequireSasl,
-            String quorumServicePrincipal, String loginContext)
+    public SaslQuorumAuthLearner(boolean quorumRequireSasl, Subject subject)
                     throws SaslException {
         this.quorumRequireSasl = quorumRequireSasl;
-        this.quorumServicePrincipal = quorumServicePrincipal;
-        try {
-            AppConfigurationEntry entries[] = Configuration
-                .getConfiguration()
-                .getAppConfigurationEntry(loginContext);
-            if (entries == null || entries.length == 0) {
-                throw new LoginException("SASL-authentication failed because"
-                                         + " the specified JAAS configuration "
-                                         + "section '" + loginContext
-                                         + "' could not be found.");
-            }
-            this.learnerLogin = new Login(loginContext,
-                                    new SaslClientCallbackHandler(null, "QuorumLearner"));
-            this.learnerLogin.startThreadIfNeeded();
-        } catch (LoginException e) {
-            throw new SaslException("Failed to initialize authentication mechanism using SASL", e);
+        this.peerSubject = subject;
+        if (peerSubject == null) {
+            throw new IllegalArgumentException("JAAS Subject can not be null");
         }
     }
 
@@ -82,21 +62,16 @@ public class SaslQuorumAuthLearner implements QuorumAuthLearner {
             return;
         }
         SaslClient sc = null;
-        String principalConfig = SecurityUtils
-                .getServerPrincipal(quorumServicePrincipal, hostName);
         try {
             DataOutputStream dout = new DataOutputStream(
                     sock.getOutputStream());
             DataInputStream din = new DataInputStream(sock.getInputStream());
             byte[] responseToken = new byte[0];
-            sc = SecurityUtils.createSaslClient(learnerLogin.getSubject(),
-                    principalConfig,
+            sc = SecurityUtils.createSaslClient(peerSubject,
+                    null, // server principal is used only with GSSAPI
                     QuorumAuth.QUORUM_SERVER_PROTOCOL_NAME,
                     QuorumAuth.QUORUM_SERVER_SASL_DIGEST, LOG, "QuorumLearner");
 
-            if (sc.hasInitialResponse()) {
-                responseToken = createSaslToken(new byte[0], sc, learnerLogin);
-            }
             send(dout, responseToken);
             QuorumAuthPacket authPacket = receive(din);
             QuorumAuth.Status qpStatus = QuorumAuth.Status
@@ -104,8 +79,7 @@ public class SaslQuorumAuthLearner implements QuorumAuthLearner {
             while (!sc.isComplete()) {
                 switch (qpStatus) {
                 case SUCCESS:
-                    responseToken = createSaslToken(authPacket.getToken(), sc,
-                            learnerLogin);
+                    responseToken = createSaslToken(authPacket.getToken(), sc);
                     // we're done; don't expect to send another BIND
                     if (responseToken != null) {
                         throw new SaslException(
@@ -115,8 +89,7 @@ public class SaslQuorumAuthLearner implements QuorumAuthLearner {
                     }
                     break;
                 case IN_PROGRESS:
-                    responseToken = createSaslToken(authPacket.getToken(), sc,
-                            learnerLogin);
+                    responseToken = createSaslToken(authPacket.getToken(), sc);
                     send(dout, responseToken);
                     authPacket = receive(din);
                     qpStatus = QuorumAuth.Status
@@ -181,16 +154,16 @@ public class SaslQuorumAuthLearner implements QuorumAuthLearner {
 
     // TODO: need to consolidate the #createSaslToken() implementation between ZooKeeperSaslClient#createSaslToken().
     private byte[] createSaslToken(final byte[] saslToken,
-            final SaslClient saslClient, final Login login)
+            final SaslClient saslClient)
                     throws SaslException {
         if (saslToken == null) {
             throw new SaslException(
                     "Error in authenticating with a Zookeeper Quorum member: the quorum member's saslToken is null.");
         }
-        if (login.getSubject() != null) {
-            synchronized (login) {
+        if (peerSubject != null) {
+            synchronized (peerSubject) {
                 try {
-                    final byte[] retval = Subject.doAs(login.getSubject(),
+                    final byte[] retval = Subject.doAs(peerSubject,
                             new PrivilegedExceptionAction<byte[]>() {
                                 public byte[] run() throws SaslException {
                                     LOG.debug("saslClient.evaluateChallenge(len="

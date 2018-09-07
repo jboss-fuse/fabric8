@@ -27,8 +27,6 @@ import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.NameCallback;
 import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
-import javax.security.auth.login.AppConfigurationEntry;
-import javax.security.auth.login.Configuration;
 import javax.security.sasl.AuthorizeCallback;
 import javax.security.sasl.RealmCallback;
 
@@ -40,6 +38,8 @@ import org.slf4j.LoggerFactory;
  * the authentication. For example, a SASL mechanism might use this callback
  * handler to do verification operation. This is used by the QuorumServer to
  * perform the mutual quorum peer authentication.
+ *
+ * ZOOKEEPER-3138: this class is not thread safe and will be created per thread, not per peer
  */
 public class SaslQuorumServerCallbackHandler implements CallbackHandler {
     private static final String USER_PREFIX = "user_";
@@ -49,29 +49,8 @@ public class SaslQuorumServerCallbackHandler implements CallbackHandler {
     private final Map<String,String> credentials = new HashMap<String,String>();
     private final Set<String> authzHosts;
 
-    public SaslQuorumServerCallbackHandler(Configuration configuration,
-            String serverSection, Set<String> authzHosts) throws IOException {
-        AppConfigurationEntry configurationEntries[] = configuration.getAppConfigurationEntry(serverSection);
-
-        if (configurationEntries == null) {
-            String errorMessage = "Could not find a '" + serverSection + "' entry in this configuration: Server cannot start.";
-            LOG.error(errorMessage);
-            throw new IOException(errorMessage);
-        }
-        credentials.clear();
-        for(AppConfigurationEntry entry: configurationEntries) {
-            Map<String,?> options = entry.getOptions();
-            // Populate DIGEST-MD5 user -> password map with JAAS configuration entries from the "QuorumServer" section.
-            // Usernames are distinguished from other options by prefixing the username with a "user_" prefix.
-            for(Map.Entry<String, ?> pair : options.entrySet()) {
-                String key = pair.getKey();
-                if (key.startsWith(USER_PREFIX)) {
-                    String userName = key.substring(USER_PREFIX.length());
-                    credentials.put(userName,(String)pair.getValue());
-                }
-            }
-        }
-
+    public SaslQuorumServerCallbackHandler(Map<String, String> peerCredentials, Set<String> authzHosts) throws IOException {
+        this.credentials.putAll(peerCredentials);
         // authorized host lists
         this.authzHosts = authzHosts;
     }
