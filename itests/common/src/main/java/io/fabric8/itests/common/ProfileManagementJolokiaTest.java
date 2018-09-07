@@ -15,15 +15,25 @@
  */
 package io.fabric8.itests.common;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Collections;
+
 import io.fabric8.api.mxbean.ProfileManagement;
 import io.fabric8.jolokia.client.JolokiaMXBeanProxy;
 
 import javax.management.ObjectName;
 
+import io.fabric8.utils.Base64Encoder;
 import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Test client side {@link ProfileManagement} test via jolokia
@@ -34,13 +44,35 @@ import org.junit.runner.RunWith;
 @RunWith(Arquillian.class)
 public class ProfileManagementJolokiaTest extends AbstractProfileManagementTest {
 
+    public static Logger LOG = LoggerFactory.getLogger(ProfileManagementJolokiaTest.class);
+
+    static final String jmxServiceURL = "http://127.0.0.1:8181/jolokia";
     static final String[] credentials = new String[] { "admin", "admin" };
-    
+
     static ProfileManagement proxy;
-    
+
+    @Before
+    public void waitForJolokia() {
+        for (int n = 0; n < 10; n++) {
+            try {
+                HttpURLConnection con = (HttpURLConnection) new URL(jmxServiceURL).openConnection();
+                con.setRequestProperty("Authorization", "Basic " + Base64Encoder.encode(credentials[0] + ":" + credentials[1]));
+                con.connect();
+                int rc = con.getResponseCode();
+                if (rc != HttpURLConnection.HTTP_OK) {
+                    Thread.sleep(500);
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e.getMessage(), e);
+            } catch (IOException e) {
+                LOG.warn(e.getMessage());
+            }
+        }
+    }
+
     @BeforeClass
     public static void beforeClass() throws Exception {
-        String jmxServiceURL = "http://127.0.0.1:8181/jolokia";
         proxy = JolokiaMXBeanProxy.getMXBeanProxy(jmxServiceURL, new ObjectName(ProfileManagement.OBJECT_NAME), ProfileManagement.class, credentials[0], credentials[1]);
     }
 

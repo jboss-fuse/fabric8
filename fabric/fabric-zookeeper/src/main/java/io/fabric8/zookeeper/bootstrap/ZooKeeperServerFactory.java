@@ -26,10 +26,15 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.security.GeneralSecurityException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 
+import javax.security.auth.Subject;
+
+import io.fabric8.zookeeper.utils.ZooKeeperUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -123,35 +128,76 @@ public class ZooKeeperServerFactory extends AbstractComponent {
             if (myId.getParentFile() == null || (!myId.getParentFile().exists() && !myId.getParentFile().mkdirs())) {
                 throw new IOException("Failed to create " + myId.getParent());
             }
-            FileOutputStream fos = new FileOutputStream(myId);
-            try {
+            try (FileOutputStream fos = new FileOutputStream(myId)) {
                 fos.write((serverId + "\n").getBytes());
-            } finally {
-                fos.close();
             }
         }
 
         QuorumPeerConfig peerConfig = getPeerConfig(props);
 
         if (!peerConfig.getServers().isEmpty()) {
+            Subject peerSubject = new Subject();
+            Map<String, String> peerCredentials = new HashMap<>();
+
+            boolean saslConfigurationSuccessful = false;
+            if (peerConfig.isQuorumEnableSasl()) {
+                LOGGER.info("Configuring SASL mutual peer authentication...");
+                String[] passwords = new String[0];
+                try {
+                    passwords = digestConfiguration(props);
+                    if (passwords.length - 1 != peerConfig.getServers().size()) {
+                        throw new GeneralSecurityException(String.format("Problem deriving quorum peer credentials. Expected %d, derived %d",
+                                peerConfig.getServers().size(), passwords.length - 1));
+                    }
+                    // see org.apache.zookeeper.util.SecurityUtils.createSaslClient to check what's looked for
+                    // inside JAAS Subject
+                    // String username = (String) (subject.getPublicCredentials().toArray()[0]);
+                    // String password = (String) (subject.getPrivateCredentials().toArray()[0]);
+
+                    // peers subject is client side of SASL authentication
+                    peerSubject.getPublicCredentials().add(String.format("peer.%d", peerConfig.getServerId()));
+                    peerSubject.getPrivateCredentials().add(passwords[(int) peerConfig.getServerId()]);
+
+                    // here we collect server side of SASL authentication - derived passwords for all
+                    // configured peers
+                    for (int id = 1; id < passwords.length; id++) {
+                        LOGGER.info(String.format("peer.%d : %s", id, passwords[id]));
+                        peerCredentials.put(String.format("peer.%d", id), passwords[id]);
+                    }
+                    LOGGER.info("SASL configuration successful.");
+                    saslConfigurationSuccessful = true;
+                } catch (GeneralSecurityException e) {
+                    LOGGER.error("Unable to configure SASL mutual peer authentication, disabling SASL.", e);
+                    saslConfigurationSuccessful = false;
+                }
+            }
+
             NIOServerCnxnFactory cnxnFactory = new NIOServerCnxnFactory();
             cnxnFactory.configure(peerConfig.getClientPortAddress(), peerConfig.getMaxClientCnxns());
 
-            QuorumPeer quorumPeer = new QuorumPeer();
-            quorumPeer.setClientPortAddress(peerConfig.getClientPortAddress());
-            quorumPeer.setTxnFactory(new FileTxnSnapLog(new File(peerConfig.getDataLogDir()), new File(peerConfig.getDataDir())));
-            quorumPeer.setQuorumPeers(peerConfig.getServers());
-            quorumPeer.setElectionType(peerConfig.getElectionAlg());
-            quorumPeer.setMyid(peerConfig.getServerId());
-            quorumPeer.setTickTime(peerConfig.getTickTime());
+            QuorumPeer quorumPeer = new QuorumPeer(
+                    peerConfig.getServers(),
+                    new File(peerConfig.getDataDir()),
+                    new File(peerConfig.getDataLogDir()),
+                    peerConfig.getElectionAlg(),
+                    peerConfig.getServerId(),
+                    peerConfig.getTickTime(),
+                    peerConfig.getInitLimit(),
+                    peerConfig.getSyncLimit(),
+                    false,
+                    cnxnFactory,
+                    peerConfig.getQuorumVerifier()
+            );
             quorumPeer.setMinSessionTimeout(peerConfig.getMinSessionTimeout());
             quorumPeer.setMaxSessionTimeout(peerConfig.getMaxSessionTimeout());
-            quorumPeer.setInitLimit(peerConfig.getInitLimit());
-            quorumPeer.setSyncLimit(peerConfig.getSyncLimit());
-            quorumPeer.setQuorumVerifier(peerConfig.getQuorumVerifier());
-            quorumPeer.setCnxnFactory(cnxnFactory);
-            quorumPeer.setZKDatabase(new ZKDatabase(quorumPeer.getTxnFactory()));
             quorumPeer.setLearnerType(peerConfig.getPeerType());
+            if (saslConfigurationSuccessful) {
+                // enable all 3 with single property
+                quorumPeer.setQuorumSaslEnabled(peerConfig.isQuorumEnableSasl());
+                quorumPeer.setQuorumLearnerSaslRequired(peerConfig.isQuorumEnableSasl());
+                quorumPeer.setQuorumServerSaslRequired(peerConfig.isQuorumEnableSasl());
+            }
+            quorumPeer.initialize(peerSubject, peerCredentials);
 
             try {
                 LOGGER.debug("Starting quorum peer \"{}\" on address {}", quorumPeer.getMyid(), peerConfig.getClientPortAddress());
@@ -203,6 +249,37 @@ public class ZooKeeperServerFactory extends AbstractComponent {
         }
     }
 
+    /**
+     * <p>Turns properties that configure quorum peer into a hash. These properties come from master profiles
+     * like:<ul>
+     *     <li>fabric-ensemble-0001</li>
+     *     <li>fabric-ensemble-0001-1</li>
+     *     <li>fabric-ensemble-0001-2</li>
+     *     <li>...</li>
+     * </ul>
+     * This method actually returns hashes for every server and returns them in a table (with 0th index
+     * empty for easier access by {@code server.id} which is 1-based).</p>
+     *
+     * <p>The profiles are turned into CM configuration that activate our/this SCR component. We can take
+     * <em>shared</em>, non peer-specific properties <strong>and</strong> {@code server.id} property,
+     * canonicalize them and create an SHA1 digest that will be treated as give (by {@code server.id})
+     * server's password.</p>
+     *
+     * @param props
+     * @return
+     */
+    private String[] digestConfiguration(Properties props) throws GeneralSecurityException {
+        int count = 1;
+        while (props.containsKey("server." + count)) {
+            count++;
+        }
+        String[] res = new String[count]; // one more, but idx=0 will be empty. server.id is 1-based
+        for (int i = 1; i < count; i++) {
+            res[i] = ZooKeeperUtils.derivePeerPassword(props, i);
+        }
+        return res;
+    }
+
     private void startCleanupManager(ServerConfig serverConfig, Properties props) {
         String dataDir = serverConfig.getDataDir();
         String dataLogDir = serverConfig.getDataLogDir();
@@ -251,7 +328,7 @@ public class ZooKeeperServerFactory extends AbstractComponent {
             t.start();
             // let's wait at most 10 seconds...
             t.join(10000);
-            if (destroyable != null && destroyable instanceof ServerStats.Provider) {
+            if (destroyable instanceof ServerStats.Provider) {
                 ServerStats.Provider sp = (ServerStats.Provider) this.destroyable;
                 LOGGER.info("Zookeeper server stats after shutdown: connections: " + sp.getNumAliveConnections()
                         + ", outstandingRequests: " + sp.getOutstandingRequests());
