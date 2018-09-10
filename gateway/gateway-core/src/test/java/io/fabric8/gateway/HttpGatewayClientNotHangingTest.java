@@ -24,8 +24,6 @@ import io.fabric8.gateway.handlers.http.HttpMappingRule;
 import io.fabric8.gateway.handlers.http.MappedServices;
 import io.fabric8.gateway.loadbalancer.LoadBalancer;
 import io.fabric8.gateway.loadbalancer.RoundRobinLoadBalancer;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,24 +33,30 @@ import org.vertx.java.core.http.HttpClientResponse;
 import org.vertx.java.core.http.HttpServer;
 import org.vertx.java.core.http.HttpServerRequest;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 
 /**
  */
-public class HttpGatewayConnectionTimeoutTest extends AbstractHttpGatewayTest {
+public class HttpGatewayClientNotHangingTest extends AbstractHttpGatewayTest {
 
-    private static final transient Logger LOG = LoggerFactory.getLogger(HttpGatewayConnectionTimeoutTest.class);
+    private static final transient Logger LOG = LoggerFactory.getLogger(HttpGatewayClientNotHangingTest.class);
 
     @Override
     public HttpServer startRestEndpoint() throws InterruptedException {
         restEndpointServer = vertx.createHttpServer();
+        restEndpointServer.requestHandler(new Handler<HttpServerRequest>() {
+            @Override
+            public void handle(HttpServerRequest request) {
+                restEndpointServer.close();
+            }
+        });
+
+        FutureHandler<AsyncResult<HttpServer>> future = new FutureHandler<>();
+        restEndpointServer.listen(8181, "0.0.0.0", future);
+        future.await();
         return restEndpointServer;
     }
 
@@ -66,8 +70,7 @@ public class HttpGatewayConnectionTimeoutTest extends AbstractHttpGatewayTest {
             serviceDetails.setContainer("local");
             serviceDetails.setVersion("1");
 
-            //XXX: pick a non routable address to simulate connection refused (in this case 10.0.0.0 )
-            mappedServices.put("/hello/world", new MappedServices("http://10.0.0.0:8181", serviceDetails, loadBalancer, false));
+            mappedServices.put("/hello/world", new MappedServices("http://localhost:8181", serviceDetails, loadBalancer, false));
         }
 
         HttpGatewayHandler handler = new HttpGatewayHandler(vertx, new HttpGateway(){
@@ -98,7 +101,6 @@ public class HttpGatewayConnectionTimeoutTest extends AbstractHttpGatewayTest {
             public void addCallDetailRecord(CallDetailRecord cdr) {
             }
         });
-        handler.setConnectionTimeout(1000);
         httpGatewayServer = new HttpGatewayServer(vertx, handler, null, 8080);
         httpGatewayServer.setHost("localhost");
         httpGatewayServer.init();
@@ -106,7 +108,7 @@ public class HttpGatewayConnectionTimeoutTest extends AbstractHttpGatewayTest {
     }
 
     @Test
-    public void testConnectionTimeout() throws Exception {
+    public void testRequestTimeout() throws Exception {
         startRestEndpoint();
         startHttpGateway();
 
@@ -122,7 +124,7 @@ public class HttpGatewayConnectionTimeoutTest extends AbstractHttpGatewayTest {
 
         HttpClientResponse response = future.await();
 
-        assertEquals( 504, response.statusCode() );
+        assertEquals( 500, response.statusCode() );
 
         stopHttpGateway();
         stopVertx();

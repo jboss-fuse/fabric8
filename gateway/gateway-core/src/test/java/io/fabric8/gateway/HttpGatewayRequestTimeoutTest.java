@@ -132,7 +132,7 @@ public class HttpGatewayRequestTimeoutTest extends AbstractHttpGatewayTest {
 
         HttpClientResponse response = future.await();
 
-        assertEquals( response.statusCode(), 504 );
+        assertEquals( 504, response.statusCode() );
 
         stopHttpGateway();
         stopVertx();

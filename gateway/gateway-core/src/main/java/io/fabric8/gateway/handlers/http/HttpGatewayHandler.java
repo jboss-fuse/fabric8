@@ -191,21 +191,26 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
                 servicePath += remaining;
             }
 
+            LOG.info("Proxying request {} to service path: {} on service: {} reverseServiceUrl: {}", uri, servicePath, proxyServiceUrl, reverseServiceUrl);
+            final HttpClient finalClient = client;
+
             client.exceptionHandler(new Handler<Throwable>() {
                 @Override
                 public void handle(Throwable throwable) {
-                    if(throwable instanceof ConnectTimeoutException) {
+                    if(throwable instanceof TimeoutException || throwable instanceof ConnectTimeoutException) {
                         request.response().setStatusCode(504);
                         request.response().end();
+                        finalClient.close();
                     } else {
+                        request.response().setStatusCode(500);
+                        request.response().end();
+                        finalClient.close();
                         LOG.error("Unhandled exception", throwable);
                     }
                 }
             });
             client.setConnectTimeout( connectionTimeout );
 
-            LOG.info("Proxying request {} to service path: {} on service: {} reverseServiceUrl: {}", uri, servicePath, proxyServiceUrl, reverseServiceUrl);
-            final HttpClient finalClient = client;
             Handler<HttpClientResponse> responseHandler = new Handler<HttpClientResponse>() {
                 public void handle(HttpClientResponse clientResponse) {
                     LOG.debug("Proxying response: {}", clientResponse.statusCode());
@@ -234,18 +239,22 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
             final HttpClientRequest clientRequest = client.request(request.method(), servicePath, responseHandler);
             clientRequest.headers().set(request.headers());
             clientRequest.setChunked(true);
-            if( requestTimeout != DEFAULT_REQUEST_TIMEOUT ) {
-                clientRequest.exceptionHandler(new Handler<Throwable>() {
-                    @Override
-                    public void handle(Throwable throwable) {
-                        if(throwable instanceof TimeoutException) {
-                            request.response().setStatusCode(504);
-                            request.response().end();
-                        } else {
-                            LOG.error("Unhandled exception", throwable);
-                        }
+            clientRequest.exceptionHandler(new Handler<Throwable>() {
+                @Override
+                public void handle(Throwable throwable) {
+                    if(throwable instanceof TimeoutException || throwable instanceof ConnectTimeoutException) {
+                        request.response().setStatusCode(504);
+                        request.response().end();
+                        finalClient.close();
+                    } else {
+                        request.response().setStatusCode(500);
+                        request.response().end();
+                        LOG.error("Unhandled exception", throwable);
+                        finalClient.close();
                     }
-                });
+                }
+            });
+            if( requestTimeout != DEFAULT_REQUEST_TIMEOUT ) {
                 clientRequest.setTimeout(requestTimeout);
             }
             request.dataHandler(new Handler<Buffer>() {
@@ -260,7 +269,6 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
                     clientRequest.end();
                 }
             });
-
         } else {
             //  lets return a 404
             LOG.info("Could not find matching proxy path for {} from paths: {}", uri, mappingRules.keySet());
