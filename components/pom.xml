@@ -20,7 +20,7 @@
   <parent>
     <groupId>io.fabric8</groupId>
     <artifactId>fabric8-parent</artifactId>
-    <version>3.0.11.redhat-SNAPSHOT</version>
+    <version>3.0.11.fuse-720007</version>
     <relativePath>../parent</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
@@ -62,7 +62,6 @@
     <module>fabric8-apm</module>
     <module>fabric8-arquillian</module>
     <module>fabric8-cxf</module>
-    <module>fabric8-cxf-plugins</module>
     <!--<module>fabric8-cxf-registry</module>--> <!-- TODO: does not work yet -->
     <module>fabric8-devops</module>
     <module>fabric8-devops-connector</module>
