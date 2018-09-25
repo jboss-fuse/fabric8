@@ -13,15 +13,12 @@
  *  implied.  See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package io.fabric8.gateway;
+package io.fabric8.gateway.handlers.http;
 
 
+import io.fabric8.gateway.CallDetailRecord;
+import io.fabric8.gateway.ServiceDTO;
 import io.fabric8.gateway.handlers.detecting.FutureHandler;
-import io.fabric8.gateway.handlers.http.HttpGateway;
-import io.fabric8.gateway.handlers.http.HttpGatewayHandler;
-import io.fabric8.gateway.handlers.http.HttpGatewayServer;
-import io.fabric8.gateway.handlers.http.HttpMappingRule;
-import io.fabric8.gateway.handlers.http.MappedServices;
 import io.fabric8.gateway.loadbalancer.LoadBalancer;
 import io.fabric8.gateway.loadbalancer.RoundRobinLoadBalancer;
 import org.junit.Test;

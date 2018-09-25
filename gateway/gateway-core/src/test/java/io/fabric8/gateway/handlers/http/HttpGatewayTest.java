@@ -13,41 +13,31 @@
  *  implied.  See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package io.fabric8.gateway;
+package io.fabric8.gateway.handlers.http;
 
 
+import io.fabric8.gateway.CallDetailRecord;
+import io.fabric8.gateway.ServiceDTO;
 import io.fabric8.gateway.handlers.detecting.FutureHandler;
-import io.fabric8.gateway.handlers.http.HttpGateway;
-import io.fabric8.gateway.handlers.http.HttpGatewayHandler;
-import io.fabric8.gateway.handlers.http.HttpGatewayServer;
-import io.fabric8.gateway.handlers.http.HttpMappingRule;
-import io.fabric8.gateway.handlers.http.MappedServices;
 import io.fabric8.gateway.loadbalancer.LoadBalancer;
 import io.fabric8.gateway.loadbalancer.RoundRobinLoadBalancer;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vertx.java.core.AsyncResult;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.MultiMap;
-import org.vertx.java.core.Vertx;
-import org.vertx.java.core.VertxFactory;
 import org.vertx.java.core.buffer.Buffer;
 import org.vertx.java.core.http.HttpClientResponse;
 import org.vertx.java.core.http.HttpServer;
 import org.vertx.java.core.http.HttpServerRequest;
 
-import java.io.File;
 import java.net.InetSocketAddress;
-import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.vertx.java.core.http.HttpHeaders.CONTENT_LENGTH;
-import static org.vertx.java.core.http.HttpHeaders.CONTENT_TYPE;
 import static org.vertx.java.core.http.HttpHeaders.TRANSFER_ENCODING;
 
 /**
