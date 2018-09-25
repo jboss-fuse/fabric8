@@ -16,6 +16,8 @@
 package io.fabric8.gateway.handlers.detecting.protocol.ssl;
 
 import io.fabric8.gateway.SocketWrapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.buffer.Buffer;
 import org.vertx.java.core.streams.ReadStream;
@@ -34,6 +36,8 @@ import static javax.net.ssl.SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING;
 /**
  */
 public class SslSocketWrapper extends SocketWrapper implements ReadStream<SslSocketWrapper>, WriteStream<SslSocketWrapper> {
+
+    private static final transient Logger LOG = LoggerFactory.getLogger(SslSocketWrapper.class);
 
     private Handler<Void> plainDrainHandler;
 
@@ -482,6 +486,8 @@ public class SslSocketWrapper extends SocketWrapper implements ReadStream<SslSoc
             return;
         try {
             while( true ) {
+                if( failed )
+                    return;
                 SSLEngineResult.HandshakeStatus status = engine.getHandshakeStatus();
                 switch (status) {
                     case FINISHED:
@@ -511,8 +517,9 @@ public class SslSocketWrapper extends SocketWrapper implements ReadStream<SslSoc
                         }
 
                     default:
+                        LOG.error("Unexpected ssl engine handshake status: "+ status);
                         System.err.println("Unexpected ssl engine handshake status: "+ status);
-                        break;
+                        return;
                 }
             }
         } finally {
