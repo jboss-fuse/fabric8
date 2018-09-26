@@ -1,7 +1,5 @@
-package io.fabric8.gateway;
+package io.fabric8.gateway.handlers.http;
 
-import io.fabric8.gateway.handlers.http.HttpGatewayServer;
-import io.fabric8.gateway.handlers.http.MappedServices;
 import org.junit.After;
 import org.junit.Before;
 import org.vertx.java.core.Vertx;
