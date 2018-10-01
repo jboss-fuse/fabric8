@@ -477,7 +477,7 @@ public final class FabricCxfRegistrationHandler extends AbstractComponent implem
         if (name.startsWith("\"") && name.endsWith("\"")) {
             name = name.substring(1, name.length() - 1);
         }
-        String version = container.getVersion().getId();
+        String version = container.getVersionId();
         if(specificVersion != null){
             version = specificVersion;
         }

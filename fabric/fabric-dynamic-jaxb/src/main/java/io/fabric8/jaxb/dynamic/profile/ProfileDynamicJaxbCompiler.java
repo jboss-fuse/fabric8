@@ -220,7 +220,7 @@ public class ProfileDynamicJaxbCompiler extends AbstractComponent implements Dyn
         Set<String> urls = new TreeSet<String>();
         FabricService fabric = getFabricService();
         Container container = fabric.getCurrentContainer();
-        String versionId = container.getVersion().getId();
+        String versionId = container.getVersionId();
         List<String> profileIds = Containers.overlayProfiles(container);
         Collection<String> names = listFiles(versionId, profileIds, schemaPath);
         for (String name : names) {
