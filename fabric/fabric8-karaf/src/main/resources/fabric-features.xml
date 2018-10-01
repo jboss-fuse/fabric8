@@ -233,7 +233,7 @@
         <feature>scr</feature>
         <feature>karaf</feature>
 
-        <bundle start-level="30">mvn:javax.annotation/javax.annotation-api/1.2</bundle>
+        <bundle start-level="10">mvn:javax.annotation/javax.annotation-api/1.2</bundle>
         <bundle dependency="true">mvn:org.mvel/mvel2/${mvel-version}</bundle>
         <bundle dependency="true">mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.jsch/${jsch-smx-version}</bundle>
         <bundle dependency="true">mvn:commons-collections/commons-collections/${commons-collections-version}</bundle>

@@ -675,6 +675,8 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
             return ZkPath.CONTAINER_PROCESS_ID.getPath(containerId);
         case OpenShift:
             return ZkPath.CONTAINER_OPENSHIFT.getPath(containerId);
+        case Managed:
+            return ZkPath.CONTAINER_MANAGED.getPath(containerId);
         default:
             throw new IllegalArgumentException("Unsupported container attribute " + attribute);
         }
