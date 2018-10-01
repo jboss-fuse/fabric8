@@ -63,7 +63,7 @@ public class VersionInfoAction extends AbstractAction {
         List<Container> containerList = new ArrayList<Container>();
         for (String c : dataStore.getContainers()) {
             Container container = fabricService.getContainer(c);
-            if (version.getId().equals(container.getVersion().getId())) {
+            if (version.getId().equals(container.getVersionId())) {
                 containerList.add(container);
             }
         }

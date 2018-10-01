@@ -93,7 +93,7 @@ public class ContainerListAction extends AbstractAction {
                 }
 
                 List<String> assignedProfiles = dataStore.getContainerProfiles(container.getId());
-                table.row(indent + container.getId() + marker, container.getVersion().getId(), container.getType(),
+                table.row(indent + container.getId() + marker, container.getVersionId(), container.getType(),
                         aliveText(container), assignedProfiles.get(0), CommandUtils.status(container));
 
                 // we want multiple profiles to be displayed on next lines
@@ -130,7 +130,7 @@ public class ContainerListAction extends AbstractAction {
                 springStatus = springStatus.toLowerCase(Locale.ENGLISH);
 
                 List<String> assignedProfiles = dataStore.getContainerProfiles(container.getId());
-                table.row(indent + container.getId() + marker, container.getVersion().getId(), container.getType(),
+                table.row(indent + container.getId() + marker, container.getVersionId(), container.getType(),
                         aliveText(container), assignedProfiles.get(0), blueprintStatus, springStatus, CommandUtils.status(container));
 
                 // we want multiple profiles to be displayed on next lines

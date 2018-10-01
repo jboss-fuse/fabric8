@@ -71,6 +71,7 @@ import static io.fabric8.zookeeper.ZkPath.CONTAINER_IP;
 import static io.fabric8.zookeeper.ZkPath.CONTAINER_JMX;
 import static io.fabric8.zookeeper.ZkPath.CONTAINER_LOCAL_HOSTNAME;
 import static io.fabric8.zookeeper.ZkPath.CONTAINER_LOCAL_IP;
+import static io.fabric8.zookeeper.ZkPath.CONTAINER_MANAGED;
 import static io.fabric8.zookeeper.ZkPath.CONTAINER_PUBLIC_IP;
 import static io.fabric8.zookeeper.ZkPath.CONTAINER_PORT_MAX;
 import static io.fabric8.zookeeper.ZkPath.CONTAINER_PORT_MIN;
@@ -95,6 +96,7 @@ public final class KarafContainerRegistration extends AbstractComponent implemen
     private static final String MANAGEMENT_PID = "org.apache.karaf.management";
     private static final String SSH_PID = "org.apache.karaf.shell";
     private static final String HTTP_PID = "org.ops4j.pax.web";
+    private static final String AGENT_PID = "io.fabric8.agent";
 
     private static final String JMX_SERVICE_URL = "serviceUrl";
     private static final String RMI_REGISTRY_BINDING_PORT_KEY = "rmiRegistryPort";
@@ -102,6 +104,7 @@ public final class KarafContainerRegistration extends AbstractComponent implemen
     private static final String SSH_BINDING_PORT_KEY = "sshPort";
     private static final String HTTP_BINDING_PORT_KEY = "org.osgi.service.http.port";
     private static final String HTTPS_BINDING_PORT_KEY = "org.osgi.service.http.port.secure";
+    private static final String AGENT_DISABLED = "disabled";
 
     private static final String RMI_REGISTRY_CONNECTION_PORT_KEY = "rmiRegistryConnectionPort";
     private static final String RMI_SERVER_CONNECTION_PORT_KEY = "rmiServerConnectionPort";
@@ -190,6 +193,11 @@ public final class KarafContainerRegistration extends AbstractComponent implemen
             if(System.getProperty(SystemProperties.JAVA_RMI_SERVER_HOSTNAME) == null){
                 System.setProperty(SystemProperties.JAVA_RMI_SERVER_HOSTNAME, current.getIp());
             }
+
+            Configuration config = configAdmin.get().getConfiguration(AGENT_PID, null);
+            String disabled = (String) config.getProperties().get(AGENT_DISABLED);
+            boolean managed = !"true".equalsIgnoreCase(disabled);
+            setData(curator.get(), CONTAINER_MANAGED.getPath(runtimeIdentity), Boolean.toString(managed));
 
             registerJmx(current);
             registerSsh(current);
@@ -545,8 +553,7 @@ public final class KarafContainerRegistration extends AbstractComponent implemen
                         portService.get().unregisterPort(current, SSH_PID);
                         portService.get().registerPort(current, SSH_PID, SSH_BINDING_PORT_KEY, sshPort);
                     }
-                }
-                if (event.getPid().equals(HTTP_PID) && event.getType() == ConfigurationEvent.CM_UPDATED) {
+                } else if (event.getPid().equals(HTTP_PID) && event.getType() == ConfigurationEvent.CM_UPDATED) {
                     Configuration config = configAdmin.get().getConfiguration(HTTP_PID, null);
                     boolean httpEnabled = isHttpEnabled();
                     boolean httpsEnabled = isHttpsEnabled();
@@ -572,8 +579,7 @@ public final class KarafContainerRegistration extends AbstractComponent implemen
                     }
                     String httpUrl = getHttpUrl(protocol, runtimeIdentity, httpConnectionPort);
                     setData(curator.get(), CONTAINER_HTTP.getPath(runtimeIdentity), httpUrl);
-                }
-                if (event.getPid().equals(MANAGEMENT_PID) && event.getType() == ConfigurationEvent.CM_UPDATED) {
+                } else if (event.getPid().equals(MANAGEMENT_PID) && event.getType() == ConfigurationEvent.CM_UPDATED) {
                     Configuration config = configAdmin.get().getConfiguration(MANAGEMENT_PID, null);
                     int rmiServerPort = Integer.parseInt((String) config.getProperties().get(RMI_SERVER_BINDING_PORT_KEY));
                     int rmiServerConnectionPort = getRmiServerConnectionPort(current, rmiServerPort);
@@ -589,7 +595,11 @@ public final class KarafContainerRegistration extends AbstractComponent implemen
                         portService.get().registerPort(current, MANAGEMENT_PID, RMI_SERVER_BINDING_PORT_KEY, rmiServerPort);
                         portService.get().registerPort(current, MANAGEMENT_PID, RMI_REGISTRY_BINDING_PORT_KEY, rmiRegistryPort);
                     }
-
+                } else if (event.getPid().equals(AGENT_PID) && event.getType() == ConfigurationEvent.CM_UPDATED) {
+                    Configuration config = configAdmin.get().getConfiguration(AGENT_PID, null);
+                    String disabled = (String) config.getProperties().get(AGENT_DISABLED);
+                    boolean managed = !"true".equalsIgnoreCase(disabled);
+                    setData(curator.get(), CONTAINER_MANAGED.getPath(runtimeIdentity), Boolean.toString(managed));
                 }
             } catch (Exception ex) {
                 LOGGER.error("Cannot reconfigure container", ex);

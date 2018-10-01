@@ -173,12 +173,8 @@ public class ContainerImpl implements Container {
 
     @Override
     public boolean isManaged() {
-        Map<String, String> agentConfig = getOverlayProfile().getConfiguration(Constants.AGENT_PID);
-        if (agentConfig != null) {
-            return !Boolean.parseBoolean(agentConfig.get("disabled"));
-        }
-        //if for any reason the profiles are not available yet, then assume the container is managed.
-        return true;
+        String managed = getOptionalAttribute(DataStore.ContainerAttribute.Managed, "true");
+        return !"false".equalsIgnoreCase(managed);
     }
 
     @Override

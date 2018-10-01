@@ -104,7 +104,7 @@ public class ExtendedUpgradeAndRollbackTest  {
                 System.out.println(CommandSupport.executeCommand("fabric:container-list"));
 
                 for (Container container : containers) {
-                    Assert.assertEquals("Container should have version 1.1", "1.1", container.getVersion().getId());
+                    Assert.assertEquals("Container should have version 1.1", "1.1", container.getVersionId());
                     String bundles = CommandSupport.executeCommand("fabric:container-connect -u admin -p admin " + container.getId() + " osgi:list -s | grep camel-hazelcast");
                     Assert.assertNotNull(bundles);
                     System.out.println(bundles);
@@ -114,7 +114,7 @@ public class ExtendedUpgradeAndRollbackTest  {
                 ProvisionSupport.provisioningSuccess(containers, ProvisionSupport.PROVISION_TIMEOUT);
                 System.out.println(CommandSupport.executeCommand("fabric:container-list"));
                 for (Container container : containers) {
-                    Assert.assertEquals("Container should have version 1.0", "1.0", container.getVersion().getId());
+                    Assert.assertEquals("Container should have version 1.0", "1.0", container.getVersionId());
                     String bundles = CommandSupport.executeCommand("fabric:container-connect -u admin -p admin " + container.getId() + " osgi:list -s | grep camel-hazelcast");
                     Assert.assertNotNull(bundles);
                     System.out.println(bundles);
@@ -151,7 +151,7 @@ public class ExtendedUpgradeAndRollbackTest  {
                 System.out.println(CommandSupport.executeCommand("fabric:container-rollback --all 1.0"));
                 ProvisionSupport.provisioningSuccess(containers, ProvisionSupport.PROVISION_TIMEOUT);
                 for (Container container : containers) {
-                    Assert.assertEquals("Container should have version 1.0", "1.0", container.getVersion().getId());
+                    Assert.assertEquals("Container should have version 1.0", "1.0", container.getVersionId());
                     Assert.assertNotNull(ZooKeeperUtils.exists(ServiceLocator.awaitService(CuratorFramework.class), "/fabric/configs/versions/1.0/containers/" + container.getId()));
                 }
             } finally {
