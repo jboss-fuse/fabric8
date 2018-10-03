@@ -176,7 +176,7 @@
         <spring.boot.version>1.5.12.RELEASE</spring.boot.version>
         <spring-cloud-kubernetes.version>0.1.6.fuse-000035</spring-cloud-kubernetes.version>
         <sundrio.plugin.version>0.4.4</sundrio.plugin.version>
-        <tomcat-embed.version>8.0.36.redhat-30</tomcat-embed.version>
+        <tomcat-embed.version>8.0.36.redhat-33</tomcat-embed.version>
         <validation-api.version>1.1.0.Final</validation-api.version>
         <zookeeper.version>3.4.9</zookeeper.version>
         <commons-codec.version>1.11</commons-codec.version>
