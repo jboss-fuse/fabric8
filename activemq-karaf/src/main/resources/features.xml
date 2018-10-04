@@ -28,12 +28,10 @@
         <feature>transaction</feature>
         <feature version="[4,6)">spring</feature>
         <bundle dependency="true">mvn:org.apache.geronimo.specs/geronimo-annotation_1.0_spec/${geronimo-annotation_1.0_spec.version}</bundle>
-        <bundle dependency="true">mvn:org.apache.geronimo.specs/geronimo-jms_1.1_spec/1.1.1</bundle>
-        <bundle dependency="true">mvn:org.apache.geronimo.specs/geronimo-j2ee-management_1.1_spec/1.0.1</bundle>
-        <bundle dependency="true">mvn:org.jvnet.jaxb2_commons/jaxb2-basics-runtime/0.6.4</bundle>
-        <bundle dependency='true'>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.jaxb-impl/2.2.11_1</bundle>
-        <bundle dependency="false">mvn:commons-pool/commons-pool/1.6.0.redhat-9</bundle>
-        <bundle dependency="false">mvn:commons-net/commons-net/3.3.0.redhat-3</bundle>
+        <bundle dependency="true">mvn:org.apache.geronimo.specs/geronimo-jms_1.1_spec/${geronimo-jms_1.1_spec.version}</bundle>
+        <bundle dependency="true">mvn:org.apache.geronimo.specs/geronimo-j2ee-management_1.1_spec/${geronimo-j2ee-management_1.1_spec.version}</bundle>
+        <bundle dependency="false">mvn:commons-pool/commons-pool/${commons-pool.version}</bundle>
+        <bundle dependency="false">mvn:commons-net/commons-net/${commons-net.version}</bundle>
         <bundle>mvn:org.fusesource/activemq-client/${project.version}</bundle>
     </feature>
 
@@ -42,4 +40,5 @@
         <feature version="${project.version}">activemq-client</feature>
         <bundle>mvn:org.fusesource/camel-activemq/${project.version}</bundle>
     </feature>
+
 </features>
