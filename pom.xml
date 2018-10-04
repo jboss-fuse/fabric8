@@ -28,7 +28,11 @@
     <url>http://www.jboss.org/products/fuse/overview/</url>
 
     <properties>
-        <geronimo-annotation_1.0_spec.version>1.1.1</geronimo-annotation_1.0_spec.version>
+        <geronimo-annotation_1.0_spec.version>1.1.1.redhat-2</geronimo-annotation_1.0_spec.version>
+        <geronimo-j2ee-management_1.1_spec.version>1.0.1</geronimo-j2ee-management_1.1_spec.version>
+        <geronimo-jms_1.1_spec.version>1.1.1.redhat-2</geronimo-jms_1.1_spec.version>
+        <commons-pool.version>1.6.0.redhat-9</commons-pool.version>
+        <commons-net.version>3.6</commons-net.version>
         <camel-version>2.20.0.fuse-000101</camel-version>
         <activemq-version>5.11.0.redhat-630343</activemq-version>
         <karaf-version>4.2.0.fuse-000100</karaf-version>
