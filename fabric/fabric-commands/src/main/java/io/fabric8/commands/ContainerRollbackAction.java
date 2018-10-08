@@ -80,7 +80,7 @@ public final class ContainerRollbackAction extends AbstractAction {
             // check first that all can rollback
             int num = ContainerUpgradeSupport.canRollback(version, container);
             if (num < 0) {
-                throw new IllegalArgumentException("Container " + container.getId() + " has already lower version " + container.getVersion().getId()
+                throw new IllegalArgumentException("Container " + container.getId() + " has already lower version " + container.getVersionId()
                         + " than the requested version " + version.getId() + " to rollback.");
             } else if (num == 0) {
                 // same version

@@ -125,6 +125,7 @@ public enum ZkPath {
     CONTAINER_METADATA             ("/fabric/registry/containers/config/{container}/metadata"),
     CONTAINER_GEOLOCATION          ("/fabric/registry/containers/config/{container}/geoloc"),
     CONTAINER_OPENSHIFT            ("/fabric/registry/containers/config/{container}/openshift"),
+    CONTAINER_MANAGED              ("/fabric/registry/containers/config/{container}/managed"),
     CLOUD_CONFIG                   ("/fabric/registry/cloud/config"),
     CLOUD_SERVICE                  ("/fabric/registry/cloud/config/{service}"),
     CLOUD_SERVICE_PROVIDER         ("/fabric/registry/cloud/config/{service}/provider"),
