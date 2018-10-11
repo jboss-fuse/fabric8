@@ -32,15 +32,39 @@ public final class ProfileSafeUrlHandler extends AbstractURLStreamHandlerService
 
     public static final Logger LOGGER = LoggerFactory.getLogger(ProfileSafeUrlHandler.class);
 
+    // sleeps between attempts to delegate to internal profile2: URI handler. total sleep: 40s
+    static int[] SLEEPS = new int[] { 1000, 1000, 2000, 2000, 2000, 4000, 4000, 4000, 5000, 5000, 5000, 5000 };
+    static int ADDITIONAL_SLEEP = 5000;
+
     private BundleContext context;
+    private int maxWait = 0;
+
+    public ProfileSafeUrlHandler(BundleContext context) {
+        this.context = context;
+
+        int defaultTimeout = 0;
+        for (int s : SLEEPS) {
+            defaultTimeout += s;
+        }
+
+        String timeout = context.getProperty("profile.url.timeout");
+        if (timeout != null && !"".equals(timeout)) {
+            try {
+                maxWait = Integer.parseInt(timeout);
+                maxWait *= 1000;
+            } catch (NumberFormatException e) {
+                maxWait = defaultTimeout;
+                LOGGER.warn("Incorrect value for \"profile.url.timeout\" property, assuming + " + defaultTimeout + "s.");
+            }
+        } else {
+            maxWait = defaultTimeout;
+        }
+    }
 
     @Override
     public URLConnection openConnection(URL url) throws IOException {
         return new Connection(url);
     }
-
-    // sleeps between attempts to delegate to internal profile2: URI handler. total sleep: 20s
-    static int[] SLEEPS = new int[] { 1000, 1000, 2000, 2000, 2000, 4000, 4000, 4000, 5000, 5000, 5000, 5000 };
 
     private class Connection extends URLConnection {
 
@@ -66,11 +90,12 @@ public final class ProfileSafeUrlHandler extends AbstractURLStreamHandlerService
             // let's hope the internal, ZK-dependent io.fabric8.service.ProfileUrlHandler will be
             // available soon
             int count = 0;
+            int totalTimeSlept = 0;
             IOException lastException = null;
-            while (count < SLEEPS.length) {
+            while ((count < SLEEPS.length) && (totalTimeSlept < maxWait)) {
                 try {
                     if (count == 0) {
-                        LOGGER.debug("Resolving {}", url);
+                        LOGGER.debug("Resolving {} (max wait = " + maxWait + ")", url);
                     } else {
                         LOGGER.debug("Resolving {}, attempt {}", url, count + 1);
                     }
@@ -89,7 +114,14 @@ public final class ProfileSafeUrlHandler extends AbstractURLStreamHandlerService
                     }
                 }
                 try {
-                    Thread.sleep(SLEEPS[count++]);
+                    if (count < SLEEPS.length) {
+                        Thread.sleep(SLEEPS[count]);
+                        totalTimeSlept += SLEEPS[count];
+                    } else {
+                        Thread.sleep(ADDITIONAL_SLEEP);
+                        totalTimeSlept += ADDITIONAL_SLEEP;
+                    }
+                    count++;
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     throw new IOException("Thread interrupted while trying to resolve " + url);
@@ -99,7 +131,7 @@ public final class ProfileSafeUrlHandler extends AbstractURLStreamHandlerService
             if (lastException != null) {
                 throw lastException;
             } else {
-                throw new MalformedURLException("Can't resolve " + url + " after " + SLEEPS.length + " attempts");
+                throw new MalformedURLException("Can't resolve " + url + " after " + count + " attempts");
             }
         }
     }
