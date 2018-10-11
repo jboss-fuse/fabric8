@@ -68,7 +68,7 @@ public class SSLContextBundleActivator implements BundleActivator {
         // ENTESB-7843: register profile: URI handler that delegates to profile2:
         Hashtable<String, Object> properties = new Hashtable<>();
         properties.put("url.handler.protocol", "profile");
-        safeProfileHandlerRegistration = bundleContext.registerService(URLStreamHandlerService.class, new ProfileSafeUrlHandler(), properties);
+        safeProfileHandlerRegistration = bundleContext.registerService(URLStreamHandlerService.class, new ProfileSafeUrlHandler(bundleContext), properties);
     }
 
     @Override
