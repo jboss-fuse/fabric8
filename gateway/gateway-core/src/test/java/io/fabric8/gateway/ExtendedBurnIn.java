@@ -33,9 +33,6 @@ import io.fabric8.gateway.loadbalancer.LoadBalancer;
 import io.fabric8.gateway.loadbalancer.LoadBalancers;
 import io.fabric8.gateway.loadbalancer.RoundRobinLoadBalancer;
 import org.apache.activemq.apollo.broker.Broker;
-import org.apache.activemq.apollo.dto.AcceptingConnectorDTO;
-import org.apache.activemq.apollo.dto.BrokerDTO;
-import org.apache.activemq.apollo.dto.VirtualHostDTO;
 import org.apache.activemq.apollo.util.ServiceControl;
 import org.fusesource.stomp.jms.StompJmsConnectionFactory;
 import org.junit.After;
@@ -66,7 +63,7 @@ import static org.junit.Assert.*;
 
 /**
  */
-public class ExtendedBurnIn {
+public class ExtendedBurnIn extends AbstractMqGatewayTest {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(ExtendedBurnIn.class);
     ServiceMap serviceMap = new ServiceMap();
@@ -156,26 +153,6 @@ public class ExtendedBurnIn {
 
     int portOfBroker(int broker) {
         return ((InetSocketAddress)brokers.get(broker).get_socket_address()).getPort();
-    }
-
-    public Broker createBroker(String hostname) {
-        Broker broker = new Broker();
-        BrokerDTO config = broker.config();
-
-        // Configure the virtual host..
-        VirtualHostDTO virtualHost = new VirtualHostDTO();
-        virtualHost.id = hostname;
-        virtualHost.host_names.add(hostname);
-        config.virtual_hosts.add(virtualHost);
-
-        // Configure the connectors
-        AcceptingConnectorDTO connector = new AcceptingConnectorDTO();
-        connector.connection_limit = 100;
-        connector.bind = "tcp://0.0.0.0:0";
-        config.connectors.clear();
-        config.connectors.add(connector);
-
-        return broker;
     }
 
     protected void println(Object msg) {
@@ -291,28 +268,12 @@ public class ExtendedBurnIn {
         return gateway;
     }
 
-
     @After
     public void stopGateways() {
         for (DetectingGateway gateway : gateways) {
             gateway.destroy();
         }
         gateways.clear();
-    }
-
-
-    protected File basedir() {
-        try {
-          File file = new File(getClass().getProtectionDomain().getCodeSource().getLocation().getFile());
-          file = file.getParentFile().getParentFile().getCanonicalFile();
-          if( file.isDirectory() ) {
-              return file.getCanonicalFile();
-          } else {
-              return new File(".").getCanonicalFile();
-          }
-        } catch (Throwable e){
-            return new File(".");
-        }
     }
 
     @Test
