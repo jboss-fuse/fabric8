@@ -24,6 +24,7 @@ import io.fabric8.internal.ContainerImpl;
 import io.fabric8.internal.Objects;
 import io.fabric8.service.ContainerTemplate;
 import io.fabric8.utils.AuthenticationUtils;
+import io.fabric8.utils.PasswordEncoder;
 import io.fabric8.utils.Ports;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -361,10 +362,11 @@ public final class ChildContainerProvider extends AbstractComponent implements C
         if (jvmVersion.startsWith("1.8")) isJdk8 = true;
 
         String zkPasswordEncode = System.getProperty("zookeeper.password.encode", "true");
+        String zkPassword = PasswordEncoder.encode(fabricService.getZookeeperPassword());
         jvmOptsBuilder.append("-server -Dcom.sun.management.jmxremote -Dorg.jboss.gravia.repository.storage.dir=data/repository")
                 .append(options.getZookeeperUrl() != null ? " -Dzookeeper.url=\"" + fabricService.getZookeeperUrl() + "\"" : "")
                 .append(zkPasswordEncode != null ? " -Dzookeeper.password.encode=\"" + zkPasswordEncode + "\"" : "")
-                .append(options.getZookeeperPassword() != null ? " -Dzookeeper.password=\"" + fabricService.getZookeeperPassword() + "\"" : "");
+                .append(options.getZookeeperPassword() != null ? " -Dzookeeper.password=\"" + zkPassword + "\"" : "");
 
 
         if (options.getJvmOpts() == null || !options.getJvmOpts().contains("-Xmx")) {
