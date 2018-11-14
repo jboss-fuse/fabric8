@@ -86,7 +86,7 @@
         <activemq.version>5.11.0.redhat-630356</activemq.version>
         <arquillian-cube.version>1.9.0</arquillian-cube.version>
         <camel.version>2.19.1</camel.version>
-        <cxf.version>3.1.11.fuse-710001</cxf.version>
+        <cxf.version>3.1.11.fuse-730003</cxf.version>
         <cxf.plugin.version>3.1.11</cxf.plugin.version>
 
         <commons.collections.version>3.2.2</commons.collections.version>
@@ -131,11 +131,11 @@
         <dropwizard-metrics.version>3.1.2</dropwizard-metrics.version>
         <exec-maven-plugin.version>1.5.0</exec-maven-plugin.version>
         <felix-scr-annotations.version>1.9.12</felix-scr-annotations.version>
-        <felix-scr-plugin.version>1.21.0</felix-scr-plugin.version>
+        <felix-scr-plugin.version>1.22.0</felix-scr-plugin.version>
         <guava.version>19.0</guava.version>
         <httpclient.version>4.3.3</httpclient.version>
         <jackson2.version>2.7.4</jackson2.version>
-        <jar.plugin.version>2.6</jar.plugin.version>
+        <jar.plugin.version>3.1.0</jar.plugin.version>
         <javax.cdi-api.version>1.2</javax.cdi-api.version>
         <javax.el-version>2.2.5</javax.el-version>
         <javax.servlet-api.version>3.1.0</javax.servlet-api.version>
@@ -154,7 +154,7 @@
         <junit.version>4.12</junit.version>
         <kubernetes-client.version>3.0.3</kubernetes-client.version>
         <log4j.version>1.2.17</log4j.version>
-        <lombok.version>1.16.18</lombok.version>
+        <lombok.version>1.16.22</lombok.version>
         <maven.enforcer.version>3.2.3</maven.enforcer.version>
         <maven.enforcer.plugin.version>1.4.1</maven.enforcer.plugin.version>
         <maven-plugin-plugin.version>3.4</maven-plugin-plugin.version>
@@ -947,6 +947,12 @@
                 <artifactId>mockwebserver</artifactId>
                 <version>${mockwebserver.version}</version>
                 <scope>test</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.sun</groupId>
+                        <artifactId>tools</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
@@ -1103,13 +1109,6 @@
               <artifactId>javax.el</artifactId>
               <version>${javax.el-version}</version>
             </dependency>
-            <dependency>
-                <groupId>com.sun</groupId>
-                <artifactId>tools</artifactId>
-                <version>${sun.tools.version}</version>
-                <scope>system</scope>
-                <systemPath>${java.home}/../lib/tools.jar</systemPath>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -1179,6 +1178,19 @@
               <groupId>io.sundr</groupId>
               <artifactId>sundr-maven-plugin</artifactId>
               <version>${sundrio.plugin.version}</version>
+              <dependencies>
+                  <dependency>
+                      <groupId>io.sundr</groupId>
+                      <artifactId>sundr-codegen</artifactId>
+                      <version>${sundrio.plugin.version}</version>
+                      <exclusions>
+                          <exclusion>
+                              <groupId>com.sun</groupId>
+                              <artifactId>tools</artifactId>
+                          </exclusion>
+                      </exclusions>
+                  </dependency>
+              </dependencies>
               <configuration>
                   <bomTemplateUrl>file:${urlSlashesOsModifier}${project.basedir}/custom-bom.xml.vm</bomTemplateUrl>
                   <boms>
@@ -1918,22 +1930,26 @@
             </build>
         </profile>
         <profile>
-            <id>sun-tools-1.7</id>
+            <id>pre-java9</id>
+            <dependencies>
+                <dependency>
+                    <groupId>com.sun</groupId>
+                    <artifactId>tools</artifactId>
+                    <version>1.8.0</version>
+                    <scope>system</scope>
+                    <systemPath>${java.home}/../lib/tools.jar</systemPath>
+                </dependency>
+                <dependency>
+                    <groupId>javax.xml.bind</groupId>
+                    <artifactId>jaxb-api</artifactId>
+                    <version>2.3.0</version>
+                </dependency>
+            </dependencies>
             <activation>
-                <jdk>1.7</jdk>
+                <file>
+                    <exists>${java.home}/../lib/tools.jar</exists>
+                </file>
             </activation>
-            <properties>
-                <sun.tools.version>1.8</sun.tools.version>
-            </properties>
-        </profile>
-        <profile>
-            <id>sun-tools-1.8</id>
-            <activation>
-                <jdk>1.8</jdk>
-            </activation>
-            <properties>
-                <sun.tools.version>1.8</sun.tools.version>
-            </properties>
         </profile>
         <profile>
           <id>doclint-java8-disable</id>
