@@ -36,10 +36,6 @@
             <version>${project.version}</version>
         </dependency>
 
-        <dependency>
-            <groupId>com.sun</groupId>
-            <artifactId>tools</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>org.slf4j</groupId>
