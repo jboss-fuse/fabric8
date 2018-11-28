@@ -47,6 +47,11 @@
             <groupId>commons-collections</groupId>
             <artifactId>commons-collections</artifactId>
           </exclusion>
+          <exclusion>
+            <!-- We have to exclude it because of NPE while scanning some module-info.class -->
+            <groupId>org.ow2.asm</groupId>
+            <artifactId>asm</artifactId>
+          </exclusion>
         </exclusions>
       </dependency>
     <dependency>
