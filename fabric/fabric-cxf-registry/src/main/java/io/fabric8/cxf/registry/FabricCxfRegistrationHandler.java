@@ -398,9 +398,9 @@ public final class FabricCxfRegistrationHandler extends AbstractComponent implem
         try {
             // TODO there's no way to grok if its a REST or WS API so lets remove both just in case
             path = getPath(container, oName, address, true);
-            removeZkPath(path);
+            removeZkPathUpToParent(path, true);
             path = getPath(container, oName, address, false);
-            removeZkPath(path);
+            removeZkPathUpToParent(path, false);
         } catch (Exception e) {
             LOGGER.error("Failed to unregister API endpoint at {}.", path, e);
         } finally {
@@ -413,6 +413,17 @@ public final class FabricCxfRegistrationHandler extends AbstractComponent implem
         if (curator != null && ZooKeeperUtils.exists(curator, path) != null) {
             LOGGER.info("Unregister API at " + path);
             ZooKeeperUtils.deleteSafe(curator, path);
+        }
+        registeredZkPaths.remove(path);
+    }
+
+    protected void removeZkPathUpToParent(String path, boolean restApi) throws Exception {
+        String parentPath = restApi ? "/fabric/registry/clusters/apis/rest" : "/fabric/registry/clusters/apis/ws";
+
+        CuratorFramework curator = this.curator.get();
+        if (curator != null && ZooKeeperUtils.exists(curator, path) != null) {
+            LOGGER.info("Unregister API at " + path);
+            ZooKeeperUtils.deleteSafeUpTo(curator, path, parentPath);
         }
         registeredZkPaths.remove(path);
     }

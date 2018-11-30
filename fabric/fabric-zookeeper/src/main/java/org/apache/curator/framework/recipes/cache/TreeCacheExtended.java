@@ -45,6 +45,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -696,8 +697,16 @@ public class TreeCacheExtended implements Closeable
         Set<String> removedNodes = Sets.filter(Sets.newHashSet(currentData.asMap().keySet()), new Predicate<String>() {
             @Override
             public boolean apply(String input) {
-                if (input.matches(String.format(CHILD_OF_ZNODE_PATTERN, path))) {
-                    return true;
+//                if (input.matches(String.format(CHILD_OF_ZNODE_PATTERN, path))) {
+                if (input.startsWith(path)) {
+                    String prefix = input.substring(path.length());
+                    if (prefix.length() > 1 && prefix.startsWith("/")) {
+                        prefix = prefix.substring(1);
+                        if (!prefix.contains(" ") && !prefix.contains("/")) {
+                            return true;
+                        }
+                    }
+                    return false;
                 } else {
                     return false;
                 }
