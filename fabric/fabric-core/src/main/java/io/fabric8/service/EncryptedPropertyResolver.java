@@ -17,6 +17,7 @@ package io.fabric8.service;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.security.InvalidParameterException;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.Map;
@@ -193,6 +194,10 @@ public final class EncryptedPropertyResolver extends AbstractComponent implement
 
     @Override
     public String resolve(FabricService fabricService, Map<String, Map<String, String>> configs, String pid, String key, String value) {
+        if (key != null && key.contains(",")) {
+            LOG.error("Encrypted property key {} may not contain commas ',' ", key);
+            throw new InvalidParameterException("Encrypted property keys may not contain commas ',' ");
+        }
         if (encryptor == null) {
             encryptor = getEncryptor(fabricService);
         }
