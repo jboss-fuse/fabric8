@@ -278,6 +278,60 @@ public final class ZooKeeperUtils {
         }
     }
 
+    /**
+     * Deletes a path and (when there are no other children) also parent path - up to given {@code parent}
+     * @param curator
+     * @param path
+     * @param parent
+     * @throws Exception
+     */
+    public static void deleteSafeUpTo(CuratorFramework curator, String path, String ... parent) throws Exception {
+        if (curator.checkExists().forPath(path) != null) {
+            for (String child : curator.getChildren().forPath(path)) {
+                deleteSafe(curator, path + "/" + child);
+            }
+            try {
+                curator.delete().forPath(path);
+                String parentPath = getParent(path);
+                while (true) {
+                    boolean end = false;
+                    for (String p : parent) {
+                        if (parentPath.equals(p)) {
+                            end = true;
+                        }
+                    }
+                    if (end) {
+                        break;
+                    }
+                    List<String> children = curator.getChildren().forPath(parentPath);
+                    if (children != null && children.size() > 0) {
+                        break;
+                    }
+                    curator.delete().forPath(parentPath);
+                    parentPath = getParent(parentPath);
+                }
+                //curator.getChildren().forPath(path)
+            } catch (KeeperException.NotEmptyException ex) {
+                deleteSafe(curator, path);
+            }
+        }
+    }
+
+    public static String getParent(String path) {
+        if (path == null || !path.startsWith("/")) {
+            throw new IllegalArgumentException("Path is not valid: " + path);
+        }
+        String[] segments = path.split("/");
+        StringBuilder sb = new StringBuilder();
+        if (segments.length <= 2) {
+            return "/";
+        }
+        for (int i = 1; i < segments.length - 1; i++) {
+            sb.append("/").append(segments[i]);
+        }
+        return sb.toString();
+    }
+
     public static void delete(CuratorFramework curator, String path) throws Exception {
         curator.delete().forPath(path);
     }
