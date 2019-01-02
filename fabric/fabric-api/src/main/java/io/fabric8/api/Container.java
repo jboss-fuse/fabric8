@@ -31,6 +31,8 @@ public interface Container extends HasId {
     String PROVISION_STOPPING = "stopping";
     String PROVISION_DELETING = "deleting";
 
+    String CONTAINER_PROFILE_PREFIX = "#container-";
+
     String getType();
 
     /**

@@ -392,4 +392,10 @@ public class FabricServiceFacade implements FabricService {
     public Map<String, Map<String, String>> substituteConfigurations(Map<String, Map<String, String>> configurations) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public Map<String, Map<String, String>> substituteConfigurations(Map<String, Map<String, String>> configurations, String profileId) {
+        throw new UnsupportedOperationException();
+    }
+
 }

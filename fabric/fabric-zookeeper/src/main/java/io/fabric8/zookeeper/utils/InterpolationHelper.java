@@ -52,6 +52,15 @@ public class InterpolationHelper {
     }
 
     /**
+     * Callback for substitution
+     */
+    public interface ContainerAwareSubstitutionCallback extends SubstitutionCallback {
+
+        String getProfileId();
+
+    }
+
+    /**
      * Perform substitution on a property set
      *
      * @param properties the property set to perform substitution on

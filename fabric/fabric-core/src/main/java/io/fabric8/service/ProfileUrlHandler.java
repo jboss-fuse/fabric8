@@ -108,9 +108,6 @@ public final class ProfileUrlHandler extends AbstractURLStreamHandlerService imp
             if ((url.getHost() != null && url.getHost().length() > 0) || url.getPort() != -1) {
                 throw new MalformedURLException("Unsupported host/port in profile url");
             }
-            if (url.getQuery() != null && url.getQuery().length() > 0) {
-                throw new MalformedURLException("Unsupported query in profile url");
-            }
         }
 
         @Override
@@ -126,9 +123,19 @@ public final class ProfileUrlHandler extends AbstractURLStreamHandlerService imp
             boolean resolved = false;
             final int MAX_RETRIES = 10;
             int iteration = 0;
+            String containerId = null;
+            String query = url.getQuery();
+            if (query != null && query.startsWith("containerProfileId=container-")) {
+                containerId = query.substring("containerProfileId=container-".length());
+            }
             while(!resolved && iteration < MAX_RETRIES) {
                 try {
-                    Container container = fabricService.get().getCurrentContainer();
+                    Container container = null;
+                    if (containerId != null) {
+                        container = fabricService.get().getContainer(containerId);
+                    } else {
+                        container = fabricService.get().getCurrentContainer();
+                    }
                     Profile overlayProfile = container.getOverlayProfile();
                     bytes = overlayProfile.getFileConfiguration(path);
                     resolved = true;

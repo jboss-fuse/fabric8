@@ -756,7 +756,7 @@ public class ContainerImpl implements Container {
 
 	private Profile getContainerProfile() {
 		Version version = getVersion();
-		String profileId = "#container-" + getId();
+		String profileId = CONTAINER_PROFILE_PREFIX + getId();
 		ProfileBuilder builder = ProfileBuilder.Factory.create(profileId).version(version.getId());
 		ContainerProfileOptions optionsProvider = new ContainerProfileOptions(getId(), version, dataStore);
 		return builder.addOptions(optionsProvider).getProfile();
