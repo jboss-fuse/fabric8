@@ -45,6 +45,9 @@
         </fuse.osgi.private.pkg>
         <fuse.osgi.require.bundle>
         </fuse.osgi.require.bundle>
+        <fuse.osgi.capabilities.provide>
+            osgi.service;effective:=active;objectClass="org.osgi.service.url.URLStreamHandlerService";url.handler.protocol=profile
+        </fuse.osgi.capabilities.provide>
     </properties>
 
     <dependencies>
