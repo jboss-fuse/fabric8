@@ -34,6 +34,8 @@ public interface FabricService {
 
     Map<String, Map<String, String>> substituteConfigurations(Map<String, Map<String, String>> configurations);
 
+    Map<String, Map<String, String>> substituteConfigurations(Map<String, Map<String, String>> configurations, String profileId);
+
     /**
      * Track configuration changes.
      * @param callback The Callback to call when a configuration change is detected.

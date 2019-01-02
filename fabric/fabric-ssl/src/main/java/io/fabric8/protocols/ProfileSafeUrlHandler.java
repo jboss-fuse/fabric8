@@ -76,9 +76,6 @@ public final class ProfileSafeUrlHandler extends AbstractURLStreamHandlerService
             if ((url.getHost() != null && url.getHost().length() > 0) || url.getPort() != -1) {
                 throw new MalformedURLException("Unsupported host/port in profile url");
             }
-            if (url.getQuery() != null && url.getQuery().length() > 0) {
-                throw new MalformedURLException("Unsupported query in profile url");
-            }
         }
 
         @Override
@@ -99,17 +96,21 @@ public final class ProfileSafeUrlHandler extends AbstractURLStreamHandlerService
                     } else {
                         LOGGER.debug("Resolving {}, attempt {}", url, count + 1);
                     }
-                    return new URL("profile2:" + url.getPath()).openStream();
+                    return new URL("profile2:" + url.toString().substring(8)).openStream();
                 } catch (MalformedURLException e) {
                     lastException = e;
                 } catch (IllegalStateException e) {
                     if (e.getMessage() != null && e.getMessage().equals("Unknown protocol: profile2")) {
                         lastException = new IOException(e);
+                    } else {
+                        LOGGER.error("Caught IllegalStateException: " + e.getMessage(), e);
+                        throw e;
                     }
                 } catch (IOException e) {
                     if (e.getMessage() != null && e.getMessage().startsWith("URL [profile2:")) {
                         lastException = e;
                     } else {
+                        LOGGER.error("Caught IOException: " + e.getMessage(), e);
                         throw e;
                     }
                 }

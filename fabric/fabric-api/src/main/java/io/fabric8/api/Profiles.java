@@ -166,7 +166,8 @@ public final class Profiles {
         Profile overlayProfile = profileService.getOverlayProfile(profile);
         Map<String, Map<String, String>> configurations = overlayProfile.getConfigurations();
         ProfileBuilder builder = ProfileBuilder.Factory.createFrom(overlayProfile);
-        builder.setConfigurations(fabricService.substituteConfigurations(configurations));
+
+        builder.setConfigurations(fabricService.substituteConfigurations(configurations, overlayProfile.getId()));
         return builder.getProfile();
     }
     

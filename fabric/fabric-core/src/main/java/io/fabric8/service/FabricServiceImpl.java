@@ -1352,10 +1352,16 @@ public final class FabricServiceImpl extends AbstractComponent implements Fabric
         return null;
     }
 
+    public Map<String, Map<String, String>> substituteConfigurations(final Map<String, Map<String, String>> configurations) {
+        return substituteConfigurations(configurations, null);
+    }
+
     /**
      * Performs substitution to configuration based on the registered {@link PlaceholderResolver} instances.
+     * @param configurations
+     * @param profileId if passed, may be used to alter behavior of {@code profile:} URI handler
      */
-    public Map<String, Map<String, String>> substituteConfigurations(final Map<String, Map<String, String>> configurations) {
+    public Map<String, Map<String, String>> substituteConfigurations(final Map<String, Map<String, String>> configurations, final String profileId) {
 
         final Map<String, PlaceholderResolver> resolversSnapshot = new HashMap<String, PlaceholderResolver>(placeholderResolvers);
 
@@ -1389,10 +1395,21 @@ public final class FabricServiceImpl extends AbstractComponent implements Fabric
                 final String key = e.getKey();
                 final String value = e.getValue();
                 try {
-                    props.put(key, InterpolationHelper.substVars(value, key, null, props, new InterpolationHelper.SubstitutionCallback() {
+                    props.put(key, InterpolationHelper.substVars(value, key, null, props, new InterpolationHelper.ContainerAwareSubstitutionCallback() {
+                        @Override
+                        public String getProfileId() {
+                            return profileId;
+                        }
+
                         public String getValue(String toSubstitute) {
                             if (toSubstitute != null && toSubstitute.contains(":")) {
                                 String scheme = toSubstitute.substring(0, toSubstitute.indexOf(":"));
+                                if (!"profile".equals(scheme) && toSubstitute.contains("profile:") && getProfileId() != null && getProfileId().startsWith("#")) {
+                                    // ENTESB-9865: if we're resolving profile: in the context of given container
+                                    // we can't then use fabricService.get().getCurrentContainer()
+                                    // but given container
+                                    toSubstitute = toSubstitute + "?containerProfileId=" + getProfileId().substring(1);
+                                }
                                 return resolversSnapshot.get(scheme).resolve(fabricService, mutableConfigurations, pid, key, toSubstitute);
                             }
                             return substituteBundleProperty(toSubstitute, bundleContext);
