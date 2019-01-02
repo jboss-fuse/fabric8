@@ -15,7 +15,10 @@
  */
 package io.fabric8.zookeeper.utils;
 
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.LinkedList;
 import java.util.Map;
 
 import org.osgi.framework.BundleContext;
@@ -312,6 +315,59 @@ public class InterpolationHelper {
             escape = val.indexOf(ESCAPE_CHAR, escape + 1);
         }
         return val;
+    }
+
+    /**
+     * <p>When overlay profile is read, escaped property placeholders are
+     * {@link InterpolationHelper#unescape(java.lang.String) unescaped}. They should be escaped again before
+     * storing in configadmin.</p>
+     * <p>There are multiple processes involved:<ul>
+     *     <li>fileinstall -&gt; configadmin</li>
+     *     <li>configadmin -&gt; fileinstall</li>
+     *     <li>overlay profile construction (with unescaping)</li>
+     *     <li>reading from git profile</li>
+     * </ul></p>
+     * <p>see: https://issues.jboss.org/browse/ENTESB-7584</p>
+     * @param configuration
+     * @return whether any property was escaped
+     */
+    public static boolean escapePropertyPlaceholders(Hashtable<String, Object> configuration) {
+        boolean anyEscape = false;
+        for (Map.Entry<String, Object> entry : configuration.entrySet()) {
+            if (entry.getValue() instanceof String && ((String) entry.getValue()).contains("${")) {
+                // we don't assume stateful/context-dependent parsing
+                String v = (String) entry.getValue();
+                StringBuilder sb = new StringBuilder();
+                char[] charArray = v.toCharArray();
+                Deque<Boolean> stack = new LinkedList<>();
+                for (int i = 0, charArrayLength = charArray.length; i < charArrayLength; i++) {
+                    char c = charArray[i];
+                    switch (c) {
+                        case '$':
+                            if (i < charArrayLength - 1 && charArray[i + 1] == '{') {
+                                sb.append("$\\");
+                                anyEscape = true;
+                            }
+                            break;
+                        case '{':
+                            stack.push(i > 0 && charArray[i - 1] == '$');
+                            sb.append("{");
+                            break;
+                        case '}':
+                            if (stack.peek() != null && stack.peek()) {
+                                sb.append("\\");
+                            }
+                            stack.pop();
+                            sb.append("}");
+                            break;
+                        default:
+                            sb.append(c);
+                    }
+                }
+                configuration.put(entry.getKey(), sb.toString());
+            }
+        }
+        return anyEscape;
     }
 
 }
