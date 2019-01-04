@@ -17,9 +17,12 @@ package io.fabric8.agent.service;
 
 import io.fabric8.agent.download.DownloadManager;
 import io.fabric8.agent.download.DownloadManagers;
+import io.fabric8.agent.internal.Overrides;
 import io.fabric8.maven.MavenResolver;
 import io.fabric8.maven.MavenResolvers;
 import io.fabric8.maven.url.ServiceConstants;
+import io.fabric8.patch.management.Artifact;
+import io.fabric8.patch.management.Utils;
 import org.apache.felix.utils.version.VersionRange;
 import org.easymock.EasyMock;
 import org.junit.Test;
@@ -27,6 +30,7 @@ import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleException;
 import org.osgi.framework.ServiceRegistration;
+import org.osgi.framework.Version;
 import org.osgi.framework.hooks.resolver.ResolverHookFactory;
 
 import java.io.*;
@@ -41,6 +45,10 @@ import java.util.zip.ZipInputStream;
 
 import static java.util.jar.JarFile.MANIFEST_NAME;
 import static org.easymock.EasyMock.*;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class AgentTest {
 
@@ -144,6 +152,32 @@ public class AgentTest {
 
     }
 
+    @Test
+    public void overridesFiltering() {
+        Artifact artifact1 = Utils.mvnurlToArtifact("mvn:g/a/1.0.0.x-01/war", true);
+        Artifact artifact2 = Utils.mvnurlToArtifact("mvn:g/a/1.0.0.x-01", true);
+        Artifact artifact3 = Utils.mvnurlToArtifact("mvn:g/a/1.0.0.x-02/war", true);
+
+        Version v = new Version(artifact1.getVersion());
+
+        assertThat(artifact1.toString(), equalTo("g:a:1.0.0.x-01:war"));
+        artifact1.setVersion(new Version(v.getMajor(), v.getMinor(), v.getMicro(), "").toString());
+        assertThat(artifact1.toString(), equalTo("g:a:1.0.0:war"));
+    }
+
+    @Test
+    public void overridesFiltering2() {
+        Set<String> overrides = new HashSet<>();
+        overrides.add("mvn:io.fabric8/fabric-git/1.2.0.redhat-621216-08");
+        overrides.add("mvn:io.fabric8/fabric-git/1.2.0.redhat-621216-02");
+        overrides.add("mvn:io.fabric8/fabric-git2/1.2.0.redhat-621216-02");
+        overrides.add("mvn:io.fabric8/fabric-git/1.2.1.redhat-621216-08");
+        List<String> filtered = Overrides.filter(overrides);
+        assertThat(filtered.size(), equalTo(3));
+        assertTrue(filtered.contains("mvn:io.fabric8/fabric-git/1.2.0.redhat-621216-08"));
+        assertTrue(filtered.contains("mvn:io.fabric8/fabric-git2/1.2.0.redhat-621216-02"));
+        assertFalse(filtered.contains("mvn:io.fabric8/fabric-git/1.2.0.redhat-621216-02"));
+    }
 
     private TestBundle createTestBundle(long bundleId, int state, String dir, String name) throws IOException, BundleException {
         URL loc = getClass().getResource(dir + "/" + name + ".mf");

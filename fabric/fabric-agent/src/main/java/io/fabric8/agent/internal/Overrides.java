@@ -21,10 +21,15 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.fabric8.patch.management.Artifact;
+import io.fabric8.patch.management.Utils;
 import org.apache.felix.utils.manifest.Clause;
 import org.apache.felix.utils.manifest.Parser;
 import org.apache.felix.utils.version.VersionRange;
@@ -68,8 +73,13 @@ public final class Overrides {
      * @param overrides list of bundle overrides
      */
     public static <T extends Resource> void override(Map<String, T> resources, Collection<String> overrides) {
+        // ENTESB-9922 - get rid of duplicate overrides differing at qualifier position, like
+        // - mvn:io.fabric8/fabric-git/1.2.0.redhat-621216-02
+        // - mvn:io.fabric8/fabric-git/1.2.0.redhat-621216-08
+        List<String> filteredOverrides = filter(overrides);
+
         // Do override replacement
-        for (Clause override : Parser.parseClauses(overrides.toArray(new String[overrides.size()]))) {
+        for (Clause override : Parser.parseClauses(filteredOverrides.toArray(new String[0]))) {
             String url = override.getName();
             String vr = override.getAttribute(OVERRIDE_RANGE);
             T over = resources.get(url);
@@ -97,6 +107,38 @@ public final class Overrides {
                 }
             }
         }
+    }
+
+    public static List<String> filter(Collection<String> overrides) {
+        List<String> filteredOverrides = new LinkedList<>();
+        // maps URI with qualifier set to "" to latest artifact
+        Map<String, Artifact> latestByQualifier = new HashMap<>();
+
+        for (String o : overrides) {
+            Artifact artifact = Utils.mvnurlToArtifact(o, true);
+            if (artifact == null) {
+                filteredOverrides.add(o);
+            } else {
+                Version v1 = Utils.getOsgiVersion(artifact.getVersion());
+                Version v2 = new Version(v1.getMajor(), v1.getMinor(), v1.getMicro(), "");
+                Artifact withoutQualifier = artifact.copy();
+                withoutQualifier.setVersion(v2.toString());
+                if (!latestByQualifier.containsKey(withoutQualifier.toURI())) {
+                    latestByQualifier.put(withoutQualifier.toURI(), artifact);
+                } else {
+                    // replace if newer
+                    Artifact a1 = latestByQualifier.get(withoutQualifier.toURI());
+                    if (a1.getVersion().compareTo(artifact.getVersion()) < 0) {
+                        latestByQualifier.put(withoutQualifier.toURI(), artifact);
+                    }
+                }
+            }
+        }
+        for (Artifact a : latestByQualifier.values()) {
+            filteredOverrides.add(a.toURI());
+        }
+
+        return filteredOverrides;
     }
 
     public static Set<String> loadOverrides(String overridesUrl) {
