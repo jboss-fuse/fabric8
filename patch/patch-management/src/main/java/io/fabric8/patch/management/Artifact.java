@@ -2,11 +2,11 @@ package io.fabric8.patch.management;
 
 public class Artifact {
 
-    private final String groupId;
-    private final String artifactId;
-    private final String version;
-    private final String type;
-    private final String classifier;
+    private String groupId;
+    private String artifactId;
+    private String version;
+    private String type;
+    private String classifier;
 
     public Artifact(String groupId, String artifactId, String version, String type, String classifier) {
         this.groupId = groupId;
@@ -48,6 +48,26 @@ public class Artifact {
         return classifier != null;
     }
 
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
+    }
+
+    public void setArtifactId(String artifactId) {
+        this.artifactId = artifactId;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public void setClassifier(String classifier) {
+        this.classifier = classifier;
+    }
+
     public String getPath() {
         return groupId.replace('.', '/')
                 + '/'
@@ -77,6 +97,27 @@ public class Artifact {
             }
         }
         return sb.toString();
+    }
+
+    public String toURI() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("mvn:")
+                .append(groupId)
+                .append("/")
+                .append(artifactId)
+                .append("/")
+                .append(version);
+        if (!"jar".equals(type) || classifier != null) {
+            sb.append("/").append(type);
+            if (classifier != null) {
+                sb.append("/").append(classifier);
+            }
+        }
+        return sb.toString();
+    }
+
+    public Artifact copy() {
+        return new Artifact(groupId, artifactId, version, type, classifier);
     }
 
 }
