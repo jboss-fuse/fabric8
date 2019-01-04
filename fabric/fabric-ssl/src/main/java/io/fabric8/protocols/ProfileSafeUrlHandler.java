@@ -92,7 +92,7 @@ public final class ProfileSafeUrlHandler extends AbstractURLStreamHandlerService
             int count = 0;
             int totalTimeSlept = 0;
             IOException lastException = null;
-            while ((count < SLEEPS.length) && (totalTimeSlept < maxWait)) {
+            while ((count < SLEEPS.length) || (totalTimeSlept < maxWait)) {
                 try {
                     if (count == 0) {
                         LOGGER.debug("Resolving {} (max wait = " + maxWait + ")", url);
