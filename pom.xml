@@ -1259,6 +1259,7 @@
                                   <include>org.apache.cxf:cxf-spring-boot-starter-jaxrs</include>
                                   <include>org.apache.cxf:cxf-spring-boot-starter-jaxws</include>
                                   <include>org.apache.cxf:cxf-rt-rs-service-description-swagger</include>
+                                  <include>org.apache.cxf:cxf-rt-rs-service-description-openapi-v3</include>
                                   <include>org.apache.httpcomponents:*</include>
                                   <include>org.slf4j:*</include>
 
