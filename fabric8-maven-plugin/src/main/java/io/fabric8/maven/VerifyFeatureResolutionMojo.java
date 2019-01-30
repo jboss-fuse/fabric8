@@ -22,6 +22,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.io.StringWriter;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.net.URLConnection;
@@ -40,6 +41,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Pattern;
@@ -56,6 +58,7 @@ import io.fabric8.common.util.MultiException;
 import org.apache.felix.utils.version.VersionRange;
 import org.apache.karaf.deployer.blueprint.BlueprintTransformer;
 import org.apache.maven.artifact.Artifact;
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -102,6 +105,9 @@ public class VerifyFeatureResolutionMojo extends AbstractMojo {
     @Parameter(property = "verify-transitive")
     private boolean verifyTransitive = false;
 
+    @Parameter(defaultValue = "${session}")
+    private MavenSession session;
+
     @Component
     protected PluginDescriptor pluginDescriptor;
 
@@ -140,6 +146,20 @@ public class VerifyFeatureResolutionMojo extends AbstractMojo {
                 throw new MojoExecutionException("Unable to load additional metadata from " + additionalMetadata, e);
             }
         }
+
+        StringWriter sw = new StringWriter();
+
+        for (org.apache.maven.model.Repository repo : session.getCurrentProject().getRepositories()) {
+            String id = repo.getId() == null ? UUID.randomUUID().toString() : repo.getId();
+            sw.append(", ").append(repo.getUrl()).append("@id=").append(id);
+            getLog().info("Adding " + repo.getUrl() + " as repository");
+        }
+
+        String remoteRepos = sw.toString();
+        if (remoteRepos.length() > 0) {
+            remoteRepos = remoteRepos.substring(2);
+        }
+        properties.put("org.ops4j.pax.url.mvn.repositories", remoteRepos);
 
         DownloadManager manager;
         MavenResolver resolver;
