@@ -87,4 +87,13 @@ public class ZookeeperUtilsTest {
         }
     }
 
+    @Test
+    public void pathOperations() {
+        assertThat(ZooKeeperUtils.getParent("/fabric/node/a/b/c"), equalTo("/fabric/node/a/b"));
+        assertThat(ZooKeeperUtils.getParent("/fabric/node/"), equalTo("/fabric"));
+        assertThat(ZooKeeperUtils.getParent("/fabric/node"), equalTo("/fabric"));
+        assertThat(ZooKeeperUtils.getParent("/fabric"), equalTo("/"));
+        assertThat(ZooKeeperUtils.getParent("/"), equalTo("/"));
+    }
+
 }

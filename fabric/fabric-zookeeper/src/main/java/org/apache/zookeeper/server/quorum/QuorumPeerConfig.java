@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Map.Entry;
 
+import io.fabric8.api.CreateEnsembleOptions;
 import org.apache.yetus.audience.InterfaceAudience;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,8 +74,8 @@ public class QuorumPeerConfig {
     protected HashMap<Long, Long> serverGroup = new HashMap<Long, Long>();
     protected int numGroups = 0;
     protected QuorumVerifier quorumVerifier;
-    protected int snapRetainCount = 3;
-    protected int purgeInterval = 0;
+    protected int snapRetainCount = CreateEnsembleOptions.DEFAULT_SNAP_RETAIN_COUNT;
+    protected int purgeInterval = CreateEnsembleOptions.DEFAULT_PURGE_INTERVAL_IN_HOURS;
     protected boolean syncEnabled = true;
 
     protected LearnerType peerType = LearnerType.PARTICIPANT;

@@ -45,7 +45,7 @@ public class CreateEnsembleOptions extends ContainerOptions {
     public static final int DEFAULT_INIT_LIMIT = 10;
     public static final int DEFAULT_SYNC_LIMIT = 5;
     public static final int DEFAULT_SNAP_RETAIN_COUNT = 3;
-    public static final int DEFAULT_PURGE_INTERVAL_IN_HOURS = 0;
+    public static final int DEFAULT_PURGE_INTERVAL_IN_HOURS = 24;
     public static final String DEFAULT_DATA_DIR = "zookeeper";
 
     @JsonProperty

@@ -213,6 +213,8 @@ public class ZooKeeperServerFactory extends AbstractComponent {
             ClusteredServer server = new ClusteredServer(quorumPeer);
             registration = context.registerService(QuorumStats.Provider.class, server, null);
 
+            startCleanupManager(peerConfig.getDataDir(), peerConfig.getDataLogDir(), props);
+
             return server;
         } else {
             ServerConfig serverConfig = getServerConfig(peerConfig);
@@ -243,7 +245,7 @@ public class ZooKeeperServerFactory extends AbstractComponent {
             SimpleServer server = new SimpleServer(zkServer, cnxnFactory);
             registration = context.registerService(ServerStats.Provider.class, server, null);
 
-            startCleanupManager(serverConfig, props);
+            startCleanupManager(serverConfig.getDataDir(), serverConfig.getDataLogDir(), props);
 
             return server;
         }
@@ -280,20 +282,17 @@ public class ZooKeeperServerFactory extends AbstractComponent {
         return res;
     }
 
-    private void startCleanupManager(ServerConfig serverConfig, Properties props) {
-        String dataDir = serverConfig.getDataDir();
-        String dataLogDir = serverConfig.getDataLogDir();
-
+    private void startCleanupManager(String dataDir, String dataLogDir, Properties props) {
         int snapRetainCount = CreateEnsembleOptions.DEFAULT_SNAP_RETAIN_COUNT;
         Object snapRetainCountObj = props.get("snapRetainCount");
-        if(snapRetainCountObj != null){
-            snapRetainCount = Integer.valueOf((String)props.get("snapRetainCount"));
+        if (snapRetainCountObj != null) {
+            snapRetainCount = Integer.valueOf((String) props.get("snapRetainCount"));
         }
 
         int purgeInterval = CreateEnsembleOptions.DEFAULT_PURGE_INTERVAL_IN_HOURS;
         Object purgeIntervalObj = props.get("purgeInterval");
-        if(snapRetainCountObj != null){
-            purgeInterval = Integer.valueOf((String)props.get("purgeInterval"));
+        if (purgeIntervalObj != null) {
+            purgeInterval = Integer.valueOf((String) props.get("purgeInterval"));
         }
 
         LOGGER.info("Starting Zookeeper Cleanup Manager with params: snapRetainCount={}, purgeInterval={}, dataDir={}, dataLogDir={}", snapRetainCount, purgeInterval, dataDir, dataLogDir);

@@ -159,7 +159,8 @@ public final class ProfileUrlHandler extends AbstractURLStreamHandlerService imp
                             if (handler != ProfileUrlHandler.this) {
                                 // we assume not to fall into endless loop
                                 LOGGER.info("profile: URL handler changed (" + ProfileUrlHandler.this + " -> " + handler + ")");
-                                InputStream stream = handler.openConnection(url).getInputStream();
+                                URL newUrl = new URL(url.toString().replaceFirst("^profile2:", "profile:"));
+                                InputStream stream = handler.openConnection(newUrl).getInputStream();
                                 context.ungetService(ref);
                                 return stream;
                             }

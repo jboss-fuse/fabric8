@@ -486,9 +486,12 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     }
 
     void getDataAndStat(final String fullPath) throws Exception {
-        Stat stat = new Stat();
-        byte[] data = client.getData().storingStatIn(stat).usingWatcher(dataWatcher).forPath(fullPath);
-        applyNewData(fullPath, KeeperException.Code.OK.intValue(), stat, data);
+        try {
+            Stat stat = new Stat();
+            byte[] data = client.getData().storingStatIn(stat).usingWatcher(dataWatcher).forPath(fullPath);
+            applyNewData(fullPath, KeeperException.Code.OK.intValue(), stat, data);
+        } catch (KeeperException.NoNodeException ignore) {
+        }
     }
 
     /**
@@ -568,9 +571,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
             String fullPath = ZKPaths.makePath(path, name);
 
             if ((mode == RefreshMode.FORCE_GET_DATA_AND_STAT) || !currentData.containsKey(fullPath)) {
-                try {
-                    getDataAndStat(fullPath);
-                } catch (KeeperException.NoNodeException ignore) {}
+                getDataAndStat(fullPath);
             }
         }
     }
