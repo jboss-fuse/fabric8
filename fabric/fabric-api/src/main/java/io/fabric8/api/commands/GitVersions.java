@@ -27,6 +27,9 @@ public class GitVersions {
     @JsonProperty
     List<GitVersion> versions = new LinkedList<>();
 
+    @JsonProperty
+    String gitMasterUrl = "";
+
     public GitVersions() {
     }
 
@@ -36,6 +39,14 @@ public class GitVersions {
 
     public List<GitVersion> getVersions() {
         return versions;
+    }
+
+    public String getGitMasterUrl() {
+        return gitMasterUrl;
+    }
+
+    public void setGitMasterUrl(String gitMasterUrl) {
+        this.gitMasterUrl = gitMasterUrl;
     }
 
 }

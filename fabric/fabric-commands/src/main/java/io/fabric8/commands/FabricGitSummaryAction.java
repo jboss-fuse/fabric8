@@ -135,6 +135,8 @@ public class FabricGitSummaryAction extends JMXCommandActionSupport {
                             try {
                                 Thread.sleep(1000);
                             } catch (InterruptedException e1) {
+                                Thread.currentThread().interrupt();
+                                break;
                             }
                         }
                     }
@@ -186,11 +188,11 @@ public class FabricGitSummaryAction extends JMXCommandActionSupport {
             // now summary time
             if (masterResult != null) {
                 System.out.println();
-                printVersions("=== Summary for master Git repository (container: " + master + ") ===", ((GitVersions) masterResult.getResponse()).getVersions());
+                printVersions("=== Summary for master Git repository (container: " + master + ") ===", ((GitVersions) masterResult.getResponse()));
             }
             System.out.println();
             for (String containerName : results.keySet()) {
-                printVersions("=== Summary for local Git repository (container: " + containerName + ") ===", ((GitVersions) results.get(containerName).getResponse()).getVersions());
+                printVersions("=== Summary for local Git repository (container: " + containerName + ") ===", ((GitVersions) results.get(containerName).getResponse()));
                 System.out.println();
             }
         } catch (InterruptedException e) {
@@ -200,11 +202,12 @@ public class FabricGitSummaryAction extends JMXCommandActionSupport {
         }
     }
 
-    private void printVersions(String title, List<GitVersion> versions) {
+    private void printVersions(String title, GitVersions response) {
         System.out.println(title);
+        System.out.println("    Git master URL: " + response.getGitMasterUrl());
         TablePrinter table = new TablePrinter();
         table.columns("version", "SHA1", "timestamp", "message");
-        for (GitVersion version : versions) {
+        for (GitVersion version : response.getVersions()) {
             table.row(version.getVersion(), version.getSha1(), version.getTimestamp(), version.getMessage());
         }
         table.print();
