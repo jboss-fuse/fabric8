@@ -759,7 +759,9 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
             GitOperation<GitVersions> gitop = new GitOperation<GitVersions>() {
                 public GitVersions call(Git git, GitContext context) throws Exception {
                     List<GitVersion> localVersions = GitHelpers.gitVersions(git);
-                    return new GitVersions(localVersions);
+                    GitVersions value = new GitVersions(localVersions);
+                    value.setGitMasterUrl(git.getRepository().getConfig().getString("remote", GitHelpers.REMOTE_ORIGIN, "url"));
+                    return value;
                 }
             };
             return executeInternal(newGitReadContext(), null, gitop);

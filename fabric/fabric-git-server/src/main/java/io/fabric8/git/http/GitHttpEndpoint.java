@@ -48,7 +48,9 @@ public class GitHttpEndpoint implements GitHttpEndpointMBean {
         }
         try {
             List<GitVersion> gitVersions = GitHelpers.gitVersions(handler.git);
-            return getObjectMapper().writeValueAsString(new GitVersions(gitVersions));
+            GitVersions value = new GitVersions(gitVersions);
+            value.setGitMasterUrl("<current container>");
+            return getObjectMapper().writeValueAsString(value);
         } catch (Exception e) {
             LOG.warn(e.getMessage(), e);
         }
