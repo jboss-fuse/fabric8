@@ -238,6 +238,15 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
 
             final HttpClientRequest clientRequest = client.request(request.method(), servicePath, responseHandler);
             clientRequest.headers().set(request.headers());
+            if (prefix != null) {
+                int idx = uri.indexOf(prefix);
+                if (idx > 0) {
+                    clientRequest.headers().add("X-Forwarded-Prefix", uri.substring(0, idx));
+                }
+                if (reverseServiceUrl != null) {
+                    clientRequest.headers().add("X-Forwarded-Path", URI.create(reverseServiceUrl).getPath());
+                }
+            }
             clientRequest.setChunked(true);
             clientRequest.exceptionHandler(new Handler<Throwable>() {
                 @Override
