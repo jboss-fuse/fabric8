@@ -102,7 +102,7 @@
         <weld.version>2.3.5.Final</weld.version>
         <version.org.fusesource.camel-sap>7.3.0.fuse-730054</version.org.fusesource.camel-sap>
         <version.org.fusesource.camel-activemq>${version.org.fusesource.camel-sap}</version.org.fusesource.camel-activemq>
-        <version.io.undertow>2.0.19.Final-redhat-00001</version.io.undertow>
+        <version.io.undertow>2.0.15.Final-redhat-00001</version.io.undertow>
 
         <license.dir>${project.parent.basedir}/etc</license.dir>
         <forge-project-id>fabric</forge-project-id>
