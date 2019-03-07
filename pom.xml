@@ -1332,15 +1332,12 @@
                                           <include>org.eclipse.jetty*:*</include>
                                           <include>org.jboss:jboss-transaction-spi</include>
                                           <include>org.jboss.logging:jboss-logging</include>
-                                          <include>org.jboss.narayana.jta:*</include>
-                                          <include>org.jboss.narayana.jts:*</include>
 
                                           <include>org.springframework.boot:spring-boot-starter</include>
                                           <include>org.springframework.boot:spring-boot-starter-activemq</include>
                                           <include>org.springframework.boot:spring-boot-starter-actuator</include>
                                           <include>org.springframework.boot:spring-boot-starter-jdbc</include>
                                           <include>org.springframework.boot:spring-boot-starter-data-jpa</include>
-                                          <include>org.springframework.boot:spring-boot-starter-jta-narayana</include>
                                           <include>org.springframework.boot:spring-boot-starter-logging</include>
                                           <include>org.springframework.boot:spring-boot-starter-security</include>
                                           <include>org.springframework.boot:spring-boot-starter-test</include>
@@ -1482,6 +1479,17 @@
                                           <exclude>com.squareup.okio:*</exclude>
                                           <exclude>io.zipkin.java:*</exclude>
                                       </excludes>
+                                  </dependencyManagement>
+                              </import>
+                              <import>
+                                  <groupId>me.snowdrop</groupId>
+                                  <artifactId>narayana-spring-boot-core</artifactId>
+                                  <version>${narayana-spring-boot.version}</version>
+                                  <dependencyManagement>
+                                      <includes>
+                                          <include>org.jboss.narayana.jta:*</include>
+                                          <include>org.jboss.narayana.jts:*</include>
+                                      </includes>
                                   </dependencyManagement>
                               </import>
                           </imports>
