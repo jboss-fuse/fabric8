@@ -139,7 +139,7 @@
         <jar.plugin.version>2.6</jar.plugin.version>
         <javax.cdi-api.version>1.2</javax.cdi-api.version>
         <javax.el-version>2.2.5</javax.el-version>
-        <javax.servlet-api.version>3.1.0</javax.servlet-api.version>
+        <javax.servlet-api.version>4.0.1</javax.servlet-api.version>
         <javax.ws.rs-api.version>2.1.1</javax.ws.rs-api.version>
         <jetty-plugin-groupId>org.mortbay.jetty</jetty-plugin-groupId>
         <jetty-plugin.version>8.1.16.v20140903</jetty-plugin.version>
@@ -172,7 +172,6 @@
         <selenium.version>2.53.1</selenium.version>
         <selenium.firefox.driver.version>2.28.0</selenium.firefox.driver.version>
         <selenium.htmlunit.driver.version>2.21</selenium.htmlunit.driver.version>
-        <servlet-api.version>2.5</servlet-api.version>
         <shrinkwrap-resolver.version>2.2.2</shrinkwrap-resolver.version>
         <slf4j.version>1.7.22.redhat-2</slf4j.version>
         <spring.version>4.3.17.RELEASE</spring.version>
@@ -249,11 +248,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>javax.servlet</groupId>
-                <artifactId>servlet-api</artifactId>
-                <version>${servlet-api.version}</version>
-            </dependency>
             <dependency>
                 <groupId>javax.servlet</groupId>
                 <artifactId>javax.servlet-api</artifactId>
