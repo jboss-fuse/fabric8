@@ -1264,6 +1264,7 @@
 
                                   <include>org.jolokia:jolokia-core</include>
                                   <include>org.hibernate:hibernate-validator</include>
+                                  <include>org.hibernate:hibernate-entitymanager</include>
                                   <include>io.swagger:*</include>
                                   <include>io.undertow:*</include>
                                   <include>junit:junit</include>
@@ -1295,7 +1296,6 @@
                                           <include>org.apache.logging.log4j:*</include>
 
                                           <include>org.codehaus.groovy:*</include>
-                                          <include>org.hibernate:hibernate-entitymanager</include>
                                           <include>org.hsqldb:*</include>
                                           <include>org.mockito:*</include>
 
