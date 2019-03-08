@@ -121,6 +121,7 @@
         <arquillian.version>1.1.12.Final</arquillian.version>
         <asm.version>5.0.4</asm.version>
         <assertj.core.version>2.4.1</assertj.core.version>
+        <artemis.version>2.6.3.redhat-00015</artemis.version>
         <buildnumber.plugin.version>1.3</buildnumber.plugin.version>
 
         <compiler.plugin.version>3.5.1</compiler.plugin.version>
@@ -1527,6 +1528,14 @@
                                       </includes>
                                   </dependencies>
                                   <version>${tomcat-embed.version}</version>
+                              </override>
+                              <override>
+                                  <dependencies>
+                                      <includes>
+                                          <include>org.apache.activemq:artemis-*</include>
+                                      </includes>
+                                  </dependencies>
+                                  <version>${artemis.version}</version>
                               </override>
                           </overrides>
                           <plugins>
