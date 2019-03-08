@@ -133,7 +133,7 @@
         <felix-scr-annotations.version>1.9.12</felix-scr-annotations.version>
         <felix-scr-plugin.version>1.21.0</felix-scr-plugin.version>
         <guava.version>19.0</guava.version>
-        <httpclient.version>4.3.3</httpclient.version>
+        <httpclient.version>4.5.5</httpclient.version>
         <jackson2.version>2.8.11</jackson2.version>
         <jackson2.databind.version>2.8.11.2</jackson2.databind.version>
         <jar.plugin.version>2.6</jar.plugin.version>
