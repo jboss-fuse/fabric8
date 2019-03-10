@@ -1240,8 +1240,8 @@
                           <dependencies>
                               <includes>
                                   <!-- The kubernetes Client and Model -->
-                                  <include>io.fabric8:kubernetes-*</include>
                                   <include>io.fabric8:openshift-*</include>
+                                  <include>io.fabric8:kubernetes-client</include>
 
                                   <include>javax*:*</include>
 
@@ -1271,8 +1271,17 @@
                                   <include>junit:junit</include>
                               </includes>
                               <excludes>
+                                  <exclude>org.optaplanner:*</exclude>
                                   <exclude>javax.servlet:javax.servlet-api</exclude>
                                   <exclude>javax.activation:activation:1.1</exclude>
+                                  <exclude>org.apache.httpcomponents:httpasyncclient</exclude>
+                                  <exclude>org.apache.httpcomponents:httpclient</exclude>
+                                  <exclude>org.apache.httpcomponents:httpclient-cache</exclude>
+                                  <exclude>org.apache.httpcomponents:httpclient-osgi</exclude>
+                                  <exclude>org.apache.httpcomponents:httpcore</exclude>
+                                  <exclude>org.apache.httpcomponents:httpmime</exclude>
+                                  <exclude>javax.validation:validation-api</exclude>
+                                  <exclude>org.apache.cxf:cxf-rt-rs-service-description-swagger</exclude>
                               </excludes>
                           </dependencies>
                           <imports>
@@ -1287,12 +1296,14 @@
                                           <include>de.flapdoodle*:*</include>
                                           <include>org.apache.activemq:*</include>
                                           <include>org.apache.commons:commons-pool2</include>
+
                                           <include>org.apache.httpcomponents:httpasyncclient</include>
                                           <include>org.apache.httpcomponents:httpclient</include>
                                           <include>org.apache.httpcomponents:httpclient-cache</include>
                                           <include>org.apache.httpcomponents:httpclient-osgi</include>
                                           <include>org.apache.httpcomponents:httpcore</include>
                                           <include>org.apache.httpcomponents:httpmime</include>
+
                                           <include>org.apache.derby:derby</include>
                                           <include>org.apache.logging.log4j:*</include>
 
@@ -1317,8 +1328,6 @@
                                           <include>javax.servlet:javax.servlet-api</include>
                                           <include>junit:*</include>
                                           <include>net.sf.ehcache:ehcache</include>
-
-                                          <include>xml-apis:*</include>
 
                                           <!-- Others that we need -->
                                           <include>mysql:*</include>
@@ -1346,6 +1355,7 @@
                                           <exclude>org.apache.activemq:activemq-camel</exclude>
                                           <exclude>org.assertj*:*</exclude>
                                           <exclude>org.slf4j:*</exclude>
+                                          <exclude>junit:junit</exclude>
 
                                           <!-- Out of scope sb starters -->
                                           <exclude>org.springframework.boot:spring-boot-starter-aop</exclude>
@@ -1400,8 +1410,21 @@
                                           <include>*:*</include>
                                       </includes>
                                       <excludes>
+                                          <exclude>javax.annotation:jsr250-ap</exclude>
                                           <exclude>io.fabric8*:*</exclude>
                                           <exclude>org.slf4j:*</exclude>
+                                          <exclude>junit:junit</exclude>
+                                          <exclude>javax.annotation:jsr250-api</exclude>
+                                          <exclude>org.springframework.boot:spring-boot</exclude>
+                                          <exclude>org.springframework.boot:spring-boot-test</exclude>
+
+                                          <exclude>org.apache.httpcomponents:httpasyncclient</exclude>
+                                          <exclude>org.apache.httpcomponents:httpclient</exclude>
+                                          <exclude>org.apache.httpcomponents:httpclient-cache</exclude>
+                                          <exclude>org.apache.httpcomponents:httpclient-osgi</exclude>
+                                          <exclude>org.apache.httpcomponents:httpcore</exclude>
+                                          <exclude>org.apache.httpcomponents:httpmime</exclude>
+
 
                                           <!-- Exclude community docs --> 
                                           <exclude>org.apache.camel:camel-manual</exclude>
@@ -1464,6 +1487,18 @@
                                           <include>*:*</include>
                                       </includes>
                                       <excludes>
+                                          <exclude>org.apache.httpcomponents:httpasyncclient</exclude>
+                                          <exclude>org.apache.httpcomponents:httpclient</exclude>
+                                          <exclude>org.apache.httpcomponents:httpclient-cache</exclude>
+                                          <exclude>org.apache.httpcomponents:httpclient-osgi</exclude>
+                                          <exclude>org.apache.httpcomponents:httpcore</exclude>
+                                          <exclude>org.apache.httpcomponents:httpmime</exclude>
+
+                                          <exclude>org.springframework.boot:spring-boot</exclude>
+                                          <exclude>org.springframework.boot:spring-boot-test</exclude>
+                                          <exclude>javax.inject:javax.inject</exclude>
+                                          <exclude>commons-io:commons-io</exclude>
+                                          <exclude>junit:junit</exclude>
                                           <exclude>org.slf4j:*</exclude>
                                           <exclude>org.springframework:*</exclude>
                                           <exclude>org.springframework.boot:*</exclude>
@@ -1473,6 +1508,7 @@
                                           <exclude>com.squareup.okhttp:*</exclude>
                                           <exclude>com.squareup.okio:*</exclude>
                                           <exclude>io.zipkin.java:*</exclude>
+                                          <exclude>org.optaplanner:*</exclude>
                                       </excludes>
                                   </dependencyManagement>
                               </import>
@@ -1483,7 +1519,7 @@
                                   <dependencyManagement>
                                       <includes>
                                           <include>org.jboss.narayana.jta:*</include>
-                                          <include>org.jboss.narayana.jts:*</include>
+                                          <include>org.jboss.narayana.jts:*</include>                                                
                                       </includes>
                                   </dependencyManagement>
                               </import>
