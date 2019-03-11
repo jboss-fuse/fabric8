@@ -1593,6 +1593,8 @@
                                   <!-- The kubernetes Client and Model -->
                                   <include>io.fabric8:openshift-*</include>
                                   <include>io.fabric8.kubernetes:*</include>
+                                  <include>io.fabric8:fabric8-karaf*</include>
+                                  <include>io.fabric8:kubernetes-*</include>
 
                                   <include>org.fusesource:camel-sap</include>
                                   <include>org.fusesource:camel-activemq</include>
@@ -1625,7 +1627,6 @@
                                       <excludes>
                                           <exclude>javax.ws.rs:javax.ws.rs-api</exclude>
                                           <exclude>org.fusesource:camel-activemq</exclude>
-                                          <exclude>org.jboss.fuse:fuse-karaf-framework</exclude>
                                           <exclude>javax.annotation:jsr250-api</exclude>
                                           <exclude>xml-apis:xml-apis:1.4.01</exclude>
 
