@@ -17,10 +17,14 @@
 package io.fabric8.karaf.blueprint;
 
 import java.util.Dictionary;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import io.fabric8.karaf.core.properties.PlaceholderResolver;
 import org.apache.aries.blueprint.ext.evaluator.PropertyEvaluator;
+import org.apache.aries.blueprint.ext.evaluator.PropertyEvaluatorExt;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Properties;
@@ -54,8 +58,8 @@ import org.apache.felix.scr.annotations.Service;
     policy = ReferencePolicy.STATIC,
     referenceInterface  = PlaceholderResolver.class
 )
-@Service(PropertyEvaluator.class)
-public class Fabric8PropertyEvaluator implements PropertyEvaluator {
+@Service({ PropertyEvaluatorExt.class, PropertyEvaluator.class })
+public class Fabric8PropertyEvaluator implements PropertyEvaluatorExt, PropertyEvaluator {
     private final AtomicReference<PlaceholderResolver> resolver;
 
     public Fabric8PropertyEvaluator() {
@@ -63,7 +67,18 @@ public class Fabric8PropertyEvaluator implements PropertyEvaluator {
     }
 
     @Override
-    public String evaluate(String key, Dictionary<String, String> dictionary) {
+    public String evaluate(String expression, Dictionary<String, String> properties) {
+        Map<String, Object> m = new HashMap<>();
+        for (Enumeration<String> e = properties.keys(); e.hasMoreElements(); ) {
+            String k = e.nextElement();
+            m.put(k, properties.get(k));
+        }
+        Object v = evaluate(expression, m);
+        return v instanceof String ? (String)v : (v != null ? v.toString() : null);
+    }
+
+    @Override
+    public Object evaluate(String key, Map<String, Object> dictionary) {
         PlaceholderResolver res = resolver.get();
         String value = null;
 
