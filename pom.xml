@@ -90,7 +90,7 @@
         <cxf.plugin.version>3.2.7.fuse-730018</cxf.plugin.version>
 
         <commons.collections.version>3.2.2</commons.collections.version>
-        <version.fuse-karaf>7.3.0.fuse-730050</version.fuse-karaf>
+        <version.fuse-karaf>7.3.0.fuse-730068</version.fuse-karaf>
         <hibernate-validator.version>5.3.5.Final-redhat-2</hibernate-validator.version>
         <hibernate-core.version>5.3.7.Final-redhat-00001</hibernate-core.version>
         <jansi.version>1.11</jansi.version>
