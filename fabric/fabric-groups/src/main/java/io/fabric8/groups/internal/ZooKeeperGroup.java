@@ -255,8 +255,11 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
             if (id != null) {
                 try {
                     if (isConnected()) {
+                        LOG.info("Deleting state for ZK Group for path " + id);
                         client.delete().guaranteed().forPath(id);
                         unstable.set(false);
+                    } else {
+                        LOG.warn("Can't delete state for ZK Group for path " + id + " - client disconnected. Ephemeral, sequence node will be removed on session timeout.");
                     }
                 } catch (KeeperException.NoNodeException e) {
                     // Ignore
@@ -287,9 +290,11 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     private String createEphemeralNode(T state) throws Exception {
         state.uuid = uuid;
         creating.set(true);
+        byte[] encoded = encode(state);
+        LOG.info("Creating new state for ZK Group for path " + path + ": " + new String(encoded));
         String pathId = client.create().creatingParentsIfNeeded()
             .withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
-            .forPath(path + "/0", encode(state));
+            .forPath(path + "/0", encoded);
         creating.set(false);
         unstable.set(false);
         if (LOG.isTraceEnabled()) {
@@ -303,7 +308,9 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
 
     private void updateEphemeralNode(T state) throws Exception {
         state.uuid = uuid;
-        client.setData().forPath(id, encode(state));
+        byte[] encoded = encode(state);
+        LOG.info("Updating state for ZK Group for path " + id + ": " + new String(encoded));
+        client.setData().forPath(id, encoded);
         state.uuid = null;
     }
 
