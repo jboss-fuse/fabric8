@@ -396,10 +396,11 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                     public Void call(Git git, GitContext context) throws Exception {
                             long before = System.currentTimeMillis();
                             try {
-                                git.gc().call();
-                                LOGGER.debug("git gc took " + ((System.currentTimeMillis() - before)) + " ms.");
+                                LOGGER.info("Performing 'git gc' on startup");
+                                git.gc().setAggressive(true).call();
+                                LOGGER.info("git gc took " + ((System.currentTimeMillis() - before)) + " ms.");
                             } catch (GitAPIException e) {
-                                LOGGER.debug("git gc threw an exception!", e);                    
+                                LOGGER.warn("git gc threw an exception!", e);
                             }
                             return null;
                     }
@@ -1263,8 +1264,12 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
             if (--commitsWithoutGC < 0) {
                 commitsWithoutGC = MAX_COMMITS_WITHOUT_GC;
-                LOGGER.debug("Performing 'git gc' after {} commits", MAX_COMMITS_WITHOUT_GC);
-                git.gc().call();
+                LOGGER.info("Performing 'git gc' after {} commits", MAX_COMMITS_WITHOUT_GC);
+                try {
+                    git.gc().setAggressive(true).call();
+                } catch (GitAPIException e) {
+                    LOGGER.warn("git gc threw an exception!", e);
+                }
             }
         } catch (GitAPIException ex) {
             throw FabricException.launderThrowable(ex);
