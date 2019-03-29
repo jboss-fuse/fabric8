@@ -18,6 +18,7 @@ package io.fabric8.api;
 import java.util.List;
 import java.util.Map;
 
+import io.fabric8.api.commands.GitGcResult;
 import io.fabric8.api.commands.GitVersion;
 import io.fabric8.api.commands.GitVersions;
 
@@ -93,6 +94,13 @@ public interface ProfileRegistry {
      * @return
      */
     GitVersions gitSynchronize(boolean allowPush);
+
+    /**
+     * Perform {@code git gc}
+     * @param aggressive
+     * @return
+     */
+    GitGcResult gitGc(boolean aggressive);
 
     /**
      * True if the data store contains the given version.

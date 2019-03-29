@@ -288,6 +288,13 @@ public interface FabricManagerMBean {
      */
     String gitSynchronize(Boolean allowPush);
 
+    /**
+     * Orders invocation of {@code git gc} operation
+     * @param aggressive
+     * @return
+     */
+    String gitGc(Boolean aggressive);
+
     void copyProfile(String versionId, String sourceId, String targetId, boolean force);
 
     void renameProfile(String versionId, String profileId, String newId, boolean force);
