@@ -31,10 +31,10 @@ import org.jsonschema2pojo.Jackson2Annotator;
 public class SwaggerAnnotator extends Jackson2Annotator {
 
     public SwaggerAnnotator(GenerationConfig generationConfig) {
-		super(generationConfig);
-	}
+        super(generationConfig);
+    }
 
-	@Override
+    @Override
     public void propertyOrder(JDefinedClass clazz, JsonNode propertiesNode) {
 
         clazz.annotate(ToString.class);
@@ -52,37 +52,37 @@ public class SwaggerAnnotator extends Jackson2Annotator {
     }
 
     @Override
-    public void propertyGetter(JMethod getter, String propertyName) {
+    public void propertyGetter(JMethod getter, JDefinedClass clazz, String propertyName) {
 
     }
 
     @Override
-    public void propertySetter(JMethod setter, String propertyName) {
+    public void propertySetter(JMethod setter, JDefinedClass clazz, String propertyName) {
 
     }
 
     @Override
-    public void anyGetter(JMethod getter) {
+    public void anyGetter(JMethod getter, JDefinedClass clazz) {
 
     }
 
     @Override
-    public void anySetter(JMethod setter) {
+    public void anySetter(JMethod setter, JDefinedClass clazz) {
 
     }
 
     @Override
-    public void enumCreatorMethod(JMethod creatorMethod) {
+    public void enumCreatorMethod(JDefinedClass clazz, JMethod creatorMethod) {
 
     }
 
     @Override
-    public void enumValueMethod(JMethod valueMethod) {
+    public void enumValueMethod(JDefinedClass clazz, JMethod valueMethod) {
 
     }
 
     @Override
-    public void enumConstant(JEnumConstant constant, String value) {
+    public void enumConstant(JDefinedClass clazz, JEnumConstant constant, String value) {
 
     }
 
