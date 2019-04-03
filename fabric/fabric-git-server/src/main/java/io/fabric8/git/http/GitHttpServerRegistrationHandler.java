@@ -257,8 +257,10 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
                 // this should foul jgit to use flush its cache and release locks for .pack files on Windows
                 WindowCacheConfig cfg = new WindowCacheConfig();
                 cfg.install();
-                git.getRepository().close();
-                git = null;
+                if (git != null) {
+                    git.getRepository().close();
+                    git = null;
+                }
 
                 LOGGER.info("Removing old master git repository: {}", basePath.toFile());
 

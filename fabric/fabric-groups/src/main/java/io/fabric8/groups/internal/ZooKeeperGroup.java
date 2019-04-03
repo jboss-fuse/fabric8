@@ -291,10 +291,10 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
         state.uuid = uuid;
         creating.set(true);
         byte[] encoded = encode(state);
-        LOG.info("Creating new state for ZK Group for path " + path + ": " + new String(encoded));
         String pathId = client.create().creatingParentsIfNeeded()
             .withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
             .forPath(path + "/0", encoded);
+        LOG.info("Created new state for ZK Group for path " + pathId + ": " + new String(encoded));
         creating.set(false);
         unstable.set(false);
         if (LOG.isTraceEnabled()) {
@@ -517,6 +517,10 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     protected void remove(String fullPath) {
         ChildData data = currentData.remove(fullPath);
         if (data != null) {
+            if (fullPath.equals(id)) {
+                // this will ensure that we'll register another cluster candidate if ZK path was removed exernally
+                state = null;
+            }
             offerOperation(new EventOperation(this, GroupListener.GroupEvent.CHANGED));
         }
     }

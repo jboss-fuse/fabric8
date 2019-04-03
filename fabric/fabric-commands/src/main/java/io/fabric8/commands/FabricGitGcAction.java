@@ -27,7 +27,7 @@ import io.fabric8.api.RuntimeProperties;
 import io.fabric8.api.commands.GitGcResult;
 import io.fabric8.api.commands.JMXRequest;
 import io.fabric8.api.commands.JMXResult;
-import io.fabric8.commands.support.JMXCommandActionSupport;
+import io.fabric8.commands.support.JMXCommandContainerActionSupport;
 import io.fabric8.zookeeper.ZkPath;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.queue.PublicStringSerializer;
@@ -36,7 +36,7 @@ import org.apache.felix.gogo.commands.Option;
 import org.apache.zookeeper.CreateMode;
 
 @Command(name = FabricGitGc.FUNCTION_VALUE, scope = FabricGitGc.SCOPE_VALUE, description = FabricGitGc.DESCRIPTION)
-public class FabricGitGcAction extends JMXCommandActionSupport {
+public class FabricGitGcAction extends JMXCommandContainerActionSupport {
 
     @Option(name = "-a", aliases = { "--aggressive" }, description = "Set \"--aggressive\" option for \"git gc\"", required = false, multiValued = false)
     protected boolean aggressive = false;

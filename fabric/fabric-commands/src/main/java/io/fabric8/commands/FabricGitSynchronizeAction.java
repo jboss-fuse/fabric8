@@ -20,7 +20,7 @@ import java.util.Collection;
 import io.fabric8.api.FabricService;
 import io.fabric8.api.RuntimeProperties;
 import io.fabric8.api.commands.JMXRequest;
-import io.fabric8.commands.support.JMXCommandActionSupport;
+import io.fabric8.commands.support.JMXCommandContainerActionSupport;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.queue.PublicStringSerializer;
 import org.apache.felix.gogo.commands.Command;
@@ -28,7 +28,7 @@ import org.apache.felix.gogo.commands.Option;
 import org.apache.zookeeper.CreateMode;
 
 @Command(name = FabricGitSynchronize.FUNCTION_VALUE, scope = FabricGitSynchronize.SCOPE_VALUE, description = FabricGitSynchronize.DESCRIPTION)
-public class FabricGitSynchronizeAction extends JMXCommandActionSupport {
+public class FabricGitSynchronizeAction extends JMXCommandContainerActionSupport {
 
     @Option(name = "-p", aliases = { "--allow-push" }, description = "Whether containers are allowed to push local Git repository state to central Git repository", required = false, multiValued = false)
     protected boolean allowPush = false;
