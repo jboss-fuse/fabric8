@@ -134,13 +134,17 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
     @Deactivate
     void deactivate() {
         deactivateComponent();
-        unregisterServlet();
         try {
             if (group != null) {
                 group.close();
             }
         } catch (Exception e) {
             LOGGER.warn("Failed to remove git server from registry.", e);
+        }
+        try {
+            unregisterServlet();
+        } catch (Exception e) {
+            LOGGER.error("Failed to unregister /git servlet: " + e.getMessage(), e);
         }
     }
 
@@ -175,11 +179,13 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
             if (group.isMaster()) {
                 LOGGER.debug("Git repo is the master");
                 if (!isMaster.getAndSet(true)) {
+                    LOGGER.info("Container became git master. Registering git servlet.");
                     registerServlet(dataPath, realm, roles);
                 }
             } else {
                 LOGGER.debug("Git repo is not the master");
                 if (isMaster.getAndSet(false)) {
+                    LOGGER.info("Container stopped being git master. Unregistering git servlet.");
                     unregisterServlet();
                 }
             }
@@ -189,7 +195,7 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
             String url = state.getUrl();
             gitRemoteUrl.set(ZooKeeperUtils.getSubstitutedData(curator.get(), url));
         } catch (Exception e) {
-            LOGGER.debug("Failed to update master git server url.", e);
+            LOGGER.error("Failed to handle update of ZK Group with path " + ZkPath.GIT.getPath() + ": " + e.getMessage(), e);
         }
     }
 
@@ -206,13 +212,14 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
                 LOGGER.info("Cloning master root repo into {}", fabricRoot);
                 File localRepo = gitDataStore.get().getGit().getRepository().getDirectory();
                 git = Git.cloneRepository()
-                    .setTimeout(10)
+                    .setTimeout(120)
                     .setBare(true)
                     .setNoCheckout(true)
                     .setCloneAllBranches(true)
                     .setDirectory(fabricRoot)
                     .setURI(localRepo.toURI().toString())
                     .call();
+                LOGGER.info("Cloning master root repository finished");
             } else {
                 LOGGER.info("{} already exists", fabricRoot);
                 git = Git.open(fabricRoot);
@@ -225,6 +232,7 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
             initParams.put("base-path", servletBase);
             initParams.put("repository-root", servletBase);
             initParams.put("export-all", "true");
+            LOGGER.info("Registering /git servlet in http service");
             httpService.get().registerServlet("/git", new FabricGitServlet(git, curator.get()), initParams, secure);
 
             registerGitHttpEndpoint();
@@ -241,18 +249,23 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
         synchronized (gitRemoteUrl) {
             if (basePath != null) {
                 try {
+                    LOGGER.info("Unregistering /git servlet from http service");
                     httpService.get().unregister("/git");
-                } catch (IllegalArgumentException e){
+                } catch (IllegalArgumentException e) {
                     LOGGER.warn("/git Servlet wasn't registered. Unregistration not required.");
                 }
                 // this should foul jgit to use flush its cache and release locks for .pack files on Windows
                 WindowCacheConfig cfg = new WindowCacheConfig();
                 cfg.install();
-                git.getRepository().close();
-                git = null;
+                if (git != null) {
+                    git.getRepository().close();
+                    git = null;
+                }
+
+                LOGGER.info("Removing old master git repository: {}", basePath.toFile());
 
                 boolean basePathExists = basePath.toFile().exists();
-                for(int i = 0 ; i < 10; i++) {
+                for (int i = 0; i < 10; i++) {
                     try {
                         if (basePathExists) {
                             recursiveDelete(basePath.toFile());
@@ -269,10 +282,10 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
                         }
                     }
                 }
-                if(basePathExists){
-                    LOGGER.error("Failed to recursively delete this filesystem path: {}", basePath );
-                } else{
-                    LOGGER.info("Correctly removed old git repo: {}", basePath );
+                if (basePathExists) {
+                    LOGGER.error("Failed to recursively delete this filesystem path: {}", basePath);
+                } else {
+                    LOGGER.info("Correctly removed old git repo: {}", basePath);
                 }
             }
         }
@@ -359,6 +372,7 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
             try {
                 StandardMBean mbean = new StandardMBean(new io.fabric8.git.http.GitHttpEndpoint(this), GitHttpEndpointMBean.class);
                 unregisterGitHttpEndpoint();
+                LOGGER.info("Registering git JMX endpoint");
                 mbeanServer.get().registerMBean(mbean, objectName);
             } catch (Exception e) {
                 LOGGER.warn("Exception during " + objectName + " registration: " + e.getMessage(), e);
@@ -372,6 +386,7 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
     private void unregisterGitHttpEndpoint() {
         try {
             if (mbeanServer.getOptional() != null && mbeanServer.get().isRegistered(objectName)) {
+                LOGGER.info("Unregistering existing git JMX endpoint");
                 mbeanServer.get().unregisterMBean(objectName);
             }
         } catch (InstanceNotFoundException ignored) {

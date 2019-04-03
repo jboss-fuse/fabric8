@@ -31,7 +31,7 @@ import io.fabric8.api.commands.GitVersion;
 import io.fabric8.api.commands.GitVersions;
 import io.fabric8.api.commands.JMXRequest;
 import io.fabric8.api.commands.JMXResult;
-import io.fabric8.commands.support.JMXCommandActionSupport;
+import io.fabric8.commands.support.JMXCommandContainerActionSupport;
 import io.fabric8.utils.TablePrinter;
 import io.fabric8.zookeeper.ZkPath;
 import org.apache.curator.framework.CuratorFramework;
@@ -40,7 +40,7 @@ import org.apache.felix.gogo.commands.Command;
 import org.apache.zookeeper.CreateMode;
 
 @Command(name = FabricGitSummary.FUNCTION_VALUE, scope = FabricGitSummary.SCOPE_VALUE, description = FabricGitSummary.DESCRIPTION)
-public class FabricGitSummaryAction extends JMXCommandActionSupport {
+public class FabricGitSummaryAction extends JMXCommandContainerActionSupport {
 
     public FabricGitSummaryAction(FabricService fabricService, CuratorFramework curator, RuntimeProperties runtimeProperties) {
         super(fabricService, curator, runtimeProperties);

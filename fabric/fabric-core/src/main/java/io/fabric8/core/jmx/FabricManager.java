@@ -39,7 +39,7 @@ import io.fabric8.api.ProfileService;
 import io.fabric8.api.Profiles;
 import io.fabric8.api.Version;
 import io.fabric8.api.VersionSequence;
-import io.fabric8.api.commands.GitVersion;
+import io.fabric8.api.commands.GitGcResult;
 import io.fabric8.api.commands.GitVersions;
 import io.fabric8.api.jmx.FabricManagerMBean;
 import io.fabric8.api.jmx.FabricStatusDTO;
@@ -1340,6 +1340,16 @@ public final class FabricManager implements FabricManagerMBean {
     @Override
     public String gitSynchronize(Boolean allowPush) {
         GitVersions gitVersions = profileRegistry.gitSynchronize(allowPush);
+        try {
+            return getObjectMapper().writeValueAsString(gitVersions);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    @Override
+    public String gitGc(Boolean aggressive) {
+        GitGcResult gitVersions = profileRegistry.gitGc(aggressive);
         try {
             return getObjectMapper().writeValueAsString(gitVersions);
         } catch (JsonProcessingException e) {

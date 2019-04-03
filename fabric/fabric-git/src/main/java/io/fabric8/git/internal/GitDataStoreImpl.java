@@ -30,6 +30,7 @@ import io.fabric8.api.RuntimeProperties;
 import io.fabric8.api.Version;
 import io.fabric8.api.VersionBuilder;
 import io.fabric8.api.VersionSequence;
+import io.fabric8.api.commands.GitGcResult;
 import io.fabric8.api.commands.GitVersion;
 import io.fabric8.api.commands.GitVersions;
 import io.fabric8.api.jcip.ThreadSafe;
@@ -396,10 +397,11 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                     public Void call(Git git, GitContext context) throws Exception {
                             long before = System.currentTimeMillis();
                             try {
-                                git.gc().call();
-                                LOGGER.debug("git gc took " + ((System.currentTimeMillis() - before)) + " ms.");
+                                LOGGER.info("Performing 'git gc' on startup");
+                                git.gc().setAggressive(true).call();
+                                LOGGER.info("git gc took " + ((System.currentTimeMillis() - before)) + " ms.");
                             } catch (GitAPIException e) {
-                                LOGGER.debug("git gc threw an exception!", e);                    
+                                LOGGER.warn("git gc threw an exception!", e);
                             }
                             return null;
                     }
@@ -774,6 +776,33 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     public GitVersions gitSynchronize(boolean allowPush) {
         doPullInternal(allowPush, gitTimeout);
         return gitVersions();
+    }
+
+    @Override
+    public GitGcResult gitGc(final boolean aggressive) {
+        LockHandle lock = aquireWriteLock();
+        try {
+            assertValid();
+            GitOperation<GitGcResult> gitop = new GitOperation<GitGcResult>() {
+                public GitGcResult call(Git git, GitContext context) throws Exception {
+                    long t1 = System.currentTimeMillis();
+                    try {
+                        LOGGER.info("Performing 'git gc{}'", aggressive ? " --aggressive" : "");
+                        try {
+                            git.gc().setAggressive(aggressive).call();
+                        } catch (GitAPIException e) {
+                            LOGGER.warn("git gc threw an exception!", e);
+                        }
+                        return new GitGcResult(System.currentTimeMillis() - t1, "");
+                    } catch (Exception e) {
+                        return new GitGcResult(System.currentTimeMillis() - t1, e.getMessage());
+                    }
+                }
+            };
+            return executeInternal(newGitReadContext(), null, gitop);
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
@@ -1263,8 +1292,12 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
             if (--commitsWithoutGC < 0) {
                 commitsWithoutGC = MAX_COMMITS_WITHOUT_GC;
-                LOGGER.debug("Performing 'git gc' after {} commits", MAX_COMMITS_WITHOUT_GC);
-                git.gc().call();
+                LOGGER.info("Performing 'git gc' after {} commits", MAX_COMMITS_WITHOUT_GC);
+                try {
+                    git.gc().setAggressive(true).call();
+                } catch (GitAPIException e) {
+                    LOGGER.warn("git gc threw an exception!", e);
+                }
             }
         } catch (GitAPIException ex) {
             throw FabricException.launderThrowable(ex);
