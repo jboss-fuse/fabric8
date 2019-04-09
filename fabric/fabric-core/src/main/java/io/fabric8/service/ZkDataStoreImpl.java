@@ -167,20 +167,7 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
     }
 
     private void deactivateInternal() {
-        configCache.getListenable().removeListener(this);
-        Closeables.closeQuietly(configCache);
-
-        containerCache.getListenable().removeListener(this);
-        Closeables.closeQuietly(containerCache);
-
-        Closeables.closeQuietly(commandRequestsQueue);
-        Closeables.closeQuietly(commandResponsesQueue);
-        commandsMapper.getTypeFactory().clearCache();
-
-        commandsExecutor.shutdownNow();
-        commandProcessorExecutor.shutdownNow();
-        callbacksExecutor.shutdownNow();
-        cacheExecutor.shutdownNow();
+        disconnect();
     }
 
     @Override
@@ -329,6 +316,7 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
             deleteSafe(curator.get(), ZkPath.CONTAINER_PROVISION.getPath(containerId));
             deleteSafe(curator.get(), ZkPath.CONTAINER_STATUS.getPath(containerId));
             deleteSafe(curator.get(), ZkPath.AUTHENTICATION_CONTAINER.getPath(containerId));
+            deleteSafe(curator.get(), ZkPath.COMMANDS.getPath(containerId));
         } catch (Exception e) {
             throw FabricException.launderThrowable(e);
         }
@@ -537,6 +525,24 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
         } catch (Exception e) {
             throw FabricException.launderThrowable(e);
         }
+    }
+
+    @Override
+    public void disconnect() {
+        configCache.getListenable().removeListener(this);
+        Closeables.closeQuietly(configCache);
+
+        containerCache.getListenable().removeListener(this);
+        Closeables.closeQuietly(containerCache);
+
+        Closeables.closeQuietly(commandRequestsQueue);
+        Closeables.closeQuietly(commandResponsesQueue);
+        commandsMapper.getTypeFactory().clearCache();
+
+        commandsExecutor.shutdownNow();
+        commandProcessorExecutor.shutdownNow();
+        callbacksExecutor.shutdownNow();
+        cacheExecutor.shutdownNow();
     }
 
     @Override
@@ -889,6 +895,8 @@ public class ZkDataStoreImpl extends AbstractComponent implements DataStore, Pat
                                         LOGGER.debug("ZK command invocation successful (duration: {})", result.getDuration());
                                         result.setResponse(jmxResult);
                                         commandResponsesQueue.put(commandsMapper.writeValueAsString(result));
+                                    } catch (IllegalStateException e) {
+                                        LOGGER.info("Command didn't complete successfully - command processor is stopped.");
                                     } catch (Exception e) {
                                         LOGGER.warn("Exception while invoking JMX command: " + e.getMessage(), e);
                                     }

@@ -17,7 +17,6 @@ package io.fabric8.api;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 /**
  * The Zookeeper based data store
@@ -70,7 +69,11 @@ public interface DataStore {
 
     void setContainerAlive(String id, boolean flag);
 
-
+    /**
+     * Private operation used to disconnect ZK datastore and disable all notifications and callbacks.
+     * This method is only for {@code fabric:leave}.
+     */
+    void disconnect();
 
     public enum ContainerAttribute {
         BlueprintStatus,

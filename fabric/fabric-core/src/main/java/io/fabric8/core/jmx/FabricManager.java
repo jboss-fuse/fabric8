@@ -1642,6 +1642,17 @@ public final class FabricManager implements FabricManagerMBean {
         return mapper.writeValueAsString(answer);
     }
 
+    @Override
+    public void leave() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Thread.currentThread().setName("Fabric disconnection thread");
+                fabricService.leave();
+            }
+        }).start();
+    }
+
     protected void addChildrenToMap(Map<String, Object> answer, String path, CuratorFramework curator, ObjectMapper mapper) throws Exception {
         Set<String> dontSubstituteKeys = new HashSet<String>(Arrays.asList("id", "container"));
 

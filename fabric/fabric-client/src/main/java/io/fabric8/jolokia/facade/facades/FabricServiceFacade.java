@@ -369,6 +369,11 @@ public class FabricServiceFacade implements FabricService {
     }
 
     @Override
+    public void leave() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public ContainerProvider getProvider(String scheme) {
         throw new UnsupportedOperationException();
     }

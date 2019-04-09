@@ -372,4 +372,11 @@ public interface FabricManagerMBean {
     String gitUrl();
 
     String gitMaster();
+
+    /**
+     * Order container to <em>leave</em> Fabric, cleaning all the entries it did when joining. Should be called
+     * only for containers that were not created using {@code fabric:container-create}
+     */
+    void leave();
+
 }

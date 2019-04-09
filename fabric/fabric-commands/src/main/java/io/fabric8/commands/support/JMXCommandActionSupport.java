@@ -17,6 +17,10 @@ package io.fabric8.commands.support;
 
 import java.util.List;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 import io.fabric8.api.Container;
 import io.fabric8.api.FabricService;
 import io.fabric8.api.RuntimeProperties;
@@ -56,6 +60,29 @@ public abstract class JMXCommandActionSupport extends AbstractAction {
             } catch (Exception ignored) {
             }
         }
+    }
+
+    /**
+     * Helper Object -&gt; JSON mapper for Karaf commands.
+     * @param jmxRequest
+     * @return
+     * @throws JsonProcessingException
+     */
+    protected String map(Object jmxRequest) throws JsonProcessingException {
+        ObjectMapper mapper = getObjectMapper();
+        try {
+            return mapper.writeValueAsString(jmxRequest);
+        } finally {
+            mapper.getTypeFactory().clearCache();
+        }
+    }
+
+    protected ObjectMapper getObjectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.setTypeFactory(TypeFactory.defaultInstance().withClassLoader(getClass().getClassLoader()));
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true);
+        return mapper;
     }
 
 }

@@ -445,43 +445,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     }
 
     private void deactivateInternal() {
-        // Remove the GitListener
-        gitService.get().removeGitListener(gitListener);
-        
-        // Shutdown the thread pool
-        threadPool.shutdown();
-        threadPoolInitial.shutdown();
-        try {
-            for (ScheduledExecutorService ses : new ScheduledExecutorService[] { threadPool, threadPoolInitial }) {
-                try {
-                    // Give some time to the running task to complete.
-                    if (!ses.awaitTermination(5, TimeUnit.SECONDS)) {
-                        ses.shutdownNow();
-                    }
-                } catch (InterruptedException ex) {
-                    ses.shutdownNow();
-                    // Preserve interrupt status.
-                    Thread.currentThread().interrupt();
-                }
-            }
-        } catch (Exception ex) {
-            throw FabricException.launderThrowable(ex);
-        } finally {
-            LOGGER.debug("Restoring ProxySelector to original: {}", defaultProxySelector);
-            ProxySelector.setDefault(defaultProxySelector);
-            // authenticator disabled, until properly tested it does not affect others, as Authenticator is static in the JVM
-            // reset authenticator by setting it to null
-            // Authenticator.setDefault(null);
-
-            // Closing the shared counter
-            try {
-                if (counter != null) {
-                    counter.close();
-                }
-            } catch (IOException ex) {
-                LOGGER.warn("Error closing SharedCount due " + ex.getMessage() + ". This exception is ignored.");
-            }
-        }
+        disconnect();
     }
 
     @Override
@@ -1262,6 +1226,47 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         } finally {
             LOGGER.trace("Restoring ThreadContextClassLoader to {}", tccl);
             Thread.currentThread().setContextClassLoader(tccl);
+        }
+    }
+
+    @Override
+    public void disconnect() {
+        // Remove the GitListener
+        gitService.get().removeGitListener(gitListener);
+
+        // Shutdown the thread pool
+        threadPool.shutdown();
+        threadPoolInitial.shutdown();
+        try {
+            for (ScheduledExecutorService ses : new ScheduledExecutorService[] { threadPool, threadPoolInitial }) {
+                try {
+                    // Give some time to the running task to complete.
+                    if (!ses.awaitTermination(5, TimeUnit.SECONDS)) {
+                        ses.shutdownNow();
+                    }
+                } catch (InterruptedException ex) {
+                    ses.shutdownNow();
+                    // Preserve interrupt status.
+                    Thread.currentThread().interrupt();
+                }
+            }
+        } catch (Exception ex) {
+            throw FabricException.launderThrowable(ex);
+        } finally {
+            LOGGER.debug("Restoring ProxySelector to original: {}", defaultProxySelector);
+            ProxySelector.setDefault(defaultProxySelector);
+            // authenticator disabled, until properly tested it does not affect others, as Authenticator is static in the JVM
+            // reset authenticator by setting it to null
+            // Authenticator.setDefault(null);
+
+            // Closing the shared counter
+            try {
+                if (counter != null) {
+                    counter.close();
+                }
+            } catch (IOException ex) {
+                LOGGER.warn("Error closing SharedCount due " + ex.getMessage() + ". This exception is ignored.");
+            }
         }
     }
 
