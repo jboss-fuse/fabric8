@@ -19,11 +19,8 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.type.TypeFactory;
 import io.fabric8.api.Container;
 import io.fabric8.api.FabricService;
 import io.fabric8.api.RuntimeProperties;
@@ -112,16 +109,6 @@ public abstract class JMXCommandContainerActionSupport extends JMXCommandActionS
      */
     protected void afterEachContainer(Collection<String> names) throws Exception { }
 
-    /**
-     * Helper Object -&gt; JSON mapper for Karaf commands.
-     * @param jmxRequest
-     * @return
-     * @throws JsonProcessingException
-     */
-    protected String map(Object jmxRequest) throws JsonProcessingException {
-        return getObjectMapper().writeValueAsString(jmxRequest);
-    }
-
     protected List<JMXResult> asResults(String path, List<String> responses, Class<?> resultClass) throws Exception {
         ObjectMapper mapper = getObjectMapper();
         List<JMXResult> results = new LinkedList<>();
@@ -140,14 +127,6 @@ public abstract class JMXCommandContainerActionSupport extends JMXCommandActionS
         }
         mapper.getTypeFactory().clearCache();
         return results;
-    }
-
-    private ObjectMapper getObjectMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.setTypeFactory(TypeFactory.defaultInstance().withClassLoader(getClass().getClassLoader()));
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        mapper.configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true);
-        return mapper;
     }
 
 }

@@ -160,6 +160,7 @@ public enum ZkPath {
     AUTHENTICATION_CRYPT_PASSWORD  ("/fabric/authentication/crypt/password"),
     AUTHENTICATION_CONTAINER       ("/fabric/authentication/containers/{container}"),
 
+    COMMANDS                       ("/fabric/registry/containers/commands/{container}"),
     COMMANDS_REQUESTS              ("/fabric/registry/containers/commands/{container}/request"),
     COMMANDS_REQUESTS_QUEUE        ("/fabric/registry/containers/commands/{container}/request/queue-"),
     COMMANDS_RESPONSES             ("/fabric/registry/containers/commands/{container}/response"),

@@ -215,4 +215,11 @@ public interface ProfileRegistry {
     void importFromFileSystem(String importPath);
 
     void exportProfiles(String versionId, String outputFileName, String wildcard);
+
+    /**
+     * Private operation used to disconnect git datastore from notifications. This method is only for
+     * {@code fabric:leave} - no further profile updates will propagate to the container.
+     */
+    void disconnect();
+
 }

@@ -15,6 +15,7 @@
  */
 package io.fabric8.service;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
@@ -25,6 +26,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -70,6 +72,7 @@ import io.fabric8.api.ProfileRequirements;
 import io.fabric8.api.ProfileService;
 import io.fabric8.api.Profiles;
 import io.fabric8.api.RuntimeProperties;
+import io.fabric8.api.SystemProperties;
 import io.fabric8.api.Version;
 import io.fabric8.api.jcip.ThreadSafe;
 import io.fabric8.api.scr.AbstractComponent;
@@ -79,9 +82,9 @@ import io.fabric8.api.visibility.VisibleForTesting;
 import io.fabric8.internal.ContainerImpl;
 import io.fabric8.internal.ProfileDependencyConfig;
 import io.fabric8.internal.ProfileDependencyKind;
+import io.fabric8.utils.BundleUtils;
 import io.fabric8.utils.FabricValidations;
 import io.fabric8.utils.PasswordEncoder;
-import io.fabric8.api.SystemProperties;
 import io.fabric8.zookeeper.ZkPath;
 import io.fabric8.zookeeper.bootstrap.BootstrapConfiguration;
 import io.fabric8.zookeeper.utils.InterpolationHelper;
@@ -93,8 +96,12 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.felix.utils.properties.Properties;
 import org.jasypt.exceptions.EncryptionOperationNotPossibleException;
+import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.BundleException;
+import org.osgi.framework.startlevel.BundleStartLevel;
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.slf4j.Logger;
@@ -106,6 +113,7 @@ import static io.fabric8.utils.DataStoreUtils.substituteBundleProperty;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.exists;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getChildren;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getChildrenSafe;
+import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getStringData;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getSubstitutedData;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getSubstitutedPath;
 import static org.apache.felix.scr.annotations.ReferenceCardinality.OPTIONAL_MULTIPLE;
@@ -158,6 +166,8 @@ public final class FabricServiceImpl extends AbstractComponent implements Fabric
 
     @Reference(referenceInterface = ConfigurationAdmin.class)
     private final ValidatingReference<ConfigurationAdmin> configAdmin = new ValidatingReference<ConfigurationAdmin>();
+    @Reference(referenceInterface = org.apache.felix.scr.ScrService.class)
+    private final ValidatingReference<org.apache.felix.scr.ScrService> scrService = new ValidatingReference<org.apache.felix.scr.ScrService>();
     @Reference(referenceInterface = RuntimeProperties.class)
     private final ValidatingReference<RuntimeProperties> runtimeProperties = new ValidatingReference<RuntimeProperties>();
     @Reference(referenceInterface = CuratorFramework.class)
@@ -1352,6 +1362,301 @@ public final class FabricServiceImpl extends AbstractComponent implements Fabric
         return null;
     }
 
+    @Override
+    public void leave() {
+        String containerName = runtimeProperties.get().getRuntimeIdentity();
+
+        // repeat the validation!
+
+        boolean result = false;
+        try {
+            List<String> containerList = new ArrayList<String>();
+            String clusterId = getStringData(curator.get(), ZkPath.CONFIG_ENSEMBLES.getPath());
+            String containers = getStringData(curator.get(), ZkPath.CONFIG_ENSEMBLE.getPath(clusterId));
+            Collections.addAll(containerList, containers.split(","));
+            if (containerList.contains(containerName)) {
+                LOGGER.warn("Current container is part of the ensemble, It can't leave the Fabric. Skipping the operation.");
+                return;
+            }
+        } catch (Throwable ignored) {
+        }
+
+        Container c = getContainer(containerName);
+
+        if (c.getMetadata() != null) {
+            LOGGER.warn("Current container was created using Fabric. It should rather be removed using fabric:container-delete command. Skipping the operation.");
+            return;
+        }
+
+        // are there any child containers of this container?
+        List<String> dependent = new LinkedList<>();
+        for (Container container : getContainers()) {
+            while (container.getParent() != null) {
+                if (containerName.equals(container.getParent().getId())) {
+                    dependent.add(container.getId());
+                }
+                container = container.getParent();
+            }
+        }
+        if (dependent.size() > 0) {
+            LOGGER.warn("Current container has dependent containers (" + dependent + "). Can't disconnect it. Skipping the operation.");
+            return;
+        }
+
+        LOGGER.info("Disconnecting current container from Fabric environment.");
+
+        // collect bundle URIs we want to install
+        Map<String, String> versions = c.getVersion().getProfile("default").getConfiguration("io.fabric8.version");
+        String karafVersion = versions == null ? null : versions.get("karaf");
+
+        if (karafVersion == null) {
+            LOGGER.warn("Can't determine karaf version. Skipping the operation.");
+            return;
+        }
+
+        String paxUrlLocation = null;
+        int paxUrlStartLevel = -1;
+        String bundleRepositoryLocation = null;
+        int bundleRepositoryStartLevel = -1;
+        int karafFeaturesStartLevel = -1;
+        int karafObrStartLevel = -1;
+
+        try {
+            Properties startup = new Properties(new File(System.getProperty("karaf.etc"), "startup.properties"),
+                    bundleContext);
+            for (String key : startup.keySet()) {
+                if (key.trim().startsWith("org/ops4j/pax/url/pax-url-aether/")) {
+                    paxUrlStartLevel = Integer.parseInt(startup.get(key));
+                    File system = new File(System.getProperty("karaf.home"), System.getProperty("karaf.default.repository"));
+                    if (!system.isDirectory()) {
+                        LOGGER.warn("Can't locate system repository inside " + System.getProperty("karaf.home") + ". Skipping the operation.");
+                        return;
+                    }
+                    File paxUrlFile = new File(system, key);
+                    if (!paxUrlFile.isFile()) {
+                        LOGGER.warn("Can't locate " + key + " inside " + system + ". Skipping the operation.");
+                        return;
+                    }
+                    paxUrlLocation = paxUrlFile.toURI().toURL().toString();
+                } else if (key.trim().startsWith("org/apache/felix/org.apache.felix.bundlerepository/")) {
+                    bundleRepositoryStartLevel = Integer.parseInt(startup.get(key));
+                    String version = key.split("/")[4];
+                    bundleRepositoryLocation = "mvn:org.apache.felix/org.apache.felix.bundlerepository/" + version;
+                } else if (key.trim().startsWith("org/apache/karaf/features/org.apache.karaf.features.core")) {
+                    karafFeaturesStartLevel = Integer.parseInt(startup.get(key));
+                } else if (key.trim().startsWith("org/apache/karaf/features/org.apache.karaf.features.obr")) {
+                    karafObrStartLevel = Integer.parseInt(startup.get(key));
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.error("Can't process etc/startup.properties: " + e.getMessage() + " and determine bundle versions. Skipping the operation.", e);
+            return;
+        }
+
+        // possible zookeeper.url in etc/system.properties
+        try {
+            Properties systemProperties = new Properties(new File(System.getProperty("karaf.etc"), "system.properties"),
+                    bundleContext);
+            if (systemProperties.containsKey("zookeeper.url") || systemProperties.containsKey("zookeeper.password")) {
+                systemProperties.remove("zookeeper.url");
+                systemProperties.remove("zookeeper.password");
+                systemProperties.save();
+            }
+        } catch (Exception e) {
+            LOGGER.error("Can't process etc/system.properties: " + e.getMessage() + " to remove zookeeper configuration. Skipping the operation.", e);
+            return;
+        }
+
+        LOGGER.info("Deactivate io.fabric8.mbeanserver.listener");
+        org.apache.felix.scr.Component[] scrs = scrService.get().getComponents("io.fabric8.mbeanserver.listener");
+        if (scrs != null && scrs.length == 1) {
+            scrs[0].disable();
+        }
+        LOGGER.info("Deactivate io.fabric8.extender.listener.blueprint");
+        scrs = scrService.get().getComponents("io.fabric8.extender.listener.blueprint");
+        if (scrs != null && scrs.length == 1) {
+            scrs[0].disable();
+        }
+        LOGGER.info("Deactivate io.fabric8.extender.listener.spring");
+        scrs = scrService.get().getComponents("io.fabric8.extender.listener.spring");
+        if (scrs != null && scrs.length == 1) {
+            scrs[0].disable();
+        }
+
+        BundleUtils bundleUtils = new BundleUtils(bundleContext);
+
+        try {
+            String sn = "io.fabric8.fabric-web";
+            LOGGER.info("Stopping {}", sn);
+            Bundle b = bundleUtils.findBundle(sn);
+            b.stop(Bundle.STOP_TRANSIENT);
+
+            sn = "io.fabric8.fabric-maven-proxy";
+            LOGGER.info("Stopping {}", sn);
+            b = bundleUtils.findBundle(sn);
+            b.stop(Bundle.STOP_TRANSIENT);
+        } catch (Exception e) {
+            LOGGER.error("Can't stop fabric bundle: " + e.getMessage() + ". Container is not cleaned up properly.", e);
+            return;
+        }
+
+        try {
+            String sn = "io.fabric8.fabric-commands";
+            LOGGER.info("Uninstalling {}", sn);
+            Bundle b = bundleUtils.findBundle(sn);
+            b.uninstall();
+
+            sn = "io.fabric8.fabric-features-service";
+            LOGGER.info("Uninstalling {}", sn);
+            b = bundleUtils.findBundle(sn);
+            b.uninstall();
+
+            sn = "io.fabric8.fabric-core-agent-ssh";
+            LOGGER.info("Uninstalling {}", sn);
+            b = bundleUtils.findBundle(sn);
+            b.uninstall();
+        } catch (Exception e) {
+            LOGGER.error("Can't uninstall fabric bundle: " + e.getMessage() + ". Container is not cleaned up properly.", e);
+            return;
+        }
+
+        // deactivate git data store first, so we won't get anymore profile updates
+        // but not entirely - leave SCR component (and its services) active, but close the ZK trigger
+        LOGGER.info("Disconnecting profile registry from Git");
+        profileRegistry.get().disconnect();
+        LOGGER.info("Disconnecting datastore from ZooKeeper");
+        dataStore.get().disconnect();
+
+        // now we'll do something similar to this.destroyContainer() but without stopping and destroying it
+
+        LOGGER.info("Unregistering ports of current container");
+        portService.get().unregisterPort(c);
+
+        // remove configuration/registry entries of this container from ZK - no files are removed
+        LOGGER.info("Removing ZooKeeper configuration entries of current container");
+        dataStore.get().deleteContainer(this, containerName);
+
+        try {
+            LOGGER.info("Installing {}", paxUrlLocation);
+            Bundle b1 = bundleUtils.installBundle(paxUrlLocation);
+            b1.adapt(BundleStartLevel.class).setStartLevel(paxUrlStartLevel);
+            b1.start();
+
+            String url = "mvn:org.apache.karaf.features/org.apache.karaf.features.core/" + karafVersion;
+            LOGGER.info("Installing {}", url);
+            Bundle b2 = bundleUtils.installBundle(url);
+            b2.adapt(BundleStartLevel.class).setStartLevel(karafFeaturesStartLevel);
+            b2.start();
+
+            LOGGER.info("Installing {}", bundleRepositoryLocation);
+            Bundle b3 = bundleUtils.installBundle(bundleRepositoryLocation);
+            b3.adapt(BundleStartLevel.class).setStartLevel(bundleRepositoryStartLevel);
+            b3.start();
+
+            url = "mvn:org.apache.karaf.features/org.apache.karaf.features.obr/" + karafVersion;
+            LOGGER.info("Installing {}", url);
+            Bundle b4 = bundleUtils.installBundle(url);
+            b4.adapt(BundleStartLevel.class).setStartLevel(karafObrStartLevel);
+            b4.start();
+        } catch (Exception e) {
+            LOGGER.error("Can't install non-fabric bundles: " + e.getMessage() + ". Container is not cleaned up properly.", e);
+            return;
+        }
+
+        try {
+            // this will stop many fabric-related bundles
+            System.getProperties().remove("zookeeper.url");
+            System.getProperties().remove("zookeeper.password");
+            Configuration config = configAdmin.get().getConfiguration("io.fabric8.zookeeper", null);
+            LOGGER.info("Deleting {}", config);
+            config.delete();
+        } catch (Exception e) {
+            LOGGER.error("Can't delete io.fabric8.zookeeper configuration: " + e.getMessage() + ". Container is not cleaned up properly.", e);
+            return;
+        }
+
+        // now we can delete many more fabric-related configs
+        try {
+            Set<String> toRemove = new HashSet<>(Arrays.asList(
+                    "io.fabric8.agent",
+                    "io.fabric8.bootstrap.configuration",
+                    "io.fabric8.configadmin.bridge.timestamp",
+                    "io.fabric8.docker.provider",
+                    "io.fabric8.environment",
+                    "io.fabric8.jaas",
+                    "io.fabric8.jolokia",
+                    "io.fabric8.maven.proxy",
+                    "io.fabric8.mq.fabric.template",
+                    "io.fabric8.ports",
+                    "io.fabric8.version"
+            ));
+            String[] factoryPids = new String[] {
+                    "io.fabric8.mq.fabric.clustered.server",
+                    "io.fabric8.mq.fabric.server",
+                    "io.fabric8.zookeeper.server"
+            };
+            Configuration[] configs = configAdmin.get().listConfigurations(null);
+            for (Configuration cfg : configs) {
+                if (toRemove.contains(cfg.getPid())) {
+                    LOGGER.info("Deleting {}", cfg.toString());
+                    cfg.delete();
+                } else {
+                    try {
+                        for (String factoryPid : factoryPids) {
+                            if (factoryPid.equals(cfg.getFactoryPid())) {
+                                LOGGER.info("Deleting {}", cfg.toString());
+                                cfg.delete();
+                            } else if (cfg.getFactoryPid() == null && cfg.getPid() != null
+                                    && cfg.getPid().startsWith(factoryPid)) {
+                                LOGGER.info("Deleting {}", cfg.toString());
+                                cfg.delete();
+                            }
+                        }
+                    } catch (java.lang.IllegalStateException ignored) {
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.error("Can't process fabric-related configurations: " + e.getMessage() + ". Container is not cleaned up properly.", e);
+            return;
+        }
+
+        // a bit hacky, but let's change jetty config
+        try {
+            Bundle fileinstall = bundleUtils.findBundle("org.apache.felix.fileinstall");
+            fileinstall.stop(Bundle.STOP_TRANSIENT);
+            Bundle paxWebRuntime = bundleUtils.findBundle("org.ops4j.pax.web.pax-web-runtime");
+            fileinstall.stop(Bundle.STOP_TRANSIENT);
+
+            Configuration cfg = configAdmin.get().getConfiguration("org.ops4j.pax.web", null);
+            if (cfg != null && cfg.getProperties() != null) {
+                cfg.getProperties().remove("org.ops4j.pax.web.config.url");
+                cfg.getProperties().put("org.ops4j.pax.web.config.file", "etc/jetty.xml");
+                LOGGER.info("Updating {}", cfg);
+                cfg.update();
+            }
+
+            // update etc/org.ops4j.pax.web too, because fileinstall is stopped
+            File paxWebConfigFile = new File(System.getProperty("karaf.etc"), "org.ops4j.pax.web.cfg");
+            Properties paxWebProperties = new Properties(paxWebConfigFile, bundleContext);
+            paxWebProperties.remove("org.ops4j.pax.web.config.url");
+            paxWebProperties.put("org.ops4j.pax.web.config.file", "etc/jetty.xml");
+            paxWebProperties.save();
+        } catch (Exception e) {
+            LOGGER.error("Can't process etc/org.ops4j.pax.web.cfg: " + e.getMessage() + " to restore non-fabric Jetty configuration. Skipping the operation.", e);
+            return;
+        }
+
+        LOGGER.info("Restarting Fuse container.");
+        try {
+            System.setProperty("karaf.restart.jvm", "true");
+            System.setProperty("karaf.restart", "true");
+            bundleContext.getBundle(0).stop();
+        } catch (BundleException e) {
+            LOGGER.error("Can't restart container: " + e.getMessage(), e);
+        }
+    }
+
     public Map<String, Map<String, String>> substituteConfigurations(final Map<String, Map<String, String>> configurations) {
         return substituteConfigurations(configurations, null);
     }
@@ -1481,6 +1786,14 @@ public final class FabricServiceImpl extends AbstractComponent implements Fabric
     }
     void unbindProvider(ContainerProvider provider) {
         providers.remove(provider.getScheme());
+    }
+
+    void bindScrService(org.apache.felix.scr.ScrService service) {
+        this.scrService.bind(service);
+    }
+
+    void unbindScrService(org.apache.felix.scr.ScrService service) {
+        this.scrService.unbind(service);
     }
 
     @VisibleForTesting
