@@ -39,7 +39,7 @@ public class TriggerBuild {
         OpenShiftClient client = new DefaultOpenShiftClient();
 
         try {
-            client.buildConfigs().inNamespace(namespace).withName(name).trigger(new WebHookTrigger(true, null));
+            client.buildConfigs().inNamespace(namespace).withName(name).trigger(new WebHookTrigger());
         } catch (Exception e) {
             System.out.println("FAILED: " + e);
             e.printStackTrace();

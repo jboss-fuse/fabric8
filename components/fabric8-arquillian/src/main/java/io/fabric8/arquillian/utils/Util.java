@@ -25,7 +25,7 @@ import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.KubernetesList;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Service;
-import io.fabric8.kubernetes.api.model.extensions.Deployment;
+import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.openshift.api.model.DeploymentConfig;
@@ -268,7 +268,7 @@ public class Util {
             }
 
             try {
-                client.securityContextConstraints().withName(sessionNamespace).delete();
+                openShiftClient.securityContextConstraints().withName(sessionNamespace).delete();
             } catch (KubernetesClientException e) {
                 errors.add(e);
             }

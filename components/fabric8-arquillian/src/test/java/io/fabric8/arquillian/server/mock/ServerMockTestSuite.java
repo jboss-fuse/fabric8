@@ -20,7 +20,7 @@ import io.fabric8.arquillian.kubernetes.Constants;
 import io.fabric8.kubernetes.api.model.PodListBuilder;
 import io.fabric8.kubernetes.api.model.ReplicationControllerListBuilder;
 import io.fabric8.kubernetes.api.model.ServiceListBuilder;
-import io.fabric8.kubernetes.api.model.extensions.DeploymentListBuilder;
+import io.fabric8.kubernetes.api.model.apps.DeploymentListBuilder;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.openshift.api.model.ProjectBuilder;
 import io.fabric8.openshift.api.model.ProjectListBuilder;

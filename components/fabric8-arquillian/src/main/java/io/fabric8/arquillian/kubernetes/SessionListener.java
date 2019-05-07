@@ -33,8 +33,8 @@ import io.fabric8.kubernetes.api.KubernetesHelper;
 import io.fabric8.kubernetes.api.builder.Visitable;
 import io.fabric8.kubernetes.api.builder.Visitor;
 import io.fabric8.kubernetes.api.model.*;
-import io.fabric8.kubernetes.api.model.extensions.Deployment;
-import io.fabric8.kubernetes.api.model.extensions.ReplicaSet;
+import io.fabric8.kubernetes.api.model.apps.Deployment;
+import io.fabric8.kubernetes.api.model.apps.ReplicaSet;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.internal.HasMetadataComparator;
 import io.fabric8.openshift.api.model.DeploymentConfig;
@@ -473,9 +473,10 @@ public class SessionListener {
         }
 
 
-        SecurityContextConstraints securityContextConstraints = client.securityContextConstraints().withName(session.getNamespace()).get();
+        OpenShiftClient openShiftClient = new Controller(client).getOpenShiftClientOrNull(); 
+        SecurityContextConstraints securityContextConstraints = openShiftClient.securityContextConstraints().withName(session.getNamespace()).get();
         if (securityContextConstraints == null) {
-            client.securityContextConstraints().createNew()
+            openShiftClient.securityContextConstraints().createNew()
                     .withNewMetadata()
                     .withName(session.getNamespace())
                     .endMetadata()
