@@ -76,7 +76,13 @@ public final class Overrides {
         // ENTESB-9922 - get rid of duplicate overrides differing at qualifier position, like
         // - mvn:io.fabric8/fabric-git/1.2.0.redhat-621216-02
         // - mvn:io.fabric8/fabric-git/1.2.0.redhat-621216-08
-        List<String> filteredOverrides = filter(overrides);
+        List<String> filteredOverrides = new LinkedList<>(overrides);
+        try {
+            filteredOverrides = filter(overrides);
+        } catch (NoSuchMethodError ignored) {
+            // ENTESB-10627 - when patching from older version, we may hit this exception once
+            // that's completely expected
+        }
 
         // Do override replacement
         for (Clause override : Parser.parseClauses(filteredOverrides.toArray(new String[0]))) {
