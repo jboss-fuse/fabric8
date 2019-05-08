@@ -145,6 +145,8 @@ public class DeploymentAgent implements ManagedService {
 
     private final String deploymentAgentId;
 
+    private volatile AtomicBoolean stopped = new AtomicBoolean(false);
+
     public DeploymentAgent(BundleContext bundleContext) throws IOException {
         this.bundleContext = bundleContext;
         this.systemBundleContext = bundleContext.getBundle(0).getBundleContext();
@@ -239,6 +241,7 @@ public class DeploymentAgent implements ManagedService {
     }
 
     public void stop() throws InterruptedException {
+        stopped.set(true);
         LOGGER.info("Stopping DeploymentAgent " + deploymentAgentId);
         // We can't wait for the threads to finish because the agent needs to be able to
         // update itself and this would cause a deadlock
@@ -287,10 +290,12 @@ public class DeploymentAgent implements ManagedService {
                         success = doUpdate(props);
                     } catch (Throwable e) {
                         result = e;
-                        LOGGER.error("Unable to update agent", e);
+                        if (!stopped.get()) {
+                            LOGGER.error("Unable to update agent", e);
+                        }
                     }
                     // This update is critical, so
-                    if (success || result != null) {
+                    if (success || result != null && !stopped.get()) {
                         updateStatus(success ? Container.PROVISION_SUCCESS : Container.PROVISION_ERROR, result, true);
                     }
                 }
