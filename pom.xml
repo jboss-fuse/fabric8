@@ -26,7 +26,7 @@
 
     <groupId>io.fabric8</groupId>
     <artifactId>fabric8-project</artifactId>
-    <version>3.0.11.sb2.redhat-SNAPSHOT</version>
+    <version>3.0.11.sb2.fuse-740028</version>
     <packaging>pom</packaging>
 
     <name>Fabric8</name>
@@ -86,8 +86,8 @@
         <activemq.version>5.11.0.redhat-630377</activemq.version>
         <arquillian-cube.version>1.9.0</arquillian-cube.version>
         <camel.version>2.23.2.fuse-740001</camel.version>
-        <cxf.version>3.2.7.fuse-740004</cxf.version>
-        <cxf.plugin.version>3.2.7.fuse-740004</cxf.plugin.version>
+        <cxf.version>3.2.7.fuse-740005</cxf.version>
+        <cxf.plugin.version>3.2.7.fuse-740005</cxf.plugin.version>
 
         <commons.collections.version>3.2.2</commons.collections.version>
         <version.fuse-karaf>7.4.0.fuse-740006</version.fuse-karaf>
@@ -102,7 +102,7 @@
         <swagger.jaxrs.version>1.5.18.fuse70-1-redhat-1</swagger.jaxrs.version>
         <vertx.version>3.5.0</vertx.version>
         <weld.version>2.3.5.Final</weld.version>
-        <version.org.fusesource.camel-sap>7.4.0.fuse-740007</version.org.fusesource.camel-sap>
+        <version.org.fusesource.camel-sap>7.4.0.fuse-740012</version.org.fusesource.camel-sap>
         <version.org.fusesource.camel-activemq>${version.org.fusesource.camel-sap}</version.org.fusesource.camel-activemq>
         <version.io.undertow>2.0.15.Final-redhat-00001</version.io.undertow>
 
@@ -149,7 +149,7 @@
         <jetty.version>8.1.17.v20150415</jetty.version>
 
 	<rhoar.version>2.1.3.Final</rhoar.version>
-        <narayana-spring-boot.version>1.0.2.fuse-740006</narayana-spring-boot.version>
+        <narayana-spring-boot.version>2.0.2.fuse-740001</narayana-spring-boot.version>
 
 <!--
         We've released a new version of gitective (0.9.50) with the latest jgit support (4.10.0.201712302008-r)
@@ -1684,7 +1684,7 @@
                               </includes>
                           </plugins>
                           <properties>
-                              <version.org.fusesource.camel-sap>7.3.0.fuse-730054</version.org.fusesource.camel-sap>
+                              <version.org.fusesource.camel-sap>7.4.0.fuse-740012</version.org.fusesource.camel-sap>
                               <skipStagingRepositoryClose>true</skipStagingRepositoryClose>
                           </properties>
                           <inheritDependencyManagement>true</inheritDependencyManagement>
@@ -1919,7 +1919,7 @@
         <profile>
             <id>camel-snapshot</id>
             <properties>
-                <camel.version>2.21.0.fuse-730051</camel.version>
+                <camel.version>2.23.2.fuse-740001</camel.version>
             </properties>
         </profile>
         <profile>
