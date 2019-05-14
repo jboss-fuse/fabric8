@@ -157,6 +157,7 @@
         <json.version>20160212</json.version>
         <junit.version>4.12</junit.version>
         <kubernetes-client.version>3.1.12.fuse-730014</kubernetes-client.version>
+        <org.apache.log4j.version>2.9</org.apache.log4j.version>
         <log4j.version>1.2.17</log4j.version>
         <lombok.version>1.16.18</lombok.version>
         <maven.enforcer.version>3.2.3</maven.enforcer.version>
@@ -692,6 +693,78 @@
                 <artifactId>log4j</artifactId>
                 <version>${log4j.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-api</artifactId>
+                <version>${org.apache.log4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-core</artifactId>
+                <version>${org.apache.log4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-1.2-api</artifactId>
+                <version>${org.apache.log4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-jcl</artifactId>
+                <version>${org.apache.log4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-flume-ng</artifactId>
+                <version>${org.apache.log4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-taglib</artifactId>
+                <version>${org.apache.log4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-jmx-gui</artifactId>
+                <version>${org.apache.log4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-slf4j-impl</artifactId>
+                <version>${org.apache.log4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-web</artifactId>
+                <version>${org.apache.log4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-nosql</artifactId>
+                <version>${org.apache.log4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-iostreams</artifactId>
+                <version>${org.apache.log4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-jul</artifactId>
+                <version>${org.apache.log4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-liquibase</artifactId>
+                <version>${org.apache.log4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-api-scala_2.10</artifactId>
+                <version>${org.apache.log4j.version}</version>
+            </dependency>
+
 
             <!-- commons logging -->
             <!-- Slf4j -->
@@ -1287,6 +1360,7 @@
                                   <include>org.apache.cxf:cxf-rt-rs-service-description-swagger</include>
                                   <include>org.apache.cxf:cxf-rt-rs-service-description-openapi-v3</include>
                                   <include>org.apache.httpcomponents:*</include>
+                                  <include>org.apache.logging.log4j:*</include>
                                   <include>org.slf4j:*</include>
 
                                   <include>org.jolokia:jolokia-core</include>
@@ -1380,6 +1454,8 @@
                                       </includes>
                                       <excludes>
                                           <exclude>org.apache.activemq:activemq-camel</exclude>
+                                          <exclude>org.apache.logging.log4j:*</exclude>
+
                                           <exclude>org.assertj*:*</exclude>
                                           <exclude>org.slf4j:*</exclude>
                                           <exclude>junit:junit</exclude>
@@ -1451,7 +1527,7 @@
                                           <exclude>org.apache.httpcomponents:httpclient-osgi</exclude>
                                           <exclude>org.apache.httpcomponents:httpcore</exclude>
                                           <exclude>org.apache.httpcomponents:httpmime</exclude>
-
+                                          <exclude>org.apache.logging.log4j:*</exclude>
 
                                           <!-- Exclude community docs -->
                                           <exclude>org.apache.camel:camel-manual</exclude>
@@ -1520,6 +1596,8 @@
                                           <exclude>org.apache.httpcomponents:httpclient-osgi</exclude>
                                           <exclude>org.apache.httpcomponents:httpcore</exclude>
                                           <exclude>org.apache.httpcomponents:httpmime</exclude>
+
+                                          <exclude>org.apache.logging.log4j:*</exclude>
 
                                           <exclude>org.springframework.boot:spring-boot</exclude>
                                           <exclude>org.springframework.boot:spring-boot-test</exclude>
