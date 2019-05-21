@@ -2193,7 +2193,8 @@ public final class KubernetesHelper {
                 List<String> paths = rootPaths.getPaths();
                 if (paths != null) {
                     for (String path : paths) {
-                        if (java.util.Objects.equals("/oapi", path) || java.util.Objects.equals("oapi", path)) {
+                        if (java.util.Objects.equals("/oapi", path) || java.util.Objects.equals("oapi", path)
+                                || "/apis/machine.openshift.io".equals(path)) {
                             IS_OPENSHIFT.putIfAbsent(masterUrl, true);
                             return true;
                         }
