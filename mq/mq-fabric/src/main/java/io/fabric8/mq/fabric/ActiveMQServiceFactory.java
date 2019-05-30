@@ -449,6 +449,9 @@ public class ActiveMQServiceFactory  {
 
         public void update_pool_state() {
             synchronized (ActiveMQServiceFactory.this) {
+                if (discoveryAgent == null) {
+                    return;
+                }
                 boolean value = can_own_pool(this);
                 if (pool_enabled != value) {
                     try {
