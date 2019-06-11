@@ -233,9 +233,17 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
             initParams.put("repository-root", servletBase);
             initParams.put("export-all", "true");
             LOGGER.info("Registering /git servlet in http service");
-            httpService.get().registerServlet("/git", new FabricGitServlet(git, curator.get()), initParams, secure);
+            try {
+                httpService.get().registerServlet("/git", new FabricGitServlet(git, curator.get()), initParams, secure);
 
-            registerGitHttpEndpoint();
+                registerGitHttpEndpoint();
+            } catch (Exception e) {
+                if (Thread.currentThread().isInterrupted()) {
+                    LOGGER.warn("Can't register /git servlet. The thread was interrupted. Possible fabric-agent restart.");
+                    return;
+                }
+                throw e;
+            }
         }
     }
 
