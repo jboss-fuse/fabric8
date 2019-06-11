@@ -432,6 +432,14 @@ public class DeploymentAgent implements ManagedService {
         //force reading of updated informations from ZK
         if (!fabricService.isEmpty()) {
             updateMavenRepositoryConfiguration(fabricService.getService());
+        } else {
+            LOGGER.info("Fabric service not available. Waiting up to 10 seconds.");
+            fabricService.waitForService(10000L);
+            if (fabricService.isEmpty()) {
+                LOGGER.warn("Fabric service is still not available. Skipping discovery of Maven repository URIs");
+            } else {
+                updateMavenRepositoryConfiguration(fabricService.getService());
+            }
         }
 
         try {
