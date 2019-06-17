@@ -144,9 +144,9 @@
         <javax.el-version>2.2.5</javax.el-version>
         <javax.servlet-api.version>4.0.1</javax.servlet-api.version>
         <javax.ws.rs-api.version>2.1.1</javax.ws.rs-api.version>
-        <jetty-plugin-groupId>org.mortbay.jetty</jetty-plugin-groupId>
-        <jetty-plugin.version>8.1.16.v20140903</jetty-plugin.version>
-        <jetty.version>8.1.17.v20150415</jetty.version>
+        <jetty-plugin-groupId>org.eclipse.jetty</jetty-plugin-groupId>
+        <jetty-plugin.version>9.4.12.v20180830</jetty-plugin.version>
+        <jetty.version>9.4.12.v20180830</jetty.version>
 
         <narayana-spring-boot.version>1.0.3.fuse-730033</narayana-spring-boot.version>
 
