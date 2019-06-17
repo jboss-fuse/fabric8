@@ -95,7 +95,7 @@
         <hibernate-core.version>5.3.10.Final-redhat-00001</hibernate-core.version>
         <javax.el-api.version>3.0.0</javax.el-api.version>
         <jansi.version>1.18</jansi.version>
-        <jolokia.version>1.5.0.redhat-1</jolokia.version>
+        <jolokia.version>1.6.1.redhat-1</jolokia.version>
         <jgroups.version>3.6.10.Final-redhat-1</jgroups.version>
         <jsonschema2pojo.version>1.0.0</jsonschema2pojo.version>
         <snakeyaml.version>1.23</snakeyaml.version>
