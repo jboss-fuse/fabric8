@@ -276,7 +276,7 @@
         <jna-version>3.3.0</jna-version>
         <joda-time-version>1.6.2</joda-time-version>
         <joda-time2-version>2.9.2</joda-time2-version>
-        <jolokia-version>1.5.0.redhat-1</jolokia-version>
+        <jolokia-version>1.6.1.redhat-1</jolokia-version>
         <jgroups-version>3.4.4.Final</jgroups-version>
         <jsch-version>0.1.55</jsch-version>
         <jsch-smx-version>0.1.55_1</jsch-smx-version>
