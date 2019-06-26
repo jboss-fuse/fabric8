@@ -967,13 +967,13 @@
                  <scope>import</scope>
              </dependency>
 
-            <!-- JBoss Fuse kar -->
+            <!-- JBoss Fuse kar 
             <dependency>
                 <groupId>org.jboss.fuse</groupId>
                 <artifactId>fuse-karaf-framework</artifactId>
                 <type>kar</type>
                 <version>${version.fuse-karaf}</version>
-            </dependency>
+            </dependency>-->
 
             <dependency>
                  <groupId>io.swagger</groupId>
@@ -1622,83 +1622,6 @@
                               </includes>
                           </plugins>
                           <properties>
-                              <skipStagingRepositoryClose>true</skipStagingRepositoryClose>
-                          </properties>
-                          <inheritDependencyManagement>true</inheritDependencyManagement>
-                          <inheritPluginManagement>true</inheritPluginManagement>
-                      </bom>
-                      <bom>
-                          <artifactId>fabric8-project-bom-fuse-karaf</artifactId>
-                          <name>Fabric8 :: Project :: Bom for Fuse Applications on Karaf</name>
-                          <dependencies>
-                              <includes>
-                                  <!-- The kubernetes Client and Model -->
-                                  <include>io.fabric8:openshift-*</include>
-                                  <include>io.fabric8.kubernetes:*</include>
-                                  <include>io.fabric8:fabric8-karaf*</include>
-                                  <include>io.fabric8:kubernetes-*</include>
-
-                                  <include>org.fusesource:camel-sap</include>
-                                  <include>org.fusesource:camel-activemq</include>
-                                  <include>javax*:*</include>
-
-                                  <include>org.easymock:easymockclassextension</include>
-                                  <include>org.jboss.arquillian*:*</include>
-                                  <include>org.jboss.shrinkwrap*:*</include>
-
-                                  <include>xml-apis:xml-apis</include>
-
-                                  <!-- JBoss Fuse kar -->
-                                  <include>org.jboss.fuse:fuse-karaf-framework:${version.fuse-karaf}:kar</include>
-                              </includes>
-                              <excludes>
-                                  <exclude>javax.servlet:javax.servlet-api</exclude>
-                                  <exclude>javax.activation:activation:1.1</exclude>
-                              </excludes>
-                          </dependencies>
-                          <imports>
-                              <import>
-                                  <groupId>org.jboss.fuse</groupId>
-                                  <artifactId>jboss-fuse-parent</artifactId>
-                                  <version>${version.fuse-karaf}</version>
-                                  <repository>https://maven.repository.redhat.com/ga</repository>
-                                  <dependencyManagement>
-                                      <includes>
-                                          <include>*:*</include>
-                                      </includes>
-                                      <excludes>
-                                          <exclude>javax.ws.rs:javax.ws.rs-api</exclude>
-                                          <exclude>org.fusesource:camel-activemq</exclude>
-                                          <exclude>javax.annotation:jsr250-api</exclude>
-                                          <exclude>xml-apis:xml-apis:1.4.01</exclude>
-
-                                          <exclude>org.easymock:easymockclassextension</exclude>
-                                          <exclude>org.apache.cxf:cxf-rt-ws-security-oauth2</exclude>
-                                          <exclude>org.apache.camel:camel-manual</exclude>
-                                          <exclude>org.apache.activemq:activemq-camel</exclude>
-                                          <exclude>org.jboss.fuse.features:base</exclude>
-                                          <exclude>org.fusesource:camel-sap</exclude>
-                                      </excludes>
-                                  </dependencyManagement>
-                              </import>
-                          </imports>
-                          <overrides>
-                              <override>
-                                  <dependencies>
-                                      <includes>
-                                          <include>org.apache.activemq:activemq-*</include>
-                                      </includes>
-                                  </dependencies>
-                                  <version>${activemq.version}</version>
-                              </override>
-                          </overrides>
-                          <plugins>
-                              <includes>
-                                  <include>io.fabric8:*</include>
-                              </includes>
-                          </plugins>
-                          <properties>
-                              <version.org.fusesource.camel-sap>7.3.0.fuse-730054</version.org.fusesource.camel-sap>
                               <skipStagingRepositoryClose>true</skipStagingRepositoryClose>
                           </properties>
                           <inheritDependencyManagement>true</inheritDependencyManagement>
