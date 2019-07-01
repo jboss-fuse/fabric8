@@ -487,6 +487,18 @@
                 <updatePolicy>never</updatePolicy>
             </releases>
         </repository>
+        <!-- For jolokia-osgi 1.6.1-redhat-1 -->
+        <repository>
+            <id>jboss-common</id>
+            <name>jboss-common</name>
+            <url>http://download-node-02.eng.bos.redhat.com/brewroot/repos/jb-common-build/latest/maven</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
     </repositories>
 
     <pluginRepositories>
