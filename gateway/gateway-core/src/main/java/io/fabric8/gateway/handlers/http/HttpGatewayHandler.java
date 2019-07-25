@@ -131,9 +131,8 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
     protected void doRouteRequest(Map<String, MappedServices> mappingRules, final HttpServerRequest request) {
         String uri = request.uri();
         String uri2 = uri;
-        if(addMissingTrailingSlashes) {
-            uri2 = normalizeUri(uri);
-        } 
+        uri2 = normalizeUri(uri);
+        
 
         HttpClient client = null;
         String remaining = null;
@@ -188,9 +187,18 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
                 servicePath += "/";
             }
             if (remaining != null) {
+                if (remaining.endsWith("/")) {
+                    //ensure the requst URI not end with "/", for example not wrongly index.jsp/
+                    //or index.jsp/?query string
+                    remaining = remaining.substring(0, remaining.length() - 1);
+                }
+                if (remaining.contains("/?")) {
+                    remaining = remaining.replace("/?", "?");
+                }
                 servicePath += remaining;
             }
-
+         
+            
             LOG.info("Proxying request {} to service path: {} on service: {} reverseServiceUrl: {}", uri, servicePath, proxyServiceUrl, reverseServiceUrl);
             final HttpClient finalClient = client;
 
