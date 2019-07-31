@@ -144,7 +144,7 @@
         <jetty-plugin.version>9.4.12.v20180830</jetty-plugin.version>
         <jetty.version>9.4.12.v20180830</jetty.version>
 
-        <narayana-spring-boot.version>1.0.3.fuse-730033</narayana-spring-boot.version>
+        <narayana-spring-boot.version>1.0.2.fuse-750007</narayana-spring-boot.version>
         <narayana.version>5.9.1.Final-redhat-00001</narayana.version>
 
 <!--
@@ -1297,12 +1297,14 @@
                               <excludes>
                                   <exclude>org.optaplanner:*</exclude>
                                   <exclude>javax.servlet:javax.servlet-api</exclude>
+                                  <exclude>javax.servlet:servlet-api</exclude>
                                   <exclude>javax.activation:activation:1.1</exclude>
                                   <exclude>org.apache.httpcomponents:httpasyncclient</exclude>
                                   <exclude>org.apache.httpcomponents:httpclient</exclude>
                                   <exclude>org.apache.httpcomponents:httpclient-cache</exclude>
                                   <exclude>org.apache.httpcomponents:httpclient-osgi</exclude>
                                   <exclude>org.apache.httpcomponents:httpcore</exclude>
+                                  <exclude>org.apache.httpcomponents:httpcore-nio</exclude>
                                   <exclude>org.apache.httpcomponents:httpmime</exclude>
                                   <exclude>javax.validation:validation-api</exclude>
                                   <exclude>org.apache.cxf:cxf-rt-rs-service-description-swagger</exclude>
