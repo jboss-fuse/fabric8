@@ -1298,6 +1298,7 @@
                               <excludes>
                                   <exclude>org.optaplanner:*</exclude>
                                   <exclude>javax.servlet:javax.servlet-api</exclude>
+                                  <exclude>javax.servlet:servlet-api</exclude>
                                   <exclude>javax.activation:activation:1.1</exclude>
                                   <exclude>org.apache.httpcomponents:httpasyncclient</exclude>
                                   <exclude>org.apache.httpcomponents:httpclient</exclude>
