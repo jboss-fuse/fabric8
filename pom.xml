@@ -240,9 +240,10 @@
         <http-client-version>4.5.2</http-client-version>
         <http-core-version>4.4.4</http-core-version>
         <influxdb-version>1.2</influxdb-version>
-        <jackson-version>1.9.13</jackson-version>
+        <jackson-version>1.9.13.redhat-00006</jackson-version>
         <jackson2-community-version>2.6.3</jackson2-community-version>
         <jackson2-version>2.6.3</jackson2-version>
+        <jackson2-prod-version>2.6.3.redhat-4</jackson2-prod-version>
         <snakeyaml-version>1.17</snakeyaml-version>
         <jackson-module-scala-version>2.1.5_3</jackson-module-scala-version>
         <jansi-version>1.11.redhat-1</jansi-version>
@@ -1771,17 +1772,17 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
-                <version>${jackson2-version}</version>
+                <version>${jackson2-prod-version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-core</artifactId>
-                <version>${jackson2-version}</version>
+                <version>${jackson2-prod-version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-annotations</artifactId>
-                <version>${jackson2-version}</version>
+                <version>${jackson2-prod-version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.jaxrs</groupId>
