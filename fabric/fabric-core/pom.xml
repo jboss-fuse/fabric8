@@ -223,6 +223,14 @@
                     </instructions>
                 </configuration>
             </plugin>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <jackson.deserialization.whitelist.packages>io.fabric8.api.commands,io.fabric8.core.JacksonTest,java.lang.String</jackson.deserialization.whitelist.packages>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
