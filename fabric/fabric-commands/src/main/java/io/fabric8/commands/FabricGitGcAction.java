@@ -38,7 +38,7 @@ import org.apache.zookeeper.CreateMode;
 @Command(name = FabricGitGc.FUNCTION_VALUE, scope = FabricGitGc.SCOPE_VALUE, description = FabricGitGc.DESCRIPTION)
 public class FabricGitGcAction extends JMXCommandContainerActionSupport {
 
-    @Option(name = "-a", aliases = { "--aggressive" }, description = "Set \"--aggressive\" option for \"git gc\"", required = false, multiValued = false)
+    @Option(name = "--aggressive", description = "Set \"--aggressive\" option for \"git gc\"", required = false, multiValued = false)
     protected boolean aggressive = false;
 
     // to track responses for containers
