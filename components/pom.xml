@@ -72,9 +72,6 @@
     <module>fabric8-selenium</module>
     <module>fabric8-spring-boot</module>
 
-    <!-- karaf support -->
-    <module>fabric8-karaf</module>
-
     <!-- swagger -->
     <module>swagger-annotator</module>
     <module>swagger-model</module>
