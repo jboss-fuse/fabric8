@@ -62,18 +62,11 @@
     <module>fabric8-apm</module>
     <module>fabric8-arquillian</module>
     <module>fabric8-cxf</module>
-    <!--<module>fabric8-cxf-plugins</module>--> <!-- TODO: does not work yet -->
-    <!--<module>fabric8-cxf-registry</module>--> <!-- TODO: does not work yet -->
     <module>fabric8-devops</module>
     <module>fabric8-devops-connector</module>
     <module>fabric8-jgroups</module>
     <module>fabric8-profiles</module>
     <module>fabric8-project-utils</module>
-    <module>fabric8-selenium</module>
-    <module>fabric8-spring-boot</module>
-
-    <!-- karaf support -->
-    <module>fabric8-karaf</module>
 
     <!-- swagger -->
     <module>swagger-annotator</module>
