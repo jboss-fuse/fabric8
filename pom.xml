@@ -161,7 +161,7 @@
         <maven-plugin-plugin.version>3.4</maven-plugin-plugin.version>
         <maven.failsafe.plugin.version>2.19</maven.failsafe.plugin.version>
         <maven.javadoc.plugin.version>2.10.3</maven.javadoc.plugin.version>
-        <mockwebserver.version>0.0.12</mockwebserver.version>
+        <mockwebserver.version>0.0.17</mockwebserver.version>
         <mvel.version>2.4.0.Final</mvel.version>
         <osgi.version>4.3.1</osgi.version>
         <osgi-compendium.version>4.3.1</osgi-compendium.version>
@@ -182,7 +182,7 @@
         <sundrio.plugin.version>0.16.5</sundrio.plugin.version>
         <tomcat-embed.version>8.0.36.redhat-39</tomcat-embed.version>
         <validation-api.version>1.1.0.Final-redhat-1</validation-api.version>
-        <zookeeper.version>3.4.9</zookeeper.version>
+        <zookeeper.version>3.4.14</zookeeper.version>
         <commons-codec.version>1.11</commons-codec.version>
         <commons-lang3.version>3.8</commons-lang3.version>
 
