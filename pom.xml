@@ -175,7 +175,7 @@
         <slf4j.version>1.7.22.redhat-2</slf4j.version>
         <tomcat-embed.version>9.0.7.redhat-19</tomcat-embed.version>
         <validation-api.version>1.1.0.Final-redhat-1</validation-api.version>
-        <zookeeper.version>3.4.9</zookeeper.version>
+        <zookeeper.version>3.4.14</zookeeper.version>
         <commons-codec.version>1.11</commons-codec.version>
         <commons-lang3.version>3.8</commons-lang3.version>
 
