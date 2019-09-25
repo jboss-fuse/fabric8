@@ -26,7 +26,7 @@
 
     <groupId>io.fabric8</groupId>
     <artifactId>fabric8-project</artifactId>
-    <version>3.0.11.sb2.redhat-SNAPSHOT</version>
+    <version>3.0.11.fuse-sb2-750005</version>
     <packaging>pom</packaging>
 
     <name>Fabric8</name>
@@ -81,9 +81,9 @@
         <!-- upstream vs redhat versions of dependencies goes here -->
         <activemq.version>5.11.0.redhat-630416</activemq.version>
         <arquillian-cube.version>1.9.0</arquillian-cube.version>
-        <camel.version>2.23.2.fuse-750019</camel.version>
-        <cxf.version>3.2.7.fuse-sb2-750015</cxf.version>
-        <cxf.plugin.version>3.2.7.fuse-sb2-750015</cxf.plugin.version>
+        <camel.version>2.23.2.fuse-750024</camel.version>
+        <cxf.version>3.2.7.fuse-sb2-750019</cxf.version>
+        <cxf.plugin.version>3.2.7.fuse-sb2-750019</cxf.plugin.version>
 
         <commons.collections.version>3.2.2.redhat-2</commons.collections.version>
         <hibernate-validator.version>5.3.5.Final-redhat-2</hibernate-validator.version>
@@ -97,7 +97,7 @@
         <swagger.jaxrs.version>1.5.18.fuse70-1-redhat-1</swagger.jaxrs.version>
         <vertx.version>3.5.0</vertx.version>
         <weld.version>2.3.5.Final</weld.version>
-        <version.org.fusesource.camel-sap>7.5.0.fuse-sb2-750018</version.org.fusesource.camel-sap>
+        <version.org.fusesource.camel-sap>7.5.0.fuse-sb2-750022</version.org.fusesource.camel-sap>
         <version.org.fusesource.camel-activemq>${version.org.fusesource.camel-sap}</version.org.fusesource.camel-activemq>
         <version.io.undertow>2.0.23.Final</version.io.undertow>
 
@@ -144,7 +144,7 @@
         <jetty.version>9.4.12.v20180830</jetty.version>
 
 	<rhoar.version>2.1.3.Final-redhat-00001</rhoar.version>
-        <narayana-spring-boot.version>2.1.1.fuse-sb2-750016</narayana-spring-boot.version>
+        <narayana-spring-boot.version>2.1.1.fuse-sb2-750020</narayana-spring-boot.version>
         <narayana.version>5.9.1.Final-redhat-00001</narayana.version>
 
 <!--
@@ -1316,7 +1316,7 @@
         <profile>
             <id>camel-snapshot</id>
             <properties>
-                <camel.version>2.21.0.fuse-730051</camel.version>
+                <camel.version>2.23.2.fuse-750024</camel.version>
             </properties>
         </profile>
         <profile>
