@@ -32,7 +32,7 @@
   <description>A bunch of utility functions to create REST based micro services</description>
 
   <properties>
-    <org.eclipse.jetty.version>9.1.5.v20140505</org.eclipse.jetty.version>
+    <org.eclipse.jetty.version>9.4.20.v20190813</org.eclipse.jetty.version>
     <javax.el3.version>3.0.0</javax.el3.version>
   </properties>
 
@@ -111,21 +111,6 @@
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-jndi</artifactId>
       <version>${org.eclipse.jetty.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-jsp</artifactId>
-      <version>${org.eclipse.jetty.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.glassfish</groupId>
-          <artifactId>javax.el</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.glassfish.web</groupId>
-          <artifactId>javax.servlet.jsp.jstl</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.glassfish.web</groupId>
