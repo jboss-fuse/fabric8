@@ -122,7 +122,8 @@
         <felix-scr-plugin.version>1.21.0</felix-scr-plugin.version>
         <guava.version>19.0</guava.version>
         <httpclient.version>4.5.2</httpclient.version>
-        <jackson2.version>2.7.4</jackson2.version>
+        <jackson2.version>2.8.11</jackson2.version>
+        <jackson2databind.version>2.8.11.3</jackson2databind.version>
         <jar.plugin.version>2.6</jar.plugin.version>
         <javax.cdi-api.version>1.2</javax.cdi-api.version>
         <javax.el-version>2.2.5</javax.el-version>
@@ -875,7 +876,7 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
-                <version>${jackson2.version}</version>
+                <version>${jackson2databind.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
@@ -1672,6 +1673,32 @@
                                       </includes>
                                   </dependencies>
                                   <version>${spring.security.oauth.version}</version>
+                              </override>
+                             <override>
+                                  <dependencies>
+                                      <includes>
+                                          <include>com.fasterxml.jackson.core:jackson-annotations</include>
+                                          <include>com.fasterxml.jackson.core:jackson-core</include>
+                                          <include>com.fasterxml.jackson.dataformat:jackson-dataformat-cbor</include>
+                                          <include>com.fasterxml.jackson.dataformat:jackson-dataformat-smile</include>
+                                          <include>com.fasterxml.jackson.dataformat:jackson-dataformat-xml</include>
+                                          <include>com.fasterxml.jackson.dataformat:jackson-dataformat-yaml</include>
+                                          <include>com.fasterxml.jackson.datatype:jackson-datatype-joda</include>
+                                          <include>com.fasterxml.jackson.jaxrs:jackson-jaxrs-base</include>
+                                          <include>com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider</include>
+                                          <include>com.fasterxml.jackson.module:jackson-module-jaxb-annotations</include>
+                                          <include>com.fasterxml.jackson.module:jackson-module-scala_2.11</include>
+                                      </includes>
+                                  </dependencies>
+                                  <version>${jackson2.version}</version>
+                              </override>
+                             <override>
+                                  <dependencies>
+                                      <includes>
+                                          <include>com.fasterxml.jackson.core:jackson-databind</include>
+                                      </includes>
+                                  </dependencies>
+                                  <version>${jackson2databind.version}</version>
                               </override>
                           </overrides>
                           <plugins>
