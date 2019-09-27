@@ -19,6 +19,7 @@ import io.fabric8.arquillian.kubernetes.DependencyResolver;
 import io.fabric8.arquillian.kubernetes.Session;
 import io.fabric8.arquillian.kubernetes.log.AnsiLogger;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -26,6 +27,7 @@ import java.io.IOException;
 public class DependencyResolverTest {
 
     @Test
+    @Ignore("Because of productized dependencies")
     public void testResolutionOfPomWithNoDeps() throws IOException {
         Session session = new Session("test-session", "test-session-123", new AnsiLogger());
         DependencyResolver resolver = new DependencyResolver(DependencyResolver.class.getResource("/test-pom.xml").getFile(), true);

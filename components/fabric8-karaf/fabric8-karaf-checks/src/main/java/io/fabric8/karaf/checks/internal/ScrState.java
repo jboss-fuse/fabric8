@@ -1,18 +1,21 @@
 package io.fabric8.karaf.checks.internal;
 
+import java.util.Collection;
+
 import io.fabric8.karaf.checks.Check;
-import org.apache.felix.scr.Component;
-import org.apache.felix.scr.ScrService;
 import org.osgi.framework.Bundle;
+import org.osgi.service.component.runtime.ServiceComponentRuntime;
+import org.osgi.service.component.runtime.dto.ComponentConfigurationDTO;
+import org.osgi.service.component.runtime.dto.ComponentDescriptionDTO;
 import org.osgi.util.tracker.ServiceTracker;
 
 public class ScrState extends AbstractBundleChecker {
 
-    private final ServiceTracker<ScrService, ScrService> tracker;
+    private final ServiceTracker<ServiceComponentRuntime, ServiceComponentRuntime> tracker;
 
     public ScrState() {
         super();
-        tracker = new ServiceTracker<>(bundleContext, ScrService.class, null);
+        tracker = new ServiceTracker<>(bundleContext, ServiceComponentRuntime.class, null);
         tracker.open();
     }
 
@@ -21,17 +24,19 @@ public class ScrState extends AbstractBundleChecker {
         if (bundle.getHeaders().get("Service-Component") == null) {
             return null;
         }
-        ScrService svc = tracker.getService();
+        ServiceComponentRuntime svc = tracker.getService();
         if (svc == null) {
             return new Check("scr-state", "No ScrService found");
         }
-        Component[] components = svc.getComponents(bundle);
+        Collection<ComponentDescriptionDTO> components = svc.getComponentDescriptionDTOs(bundle);
         if (components != null) {
-            for (Component component : components) {
-                int state = component.getState();
-                if (state != Component.STATE_ACTIVE && state != Component.STATE_REGISTERED
-                        && state != Component.STATE_FACTORY) {
-                    return new Check("scr-state", "SCR bundle " + bundle.getBundleId() + " is in state " + getState(state));
+            for (ComponentDescriptionDTO component : components) {
+                Collection<ComponentConfigurationDTO> dtos = svc.getComponentConfigurationDTOs(component);
+                for (ComponentConfigurationDTO dto : dtos) {
+                    int state = dto.state;
+                    if (state != ComponentConfigurationDTO.ACTIVE) {
+                        return new Check("scr-state", "SCR bundle " + bundle.getBundleId() + " is in state " + getState(state));
+                    }
                 }
             }
         }
@@ -40,30 +45,18 @@ public class ScrState extends AbstractBundleChecker {
 
     private String getState(int state) {
         switch (state) {
-            case (Component.STATE_DISABLED):
+            case (-1):
                 return "disabled";
-            case (Component.STATE_ENABLING):
-                return "enabling";
-            case (Component.STATE_ENABLED):
-                return "enabled";
-            case (Component.STATE_UNSATISFIED):
-                return "unsatisfied";
-            case (Component.STATE_ACTIVATING):
-                return "activating";
-            case (Component.STATE_ACTIVE):
+            case (ComponentConfigurationDTO.ACTIVE):
                 return "active";
-            case (Component.STATE_REGISTERED):
-                return "registered";
-            case (Component.STATE_FACTORY):
-                return "factory";
-            case (Component.STATE_DEACTIVATING):
-                return "deactivating";
-            case (Component.STATE_DISABLING):
-                return "disabling";
-            case (Component.STATE_DISPOSING):
-                return "disposing";
-            case (Component.STATE_DISPOSED):
-                return "disposed";
+            case (ComponentConfigurationDTO.FAILED_ACTIVATION):
+                return "activation failed";
+            case (ComponentConfigurationDTO.SATISFIED):
+                return "satisfied";
+            case (ComponentConfigurationDTO.UNSATISFIED_CONFIGURATION):
+                return "unsatisfied configuration";
+            case (ComponentConfigurationDTO.UNSATISFIED_REFERENCE):
+                return "unsatisfied reference";
             default:
                 return "unknown: " + state;
         }
