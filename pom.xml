@@ -87,6 +87,7 @@
 
         <commons.collections.version>3.2.2.redhat-2</commons.collections.version>
         <version.fuse-karaf>7.5.0.fuse-750026</version.fuse-karaf>
+        <karaf.version>4.2.6.fuse-750012</karaf.version>
         <hibernate-validator.version>5.3.5.Final-redhat-2</hibernate-validator.version>
         <hibernate-core.version>5.3.10.Final-redhat-00001</hibernate-core.version>
         <javax.el-api.version>3.0.0</javax.el-api.version>
@@ -122,6 +123,7 @@
         <artemis.version>2.9.0.redhat-00005</artemis.version>
         <buildnumber.plugin.version>1.3</buildnumber.plugin.version>
 
+        <aries-bluepint-core.version>1.10.2</aries-bluepint-core.version>
         <compiler.plugin.version>3.5.1</compiler.plugin.version>
         <curator.version>2.9.1</curator.version>
         <deltaspike.version>1.7.2</deltaspike.version>
@@ -760,6 +762,11 @@
                 <groupId>org.apache.felix</groupId>
                 <artifactId>org.apache.felix.scr.annotations</artifactId>
                 <version>${felix-scr-annotations.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.aries.blueprint</groupId>
+                <artifactId>org.apache.aries.blueprint.core</artifactId>
+                <version>${aries-bluepint-core.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.zookeeper</groupId>
