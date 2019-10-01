@@ -1,27 +1,27 @@
- <!--
+<!--
 
-     Copyright 2005-2016 Red Hat, Inc.
+    Copyright 2005-2016 Red Hat, Inc.
 
-     Red Hat licenses this file to you under the Apache License, version
-     2.0 (the "License"); you may not use this file except in compliance
-     with the License.  You may obtain a copy of the License at
+    Red Hat licenses this file to you under the Apache License, version
+    2.0 (the "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
 
-        http://www.apache.org/licenses/LICENSE-2.0
+       http://www.apache.org/licenses/LICENSE-2.0
 
-     Unless required by applicable law or agreed to in writing, software
-     distributed under the License is distributed on an "AS IS" BASIS,
-     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-     implied.  See the License for the specific language governing
-     permissions and limitations under the License.
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+    implied.  See the License for the specific language governing
+    permissions and limitations under the License.
 
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-      <groupId>org.sonatype.oss</groupId>
-      <artifactId>oss-parent</artifactId>
-      <version>9</version>
+        <groupId>org.sonatype.oss</groupId>
+        <artifactId>oss-parent</artifactId>
+        <version>9</version>
     </parent>
 
     <groupId>io.fabric8</groupId>
@@ -47,18 +47,18 @@
             <distribution>repo</distribution>
         </license>
         <license>
-          <name>Creative Commons Attribution 2.5</name>
-          <url>http://creativecommons.org/licenses/by/2.5/legalcode</url>
-          <distribution>repo</distribution>
+            <name>Creative Commons Attribution 2.5</name>
+            <url>http://creativecommons.org/licenses/by/2.5/legalcode</url>
+            <distribution>repo</distribution>
         </license>
         <license>
-          <name>MIT License</name>
-          <url>http://www.opensource.org/licenses/MIT</url>
-          <distribution>repo</distribution>
+            <name>MIT License</name>
+            <url>http://www.opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
         </license>
     </licenses>
 
-      <!-- including A developer as it's required by the maven poms going into central -->
+    <!-- including A developer as it's required by the maven poms going into central -->
     <developers>
         <developer>
             <id>geeks</id>
@@ -76,17 +76,31 @@
         <tag>fabric8-3.0.11</tag>
     </scm>
 
+    <distributionManagement>
+        <repository>
+            <id>oss-sonatype-staging</id>
+            <name>Sonatype Staging Repository</name>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+        </repository>
+        <snapshotRepository>
+            <id>oss-sonatype-snapshots</id>
+            <name>OSS Sonatype Nexus Snapshots</name>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
+
     <properties>
 
         <!-- upstream vs redhat versions of dependencies goes here -->
         <activemq.version>5.11.0.redhat-630416</activemq.version>
         <arquillian-cube.version>1.9.0</arquillian-cube.version>
-        <camel.version>2.21.0.fuse-750024</camel.version>
-        <cxf.version>3.2.7.fuse-750017</cxf.version>
-        <cxf.plugin.version>3.2.7.fuse-750017</cxf.plugin.version>
+        <camel.version>2.21.0.fuse-750028</camel.version>
+        <cxf.version>3.2.7.fuse-750021</cxf.version>
+        <cxf.plugin.version>3.2.7.fuse-750021</cxf.plugin.version>
+        <cxf.xjc-utils.version>3.2.4.fuse-750011</cxf.xjc-utils.version>
 
         <commons.collections.version>3.2.2.redhat-2</commons.collections.version>
-        <version.fuse-karaf>7.5.0.fuse-750026</version.fuse-karaf>
+        <version.fuse-karaf>7.5.0.fuse-750029</version.fuse-karaf>
         <karaf.version>4.2.6.fuse-750012</karaf.version>
         <hibernate-validator.version>5.3.5.Final-redhat-2</hibernate-validator.version>
         <hibernate-core.version>5.3.10.Final-redhat-00001</hibernate-core.version>
@@ -99,7 +113,7 @@
         <swagger.jaxrs.version>1.5.18.fuse70-1-redhat-1</swagger.jaxrs.version>
         <vertx.version>3.5.0</vertx.version>
         <weld.version>2.3.5.Final</weld.version>
-        <version.org.fusesource.camel-sap>7.5.0.fuse-750024</version.org.fusesource.camel-sap>
+        <version.org.fusesource.camel-sap>7.5.0.fuse-750026</version.org.fusesource.camel-sap>
         <version.org.fusesource.camel-activemq>${version.org.fusesource.camel-sap}</version.org.fusesource.camel-activemq>
         <version.io.undertow>2.0.23.Final</version.io.undertow>
 
@@ -134,9 +148,12 @@
         <felix-scr-annotations.version>1.12.0</felix-scr-annotations.version>
         <felix-scr-plugin.version>1.21.0</felix-scr-plugin.version>
         <guava.version>19.0</guava.version>
+        <httpasyncclient.version>4.1.3.redhat-2</httpasyncclient.version>
+        <httpcore.version>4.4.9</httpcore.version>
         <httpclient.version>4.5.5</httpclient.version>
         <jackson2.version>2.8.11</jackson2.version>
         <jackson2.databind.version>2.8.11.3</jackson2.databind.version>
+        <jackson2.kotlin.version>2.8.11.1</jackson2.kotlin.version>
         <jar.plugin.version>2.6</jar.plugin.version>
         <javax.cdi-api.version>1.2</javax.cdi-api.version>
         <javax.el-version>3.0.0</javax.el-version>
@@ -146,17 +163,18 @@
         <jetty-plugin.version>9.4.20.v20190813</jetty-plugin.version>
         <jetty.version>9.4.20.v20190813</jetty.version>
 
-        <narayana-spring-boot.version>1.0.2.fuse-750023</narayana-spring-boot.version>
+        <narayana-spring-boot.version>1.0.2.fuse-750025</narayana-spring-boot.version>
         <narayana.version>5.9.3.Final-redhat-00001</narayana.version>
 
-<!--
-        We've released a new version of gitective (0.9.50) with the latest jgit support (4.10.0.201712302008-r)
--->
+        <!--
+                We've released a new version of gitective (0.9.50) with the latest jgit support (4.10.0.201712302008-r)
+        -->
         <jgit.version>4.10.0.201712302008-r</jgit.version>
         <json.version>20180813</json.version>
         <junit.version>4.12</junit.version>
-        <kubernetes-client.version>3.1.12.fuse-750015</kubernetes-client.version>
+        <kubernetes-client.version>3.1.12.fuse-750017</kubernetes-client.version>
         <log4j.version>1.2.17</log4j.version>
+        <log4j2.version>2.12.1</log4j2.version>
         <lombok.version>1.16.18</lombok.version>
         <maven.enforcer.version>3.2.3</maven.enforcer.version>
         <maven.enforcer.plugin.version>1.4.1</maven.enforcer.plugin.version>
@@ -179,14 +197,19 @@
         <shrinkwrap-resolver.version>2.2.2</shrinkwrap-resolver.version>
         <slf4j.version>1.7.22.redhat-2</slf4j.version>
         <spring.version>4.3.25.RELEASE</spring.version>
+        <spring.batch.version>3.0.10.RELEASE</spring.batch.version>
         <spring.boot.version>1.5.19.RELEASE</spring.boot.version>
-        <spring-cloud-kubernetes.version>0.1.6.fuse-750017</spring-cloud-kubernetes.version>
+        <spring.security.version>4.2.13.RELEASE</spring.security.version>
+        <spring.ws.version>2.4.2.RELEASE</spring.ws.version>
+        <spring-cloud-kubernetes.version>0.1.6.fuse-750018</spring-cloud-kubernetes.version>
         <sundrio.plugin.version>0.16.5</sundrio.plugin.version>
         <tomcat-embed.version>8.0.36.redhat-39</tomcat-embed.version>
         <validation-api.version>1.1.0.Final-redhat-1</validation-api.version>
         <zookeeper.version>3.4.14</zookeeper.version>
         <commons-codec.version>1.12</commons-codec.version>
         <commons-lang3.version>3.9</commons-lang3.version>
+        <commons-pool2.version>2.6.2</commons-pool2.version>
+        <commons-dbcp2.version>2.1.1</commons-dbcp2.version>
 
         <!-- OSGi bundles properties -->
         <fuse.osgi.bundle.name>${project.name}</fuse.osgi.bundle.name>
@@ -229,26 +252,6 @@
         <fuse.osgi.capabilities.provide />
         <fuse.osgi.capabilities.require />
     </properties>
-
-    <distributionManagement>
-      <repository>
-        <id>oss-sonatype-staging</id>
-        <name>Sonatype Staging Repository</name>
-        <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
-      </repository>
-      <snapshotRepository>
-        <id>oss-sonatype-snapshots</id>
-        <name>OSS Sonatype Nexus Snapshots</name>
-        <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-      </snapshotRepository>
-    </distributionManagement>
-
-    <!-- lets try not to add any 3rd party repositories, we want fabric8 to be nimble and only use whats in Maven Central -->
-    <repositories>
-    </repositories>
-
-    <pluginRepositories>
-    </pluginRepositories>
 
     <dependencyManagement>
         <dependencies>
@@ -318,9 +321,9 @@
             </dependency>
 
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>fabric8-apt</artifactId>
-              <version>${project.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>fabric8-apt</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.fabric8</groupId>
@@ -328,34 +331,34 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>fabric8-build-workflow</artifactId>
-              <version>${project.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>fabric8-build-workflow</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>fabric8-camel</artifactId>
-              <version>${project.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>fabric8-camel</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>fabric8-cdi</artifactId>
-              <version>${project.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>fabric8-cdi</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>fabric8-devops</artifactId>
-              <version>${project.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>fabric8-devops</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>fabric8-devops-connector</artifactId>
-              <version>${project.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>fabric8-devops-connector</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>fabric8-jgroups</artifactId>
-              <version>${project.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>fabric8-jgroups</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.fabric8</groupId>
@@ -378,45 +381,45 @@
                 <version>${spring-cloud-kubernetes.version}</version>
             </dependency>
             <dependency>
-              <groupId>org.seleniumhq.selenium</groupId>
-              <artifactId>selenium-java</artifactId>
-              <version>${selenium.version}</version>
+                <groupId>org.seleniumhq.selenium</groupId>
+                <artifactId>selenium-java</artifactId>
+                <version>${selenium.version}</version>
             </dependency>
             <dependency>
-              <groupId>com.github.detro</groupId>
-              <artifactId>phantomjsdriver</artifactId>
-              <version>${phantomjsdriver.version}</version>
+                <groupId>com.github.detro</groupId>
+                <artifactId>phantomjsdriver</artifactId>
+                <version>${phantomjsdriver.version}</version>
             </dependency>
             <dependency>
-              <groupId>org.seleniumhq.selenium</groupId>
-              <artifactId>selenium-firefox-driver</artifactId>
-              <version>${selenium.firefox.driver.version}</version>
+                <groupId>org.seleniumhq.selenium</groupId>
+                <artifactId>selenium-firefox-driver</artifactId>
+                <version>${selenium.firefox.driver.version}</version>
             </dependency>
 
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>gateway-api</artifactId>
-              <version>${project.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>gateway-api</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>gateway-apiman</artifactId>
-              <version>${project.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>gateway-apiman</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>gateway-core</artifactId>
-              <version>${project.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>gateway-core</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>gateway-model</artifactId>
-              <version>${project.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>gateway-model</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>gateway-servlet</artifactId>
-              <version>${project.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>gateway-servlet</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.fabric8</groupId>
@@ -490,8 +493,8 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>jaxrs-utils</artifactId>
+                <groupId>io.fabric8</groupId>
+                <artifactId>jaxrs-utils</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -505,9 +508,9 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>rest-utils</artifactId>
-              <version>${project.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>rest-utils</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.fabric8</groupId>
@@ -583,24 +586,24 @@
                 <artifactId>narayana-spring-boot-starter</artifactId>
                 <version>${narayana-spring-boot.version}</version>
             </dependency>
-             <dependency>
+            <dependency>
                 <groupId>me.snowdrop</groupId>
                 <artifactId>narayana-spring-boot-recovery-controller</artifactId>
                 <version>${narayana-spring-boot.version}</version>
             </dependency>
-             <dependency>
+            <dependency>
                 <groupId>me.snowdrop</groupId>
                 <artifactId>narayana-spring-boot-core</artifactId>
                 <version>${narayana-spring-boot.version}</version>
             </dependency>
-             <dependency>
+            <dependency>
                 <groupId>me.snowdrop</groupId>
                 <artifactId>narayana-spring-boot-starter-it</artifactId>
                 <version>${narayana-spring-boot.version}</version>
             </dependency>
 
 
-          <!-- Undertow -->
+            <!-- Undertow -->
             <dependency>
                 <groupId>io.undertow</groupId>
                 <artifactId>undertow-core</artifactId>
@@ -618,64 +621,64 @@
             </dependency>
 
 
-          <!-- Weld -->
+            <!-- Weld -->
             <dependency>
-              <groupId>org.jboss.weld.se</groupId>
-              <artifactId>weld-se</artifactId>
-              <version>${weld.version}</version>
+                <groupId>org.jboss.weld.se</groupId>
+                <artifactId>weld-se</artifactId>
+                <version>${weld.version}</version>
             </dependency>
             <dependency>
-              <groupId>org.jboss.weld.se</groupId>
-              <artifactId>weld-se-core</artifactId>
-              <version>${weld.version}</version>
+                <groupId>org.jboss.weld.se</groupId>
+                <artifactId>weld-se-core</artifactId>
+                <version>${weld.version}</version>
             </dependency>
             <dependency>
-              <groupId>org.jboss.weld.servlet</groupId>
-              <artifactId>weld-servlet</artifactId>
-              <version>${weld.version}</version>
+                <groupId>org.jboss.weld.servlet</groupId>
+                <artifactId>weld-servlet</artifactId>
+                <version>${weld.version}</version>
             </dependency>
             <dependency>
-              <groupId>org.jboss.weld.servlet</groupId>
-              <artifactId>weld-servlet-core</artifactId>
-              <version>${weld.version}</version>
+                <groupId>org.jboss.weld.servlet</groupId>
+                <artifactId>weld-servlet-core</artifactId>
+                <version>${weld.version}</version>
             </dependency>
             <dependency>
-              <groupId>org.jboss.weld</groupId>
-              <artifactId>weld-core</artifactId>
-              <version>${weld.version}</version>
+                <groupId>org.jboss.weld</groupId>
+                <artifactId>weld-core</artifactId>
+                <version>${weld.version}</version>
             </dependency>
 
             <!-- DeltaSpike -->
             <dependency>
-              <groupId>org.apache.deltaspike.core</groupId>
-              <artifactId>deltaspike-core-api</artifactId>
-              <version>${deltaspike.version}</version>
+                <groupId>org.apache.deltaspike.core</groupId>
+                <artifactId>deltaspike-core-api</artifactId>
+                <version>${deltaspike.version}</version>
             </dependency>
             <dependency>
-              <groupId>org.apache.deltaspike.core</groupId>
-              <artifactId>deltaspike-core-impl</artifactId>
-              <version>${deltaspike.version}</version>
+                <groupId>org.apache.deltaspike.core</groupId>
+                <artifactId>deltaspike-core-impl</artifactId>
+                <version>${deltaspike.version}</version>
             </dependency>
             <dependency>
-              <groupId>org.apache.deltaspike.modules</groupId>
-              <artifactId>deltaspike-test-control-module-api</artifactId>
-              <version>${deltaspike.version}</version>
+                <groupId>org.apache.deltaspike.modules</groupId>
+                <artifactId>deltaspike-test-control-module-api</artifactId>
+                <version>${deltaspike.version}</version>
             </dependency>
             <dependency>
-              <groupId>org.apache.deltaspike.modules</groupId>
-              <artifactId>deltaspike-test-control-module-impl</artifactId>
-              <version>${deltaspike.version}</version>
+                <groupId>org.apache.deltaspike.modules</groupId>
+                <artifactId>deltaspike-test-control-module-impl</artifactId>
+                <version>${deltaspike.version}</version>
             </dependency>
             <dependency>
-              <groupId>org.apache.deltaspike.cdictrl</groupId>
-              <artifactId>deltaspike-cdictrl-weld</artifactId>
-              <version>${deltaspike.version}</version>
+                <groupId>org.apache.deltaspike.cdictrl</groupId>
+                <artifactId>deltaspike-cdictrl-weld</artifactId>
+                <version>${deltaspike.version}</version>
             </dependency>
 
             <dependency>
-              <groupId>com.google.guava</groupId>
-              <artifactId>guava</artifactId>
-              <version>${guava.version}</version>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
             </dependency>
 
             <!-- vertx -->
@@ -929,14 +932,14 @@
                 <version>${jackson2.version}</version>
             </dependency>
             <dependency>
-              <groupId>com.fasterxml.jackson.dataformat</groupId>
-              <artifactId>jackson-dataformat-yaml</artifactId>
-              <version>${jackson2.version}</version>
+                <groupId>com.fasterxml.jackson.dataformat</groupId>
+                <artifactId>jackson-dataformat-yaml</artifactId>
+                <version>${jackson2.version}</version>
             </dependency>
             <dependency>
-              <groupId>com.fasterxml.jackson.dataformat</groupId>
-              <artifactId>jackson-dataformat-xml</artifactId>
-              <version>${jackson2.version}</version>
+                <groupId>com.fasterxml.jackson.dataformat</groupId>
+                <artifactId>jackson-dataformat-xml</artifactId>
+                <version>${jackson2.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.datatype</groupId>
@@ -971,13 +974,13 @@
             </dependency>
 
             <!-- CXF -->
-             <dependency>
-                 <groupId>org.apache.cxf</groupId>
-                 <artifactId>cxf-parent</artifactId>
-                 <version>${cxf.version}</version>
-                 <type>pom</type>
-                 <scope>import</scope>
-             </dependency>
+            <dependency>
+                <groupId>org.apache.cxf</groupId>
+                <artifactId>cxf-parent</artifactId>
+                <version>${cxf.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
 
             <!-- JBoss Fuse kar -->
             <dependency>
@@ -988,10 +991,10 @@
             </dependency>
 
             <dependency>
-                 <groupId>io.swagger</groupId>
-                 <artifactId>swagger-jaxrs</artifactId>
-                 <version>${swagger.jaxrs.version}</version>
-             </dependency>
+                <groupId>io.swagger</groupId>
+                <artifactId>swagger-jaxrs</artifactId>
+                <version>${swagger.jaxrs.version}</version>
+            </dependency>
 
             <!-- Shrinkwrap NEEDS to be defined before arquillian
                 It seems that maven uses the first bom wins rule
@@ -1043,9 +1046,9 @@
                 <version>${junit.version}</version>
             </dependency>
             <dependency>
-              <groupId>org.assertj</groupId>
-              <artifactId>assertj-core</artifactId>
-              <version>${assertj.core.version}</version>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-core</artifactId>
+                <version>${assertj.core.version}</version>
             </dependency>
 
             <!-- JGroups -->
@@ -1066,42 +1069,42 @@
                 <version>${jolokia.version}</version>
             </dependency>
             <dependency>
-              <groupId>org.jolokia</groupId>
-              <artifactId>jolokia-jvm</artifactId>
-              <version>${jolokia.version}</version>
-              <classifier>agent</classifier>
+                <groupId>org.jolokia</groupId>
+                <artifactId>jolokia-jvm</artifactId>
+                <version>${jolokia.version}</version>
+                <classifier>agent</classifier>
             </dependency>
             <dependency>
-              <groupId>org.jolokia</groupId>
-              <artifactId>jolokia-jvm</artifactId>
-              <version>${jolokia.version}</version>
-            </dependency>
-
-            <dependency>
-              <groupId>net.oauth.core</groupId>
-              <artifactId>oauth</artifactId>
-              <version>20100527</version>
-            </dependency>
-            <dependency>
-              <groupId>dnsjava</groupId>
-              <artifactId>dnsjava</artifactId>
-              <version>${dnsjava.version}</version>
-            </dependency>
-            <dependency>
-              <groupId>io.dropwizard.metrics</groupId>
-              <artifactId>metrics-core</artifactId>
-              <version>${dropwizard-metrics.version}</version>
-            </dependency>
-            <dependency>
-              <groupId>io.dropwizard.metrics</groupId>
-              <artifactId>metrics-json</artifactId>
-              <version>${dropwizard-metrics.version}</version>
+                <groupId>org.jolokia</groupId>
+                <artifactId>jolokia-jvm</artifactId>
+                <version>${jolokia.version}</version>
             </dependency>
 
             <dependency>
-              <groupId>org.hibernate</groupId>
-              <artifactId>hibernate-validator</artifactId>
-              <version>${hibernate-validator.version}</version>
+                <groupId>net.oauth.core</groupId>
+                <artifactId>oauth</artifactId>
+                <version>20100527</version>
+            </dependency>
+            <dependency>
+                <groupId>dnsjava</groupId>
+                <artifactId>dnsjava</artifactId>
+                <version>${dnsjava.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.dropwizard.metrics</groupId>
+                <artifactId>metrics-core</artifactId>
+                <version>${dropwizard-metrics.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.dropwizard.metrics</groupId>
+                <artifactId>metrics-json</artifactId>
+                <version>${dropwizard-metrics.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.hibernate</groupId>
+                <artifactId>hibernate-validator</artifactId>
+                <version>${hibernate-validator.version}</version>
             </dependency>
             <dependency>
                 <groupId>javax.enterprise</groupId>
@@ -1109,14 +1112,14 @@
                 <version>${javax.cdi-api.version}</version>
             </dependency>
             <dependency>
-              <groupId>javax.el</groupId>
-              <artifactId>javax.el-api</artifactId>
-              <version>${javax.el-version}</version>
+                <groupId>javax.el</groupId>
+                <artifactId>javax.el-api</artifactId>
+                <version>${javax.el-version}</version>
             </dependency>
             <dependency>
-              <groupId>org.glassfish.web</groupId>
-              <artifactId>javax.el</artifactId>
-              <version>${javax.el-version}</version>
+                <groupId>org.glassfish.web</groupId>
+                <artifactId>javax.el</artifactId>
+                <version>${javax.el-version}</version>
             </dependency>
             <dependency>
                 <groupId>com.sun</groupId>
@@ -1137,716 +1140,1108 @@
     </modules>
 
     <build>
-      <pluginManagement>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>${maven.failsafe.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>${maven.javadoc.plugin.version}</version>
+                    <configuration>
+                        <additionalparam>${javadoc.opts}</additionalparam>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>io.fabric8</groupId>
+                    <artifactId>docker-maven-plugin</artifactId>
+                    <version>${docker.maven.plugin.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-failsafe-plugin</artifactId>
-            <version>${maven.failsafe.plugin.version}</version>
-          </plugin>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-javadoc-plugin</artifactId>
-            <version>${maven.javadoc.plugin.version}</version>
-            <configuration>
-              <additionalparam>${javadoc.opts}</additionalparam>
-            </configuration>
-          </plugin>
-	      <plugin>
-		    <groupId>io.fabric8</groupId>
-		    <artifactId>docker-maven-plugin</artifactId>
-		    <version>${docker.maven.plugin.version}</version>
-	      </plugin>
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.8</version>
+                <executions>
+                    <execution>
+                        <id>set number of slashes in URL</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <exportAntProperties>true</exportAntProperties>
+                            <target>
+                                <condition property="urlSlashesOsModifier" value="//">
+                                    <and>
+                                        <not>
+                                            <os family="windows" />
+                                        </not>
+                                    </and>
+                                </condition>
+                                <condition property="urlSlashesOsModifier" value="///">
+                                    <and>
+                                        <os family="windows" />
+                                    </and>
+                                </condition>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!--
+                This is where the magic happens...
+                So let me explain. io.sundr.maven.GenerateBomMojo#execute() roughly does this:
+                 1. iterates over configuration/boms/bom
+                 2. as "own modules" it starts with "${reactorProjects}" so using `-N` may affect the process
+                 3. "own modules" are filtered by:
+                     - exclude <scope>system</scope> deps
+                     - exclude <type>pom</type> deps
+                     - include deps specified in bom/modules/includes/include
+                     - exclude deps specified in bom/modules/excludes/exclude
+                     - if bom/excludeOptional==true (which is default), exclude deps with <optional>true</optional>
+                     - if bom/ignoreScope==true (which is default), no need to specify scope for includes/excludes
+                 4. "dependency management artifacts" are set to org.apache.maven.project.MavenProject.getDependencyManagement()
+                    of current pom, if bom/inheritDependencyManagement==true (default is false)
+                 5. "plugin management artifacts" are set to org.apache.maven.project.MavenProject.getPluginManagement()
+                    of current pom, if bom/inheritPluginManagement==true (default is false)
+                 6. "all dependencies" are initially set to "dependency management artifacts"
+                     - org.apache.maven.execution.MavenSession.getProjectDependencyGraph().getSortedProjects() are checked
+                       (which again has size=1 if `-N` option is used) and for each project in multi-module project, all
+                       dependencies are added. In this case of io.fabric8:fabric8-project there are 136 dependencies before
+                       filtering
+                     - org.apache.maven.artifact.resolver.ArtifactResolver#resolve() is called for test and non-test scoped
+                       dependencies. In this case: test: 27 deps, non-test: 109 deps
+                       after resolution, in this case, test: 245 deps, non-test: 340 deps
+                     - after resolution, test dependencies are added first with scope=test and all other deps are added as-is.
+                       In this case, there are 466 deps.
+                 7. "dependencies" are filled with already filtered "own modules"
+                 8. "all dependencies" are now filtered by:
+                     - exclude <scope>system</scope> deps
+                     - exclude <scope>import</scope> and <type>pom</type> deps
+                     - include deps specified in bom/dependencies/includes/include
+                     - exclude deps specified in bom/dependencies/excludes/exclude
+                     - if bom/excludeOptional==true (which is default), exclude deps with <optional>true</optional>
+                     - if bom/ignoreScope==true (which is default), no need to specify scope for includes/excludes
+                    In this case, from 466 deps we keep 10 only (io.fabric8:kubernetes-* and io.fabric8:openshift-*)
+                 9. filtered "all dependencies" are added to "dependencies". In this case, we have 48 dependencies.
+                10. now all bom/imports/import artifacts (poms) are processed one by one.
+                11. for each "imported" pom, org.eclipse.aether.resolution.ArtifactDescriptorResult.getManagedDependencies() is called
+                     - exclude <scope>system</scope> deps
+                     - exclude <scope>import</scope> and <type>pom</type> deps
+                     - include deps specified in bom/imports/import/dependencyManagement/includes/include
+                     - exclude deps specified in bom/imports/import/dependencyManagement/excludes/exclude
+                     - those managed dependencies from <dependencyManagement> are added IN ORDER and PRIORITY OF APPEARANCE
+                       so if 2nd imported pom has the same dependency, it's NOT added. TL;DR: first wins
+                12. all these "imported managed dependencies" are added to "dependencies"
+                13. "plugins" are populated with those "own modules" that have <type>maven-plugin</type> (in this case
+                    it's single io.fabric8:hawt-app-maven-plugin:maven-plugin:VERSION:compile)
+                14. "plugins" are populated with "plugin management artifacts" filtered by:
+                     - include only <type>maven-plugin</type> - no doubt here
+                     - include plugins specified in bom/plugins/includes/include
+                     - exclude plugins specified in bom/plugins/excludes/exclude
+                15. "dependencies" are processed using bom/overrides now.
+                16. bom/overrides/override/dependencies/includes/include and bom/overrides/override/dependencies/excludes/exclude
+                    provide a composite filter
+                17. each dep from "dependencies" is filtered by the above filter and if there's match, bom/overrides/override/version
+                    is used for this dependency instead of original version
+                    THAT's WHY IT'd BE STRANGE to provide an override for "*:*" or similar - usually there's single includes/include there
+                    to match set of artifacts with single version to override
+                18. new MavenProject is created with:
+                     - groupId = from current project
+                     - artifactId = bom/artifactId
+                     - version = from current project
+                     - packaging = pom
+                     - name = bom/name
+                     - description = bom/description
+                     - dependencyManagement = from "dependencies" + additionally (at the end) from bom/extraDependencies/dependency
+                     - build/pluginManagement = from "plugins"
+                     - properties = from "properties" (these are NOT written, because velocity template doesn't handle them)
+                18. io.sundr.maven.GenerateBomMojo#verifyBomDependencies() is called to verify new MavenProject that has all the above
+                    managed plugins and dependencies (if bom/checkMismatches==true, which is default)
+                19. bom is written using Velocity
+                20. project for this bom is built using bom/goals/includes/include|exclude, while tasks are taken from
+                    current invocation
+            -->
+            <plugin>
+                <groupId>io.sundr</groupId>
+                <artifactId>sundr-maven-plugin</artifactId>
+                <version>${sundrio.plugin.version}</version>
+                <configuration>
+                    <bomTemplateUrl>file:${urlSlashesOsModifier}${project.basedir}/custom-bom.xml.vm</bomTemplateUrl>
+                    <boms>
+                        <!-- This is THE bom for Fuse7 on Spring Boot 1 -->
+                        <bom>
+                            <artifactId>fabric8-project-bom-camel-spring-boot</artifactId>
+                            <name>Fabric8 :: Project :: Bom for Camel and Spring-Boot</name>
+
+                            <!-- Whether dependencies from current project's <dependencyManagement> should be added to BOM -->
+                            <inheritDependencyManagement>true</inheritDependencyManagement>
+                            <!-- Whether plugins from current project's <build>/<pluginManagement> should be added to BOM -->
+                            <inheritPluginManagement>true</inheritPluginManagement>
+
+                            <!-- <modules> configure modules from current multi-module project - not their dependencies! -->
+                            <modules>
+                                <!-- This set is assumed as default if not specified -->
+                                <includes>
+                                    <include>*:*</include>
+                                </includes>
+                            </modules>
+
+                            <!--
+                                <dependencies> are transitive, resolved (org.apache.maven.artifact.resolver.ArtifactResolver#resolve())
+                                dependencies of <modules>, we can filter them with includes/excludes.
+                                if you have this current project (io.fabric8:fabric8-project) opened in IDE, we
+                                can easily check what deps this project has - no need to include something here that
+                                can't be included...
+                            -->
+                            <dependencies>
+                                <includes>
+                                    <!-- The Openshift/Kubernetes Client and Model -->
+                                    <include>io.fabric8:openshift-*</include>
+                                    <include>io.fabric8.kubernetes:*</include>
+                                    <include>io.fabric8:kubernetes-*</include>
+
+                                    <include>javax*:*</include>
+
+                                    <include>org.jboss.arquillian*:*</include>
+                                    <include>org.jboss.shrinkwrap*:*</include>
+                                    <include>org.assertj*:*</include>
+
+                                    <include>me.snowdrop:*</include>
+
+                                    <include>xml-apis:xml-apis</include>
+                                    <include>org.fusesource:camel-activemq</include>
+                                    <include>org.fusesource:camel-sap</include>
+                                    <include>org.fusesource:camel-sap-starter</include>
+
+                                    <include>org.apache.cxf:*</include>
+
+                                    <include>org.slf4j:*</include>
+
+                                    <include>org.jolokia:jolokia-core</include>
+                                    <include>org.hibernate:hibernate-validator</include>
+                                    <include>org.hibernate:hibernate-entitymanager</include>
+                                    <include>org.hibernate:hibernate-core</include>
+                                    <include>io.swagger:*</include>
+                                    <include>io.undertow:*</include>
+                                    <include>junit:junit</include>
+                                </includes>
+                            </dependencies>
+
+                            <!-- <plugins> are taken from org.apache.maven.project.MavenProject.getPluginManagement() -->
+                            <plugins>
+                                <includes>
+                                    <include>io.fabric8:*</include>
+                                </includes>
+                            </plugins>
+
+                            <!--
+                                this is important sections as we can specify POMs from which we want
+                                dependencyManagement dependencies (which we can filter out). If some dependency
+                                was already added from previous import (or from own modules' dependencies), it's
+                                NOT used from the later imported pom
+                            -->
+                            <imports>
+                                <import>
+                                    <groupId>org.springframework.boot</groupId>
+                                    <artifactId>spring-boot-dependencies</artifactId>
+                                    <version>${spring.boot.version}</version>
+                                    <dependencyManagement>
+                                        <includes>
+                                            <!--
+                                                These are artifacts that are excluded from camel, and we expect the versions from
+                                                spring-boot-dependencies
+                                            -->
+                                            <include>de.flapdoodle*:*</include>
+                                            <include>org.apache.derby:derby</include>
+                                            <include>org.apache.logging.log4j:*</include>
+
+                                            <include>org.codehaus.groovy:*</include>
+                                            <include>org.hsqldb:*</include>
+                                            <include>org.mockito:*</include>
+
+                                            <include>org.apache.activemq:*</include>
+
+                                            <include>org.apache.commons:commons-pool2</include>
+
+                                            <include>org.apache.httpcomponents:httpasyncclient</include>
+                                            <include>org.apache.httpcomponents:fluent-hc</include>
+                                            <include>org.apache.httpcomponents:httpclient*</include>
+                                            <include>org.apache.httpcomponents:httpcore*</include>
+                                            <include>org.apache.httpcomponents:httpmime</include>
+
+                                            <include>org.apache.commons:commons-pool2</include>
+                                            <include>commons-codec:*</include>
+                                            <include>commons-collections:*</include>
+                                            <include>commons-dbcp:*</include>
+                                            <include>org.apache.commons:commons-dbcp2</include>
+                                            <include>commons-pool:*</include>
+
+                                            <!--
+                                                This is actually most important import from this pom. subject
+                                                to version alignment
+                                            -->
+                                            <include>org.springframework*:*</include>
+
+                                            <include>com.github.ben-manes.caffeine:caffeine</include>
+                                            <include>com.datastax.cassandra:*</include>
+
+                                            <include>com.google.code.gson:*</include>
+                                            <include>junit:*</include>
+                                            <include>net.sf.ehcache:ehcache</include>
+
+                                            <!-- Others that we need -->
+                                            <include>mysql:*</include>
+                                            <include>org.apache.tomcat*:*</include>
+                                            <include>org.postgresql:*</include>
+
+                                            <include>com.fasterxml.jackson*:*</include>
+
+                                            <include>org.eclipse.jetty*:*</include>
+                                            <include>org.jboss:jboss-transaction-spi</include>
+                                            <include>org.jboss.logging:jboss-logging</include>
+
+                                            <include>org.springframework.boot:spring-boot-starter</include>
+                                            <include>org.springframework.boot:spring-boot-starter-activemq</include>
+                                            <include>org.springframework.boot:spring-boot-starter-actuator</include>
+                                            <include>org.springframework.boot:spring-boot-starter-jdbc</include>
+                                            <include>org.springframework.boot:spring-boot-starter-data-jpa</include>
+                                            <include>org.springframework.boot:spring-boot-starter-logging</include>
+                                            <include>org.springframework.boot:spring-boot-starter-security</include>
+                                            <include>org.springframework.boot:spring-boot-starter-test</include>
+                                            <include>org.springframework.boot:spring-boot-starter-tomcat</include>
+                                            <include>org.springframework.boot:spring-boot-starter-web</include>
+                                            <include>org.springframework.boot:spring-boot-starter-undertow</include>
+                                            <include>org.springframework.boot:spring-boot-configuration-processor</include>
+                                            <include>org.springframework.boot:spring-boot-maven-plugin</include>
+                                        </includes>
+                                        <excludes>
+                                            <exclude>org.apache.activemq:activemq-camel</exclude>
+                                            <exclude>org.eclipse.jetty.orbit:javax.servlet.jsp</exclude>
+
+                                            <exclude>org.springframework:springloaded</exclude>
+                                            <!-- Out of scope sb starters -->
+                                            <exclude>org.springframework.boot:spring-boot-starter-aop</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-artemis</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-batch</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-cloud-connectors</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-data-cassandra</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-data-couchbase</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-data-elasticsearch</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-data-ldap</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-data-mongodb</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-data-neo4j</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-data-redis</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-data-redis-reactive</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-data-rest</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-data-solr</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-freemarker</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-groovy-templates</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-hateoas</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-integration</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-jersey</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-jetty</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-jooq</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-jta-atomikos</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-jta-bitronix</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-log4j2</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-mail</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-mobile</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-mustache</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-reactor-netty</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-redis</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-remote-shell</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-social-facebook</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-social-linkedin</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-social-twitter</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-thymeleaf</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-validation</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-velocity</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-web-services</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-webflux</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-websocket</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-starter-ws</exclude>
+                                        </excludes>
+                                    </dependencyManagement>
+                                </import>
+                                <import>
+                                    <groupId>org.apache.camel</groupId>
+                                    <artifactId>camel-spring-boot-dependencies</artifactId>
+                                    <version>${camel.version}</version>
+                                    <dependencyManagement>
+                                        <includes>
+                                            <include>*:*</include>
+                                        </includes>
+                                        <excludes>
+                                            <exclude>javax.annotation:jsr250-ap</exclude>
+                                            <exclude>io.fabric8*:*</exclude>
+                                            <exclude>junit:junit</exclude>
+                                            <exclude>javax.annotation:jsr250-api</exclude>
+                                            <exclude>org.springframework.boot:spring-boot</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-test</exclude>
+
+                                            <!-- Exclude community docs -->
+                                            <exclude>org.apache.camel:camel-manual</exclude>
+
+                                            <!-- Deprecated components -->
+                                            <exclude>org.apache.camel:camel-context</exclude>
+                                            <exclude>org.apache.camel:camel-context-starter</exclude>
+                                            <exclude>org.apache.camel:camel-cache</exclude>
+                                            <exclude>org.apache.camel:camel-cache-starter</exclude>
+                                            <exclude>org.apache.camel:camel-elasticsearch5</exclude>
+                                            <exclude>org.apache.camel:camel-elasticsearch5-starter</exclude>
+                                            <exclude>org.apache.camel:camel-hdfs</exclude>
+                                            <exclude>org.apache.camel:camel-hdfs-starter</exclude>
+                                            <exclude>org.apache.camel:camel-http</exclude>
+                                            <exclude>org.apache.camel:camel-ibatis</exclude>
+                                            <exclude>org.apache.camel:camel-ignite</exclude>
+                                            <exclude>org.apache.camel:camel-ignite-starter</exclude>
+                                            <exclude>org.apache.camel:camel-ironmq</exclude>
+                                            <exclude>org.apache.camel:camel-ironmq-starter</exclude>
+                                            <exclude>org.apache.camel:camel-javaspace</exclude>
+                                            <exclude>org.apache.camel:camel-javaspace-starter</exclude>
+                                            <exclude>org.apache.camel:camel-kestrel</exclude>
+                                            <exclude>org.apache.camel:camel-kestrel-starter</exclude>
+                                            <exclude>org.apache.camel:camel-krati</exclude>
+                                            <exclude>org.apache.camel:camel-krati-starter</exclude>
+                                            <exclude>org.apache.camel:camel-mina</exclude>
+                                            <exclude>org.apache.camel:camel-netty</exclude>
+                                            <exclude>org.apache.camel:camel-netty-starter</exclude>
+                                            <exclude>org.apache.camel:camel-netty-http</exclude>
+                                            <exclude>org.apache.camel:camel-netty-http-starter</exclude>
+                                            <exclude>org.apache.camel:camel-openshift</exclude>
+                                            <exclude>org.apache.camel:camel-openshift-starter</exclude>
+                                            <exclude>org.apache.camel:camel-quartz</exclude>
+                                            <exclude>org.apache.camel:camel-routebox</exclude>
+                                            <exclude>org.apache.camel:camel-routebox-starter</exclude>
+                                            <exclude>org.apache.camel:camel-swagger</exclude>
+
+                                            <exclude>org.apache.camel:camel-xmlrpc</exclude>
+                                            <exclude>org.apache.camel:camel-xmlrpc-starter</exclude>
+                                        </excludes>
+                                    </dependencyManagement>
+                                </import>
+                                <import>
+                                    <groupId>org.arquillian.cube</groupId>
+                                    <artifactId>arquillian-cube-bom</artifactId>
+                                    <version>${arquillian-cube.version}</version>
+                                    <dependencyManagement>
+                                        <includes>
+                                            <include>org.arquillian.cube:*</include>
+                                        </includes>
+                                    </dependencyManagement>
+                                </import>
+                                <import>
+                                    <groupId>io.fabric8</groupId>
+                                    <artifactId>spring-cloud-kubernetes-bom-with-platform-deps</artifactId>
+                                    <version>${spring-cloud-kubernetes.version}</version>
+                                    <dependencyManagement>
+                                        <includes>
+                                            <include>*:*</include>
+                                        </includes>
+                                        <excludes>
+                                            <exclude>org.apache.httpcomponents:httpasyncclient</exclude>
+                                            <exclude>org.apache.httpcomponents:httpclient</exclude>
+                                            <exclude>org.apache.httpcomponents:httpclient-cache</exclude>
+                                            <exclude>org.apache.httpcomponents:httpclient-osgi</exclude>
+                                            <exclude>org.apache.httpcomponents:httpcore</exclude>
+                                            <exclude>org.apache.httpcomponents:httpmime</exclude>
+
+                                            <exclude>org.springframework.boot:spring-boot</exclude>
+                                            <exclude>org.springframework.boot:spring-boot-test</exclude>
+                                            <exclude>javax.inject:javax.inject</exclude>
+                                            <exclude>commons-io:commons-io</exclude>
+                                            <exclude>junit:junit</exclude>
+                                            <exclude>org.slf4j:*</exclude>
+                                            <exclude>org.springframework:*</exclude>
+                                            <exclude>org.springframework.boot:*</exclude>
+                                            <exclude>commons-lang:commons-lang</exclude>
+                                            <exclude>io.fabric8:kubernetes-*</exclude>
+                                            <exclude>io.fabric8:openshift-*</exclude>
+                                            <exclude>com.squareup.okhttp:*</exclude>
+                                            <exclude>com.squareup.okio:*</exclude>
+                                            <exclude>io.zipkin.java:*</exclude>
+                                            <exclude>org.optaplanner:*</exclude>
+                                        </excludes>
+                                    </dependencyManagement>
+                                </import>
+                                <import>
+                                    <groupId>me.snowdrop</groupId>
+                                    <artifactId>narayana-spring-boot-core</artifactId>
+                                    <version>${narayana-spring-boot.version}</version>
+                                    <dependencyManagement>
+                                        <includes>
+                                            <include>org.jboss.narayana.jta:*</include>
+                                            <include>org.jboss.narayana.jts:*</include>
+                                        </includes>
+                                    </dependencyManagement>
+                                </import>
+                            </imports>
+
+                            <!--
+                                after populating list of dependencies (from own modules and from imports)
+                                we can override the versions
+                            -->
+                            <overrides>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.springframework:*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${spring.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.springframework.security:*</include>
+                                        </includes>
+                                        <excludes>
+                                            <exclude>org.springframework.security:spring-security-jwt</exclude>
+                                        </excludes>
+                                    </dependencies>
+                                    <version>${spring.security.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.springframework.batch:*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${spring.batch.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.springframework.ws:*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${spring.ws.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.springframework.cloud:spring-cloud-stream-binder-kafka-test-support</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>1.1.2</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.slf4j:*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${slf4j.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.apache.logging.log4j:*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${log4j2.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.apache.activemq:activemq-*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${activemq.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.apache.tomcat*:*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${tomcat-embed.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.apache.activemq:artemis-*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${artemis.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>com.fasterxml.jackson*:*</include>
+                                        </includes>
+                                        <excludes>
+                                            <exclude>com.fasterxml.jackson.core:jackson-databind</exclude>
+                                        </excludes>
+                                    </dependencies>
+                                    <version>${jackson2.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>com.fasterxml.jackson.core:jackson-databind</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${jackson2.databind.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>com.fasterxml.jackson.module:jackson-module-kotlin</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${jackson2.kotlin.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.apache.cxf.xjc-utils:*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${cxf.xjc-utils.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.eclipse.jetty*:*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${jetty.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.apache.httpcomponents:httpasyncclient</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${httpasyncclient.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.apache.httpcomponents:fluent-hc</include>
+                                            <include>org.apache.httpcomponents:httpclient*</include>
+                                            <include>org.apache.httpcomponents:httpmime</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${httpclient.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.apache.httpcomponents:httpcore*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${httpcore.version}</version>
+                                </override>
+                            </overrides>
+
+                            <!-- additional dependencies simply added to generated bom -->
+                            <extraDependencies>
+                                <dependency>
+                                    <groupId>org.apache.qpid</groupId>
+                                    <artifactId>qpid-jms-client</artifactId>
+                                    <version>${qpid-jms-client.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>org.apache.qpid</groupId>
+                                    <artifactId>proton-j</artifactId>
+                                    <version>${qpid-proton-j.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>javax.el</groupId>
+                                    <artifactId>javax.el-api</artifactId>
+                                    <version>${javax.el-api.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>org.hibernate</groupId>
+                                    <artifactId>hibernate-core</artifactId>
+                                    <version>${hibernate-core.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>org.apache.commons</groupId>
+                                    <artifactId>commons-dbcp2</artifactId>
+                                    <version>${commons-dbcp2.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>org.apache.commons</groupId>
+                                    <artifactId>commons-pool2</artifactId>
+                                    <version>${commons-pool2.version}</version>
+                                </dependency>
+                            </extraDependencies>
+
+                            <properties>
+                                <skipStagingRepositoryClose>true</skipStagingRepositoryClose>
+                            </properties>
+                        </bom>
+
+                        <!-- This is THE bom for Fuse7 on Karaf -->
+                        <bom>
+                            <artifactId>fabric8-project-bom-fuse-karaf</artifactId>
+                            <name>Fabric8 :: Project :: Bom for Fuse Applications on Karaf</name>
+
+                            <inheritDependencyManagement>true</inheritDependencyManagement>
+                            <inheritPluginManagement>true</inheritPluginManagement>
+
+                            <dependencies>
+                                <includes>
+                                    <!-- The kubernetes Client and Model -->
+                                    <include>io.fabric8:openshift-*</include>
+                                    <include>io.fabric8.kubernetes:*</include>
+                                    <include>io.fabric8:fabric8-karaf*</include>
+                                    <include>io.fabric8:kubernetes-*</include>
+
+                                    <include>javax*:*</include>
+
+                                    <include>org.jboss.arquillian*:*</include>
+                                    <include>org.jboss.shrinkwrap*:*</include>
+
+                                    <include>org.fusesource:camel-activemq</include>
+                                    <include>org.fusesource:camel-sap</include>
+
+                                    <include>org.easymock:easymockclassextension</include>
+
+                                    <include>org.apache.cxf:*</include>
+
+                                    <include>xml-apis:xml-apis</include>
+
+                                    <!-- JBoss Fuse kar -->
+                                    <include>org.jboss.fuse:fuse-karaf-framework:${version.fuse-karaf}:kar</include>
+                                </includes>
+                                <excludes>
+                                    <exclude>javax.servlet:javax.servlet-api</exclude>
+                                    <exclude>javax.activation:activation:1.1</exclude>
+                                </excludes>
+                            </dependencies>
+
+                            <plugins>
+                                <includes>
+                                    <include>io.fabric8:*</include>
+                                </includes>
+                            </plugins>
+
+                            <imports>
+                                <import>
+                                    <groupId>org.jboss.fuse</groupId>
+                                    <artifactId>jboss-fuse-parent</artifactId>
+                                    <version>${version.fuse-karaf}</version>
+                                    <repository>https://maven.repository.redhat.com/ga</repository>
+                                    <dependencyManagement>
+                                        <includes>
+                                            <include>*:*</include>
+                                        </includes>
+                                        <excludes>
+                                            <exclude>javax.ws.rs:javax.ws.rs-api</exclude>
+                                            <exclude>org.fusesource:camel-activemq</exclude>
+                                            <exclude>javax.annotation:jsr250-api</exclude>
+                                            <exclude>xml-apis:xml-apis:1.4.01</exclude>
+
+                                            <exclude>org.easymock:easymockclassextension</exclude>
+                                            <exclude>org.apache.cxf:cxf-rt-ws-security-oauth2</exclude>
+                                            <exclude>org.apache.camel:camel-manual</exclude>
+                                            <exclude>org.apache.activemq:activemq-camel</exclude>
+                                            <exclude>org.jboss.fuse.features:base</exclude>
+                                            <exclude>org.fusesource:camel-sap</exclude>
+                                        </excludes>
+                                    </dependencyManagement>
+                                </import>
+                            </imports>
+
+                            <overrides>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.springframework:*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${spring.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.springframework.security:*</include>
+                                        </includes>
+                                        <excludes>
+                                            <exclude>org.springframework.security:spring-security-jwt</exclude>
+                                        </excludes>
+                                    </dependencies>
+                                    <version>${spring.security.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.springframework.batch:*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${spring.batch.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.springframework.ws:*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${spring.ws.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.springframework.cloud:spring-cloud-stream-binder-kafka-test-support</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>1.1.2</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.slf4j:*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${slf4j.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.apache.logging.log4j:*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${log4j2.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.apache.activemq:activemq-*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${activemq.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.apache.tomcat*:*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${tomcat-embed.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.apache.activemq:artemis-*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${artemis.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>com.fasterxml.jackson*:*</include>
+                                        </includes>
+                                        <excludes>
+                                            <exclude>com.fasterxml.jackson.core:jackson-databind</exclude>
+                                        </excludes>
+                                    </dependencies>
+                                    <version>${jackson2.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>com.fasterxml.jackson.core:jackson-databind</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${jackson2.databind.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>com.fasterxml.jackson.module:jackson-module-kotlin</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${jackson2.kotlin.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.apache.cxf.xjc-utils:*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${cxf.xjc-utils.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.eclipse.jetty*:*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${jetty.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.apache.httpcomponents:httpasyncclient</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${httpasyncclient.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.apache.httpcomponents:fluent-hc</include>
+                                            <include>org.apache.httpcomponents:httpclient*</include>
+                                            <include>org.apache.httpcomponents:httpmime</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${httpclient.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.apache.httpcomponents:httpcore*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${httpcore.version}</version>
+                                </override>
+                            </overrides>
+
+                            <!-- additional dependencies simply added to generated bom -->
+                            <extraDependencies>
+                                <dependency>
+                                    <groupId>org.apache.qpid</groupId>
+                                    <artifactId>qpid-jms-client</artifactId>
+                                    <version>${qpid-jms-client.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>org.apache.qpid</groupId>
+                                    <artifactId>proton-j</artifactId>
+                                    <version>${qpid-proton-j.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>javax.el</groupId>
+                                    <artifactId>javax.el-api</artifactId>
+                                    <version>${javax.el-api.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>org.hibernate</groupId>
+                                    <artifactId>hibernate-core</artifactId>
+                                    <version>${hibernate-core.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>org.apache.commons</groupId>
+                                    <artifactId>commons-dbcp2</artifactId>
+                                    <version>${commons-dbcp2.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>org.apache.commons</groupId>
+                                    <artifactId>commons-pool2</artifactId>
+                                    <version>${commons-pool2.version}</version>
+                                </dependency>
+                            </extraDependencies>
+
+                            <properties>
+                                <version.org.fusesource.camel-sap>7.5.0.fuse-750026</version.org.fusesource.camel-sap>
+                                <skipStagingRepositoryClose>true</skipStagingRepositoryClose>
+                            </properties>
+                        </bom>
+
+                        <!--
+                            There's no bom for Fuse7 on EAP generated here. It's in org.jboss.redhat-fuse:fuse-eap-bom
+                            which bom-imports only org.wildfly.camel:wildfly-camel-bom
+                        -->
+
+                        <!-- I'm not sure what this BOM is -->
+                        <bom>
+                            <artifactId>fabric8-project-bom</artifactId>
+                            <name>Fabric8 :: Project :: Bom</name>
+                            <modules>
+                                <!-- This set is assumed as default if not specified -->
+                                <includes>
+                                    <include>*:*</include>
+                                </includes>
+                            </modules>
+                            <dependencies>
+                                <includes>
+                                    <include>io.fabric8:kubernetes-*</include>
+                                    <include>io.fabric8:openshift-*</include>
+                                </includes>
+                            </dependencies>
+                            <plugins>
+                                <includes>
+                                    <include>io.fabric8:*</include>
+                                </includes>
+                            </plugins>
+                            <properties>
+                                <skipStagingRepositoryClose>true</skipStagingRepositoryClose>
+                            </properties>
+                            <inheritPluginManagement>true</inheritPluginManagement>
+                        </bom>
+
+                        <!-- I'm not sure what this BOM is -->
+                        <bom>
+                            <artifactId>fabric8-project-bom-with-platform-deps</artifactId>
+                            <name>Fabric8 :: Project :: Bom with Platform Dependencies</name>
+                            <dependencies>
+                                <includes>
+                                    <!-- The kubernetes Client and Model -->
+                                    <include>io.fabric8:kubernetes-*</include>
+                                    <include>io.fabric8:openshift-*</include>
+
+                                    <include>javax*:*</include>
+                                    <!-- Core platform -->
+                                    <include>org.jboss.weld*:*</include>
+                                    <include>org.jboss.arquillian*:*</include>
+                                    <include>org.jboss.shrinkwrap*:*</include>
+                                    <include>org.apache.deltaspike*:*</include>
+                                    <!-- minor things that are easy to get wrong -->
+                                    <include>org.ops4j.pax.url:pax-url-aether</include>
+                                    <include>org.codehaus.plexus:plexus-utils</include>
+                                    <include>xml-apis:xml-apis</include>
+                                </includes>
+                            </dependencies>
+                            <plugins>
+                                <includes>
+                                    <include>io.fabric8:*</include>
+                                </includes>
+                            </plugins>
+                            <properties>
+                                <skipStagingRepositoryClose>true</skipStagingRepositoryClose>
+                            </properties>
+                            <inheritDependencyManagement>true</inheritDependencyManagement>
+                            <inheritPluginManagement>true</inheritPluginManagement>
+                        </bom>
+                    </boms>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generate-bom</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${compiler.plugin.version}</version>
+                <configuration>
+                    <showDeprecation>true</showDeprecation>
+                    <showWarnings>true</showWarnings>
+                    <compilerArguments>
+                        <source>${maven.compiler.argument.source}</source>
+                        <target>${maven.compiler.argument.target}</target>
+                    </compilerArguments>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>${jar.plugin.version}</version>
+                <configuration>
+                    <archive>
+                        <index>true</index>
+                        <manifest>
+                            <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                        </manifest>
+                        <manifestEntries>
+                            <Implementation-URL>${project.url}</Implementation-URL>
+                            <Java-Version>${java.version}</Java-Version>
+                            <Java-Vendor>${java.vendor}</Java-Vendor>
+                            <Os-Name>${os.name}</Os-Name>
+                            <Os-Arch>${os.arch}</Os-Arch>
+                            <Os-Version>${os.version}</Os-Version>
+                            <Scm-Url>${project.scm.url}</Scm-Url>
+                            <Scm-Connection>${project.scm.connection}</Scm-Connection>
+                            <Scm-Revision>${buildNumber}</Scm-Revision>
+                            <Build-Timestamp>${build.datetime}</Build-Timestamp>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+            <!-- Set properties containing the scm revision and build timestamp -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>buildnumber-maven-plugin</artifactId>
+                <version>${buildnumber.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>get-build-timestamp</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>create-timestamp</goal>
+                        </goals>
+                        <configuration>
+                            <!-- Example date: Wed, 4 Jul 2001 12:08:56 -0700 -->
+                            <timestampFormat>EEE, d MMM yyyy HH:mm:ss Z</timestampFormat>
+                            <timestampPropertyName>build.datetime</timestampPropertyName>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>get-scm-revision</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>create</goal>
+                        </goals>
+                        <configuration>
+                            <doCheck>false</doCheck>
+                            <doUpdate>false</doUpdate>
+                            <revisionOnScmFailure>UNKNOWN</revisionOnScmFailure>
+                            <getRevisionOnlyOnce>true</getRevisionOnlyOnce>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>2.6</version>
+                <configuration>
+                    <nonFilteredFileExtensions>
+                        <nonFilteredFileExtension>zip</nonFilteredFileExtension>
+                        <nonFilteredFileExtension>gz</nonFilteredFileExtension>
+                        <nonFilteredFileExtension>jar</nonFilteredFileExtension>
+                    </nonFilteredFileExtensions>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>${maven.enforcer.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>enforce-versions</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireMavenVersion>
+                                    <version>${maven.enforcer.version}</version>
+                                </requireMavenVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>2.5</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>1.5</version>
+                <configuration>
+                    <passphrase>${gpg.passphrase}</passphrase>
+                    <useAgent>true</useAgent>
+                </configuration>
+            </plugin>
         </plugins>
-      </pluginManagement>
-      <plugins>
-          <plugin>
-              <artifactId>maven-antrun-plugin</artifactId>
-              <version>1.8</version>
-              <executions>
-                  <execution>
-                      <id>set number of slashes in URL</id>
-                      <phase>validate</phase>
-                      <goals>
-                          <goal>run</goal>
-                      </goals>
-                      <configuration>
-                          <exportAntProperties>true</exportAntProperties>
-                          <target>
-                              <condition property="urlSlashesOsModifier" value="//">
-                                  <and>
-                                      <not>
-                                          <os family="windows" />
-                                      </not>
-                                  </and>
-                              </condition>
-                              <condition property="urlSlashesOsModifier" value="///">
-                                  <and>
-                                      <os family="windows" />
-                                  </and>
-                              </condition>
-                          </target>
-                      </configuration>
-                  </execution>
-              </executions>
-          </plugin>
-          <plugin>
-              <groupId>io.sundr</groupId>
-              <artifactId>sundr-maven-plugin</artifactId>
-              <version>${sundrio.plugin.version}</version>
-              <configuration>
-                  <bomTemplateUrl>file:${urlSlashesOsModifier}${project.basedir}/custom-bom.xml.vm</bomTemplateUrl>
-                  <boms>
-                      <bom>
-                          <artifactId>fabric8-project-bom</artifactId>
-                          <name>Fabric8 :: Project :: Bom</name>
-                          <dependencies>
-                              <includes>
-                                  <include>io.fabric8:kubernetes-*</include>
-                                  <include>io.fabric8:openshift-*</include>
-                              </includes>
-                          </dependencies>
-                          <plugins>
-                              <includes>
-                                  <include>io.fabric8:*</include>
-                              </includes>
-                          </plugins>
-                          <properties>
-                              <skipStagingRepositoryClose>true</skipStagingRepositoryClose>
-                          </properties>
-                          <inheritPluginManagement>true</inheritPluginManagement>
-                      </bom>
-                      <bom>
-                          <artifactId>fabric8-project-bom-with-platform-deps</artifactId>
-                          <name>Fabric8 :: Project :: Bom with Platform Dependencies</name>
-                          <dependencies>
-                              <includes>
-                                  <!-- The kubernetes Client and Model -->
-                                  <include>io.fabric8:kubernetes-*</include>
-                                  <include>io.fabric8:openshift-*</include>
-
-                                  <include>javax*:*</include>
-                                  <!-- Core platform -->
-                                  <include>org.jboss.weld*:*</include>
-                                  <include>org.jboss.arquillian*:*</include>
-                                  <include>org.jboss.shrinkwrap*:*</include>
-                                  <include>org.apache.deltaspike*:*</include>
-                                  <!-- minor things that are easy to get wrong -->
-                                  <include>org.ops4j.pax.url:pax-url-aether</include>
-                                  <include>org.codehaus.plexus:plexus-utils</include>
-                                  <include>xml-apis:xml-apis</include>
-                              </includes>
-                          </dependencies>
-                          <plugins>
-                              <includes>
-                                  <include>io.fabric8:*</include>
-                              </includes>
-                          </plugins>
-                          <properties>
-                              <skipStagingRepositoryClose>true</skipStagingRepositoryClose>
-                          </properties>
-                          <inheritDependencyManagement>true</inheritDependencyManagement>
-                          <inheritPluginManagement>true</inheritPluginManagement>
-                      </bom>
-                      <bom>
-                          <artifactId>fabric8-project-bom-camel-spring-boot</artifactId>
-                          <name>Fabric8 :: Project :: Bom for Camel and Spring-Boot</name>
-                          <extraDependencies>
-                              <dependency>
-                                  <groupId>org.apache.qpid</groupId>
-                                  <artifactId>qpid-jms-client</artifactId>
-                                  <version>${qpid-jms-client.version}</version>
-                              </dependency>
-                              <dependency>
-                                  <groupId>org.apache.qpid</groupId>
-                                  <artifactId>proton-j</artifactId>
-                                  <version>${qpid-proton-j.version}</version>
-                              </dependency>
-                              <dependency>
-                                  <groupId>javax.el</groupId>
-                                  <artifactId>javax.el-api</artifactId>
-                                  <version>${javax.el-api.version}</version>
-                              </dependency>
-                              <dependency>
-                                  <groupId>org.hibernate</groupId>
-                                  <artifactId>hibernate-core</artifactId>
-                                  <version>${hibernate-core.version}</version>
-                              </dependency>
-                          </extraDependencies>
-                          <dependencies>
-                              <includes>
-                                  <!-- The kubernetes Client and Model -->
-                                  <include>io.fabric8:openshift-*</include>
-                                  <include>io.fabric8:kubernetes-client</include>
-
-                                  <include>javax*:*</include>
-
-                                  <include>org.jboss.arquillian*:*</include>
-                                  <include>org.jboss.shrinkwrap*:*</include>
-                                  <include>org.assertj*:*</include>
-
-                                  <include>me.snowdrop:*</include>
-
-                                  <include>xml-apis:xml-apis</include>
-                                  <include>org.fusesource:camel-activemq</include>
-                                  <include>org.fusesource:camel-sap</include>
-                                  <include>org.fusesource:camel-sap-starter</include>
-
-                                  <include>org.apache.cxf:cxf-spring-boot-starter-jaxrs</include>
-                                  <include>org.apache.cxf:cxf-spring-boot-starter-jaxws</include>
-                                  <include>org.apache.cxf:cxf-rt-rs-service-description-swagger</include>
-                                  <include>org.apache.cxf:cxf-rt-rs-service-description-openapi-v3</include>
-                                  <include>org.apache.httpcomponents:*</include>
-                                  <include>org.slf4j:*</include>
-
-                                  <include>org.jolokia:jolokia-core</include>
-                                  <include>org.hibernate:hibernate-validator</include>
-                                  <include>org.hibernate:hibernate-entitymanager</include>
-                                  <include>org.hibernate:hibernate-core</include>
-                                  <include>io.swagger:*</include>
-                                  <include>io.undertow:*</include>
-                                  <include>junit:junit</include>
-                              </includes>
-                              <excludes>
-                                  <exclude>org.optaplanner:*</exclude>
-                                  <exclude>javax.servlet:javax.servlet-api</exclude>
-                                  <exclude>javax.servlet:servlet-api</exclude>
-                                  <exclude>javax.activation:activation:1.1</exclude>
-                                  <exclude>org.apache.httpcomponents:httpasyncclient</exclude>
-                                  <exclude>org.apache.httpcomponents:httpclient</exclude>
-                                  <exclude>org.apache.httpcomponents:httpclient-cache</exclude>
-                                  <exclude>org.apache.httpcomponents:httpclient-osgi</exclude>
-                                  <exclude>org.apache.httpcomponents:httpcore</exclude>
-                                  <exclude>org.apache.httpcomponents:httpcore-nio</exclude>
-                                  <exclude>org.apache.httpcomponents:httpmime</exclude>
-                                  <exclude>javax.validation:validation-api</exclude>
-                                  <exclude>org.apache.cxf:cxf-rt-rs-service-description-swagger</exclude>
-                              </excludes>
-                          </dependencies>
-                          <imports>
-                              <import>
-                                  <groupId>org.springframework.boot</groupId>
-                                  <artifactId>spring-boot-dependencies</artifactId>
-                                  <version>${spring.boot.version}</version>
-                                  <dependencyManagement>
-                                      <includes>
-                                          <!-- These are artifacts that are excluded from camel, and we expect the versions from
-                                               spring-boot-dependencies -->
-                                          <include>de.flapdoodle*:*</include>
-                                          <include>org.apache.activemq:*</include>
-                                          <include>org.apache.commons:commons-pool2</include>
-
-                                          <include>org.apache.httpcomponents:httpasyncclient</include>
-                                          <include>org.apache.httpcomponents:httpclient</include>
-                                          <include>org.apache.httpcomponents:httpclient-cache</include>
-                                          <include>org.apache.httpcomponents:httpclient-osgi</include>
-                                          <include>org.apache.httpcomponents:httpcore</include>
-                                          <include>org.apache.httpcomponents:httpmime</include>
-
-                                          <include>org.apache.derby:derby</include>
-                                          <include>org.apache.logging.log4j:*</include>
-
-                                          <include>org.codehaus.groovy:*</include>
-                                          <include>org.hsqldb:*</include>
-                                          <include>org.mockito:*</include>
-
-                                          <include>org.springframework*:*</include>
-
-                                          <include>commons-codec:*</include>
-                                          <include>commons-collections:*</include>
-                                          <include>commons-dbcp:*</include>
-                                          <include>org.apache.commons:commons-dbcp2</include>
-                                          <include>commons-pool:*</include>
-
-                                          <include>com.github.ben-manes.caffeine:caffeine</include>
-                                          <include>com.datastax.cassandra:*</include>
-
-                                          <include>com.fasterxml.jackson.*:*</include>
-
-                                          <include>com.google.code.gson:*</include>
-                                          <include>javax.servlet:javax.servlet-api</include>
-                                          <include>junit:*</include>
-                                          <include>net.sf.ehcache:ehcache</include>
-
-                                          <!-- Others that we need -->
-                                          <include>mysql:*</include>
-                                          <include>org.apache.tomcat*:*</include>
-                                          <include>org.postgresql:*</include>
-                                          <include>org.eclipse.jetty*:*</include>
-                                          <include>org.jboss:jboss-transaction-spi</include>
-                                          <include>org.jboss.logging:jboss-logging</include>
-
-                                          <include>org.springframework.boot:spring-boot-starter</include>
-                                          <include>org.springframework.boot:spring-boot-starter-activemq</include>
-                                          <include>org.springframework.boot:spring-boot-starter-actuator</include>
-                                          <include>org.springframework.boot:spring-boot-starter-jdbc</include>
-                                          <include>org.springframework.boot:spring-boot-starter-data-jpa</include>
-                                          <include>org.springframework.boot:spring-boot-starter-logging</include>
-                                          <include>org.springframework.boot:spring-boot-starter-security</include>
-                                          <include>org.springframework.boot:spring-boot-starter-test</include>
-                                          <include>org.springframework.boot:spring-boot-starter-tomcat</include>
-                                          <include>org.springframework.boot:spring-boot-starter-web</include>
-                                          <include>org.springframework.boot:spring-boot-starter-undertow</include>
-                                          <include>org.springframework.boot:spring-boot-configuration-processor</include>
-                                          <include>org.springframework.boot:spring-boot-maven-plugin</include>
-                                      </includes>
-                                      <excludes>
-                                          <exclude>org.apache.activemq:activemq-camel</exclude>
-                                          <exclude>org.assertj*:*</exclude>
-                                          <exclude>org.slf4j:*</exclude>
-                                          <exclude>junit:junit</exclude>
-
-                                          <!-- Out of scope sb starters -->
-                                          <exclude>org.springframework.boot:spring-boot-starter-aop</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-artemis</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-batch</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-cloud-connectors</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-data-cassandra</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-data-couchbase</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-data-elasticsearch</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-data-ldap</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-data-mongodb</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-data-neo4j</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-data-redis</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-data-redis-reactive</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-data-rest</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-data-solr</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-freemarker</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-groovy-templates</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-hateoas</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-integration</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-jersey</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-jetty</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-jooq</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-jta-atomikos</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-jta-bitronix</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-log4j2</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-mail</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-mobile</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-mustache</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-reactor-netty</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-redis</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-remote-shell</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-social-facebook</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-social-linkedin</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-social-twitter</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-thymeleaf</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-validation</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-velocity</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-web-services</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-webflux</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-websocket</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-starter-ws</exclude>
-                                      </excludes>
-                                  </dependencyManagement>
-                              </import>
-                              <import>
-                                  <groupId>org.apache.camel</groupId>
-                                  <artifactId>camel-spring-boot-dependencies</artifactId>
-                                  <version>${camel.version}</version>
-                                  <dependencyManagement>
-                                      <includes>
-                                          <include>*:*</include>
-                                      </includes>
-                                      <excludes>
-                                          <exclude>javax.annotation:jsr250-ap</exclude>
-                                          <exclude>io.fabric8*:*</exclude>
-                                          <exclude>org.slf4j:*</exclude>
-                                          <exclude>junit:junit</exclude>
-                                          <exclude>javax.annotation:jsr250-api</exclude>
-                                          <exclude>org.springframework.boot:spring-boot</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-test</exclude>
-
-                                          <exclude>org.apache.httpcomponents:httpasyncclient</exclude>
-                                          <exclude>org.apache.httpcomponents:httpclient</exclude>
-                                          <exclude>org.apache.httpcomponents:httpclient-cache</exclude>
-                                          <exclude>org.apache.httpcomponents:httpclient-osgi</exclude>
-                                          <exclude>org.apache.httpcomponents:httpcore</exclude>
-                                          <exclude>org.apache.httpcomponents:httpmime</exclude>
-
-
-                                          <!-- Exclude community docs -->
-                                          <exclude>org.apache.camel:camel-manual</exclude>
-
-                                          <!-- Deprecated components -->
-                                          <exclude>org.apache.camel:camel-context</exclude>
-                                          <exclude>org.apache.camel:camel-context-starter</exclude>
-                                          <exclude>org.apache.camel:camel-cache</exclude>
-                                          <exclude>org.apache.camel:camel-cache-starter</exclude>
-                                          <exclude>org.apache.camel:camel-elasticsearch5</exclude>
-                                          <exclude>org.apache.camel:camel-elasticsearch5-starter</exclude>
-                                          <exclude>org.apache.camel:camel-hdfs</exclude>
-                                          <exclude>org.apache.camel:camel-hdfs-starter</exclude>
-                                          <exclude>org.apache.camel:camel-http</exclude>
-                                          <exclude>org.apache.camel:camel-ibatis</exclude>
-                                          <exclude>org.apache.camel:camel-ignite</exclude>
-                                          <exclude>org.apache.camel:camel-ignite-starter</exclude>
-                                          <exclude>org.apache.camel:camel-ironmq</exclude>
-                                          <exclude>org.apache.camel:camel-ironmq-starter</exclude>
-                                          <exclude>org.apache.camel:camel-javaspace</exclude>
-                                          <exclude>org.apache.camel:camel-javaspace-starter</exclude>
-                                          <exclude>org.apache.camel:camel-kestrel</exclude>
-                                          <exclude>org.apache.camel:camel-kestrel-starter</exclude>
-                                          <exclude>org.apache.camel:camel-krati</exclude>
-                                          <exclude>org.apache.camel:camel-krati-starter</exclude>
-                                          <exclude>org.apache.camel:camel-mina</exclude>
-                                          <exclude>org.apache.camel:camel-netty</exclude>
-                                          <exclude>org.apache.camel:camel-netty-starter</exclude>
-                                          <exclude>org.apache.camel:camel-netty-http</exclude>
-                                          <exclude>org.apache.camel:camel-netty-http-starter</exclude>
-                                          <exclude>org.apache.camel:camel-openshift</exclude>
-                                          <exclude>org.apache.camel:camel-openshift-starter</exclude>
-                                          <exclude>org.apache.camel:camel-quartz</exclude>
-                                          <exclude>org.apache.camel:camel-routebox</exclude>
-                                          <exclude>org.apache.camel:camel-routebox-starter</exclude>
-                                          <exclude>org.apache.camel:camel-swagger</exclude>
-
-                                          <exclude>org.apache.camel:camel-xmlrpc</exclude>
-                                          <exclude>org.apache.camel:camel-xmlrpc-starter</exclude>
-
-                                      </excludes>
-                                  </dependencyManagement>
-                              </import>
-                              <import>
-                                  <groupId>org.arquillian.cube</groupId>
-                                  <artifactId>arquillian-cube-bom</artifactId>
-                                  <version>${arquillian-cube.version}</version>
-                                  <dependencyManagement>
-                                      <includes>
-                                          <include>org.arquillian.cube:*</include>
-                                      </includes>
-                                  </dependencyManagement>
-                              </import>
-                              <import>
-                                  <groupId>io.fabric8</groupId>
-                                  <artifactId>spring-cloud-kubernetes-bom-with-platform-deps</artifactId>
-                                  <version>${spring-cloud-kubernetes.version}</version>
-                                  <dependencyManagement>
-                                      <includes>
-                                          <include>*:*</include>
-                                      </includes>
-                                      <excludes>
-                                          <exclude>org.apache.httpcomponents:httpasyncclient</exclude>
-                                          <exclude>org.apache.httpcomponents:httpclient</exclude>
-                                          <exclude>org.apache.httpcomponents:httpclient-cache</exclude>
-                                          <exclude>org.apache.httpcomponents:httpclient-osgi</exclude>
-                                          <exclude>org.apache.httpcomponents:httpcore</exclude>
-                                          <exclude>org.apache.httpcomponents:httpmime</exclude>
-
-                                          <exclude>org.springframework.boot:spring-boot</exclude>
-                                          <exclude>org.springframework.boot:spring-boot-test</exclude>
-                                          <exclude>javax.inject:javax.inject</exclude>
-                                          <exclude>commons-io:commons-io</exclude>
-                                          <exclude>junit:junit</exclude>
-                                          <exclude>org.slf4j:*</exclude>
-                                          <exclude>org.springframework:*</exclude>
-                                          <exclude>org.springframework.boot:*</exclude>
-                                          <exclude>commons-lang:commons-lang</exclude>
-                                          <exclude>io.fabric8:kubernetes-*</exclude>
-                                          <exclude>io.fabric8:openshift-*</exclude>
-                                          <exclude>com.squareup.okhttp:*</exclude>
-                                          <exclude>com.squareup.okio:*</exclude>
-                                          <exclude>io.zipkin.java:*</exclude>
-                                          <exclude>org.optaplanner:*</exclude>
-                                      </excludes>
-                                  </dependencyManagement>
-                              </import>
-                              <import>
-                                  <groupId>me.snowdrop</groupId>
-                                  <artifactId>narayana-spring-boot-core</artifactId>
-                                  <version>${narayana-spring-boot.version}</version>
-                                  <dependencyManagement>
-                                      <includes>
-                                          <include>org.jboss.narayana.jta:*</include>
-                                          <include>org.jboss.narayana.jts:*</include>                                                
-                                      </includes>
-                                  </dependencyManagement>
-                              </import>
-                          </imports>
-                          <overrides>
-                              <override>
-                                  <dependencies>
-                                      <includes>
-                                          <include>org.springframework.cloud:spring-cloud-stream-binder-kafka-test-support</include>
-                                      </includes>
-                                  </dependencies>
-                                  <version>1.1.2</version>
-                              </override>
-                              <override>
-                                  <dependencies>
-                                      <includes>
-                                          <include>org.slf4j:jcl-over-slf4j</include>
-                                      </includes>
-                                  </dependencies>
-                                  <version>${slf4j.version}</version>
-                              </override>
-                              <override>
-                                  <dependencies>
-                                      <includes>
-                                          <include>org.slf4j:log4j-over-slf4j</include>
-                                      </includes>
-                                  </dependencies>
-                                  <version>${slf4j.version}</version>
-                              </override>
-                              <override>
-                                  <dependencies>
-                                      <includes>
-                                          <include>org.apache.activemq:activemq-*</include>
-                                      </includes>
-                                  </dependencies>
-                                  <version>${activemq.version}</version>
-                              </override>
-                              <override>
-                                  <dependencies>
-                                      <includes>
-                                          <include>org.apache.tomcat*:*</include>
-                                      </includes>
-                                  </dependencies>
-                                  <version>${tomcat-embed.version}</version>
-                              </override>
-                              <override>
-                                  <dependencies>
-                                      <includes>
-                                          <include>org.apache.activemq:artemis-*</include>
-                                      </includes>
-                                  </dependencies>
-                                  <version>${artemis.version}</version>
-                              </override>
-                              <override>
-                                  <dependencies>
-                                      <includes>
-                                          <include>org.jboss.narayana.jta:*</include>
-                                          <include>org.jboss.narayana.jts:*</include>
-                                      </includes>
-                                  </dependencies>
-                                  <version>${narayana.version}</version>
-                              </override>
-                              <override>
-                                  <dependencies>
-                                      <includes>
-                                          <include>com.fasterxml.jackson.core:jackson-databind</include>
-                                      </includes>
-                                  </dependencies>
-                                  <version>${jackson2.databind.version}</version>
-                              </override>
-                          </overrides>
-                          <plugins>
-                              <includes>
-                                  <include>io.fabric8:*</include>
-                              </includes>
-                          </plugins>
-                          <properties>
-                              <skipStagingRepositoryClose>true</skipStagingRepositoryClose>
-                          </properties>
-                          <inheritDependencyManagement>true</inheritDependencyManagement>
-                          <inheritPluginManagement>true</inheritPluginManagement>
-                      </bom>
-                      <bom>
-                          <artifactId>fabric8-project-bom-fuse-karaf</artifactId>
-                          <name>Fabric8 :: Project :: Bom for Fuse Applications on Karaf</name>
-                          <dependencies>
-                              <includes>
-                                  <!-- The kubernetes Client and Model -->
-                                  <include>io.fabric8:openshift-*</include>
-                                  <include>io.fabric8.kubernetes:*</include>
-                                  <include>io.fabric8:fabric8-karaf*</include>
-                                  <include>io.fabric8:kubernetes-*</include>
-
-                                  <include>org.fusesource:camel-sap</include>
-                                  <include>org.fusesource:camel-activemq</include>
-                                  <include>javax*:*</include>
-
-                                  <include>org.easymock:easymockclassextension</include>
-                                  <include>org.jboss.arquillian*:*</include>
-                                  <include>org.jboss.shrinkwrap*:*</include>
-
-                                  <include>xml-apis:xml-apis</include>
-
-                                  <!-- JBoss Fuse kar -->
-                                  <include>org.jboss.fuse:fuse-karaf-framework:${version.fuse-karaf}:kar</include>
-                              </includes>
-                              <excludes>
-                                  <exclude>javax.servlet:javax.servlet-api</exclude>
-                                  <exclude>javax.activation:activation:1.1</exclude>
-                              </excludes>
-                          </dependencies>
-                          <imports>
-                              <import>
-                                  <groupId>org.jboss.fuse</groupId>
-                                  <artifactId>jboss-fuse-parent</artifactId>
-                                  <version>${version.fuse-karaf}</version>
-                                  <repository>https://maven.repository.redhat.com/ga</repository>
-                                  <dependencyManagement>
-                                      <includes>
-                                          <include>*:*</include>
-                                      </includes>
-                                      <excludes>
-                                          <exclude>javax.ws.rs:javax.ws.rs-api</exclude>
-                                          <exclude>org.fusesource:camel-activemq</exclude>
-                                          <exclude>javax.annotation:jsr250-api</exclude>
-                                          <exclude>xml-apis:xml-apis:1.4.01</exclude>
-
-                                          <exclude>org.easymock:easymockclassextension</exclude>
-                                          <exclude>org.apache.cxf:cxf-rt-ws-security-oauth2</exclude>
-                                          <exclude>org.apache.camel:camel-manual</exclude>
-                                          <exclude>org.apache.activemq:activemq-camel</exclude>
-                                          <exclude>org.jboss.fuse.features:base</exclude>
-                                          <exclude>org.fusesource:camel-sap</exclude>
-                                      </excludes>
-                                  </dependencyManagement>
-                              </import>
-                          </imports>
-                          <overrides>
-                              <override>
-                                  <dependencies>
-                                      <includes>
-                                          <include>org.apache.activemq:activemq-*</include>
-                                      </includes>
-                                  </dependencies>
-                                  <version>${activemq.version}</version>
-                              </override>
-                          </overrides>
-                          <plugins>
-                              <includes>
-                                  <include>io.fabric8:*</include>
-                              </includes>
-                          </plugins>
-                          <properties>
-                              <version.org.fusesource.camel-sap>7.3.0.fuse-730054</version.org.fusesource.camel-sap>
-                              <skipStagingRepositoryClose>true</skipStagingRepositoryClose>
-                          </properties>
-                          <inheritDependencyManagement>true</inheritDependencyManagement>
-                          <inheritPluginManagement>true</inheritPluginManagement>
-                      </bom>
-                  </boms>
-              </configuration>
-              <executions>
-                  <execution>
-                      <goals>
-                          <goal>generate-bom</goal>
-                      </goals>
-                  </execution>
-              </executions>
-          </plugin>
-          <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-compiler-plugin</artifactId>
-              <version>${compiler.plugin.version}</version>
-              <configuration>
-                  <showDeprecation>true</showDeprecation>
-                  <showWarnings>true</showWarnings>
-                  <compilerArguments>
-                      <source>${maven.compiler.argument.source}</source>
-                      <target>${maven.compiler.argument.target}</target>
-                  </compilerArguments>
-              </configuration>
-          </plugin>
-          <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-jar-plugin</artifactId>
-              <version>${jar.plugin.version}</version>
-              <configuration>
-                  <archive>
-                      <index>true</index>
-                      <manifest>
-                          <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
-                          <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-                      </manifest>
-                      <manifestEntries>
-                          <Implementation-URL>${project.url}</Implementation-URL>
-                          <Java-Version>${java.version}</Java-Version>
-                          <Java-Vendor>${java.vendor}</Java-Vendor>
-                          <Os-Name>${os.name}</Os-Name>
-                          <Os-Arch>${os.arch}</Os-Arch>
-                          <Os-Version>${os.version}</Os-Version>
-                          <Scm-Url>${project.scm.url}</Scm-Url>
-                          <Scm-Connection>${project.scm.connection}</Scm-Connection>
-                          <Scm-Revision>${buildNumber}</Scm-Revision>
-                          <Build-Timestamp>${build.datetime}</Build-Timestamp>
-                      </manifestEntries>
-                  </archive>
-              </configuration>
-          </plugin>
-          <!-- Set properties containing the scm revision and build timestamp -->
-          <plugin>
-              <groupId>org.codehaus.mojo</groupId>
-              <artifactId>buildnumber-maven-plugin</artifactId>
-              <version>${buildnumber.plugin.version}</version>
-              <executions>
-                  <execution>
-                      <id>get-build-timestamp</id>
-                      <phase>initialize</phase>
-                      <goals>
-                          <goal>create-timestamp</goal>
-                      </goals>
-                      <configuration>
-                          <!-- Example date: Wed, 4 Jul 2001 12:08:56 -0700 -->
-                          <timestampFormat>EEE, d MMM yyyy HH:mm:ss Z</timestampFormat>
-                          <timestampPropertyName>build.datetime</timestampPropertyName>
-                      </configuration>
-                  </execution>
-                  <execution>
-                      <id>get-scm-revision</id>
-                      <phase>initialize</phase>
-                      <goals>
-                          <goal>create</goal>
-                      </goals>
-                      <configuration>
-                          <doCheck>false</doCheck>
-                          <doUpdate>false</doUpdate>
-                          <revisionOnScmFailure>UNKNOWN</revisionOnScmFailure>
-                          <getRevisionOnlyOnce>true</getRevisionOnlyOnce>
-                      </configuration>
-                  </execution>
-              </executions>
-          </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-resources-plugin</artifactId>
-          <version>2.6</version>
-          <configuration>
-            <nonFilteredFileExtensions>
-              <nonFilteredFileExtension>zip</nonFilteredFileExtension>
-              <nonFilteredFileExtension>gz</nonFilteredFileExtension>
-              <nonFilteredFileExtension>jar</nonFilteredFileExtension>
-            </nonFilteredFileExtensions>
-          </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-enforcer-plugin</artifactId>
-          <version>${maven.enforcer.plugin.version}</version>
-          <executions>
-            <execution>
-              <id>enforce-versions</id>
-              <goals>
-                <goal>enforce</goal>
-              </goals>
-              <configuration>
-                <rules>
-                  <requireMavenVersion>
-                    <version>${maven.enforcer.version}</version>
-                  </requireMavenVersion>
-                </rules>
-              </configuration>
-            </execution>
-          </executions>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-release-plugin</artifactId>
-          <version>2.5</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-gpg-plugin</artifactId>
-          <version>1.5</version>
-          <configuration>
-            <passphrase>${gpg.passphrase}</passphrase>
-            <useAgent>true</useAgent>
-          </configuration>
-        </plugin>
-      </plugins>
     </build>
 
     <profiles>
@@ -1947,7 +2342,7 @@
         <profile>
             <id>camel-snapshot</id>
             <properties>
-                <camel.version>2.21.0.fuse-730051</camel.version>
+                <camel.version>2.21.0.fuse-750028</camel.version>
             </properties>
         </profile>
         <profile>
@@ -2051,13 +2446,13 @@
             </properties>
         </profile>
         <profile>
-          <id>doclint-java8-disable</id>
-          <activation>
-            <jdk>[1.8,)</jdk>
-          </activation>
-          <properties>
-              <javadoc.opts>-Xdoclint:none</javadoc.opts>
-          </properties>
+            <id>doclint-java8-disable</id>
+            <activation>
+                <jdk>[1.8,)</jdk>
+            </activation>
+            <properties>
+                <javadoc.opts>-Xdoclint:none</javadoc.opts>
+            </properties>
         </profile>
     </profiles>
 
