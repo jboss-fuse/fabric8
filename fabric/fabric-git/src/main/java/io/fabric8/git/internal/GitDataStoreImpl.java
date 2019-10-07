@@ -522,6 +522,8 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                     if (answer.size() > 0) {
                         LOGGER.info("Initial versions cached");
                         initialVersionsAvailable.countDown();
+                    } else {
+                        LOGGER.info("No local Git branches (fabric versions) available yet");
                     }
                     return answer;
                 }
@@ -531,7 +533,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
             readLock.unlock();
         }
     }
-    
+
     @Override
     public Map<String, String> getDataStoreProperties() {
         return Collections.unmodifiableMap(dataStoreProperties);
@@ -1555,7 +1557,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         @Override
         public void onRemoteUrlChanged(final String updatedUrl) {
             final String actualUrl = gitRemoteUrl != null ? gitRemoteUrl : updatedUrl;
-            LOGGER.debug("GitDataStoreListener detected remote url change to \"" + actualUrl + "\". Submitting task" +
+            LOGGER.info("GitDataStoreListener detected remote url change to \"" + actualUrl + "\". Submitting task" +
                     " that'll pull from new remote. Using thread pool " + threadPool);
             threadPool.submit(new Runnable() {
                 @Override
@@ -1605,6 +1607,8 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                             if (currentUrl == null) {
                                 initialVersionsAvailable.countDown();
                             }
+                        } else {
+                            LOGGER.info("GG: Remote url " + currentUrl + " didn't change");
                         }
                         return null;
                     }

@@ -17,28 +17,27 @@ package io.fabric8.groups.internal;
 
 import io.fabric8.groups.GroupListener;
 
-class EventOperation implements Operation
-{
+/**
+ * "Event" operation performed on {@link ZooKeeperGroup} is meant to call registered listeners.
+ */
+class EventOperation implements Operation {
+
     private final ZooKeeperGroup cache;
     private final GroupListener.GroupEvent event;
 
-    EventOperation(ZooKeeperGroup cache, GroupListener.GroupEvent event)
-    {
+    EventOperation(ZooKeeperGroup cache, GroupListener.GroupEvent event) {
         this.cache = cache;
         this.event = event;
     }
 
     @Override
-    public void invoke()
-    {
+    public void invoke() {
         cache.callListeners(event);
     }
 
     @Override
-    public String toString()
-    {
-        return "EventOperation{" +
-                "event=" + event +
-                '}';
+    public String toString() {
+        return "EventOperation{ " + cache.getId() + ", " + event + " }";
     }
+
 }

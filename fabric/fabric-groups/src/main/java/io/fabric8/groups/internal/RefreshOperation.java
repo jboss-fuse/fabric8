@@ -15,40 +15,39 @@
  */
 package io.fabric8.groups.internal;
 
-class RefreshOperation implements Operation
-{
+/**
+ * "Refresh" operation performed on {@link ZooKeeperGroup} is meant to synchronize <strong>all</strong>
+ * data kept inside {@link ZooKeeperGroup#currentData} as mapping between full path and ZK data.
+ * Removals, updates and additions are handled.
+ */
+class RefreshOperation implements Operation {
+
     private final ZooKeeperGroup cache;
     private final ZooKeeperGroup.RefreshMode mode;
 
-    RefreshOperation(ZooKeeperGroup cache, ZooKeeperGroup.RefreshMode mode)
-    {
+    RefreshOperation(ZooKeeperGroup cache, ZooKeeperGroup.RefreshMode mode) {
         this.cache = cache;
         this.mode = mode;
     }
 
     @Override
-    public void invoke() throws Exception
-    {
+    public void invoke() throws Exception {
         cache.refresh(mode);
     }
 
     @Override
-    public boolean equals(Object o)
-    {
-        if ( this == o )
-        {
+    public boolean equals(Object o) {
+        if (this == o) {
             return true;
         }
-        if ( o == null || getClass() != o.getClass() )
-        {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
 
-        RefreshOperation that = (RefreshOperation)o;
+        RefreshOperation that = (RefreshOperation) o;
 
         //noinspection RedundantIfStatement
-        if ( mode != that.mode )
-        {
+        if (mode != that.mode) {
             return false;
         }
 
@@ -56,14 +55,13 @@ class RefreshOperation implements Operation
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return mode.hashCode();
     }
 
     @Override
-    public String toString()
-    {
-        return "RefreshOperation(" + mode + "){}";
+    public String toString() {
+        return "RefreshOperation{ " + cache.getId() + ", " + mode + " }";
     }
+
 }

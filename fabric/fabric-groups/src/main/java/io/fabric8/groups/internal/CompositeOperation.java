@@ -15,12 +15,14 @@
  */
 package io.fabric8.groups.internal;
 
+import java.util.Arrays;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Operation that aggregates several {@link Operation operations} to be performed inside single task passed
- * to thread executor
+ * to thread executor.
  */
 public class CompositeOperation implements Operation {
 
@@ -50,6 +52,11 @@ public class CompositeOperation implements Operation {
                 LOG.error(e.getMessage(), e);
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return "CompositeOperation{ " + Arrays.asList(operations) + " }";
     }
 
 }

@@ -26,6 +26,7 @@ import io.fabric8.zookeeper.bootstrap.BootstrapConfiguration;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -39,11 +40,15 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.errors.RepositoryNotFoundException;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.RepositoryCache;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ThreadSafe
 @Component(name = "io.fabric8.git.service", immediate = true, metatype = false)
 @Service(GitService.class)
 public final class FabricGitServiceImpl extends AbstractComponent implements GitService {
+
+    public static Logger LOG = LoggerFactory.getLogger(FabricGitServiceImpl.class);
 
     public static final String DEFAULT_GIT_PATH = "git" + File.separator + "local" + File.separator + "fabric";
 

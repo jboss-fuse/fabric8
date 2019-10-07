@@ -15,40 +15,38 @@
  */
 package io.fabric8.groups.internal;
 
-class GetDataOperation implements Operation
-{
+/**
+ * "Get Data" operation performed on {@link ZooKeeperGroup} is meant to synchronize data kept inside
+ * {@link ZooKeeperGroup#currentData} map - for single path (unlike {@link RefreshOperation}.
+ */
+class GetDataOperation implements Operation {
+
     private final ZooKeeperGroup cache;
     private final String fullPath;
 
-    GetDataOperation(ZooKeeperGroup cache, String fullPath)
-    {
+    GetDataOperation(ZooKeeperGroup cache, String fullPath) {
         this.cache = cache;
         this.fullPath = fullPath;
     }
 
     @Override
-    public void invoke() throws Exception
-    {
+    public void invoke() throws Exception {
         cache.getDataAndStat(fullPath);
     }
 
     @Override
-    public boolean equals(Object o)
-    {
-        if ( this == o )
-        {
+    public boolean equals(Object o) {
+        if (this == o) {
             return true;
         }
-        if ( o == null || getClass() != o.getClass() )
-        {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
 
-        GetDataOperation that = (GetDataOperation)o;
+        GetDataOperation that = (GetDataOperation) o;
 
         //noinspection RedundantIfStatement
-        if ( !fullPath.equals(that.fullPath) )
-        {
+        if (!fullPath.equals(that.fullPath)) {
             return false;
         }
 
@@ -56,16 +54,13 @@ class GetDataOperation implements Operation
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return fullPath.hashCode();
     }
 
     @Override
-    public String toString()
-    {
-        return "GetDataOperation{" +
-                "fullPath='" + fullPath + '\'' +
-                '}';
+    public String toString() {
+        return "GetDataOperation{ " + cache.getId() + ", " + fullPath + " }";
     }
+
 }

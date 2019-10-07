@@ -30,15 +30,27 @@ public class ZooKeeperMultiGroup<T extends NodeState> extends ZooKeeperGroup<T> 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     public ZooKeeperMultiGroup(CuratorFramework client, String path, Class<T> clazz) {
-        super(client, path, clazz);
+        this(null, client, path, clazz);
     }
 
     public ZooKeeperMultiGroup(CuratorFramework client, String path, Class<T> clazz, ExecutorService executorService) {
-        super(client, path, clazz, executorService);
+        this(null, client, path, clazz, executorService);
     }
 
     public ZooKeeperMultiGroup(CuratorFramework client, String path, Class<T> clazz, ThreadFactory threadFactory) {
-        super(client, path, clazz, threadFactory);
+        this(null, client, path, clazz, threadFactory);
+    }
+
+    public ZooKeeperMultiGroup(String source, CuratorFramework client, String path, Class<T> clazz) {
+        super(source, client, path, clazz);
+    }
+
+    public ZooKeeperMultiGroup(String source, CuratorFramework client, String path, Class<T> clazz, ExecutorService executorService) {
+        super(source, client, path, clazz, executorService);
+    }
+
+    public ZooKeeperMultiGroup(String source, CuratorFramework client, String path, Class<T> clazz, ThreadFactory threadFactory) {
+        super(source, client, path, clazz, threadFactory);
     }
 
     @Override

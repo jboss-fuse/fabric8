@@ -52,4 +52,24 @@ public class ZooKeeperGroupFactory implements GroupFactory {
         return new ZooKeeperMultiGroup<T>(curator, path, clazz, threadFactory);
     }
 
+    @Override
+    public <T extends NodeState> Group<T> createGroup(String source, String path, Class<T> clazz) {
+        return new ZooKeeperGroup<T>(source, curator, path, clazz);
+    }
+
+    @Override
+    public <T extends NodeState> Group<T> createGroup(String source, String path, Class<T> clazz, ThreadFactory threadFactory) {
+        return new ZooKeeperGroup<T>(source, curator, path, clazz, threadFactory);
+    }
+
+    @Override
+    public <T extends NodeState> Group<T> createMultiGroup(String source, String path, Class<T> clazz) {
+        return new ZooKeeperMultiGroup<T>(source, curator, path, clazz);
+    }
+
+    @Override
+    public <T extends NodeState> Group<T> createMultiGroup(String source, String path, Class<T> clazz, ThreadFactory threadFactory) {
+        return new ZooKeeperMultiGroup<T>(source, curator, path, clazz, threadFactory);
+    }
+
 }

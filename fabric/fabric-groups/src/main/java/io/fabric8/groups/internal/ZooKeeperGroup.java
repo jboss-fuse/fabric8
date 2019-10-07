@@ -62,7 +62,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <p>A utility that attempts to keep all data from all children of a ZK path locally cached. This class
  * will watch the ZK path, respond to update/create/delete events, pull down the data, etc. You can
  * register a listener that will get notified when changes occur.</p>
- * <p/>
+ * <p>There are two <em>modes</em> of operation when using {@link ZooKeeperGroup}:<ul>
+ *     <li>"cluster member registration" when {@link #update(NodeState)} is called</li>
+ *     <li>"cluster listener" without using {@link #update(NodeState)} to listen to cluster events and detect changed
+ *     master node.</li>
+ * </ul></p>
  * <p><b>IMPORTANT</b> - it's not possible to stay transactionally in sync. Users of this class must
  * be prepared for false-positives and false-negatives. Additionally, always use the version number
  * when updating data to avoid overwriting another process' change.</p>
@@ -86,6 +90,8 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     protected final SequenceComparator sequenceComparator = new SequenceComparator();
     private final String uuid = UUID.randomUUID().toString();
 
+    // "id" is actual sequentional, ephemeral node created for this group - only if given group
+    // is used in "register cluster member" mode, not in "listen to master changes" mode
     private volatile String id;
     // to help detecting whether ZK Group update failed
     private final AtomicBoolean creating = new AtomicBoolean();
@@ -93,6 +99,8 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     // this status means we may have (temporary - for the period of ZK session) duplication of nodes
     private final AtomicBoolean unstable = new AtomicBoolean();
     private volatile T state;
+
+    private String source = "?";
 
     private final Watcher childrenWatcher = new Watcher() {
         @Override
@@ -150,10 +158,41 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
      * @param executorService ExecutorService to use for the ZooKeeperGroup's background thread
      */
     public ZooKeeperGroup(CuratorFramework client, String path, Class<T> clazz, final ExecutorService executorService) {
-        LOG.info("Creating ZK Group for path \"" + path + "\"");
+        this(null, client, path, clazz, executorService);
+    }
+
+    /**
+     * @param source
+     * @param client the client
+     * @param path   path to watch
+     */
+    public ZooKeeperGroup(String source, CuratorFramework client, String path, Class<T> clazz) {
+        this(source, client, path, clazz,
+                Executors.newSingleThreadExecutor(new NamedThreadFactory("ZKGroup")));
+    }
+
+    /**
+     * @param source
+     * @param client        the client
+     * @param path          path to watch
+     * @param threadFactory factory to use when creating internal threads
+     */
+    public ZooKeeperGroup(String source, CuratorFramework client, String path, Class<T> clazz, ThreadFactory threadFactory) {
+        this(source, client, path, clazz, Executors.newSingleThreadExecutor(threadFactory));
+    }
+
+    /**
+     * @param source
+     * @param client          the client
+     * @param path            path to watch
+     * @param executorService ExecutorService to use for the ZooKeeperGroup's background thread
+     */
+    public ZooKeeperGroup(String source, CuratorFramework client, String path, Class<T> clazz, final ExecutorService executorService) {
         this.client = client;
         this.path = path;
         this.clazz = clazz;
+        this.source = source == null ? "?" : source;
+        LOG.info("Creating " + this);
         this.executorService = executorService;
         ensurePath = client.newNamespaceAwareEnsurePath(path);
     }
@@ -162,7 +201,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
      * Start the cache. The cache is not started automatically. You must call this method.
      */
     public void start() {
-        LOG.info("Starting ZK Group for path \"" + path + "\"");
+        LOG.info("Starting " + this);
         if (started.compareAndSet(false, true)) {
             connected.set(client.getZookeeperClient().isConnected());
 
@@ -187,7 +226,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
      */
     @Override
     public void close() throws IOException {
-        LOG.debug(this + ".close, connected:" + connected);
+        LOG.info("Stopping ZK Group for path \"" + path + "\"");
         if (started.compareAndSet(true, false)) {
             client.getConnectionStateListenable().removeListener(connectionStateListener);
             executorService.shutdownNow();
@@ -220,11 +259,13 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
 
     @Override
     public void add(GroupListener<T> listener) {
+        LOG.info("GG: group=" + this + ".add(" + listener + ")");
         listeners.addListener(listener);
     }
 
     @Override
     public void remove(GroupListener<T> listener) {
+        LOG.info("GG: group=" + this + ".remove(" + listener + ")");
         listeners.removeListener(listener);
     }
 
@@ -251,6 +292,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
             // state.toString() invokes Jackson ObjectMapper serialization
             LOG.trace(this + " doUpdate, state:" + state + " id:" + id);
         }
+        LOG.info("GG: " + this + ": doUpdate, id: " + id + ", state: " + state);
         if (state == null) {
             if (id != null) {
                 try {
@@ -378,6 +420,8 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
             T node = child.getNode();
             if (!filtered.containsKey(node.getContainer())
                     || filtered.get(node.getContainer()).getPath().compareTo(child.getPath()) < 0) {
+                // use child's cluster data either if there wasn't any data for given container
+                // or if child cluster data is "newer" (in terms of ZK sequence node id)
                 filtered.put(node.getContainer(), child);
             }
         }
@@ -476,12 +520,14 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     }
 
     void callListeners(final GroupListener.GroupEvent event) {
+        LOG.info("GG: " + this + ": callListeners, id: " + id + ", event: " + event);
         listeners.forEach
                 (
                         new Function<GroupListener<T>, Void>() {
                             @Override
                             public Void apply(GroupListener<T> listener) {
                                 try {
+                                    LOG.info("GG: calling listener=" + listener + " + for group=" + ZooKeeperGroup.this + ", event=" + event);
                                     listener.groupEvent(ZooKeeperGroup.this, event);
                                 } catch (Exception e) {
                                     handleException(e);
@@ -561,6 +607,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     }
 
     private void processChildren(List<String> children, RefreshMode mode) throws Exception {
+        LOG.info("GG: " + this + ": processChildren(size = " + children.size() + ")");
         List<String> fullPaths = Lists.newArrayList(Lists.transform
                 (
                         children,
@@ -631,6 +678,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
 
     private void offerOperation(Operation operation) {
         if (!operations.contains(operation)) {
+            LOG.info("GG: " + this + ": offering " + operation);
             operations.offer(operation);
         }
 //        operations.remove(operation);   // avoids herding for refresh operations
@@ -662,6 +710,17 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
      */
     public boolean isUnstable() {
         return unstable.get();
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder("<ZKGroup ").append(source);
+        sb.append(", ").append(path);
+        if (id != null) {
+            sb.append(", ").append(id);
+        }
+        sb.append(", ").append(uuid).append(">");
+        return sb.toString();
     }
 
 }
