@@ -1488,16 +1488,22 @@
                                             <!-- Exclude community docs -->
                                             <exclude>org.apache.camel:camel-manual</exclude>
 
-                                            <!-- Deprecated components -->
+                                            <!-- Exclude unsupported components -->
+                                            <exclude>org.apache.camel:camel-bonita</exclude>
+                                            <exclude>org.apache.camel:camel-bonita-starter</exclude>
                                             <exclude>org.apache.camel:camel-context</exclude>
                                             <exclude>org.apache.camel:camel-context-starter</exclude>
                                             <exclude>org.apache.camel:camel-cache</exclude>
                                             <exclude>org.apache.camel:camel-cache-starter</exclude>
-                                            <exclude>org.apache.camel:camel-elasticsearch5</exclude>
-                                            <exclude>org.apache.camel:camel-elasticsearch5-starter</exclude>
+                                            <exclude>org.apache.camel:camel-eclipse</exclude>
+                                            <exclude>org.apache.camel:camel-eclipse-starter</exclude>
+                                            <exclude>org.apache.camel:camel-ejb</exclude>
+                                            <exclude>org.apache.camel:camel-eventadmin</exclude>
+                                            <exclude>org.apache.camel:camel-gae</exclude>
                                             <exclude>org.apache.camel:camel-hdfs</exclude>
                                             <exclude>org.apache.camel:camel-hdfs-starter</exclude>
                                             <exclude>org.apache.camel:camel-http</exclude>
+                                            <exclude>org.apache.camel:camel-http-starter</exclude>
                                             <exclude>org.apache.camel:camel-ibatis</exclude>
                                             <exclude>org.apache.camel:camel-ignite</exclude>
                                             <exclude>org.apache.camel:camel-ignite-starter</exclude>
@@ -1505,10 +1511,19 @@
                                             <exclude>org.apache.camel:camel-ironmq-starter</exclude>
                                             <exclude>org.apache.camel:camel-javaspace</exclude>
                                             <exclude>org.apache.camel:camel-javaspace-starter</exclude>
-                                            <exclude>org.apache.camel:camel-kestrel</exclude>
-                                            <exclude>org.apache.camel:camel-kestrel-starter</exclude>
-                                            <exclude>org.apache.camel:camel-krati</exclude>
-                                            <exclude>org.apache.camel:camel-krati-starter</exclude>
+                                            <exclude>org.apache.camel:camel-jbpm</exclude>
+                                            <exclude>org.apache.camel:camel-jbpm-starter</exclude>
+                                            <exclude>org.apache.camel:camel-jclouds</exclude>
+                                            <exclude>org.apache.camel:camel-jclouds-starter</exclude>
+                                            <exclude>org.apache.camel:camel-jetty8</exclude>
+                                            <exclude>org.apache.camel:camel-jira</exclude>
+                                            <exclude>org.apache.camel:camel-jira-starter</exclude>
+                                            <exclude>org.apache.camel:camel-jxpath</exclude>
+                                            <exclude>org.apache.camel:camel-jxpath-starter</exclude>
+                                            <exclude>org.apache.camel:camel-kura</exclude>
+                                            <exclude>org.apache.camel:camel-kura-starter</exclude>
+                                            <exclude>org.apache.camel:camel-lra</exclude>
+                                            <exclude>org.apache.camel:camel-lra-starter</exclude>
                                             <exclude>org.apache.camel:camel-mina</exclude>
                                             <exclude>org.apache.camel:camel-netty</exclude>
                                             <exclude>org.apache.camel:camel-netty-starter</exclude>
@@ -1516,13 +1531,17 @@
                                             <exclude>org.apache.camel:camel-netty-http-starter</exclude>
                                             <exclude>org.apache.camel:camel-openshift</exclude>
                                             <exclude>org.apache.camel:camel-openshift-starter</exclude>
+                                            <exclude>org.apache.camel:camel-paxlogging</exclude>
                                             <exclude>org.apache.camel:camel-quartz</exclude>
                                             <exclude>org.apache.camel:camel-routebox</exclude>
                                             <exclude>org.apache.camel:camel-routebox-starter</exclude>
+                                            <exclude>org.apache.camel:camel-spring-integration</exclude>
+                                            <exclude>org.apache.camel:camel-spring-integration-starter</exclude>
                                             <exclude>org.apache.camel:camel-swagger</exclude>
-
                                             <exclude>org.apache.camel:camel-xmlrpc</exclude>
                                             <exclude>org.apache.camel:camel-xmlrpc-starter</exclude>
+                                            <exclude>org.apache.camel:camel-yql</exclude>
+                                            <exclude>org.apache.camel:camel-yql-starter</exclude>
                                         </excludes>
                                     </dependencyManagement>
                                 </import>
