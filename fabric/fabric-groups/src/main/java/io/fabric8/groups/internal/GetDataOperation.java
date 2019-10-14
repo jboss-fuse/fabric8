@@ -24,14 +24,24 @@ class GetDataOperation implements Operation {
     private final ZooKeeperGroup cache;
     private final String fullPath;
 
+    private final String id;
+    private final String gid;
+
     GetDataOperation(ZooKeeperGroup cache, String fullPath) {
         this.cache = cache;
         this.fullPath = fullPath;
+        this.id = cache.nextId();
+        this.gid = cache.source;
     }
 
     @Override
     public void invoke() throws Exception {
         cache.getDataAndStat(fullPath);
+    }
+
+    @Override
+    public String id() {
+        return id;
     }
 
     @Override
@@ -60,7 +70,7 @@ class GetDataOperation implements Operation {
 
     @Override
     public String toString() {
-        return "GetDataOperation{ " + cache.getId() + ", " + fullPath + " }";
+        return String.format("[%s:%s GetDataOperation] { %s, %s }", gid, id, cache.getId(), fullPath);
     }
 
 }

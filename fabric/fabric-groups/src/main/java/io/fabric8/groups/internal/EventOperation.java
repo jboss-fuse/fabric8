@@ -15,6 +15,8 @@
  */
 package io.fabric8.groups.internal;
 
+import java.util.Objects;
+
 import io.fabric8.groups.GroupListener;
 
 /**
@@ -25,9 +27,14 @@ class EventOperation implements Operation {
     private final ZooKeeperGroup cache;
     private final GroupListener.GroupEvent event;
 
+    private final String id;
+    private final String gid;
+
     EventOperation(ZooKeeperGroup cache, GroupListener.GroupEvent event) {
         this.cache = cache;
         this.event = event;
+        this.id = cache.nextId();
+        this.gid = cache.source;
     }
 
     @Override
@@ -36,8 +43,26 @@ class EventOperation implements Operation {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        EventOperation that = (EventOperation) o;
+        return event == that.event;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(event);
+    }
+
+    @Override
+    public String id() {
+        return id;
+    }
+
+    @Override
     public String toString() {
-        return "EventOperation{ " + cache.getId() + ", " + event + " }";
+        return String.format("[%s:%s EventOperation] { %s, %s }", gid, id, cache.getId(), event.toString());
     }
 
 }

@@ -25,14 +25,24 @@ class RefreshOperation implements Operation {
     private final ZooKeeperGroup cache;
     private final ZooKeeperGroup.RefreshMode mode;
 
+    private final String id;
+    private final String gid;
+
     RefreshOperation(ZooKeeperGroup cache, ZooKeeperGroup.RefreshMode mode) {
         this.cache = cache;
         this.mode = mode;
+        this.id = cache.nextId();
+        this.gid = cache.source;
     }
 
     @Override
     public void invoke() throws Exception {
         cache.refresh(mode);
+    }
+
+    @Override
+    public String id() {
+        return id;
     }
 
     @Override
@@ -61,7 +71,7 @@ class RefreshOperation implements Operation {
 
     @Override
     public String toString() {
-        return "RefreshOperation{ " + cache.getId() + ", " + mode + " }";
+        return String.format("[%s:%s RefreshOperation] { %s, %s }", gid, id, cache.getId(), mode);
     }
 
 }

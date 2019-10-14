@@ -26,14 +26,24 @@ class UpdateOperation<T extends NodeState> implements Operation {
     private final ZooKeeperGroup<T> cache;
     private final T node;
 
-    UpdateOperation(ZooKeeperGroup cache, T node) {
+    private final String id;
+    private final String gid;
+
+    UpdateOperation(ZooKeeperGroup<T> cache, T node) {
         this.cache = cache;
         this.node = node;
+        this.id = cache.nextId();
+        this.gid = cache.source;
     }
 
     @Override
     public void invoke() throws Exception {
         cache.doUpdate(node);
+    }
+
+    @Override
+    public String id() {
+        return id;
     }
 
     @Override
@@ -54,7 +64,7 @@ class UpdateOperation<T extends NodeState> implements Operation {
 
     @Override
     public String toString() {
-        return "UpdateOperation{ " + cache.getId() + ", " + node + " }";
+        return String.format("[%s:%s UpdateOperation] { %s, %s }", gid, id, cache.getId(), node);
     }
 
 }

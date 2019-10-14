@@ -30,14 +30,22 @@ public class CompositeOperation implements Operation {
 
     private Operation[] operations;
 
-    public CompositeOperation(Operation ... operations) {
+    private final String id;
+    private final String gid;
+
+    public CompositeOperation(ZooKeeperGroup cache, Operation ... operations) {
         this.operations = operations;
+        this.id = cache.nextId();
+        this.gid = cache.source;
     }
 
     @Override
     public void invoke() throws Exception {
         for (Operation op : operations) {
+            String tn = Thread.currentThread().getName();
             try {
+                String tn2 = tn.substring(0, tn.length() - 1);
+                Thread.currentThread().setName(tn2 + "/" + op.id() + "]");
                 op.invoke();
                 if (Thread.currentThread().isInterrupted()) {
                     LOG.info("Interrupting composite operation");
@@ -50,13 +58,20 @@ public class CompositeOperation implements Operation {
                 break;
             } catch (Exception e) {
                 LOG.error(e.getMessage(), e);
+            } finally {
+                Thread.currentThread().setName(tn);
             }
         }
     }
 
     @Override
+    public String id() {
+        return id;
+    }
+
+    @Override
     public String toString() {
-        return "CompositeOperation{ " + Arrays.asList(operations) + " }";
+        return String.format("[%s:%s CompositeOperation] %s", gid, id, Arrays.asList(operations));
     }
 
 }

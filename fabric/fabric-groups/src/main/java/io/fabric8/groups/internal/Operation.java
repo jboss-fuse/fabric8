@@ -15,7 +15,21 @@
  */
 package io.fabric8.groups.internal;
 
-interface Operation
-{
-    public void     invoke() throws Exception;
+/**
+ * Operation is invoked during life-time of single {@link ZooKeeperGroup}
+ */
+interface Operation {
+
+    /**
+     * Invoke given operation
+     * @throws Exception
+     */
+    void invoke() throws Exception;
+
+    /**
+     * Get unique (within single {@link ZooKeeperGroup} instance) ID of given operation (for log purposes)
+     * @return
+     */
+    String id();
+
 }
