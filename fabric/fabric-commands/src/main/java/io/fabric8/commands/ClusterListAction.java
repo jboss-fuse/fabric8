@@ -17,6 +17,8 @@ package io.fabric8.commands;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +31,9 @@ import io.fabric8.utils.TablePrinter;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.felix.gogo.commands.Argument;
 import org.apache.felix.gogo.commands.Command;
+import org.apache.felix.gogo.commands.Option;
 import org.apache.karaf.shell.console.AbstractAction;
+import org.apache.zookeeper.data.Stat;
 
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.exists;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getAllChildren;
@@ -39,6 +43,9 @@ import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getSubstitutedData;
 public class ClusterListAction extends AbstractAction {
 
     protected static String CLUSTER_PREFIX = "/fabric/registry/clusters";
+
+    @Option(name = "-v", aliases = {"--verbose"}, description = "Verbose output", required = false, multiValued = false)
+    boolean verbose = false;
 
     @Argument(required = false, description = "Path of the fabric registry node (Zookeeper registry node) to list. Relative paths are evaluated relative to the base node, /fabric/registry/clusters. If not specified, all clusters are listed.")
     String path = "";
@@ -64,10 +71,22 @@ public class ClusterListAction extends AbstractAction {
                 realPath += "/" + path;
             }
         }
-        printCluster(realPath, System.out);
+
+        if (verbose) {
+            printClusterV(realPath, System.out);
+        } else {
+            printCluster(realPath, System.out);
+        }
+
         return null;
     }
 
+    /**
+     * Old {@code printCluster()}.
+     * @param dir
+     * @param out
+     * @throws Exception
+     */
     protected void printCluster(String dir, PrintStream out) throws Exception {
         // do we have any clusters at all?
         if (exists(getCurator(), dir) == null) {
@@ -100,10 +119,11 @@ public class ClusterListAction extends AbstractAction {
 
                     Object id = value(map, "id", "container");
                     if (id != null) {
-                        Object agent = value(map, "container", "agent");
+                        Object oagent = value(map, "container", "agent");
+                        String agent = oagent == null ? "" : oagent.toString();
                         List services = (List) value(map, "services");
 
-                        node = cluster.get(id);
+                        node = cluster.get(id.toString());
                         if (node == null) {
                             node = new ClusterNode();
                             cluster.put(id.toString(), node);
@@ -149,6 +169,168 @@ public class ClusterListAction extends AbstractAction {
         table.print();
     }
 
+    /**
+     * <p>New method for printing cluster data - to not break possible parsers of previous format</p>
+     * @param dir
+     * @param out
+     */
+    protected void printClusterV(String dir, PrintStream out) throws Exception {
+        Stat stat = exists(getCurator(), dir);
+        if (stat == null) {
+            out.println("No cluster information for path " + dir);
+            return;
+        }
+        List<String> children = getAllChildren(getCurator(), dir);
+        Map<String, Map<String, ClusterNode>> clusters = new TreeMap<String, Map<String, ClusterNode>>();
+
+        for (String child : children) {
+            byte[] data = getCurator().getData().forPath(child);
+            if (data != null && data.length > 0) {
+                String text = new String(data).trim();
+                if (!text.isEmpty()) {
+                    String clusterName = getClusterName(dir, child);
+                    Map<String, ClusterNode> cluster = clusters.get(clusterName);
+                    if (cluster == null) {
+                        cluster = new TreeMap<String, ClusterNode>();
+                        clusters.put(clusterName, cluster);
+                    }
+
+                    ObjectMapper mapper = new ObjectMapper();
+                    Map<String, Object> map = null;
+                    try {
+                        map = mapper.readValue(data, HashMap.class);
+                    } catch (JsonParseException e) {
+                        log.error("Error parsing JSON string: {}", text);
+                        throw e;
+                    }
+
+                    ClusterNode node = null;
+
+                    /*
+                     * We have these nodes to register clusters / cluster members
+                     * - /fabric/registry/clusters/amq
+                     * - /fabric/registry/clusters/amq/{group}
+                     * - /fabric/registry/clusters/apis/rest/{apiName}
+                     * - /fabric/registry/clusters/apis/rest/{name}/{version}/{container}
+                     * - /fabric/registry/clusters/apis/ws/{apiName}
+                     * - /fabric/registry/clusters/apis/ws/{name}/{version}/{container}
+                     * - /fabric/registry/clusters/git
+                     * - /fabric/registry/clusters/servlets/{group}
+                     * - /fabric/registry/clusters/webapps
+                     * - /fabric/registry/clusters/webapps/{group}
+                     * - /fabric/registry/clusters/webapps/{name}/{version}/{container}
+                     *
+                     * Only /fabric/registry/clusters/git children store json with same ID ("fabric-repo")
+                     */
+
+                    Object id = value(map, "id", "container");
+                    if (id != null) {
+                        Object oagent = value(map, "container", "agent");
+                        String agent = oagent == null ? null : oagent.toString();
+                        List<?> services = (List<?>) value(map, "services");
+
+                        node = cluster.get(id.toString());
+                        if (node == null) {
+                            node = new ClusterNode();
+                            cluster.put(id.toString(), node);
+                        }
+
+                        if (services != null) {
+                            if (!services.isEmpty()) {
+                                boolean first = true;
+                                for (Object service : services) {
+                                    node.combined.add(new String[] { agent, null, getSubstitutedData(getCurator(), service.toString()) });
+                                }
+                            } else {
+                                node.combined.add(new String[] { null, agent, null });
+                            }
+                        } else {
+                            Object started = value(map, "started");
+                            if (started == Boolean.TRUE) {
+                                node.combined.add(new String[] { agent, null, null });
+                            } else {
+                                node.combined.add(new String[] { null, agent, null });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
+        TablePrinter table = new TablePrinter();
+        table.columns("cluster", "masters", "slaves", "services");
+
+        for (String clusterName : clusters.keySet()) {
+            Map<String, ClusterNode> nodes = clusters.get(clusterName);
+            table.row(clusterName, "", "", "");
+            for (String nodeName : nodes.keySet()) {
+                ClusterNode node = nodes.get(nodeName);
+                // sort the combined information
+                sortClusterInformation(node.combined);
+                boolean first = true;
+                String previousMaster = null;
+                String previousSlave = null;
+                for (String[] row : node.combined) {
+                    String master = row[0] == null ? "-" : row[0];
+                    String slave = row[1] == null ? "-" : row[1];
+                    String service = row[2] == null ? "-" : row[2];
+
+                    if (!"-".equals(master) && master.equals(previousMaster)) {
+                        master = "";
+                        slave = "";
+                    } else {
+                        previousMaster = master;
+                    }
+                    if (!"-".equals(slave) && slave.equals(previousSlave)) {
+                        master = "";
+                        slave = "";
+                    } else {
+                        previousSlave = slave;
+                    }
+                    if (first) {
+                        table.row("   " + nodeName, master, slave, service);
+                        first = false;
+                    } else {
+                        table.row("", master, slave, service);
+                    }
+                }
+            }
+        }
+        table.print();
+    }
+
+    /**
+     * Each row contains master, slave and service(s). In theory, nothing prevents a JSON for a container
+     * to contain multiple services
+     * @param combined
+     */
+    private void sortClusterInformation(List<String[]> combined) {
+        Collections.sort(combined, new Comparator<String[]>() {
+            @Override
+            public int compare(String[] o1, String[] o2) {
+                for (int i = 0; i < 3; i++) {
+                    if (o1[i] == null && o2[i] == null) {
+                        continue;
+                    }
+                    if (o1[i] != null) {
+                        if (o1[i].equals(o2[i])) {
+                            continue;
+                        }
+                        if (o2[i] == null) {
+                            return -1;
+                        }
+                        return o1[i].compareTo(o2[i]);
+                    } else /* o2[i] != null */{
+                        return 1;
+                    }
+
+                }
+                return 0;
+            }
+        });
+    }
+
     protected String printList(List list) {
         if (list.isEmpty()) {
             return "-";
@@ -182,10 +364,12 @@ public class ClusterListAction extends AbstractAction {
         return clusterName;
     }
 
-    protected class ClusterNode {
-        public List masters = new ArrayList();
-        public List services = new ArrayList();
-        public List slaves = new ArrayList();
+    protected static class ClusterNode {
+        public List<String> masters = new ArrayList<>();
+        public List<String> services = new ArrayList<>();
+        public List<String> slaves = new ArrayList<>();
+
+        public List<String[]> combined = new ArrayList<>();
 
         @Override
         public String toString() {
