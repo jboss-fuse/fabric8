@@ -1502,8 +1502,6 @@
                                             <exclude>org.apache.camel:camel-gae</exclude>
                                             <exclude>org.apache.camel:camel-hdfs</exclude>
                                             <exclude>org.apache.camel:camel-hdfs-starter</exclude>
-                                            <exclude>org.apache.camel:camel-http</exclude>
-                                            <exclude>org.apache.camel:camel-http-starter</exclude>
                                             <exclude>org.apache.camel:camel-ibatis</exclude>
                                             <exclude>org.apache.camel:camel-ignite</exclude>
                                             <exclude>org.apache.camel:camel-ignite-starter</exclude>
@@ -1525,10 +1523,6 @@
                                             <exclude>org.apache.camel:camel-lra</exclude>
                                             <exclude>org.apache.camel:camel-lra-starter</exclude>
                                             <exclude>org.apache.camel:camel-mina</exclude>
-                                            <exclude>org.apache.camel:camel-netty</exclude>
-                                            <exclude>org.apache.camel:camel-netty-starter</exclude>
-                                            <exclude>org.apache.camel:camel-netty-http</exclude>
-                                            <exclude>org.apache.camel:camel-netty-http-starter</exclude>
                                             <exclude>org.apache.camel:camel-openshift</exclude>
                                             <exclude>org.apache.camel:camel-openshift-starter</exclude>
                                             <exclude>org.apache.camel:camel-paxlogging</exclude>
