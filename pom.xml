@@ -386,7 +386,7 @@
         <xjc-version>2.1.10.1</xjc-version>
         <xml.api.version>1.4.01</xml.api.version>
         <yetus.version>0.8.0</yetus.version>
-        <zookeeper-version>3.4.13</zookeeper-version>
+        <zookeeper-version>3.4.14</zookeeper-version>
         <!-- Disable OBR repository update by default -->
         <obrRepository>NONE</obrRepository>
     </properties>
