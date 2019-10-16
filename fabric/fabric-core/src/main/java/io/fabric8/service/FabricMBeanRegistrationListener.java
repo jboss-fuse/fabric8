@@ -15,13 +15,31 @@
  */
 package io.fabric8.service;
 
+import java.lang.management.ManagementFactory;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import javax.management.MBeanServer;
+import javax.management.MBeanServerNotification;
+import javax.management.Notification;
+import javax.management.NotificationListener;
+import javax.management.ObjectName;
+
+import io.fabric8.api.FabricService;
+import io.fabric8.api.RuntimeProperties;
+import io.fabric8.api.jcip.ThreadSafe;
+import io.fabric8.api.scr.AbstractComponent;
+import io.fabric8.api.scr.ValidatingReference;
 import io.fabric8.common.util.ShutdownTracker;
 import io.fabric8.core.jmx.FabricManager;
 import io.fabric8.core.jmx.FileSystem;
 import io.fabric8.core.jmx.HealthCheck;
 import io.fabric8.core.jmx.ZooKeeperFacade;
-
 import io.fabric8.utils.NamedThreadFactory;
+import io.fabric8.zookeeper.ZkPath;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.framework.state.ConnectionStateListener;
@@ -31,36 +49,15 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
-
-import io.fabric8.api.FabricService;
-import io.fabric8.api.RuntimeProperties;
-import io.fabric8.api.jcip.ThreadSafe;
-import io.fabric8.api.scr.AbstractComponent;
-import io.fabric8.api.scr.ValidatingReference;
-import io.fabric8.zookeeper.ZkPath;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.management.MBeanServer;
-import javax.management.MBeanServerNotification;
-import javax.management.Notification;
-import javax.management.NotificationListener;
-import javax.management.ObjectName;
-
-import java.lang.management.ManagementFactory;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import static io.fabric8.zookeeper.ZkPath.CONTAINER_DOMAIN;
 import static io.fabric8.zookeeper.ZkPath.CONTAINER_DOMAINS;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.create;
-import static io.fabric8.zookeeper.utils.ZooKeeperUtils.delete;
+import static io.fabric8.zookeeper.utils.ZooKeeperUtils.deleteIfExists;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.deleteSafe;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.exists;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.setData;
@@ -179,28 +176,27 @@ public final class FabricMBeanRegistrationListener extends AbstractComponent imp
     }
 
     private void updateProcessId() {
+        String runtimeIdentity = null;
         try {
             // TODO: this is Sun JVM specific ...
             //String processName = (String) mbeanServer.get().getAttribute(new ObjectName("java.lang:type=Runtime"), "Name");
             String processName = ManagementFactory.getRuntimeMXBean().getName();
             Long processId = Long.parseLong(processName.split("@")[0]);
 
-            String runtimeIdentity = runtimeProperties.get().getRuntimeIdentity();
+            runtimeIdentity = runtimeProperties.get().getRuntimeIdentity();
             String path = ZkPath.CONTAINER_PROCESS_ID.getPath(runtimeIdentity);
             Stat stat = exists(curator.get(), path);
             if (stat != null) {
                 if (stat.getEphemeralOwner() != curator.get().getZookeeperClient().getZooKeeper().getSessionId()) {
-                    delete(curator.get(), path);
-                    if( processId!=null ) {
-                        create(curator.get(), path, processId.toString(), CreateMode.EPHEMERAL);
-                    }
-                }
-            } else {
-                if( processId!=null ) {
+                    deleteIfExists(curator.get(), path);
                     create(curator.get(), path, processId.toString(), CreateMode.EPHEMERAL);
                 }
+            } else {
+                create(curator.get(), path, processId.toString(), CreateMode.EPHEMERAL);
             }
-        } catch (IllegalStateException e){
+        } catch (KeeperException.NodeExistsException e) {
+            LOGGER.warn("Problem during process Id registration (is container " + runtimeIdentity + " already running?): " + e.getMessage());
+        } catch (IllegalStateException e) {
             handleException(e);
         } catch (Exception ex) {
             LOGGER.error("Error while updating the process id.", ex);

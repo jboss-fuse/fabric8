@@ -38,7 +38,7 @@ import org.osgi.framework.BundleListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.fabric8.zookeeper.utils.ZooKeeperUtils.delete;
+import static io.fabric8.zookeeper.utils.ZooKeeperUtils.deleteIfExists;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.setData;
 
 @ThreadSafe
@@ -94,7 +94,7 @@ public abstract class AbstractExtenderListener extends AbstractComponent impleme
                             setData(getCurator(), ZkPath.CONTAINER_EXTENDER_BUNDLE.getPath(runtimeIdentity, extender, String.valueOf(bundleId)),
                                     bundleStatus.name(), CreateMode.EPHEMERAL);
                         } else {
-                            delete(getCurator(), ZkPath.CONTAINER_EXTENDER_BUNDLE.getPath(runtimeIdentity, extender, String.valueOf(bundleId)));
+                            deleteIfExists(getCurator(), ZkPath.CONTAINER_EXTENDER_BUNDLE.getPath(runtimeIdentity, extender, String.valueOf(bundleId)));
                         }
                         setData(getCurator(), ZkPath.CONTAINER_EXTENDER_STATUS.getPath(runtimeIdentity, extender),
                                 extenderStatus.name(), CreateMode.EPHEMERAL);

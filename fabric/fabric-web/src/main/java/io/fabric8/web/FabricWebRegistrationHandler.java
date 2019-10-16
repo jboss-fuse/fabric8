@@ -19,7 +19,6 @@ import static io.fabric8.internal.JsonHelper.jsonEncodeString;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.delete;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.setData;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
