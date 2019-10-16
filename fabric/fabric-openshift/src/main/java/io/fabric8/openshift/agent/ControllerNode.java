@@ -20,7 +20,8 @@ import io.fabric8.groups.NodeState;
 public class ControllerNode extends NodeState {
 
     @Override
-	public String toString() {
-		return "ControllerNode()";
-	}
+    public String toString() {
+        return "ControllerNode()";
+    }
+
 }

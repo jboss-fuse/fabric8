@@ -55,7 +55,7 @@ public class ZooKeeperMultiGroup<T extends NodeState> extends ZooKeeperGroup<T> 
 
     @Override
     public boolean isMaster(String name) {
-        List<ChildData<T>> children = getActiveChildren();
+        List<ChildData<T>> children = getActiveOrderedChildren();
         Collections.sort(children, sequenceComparator);
         for (ChildData child : children) {
             NodeState node = (NodeState) child.getNode();

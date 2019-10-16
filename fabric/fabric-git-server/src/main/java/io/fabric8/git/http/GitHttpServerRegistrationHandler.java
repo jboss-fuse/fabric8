@@ -156,8 +156,9 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
                 case CHANGED:
                     updateMasterUrl(group);
                     break;
+                case DISCONNECTED:
                 default:
-                    // do nothing
+                    // do nothing because we can't change ZK anyway
             }
         }
     }

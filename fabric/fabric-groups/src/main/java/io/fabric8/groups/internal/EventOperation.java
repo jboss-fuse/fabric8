@@ -57,7 +57,7 @@ class EventOperation implements Operation {
 
     @Override
     public String id() {
-        return id;
+        return gid + ":" + id;
     }
 
     @Override

@@ -175,6 +175,12 @@ public class MetricsCollector implements MetricsCollectorMBean {
             this.services = services;
         }
 
+        @Override
+        public String toString() {
+            return "QueryNode{" +
+                    "id='" + id + '\'' +
+                    '}';
+        }
     }
 
     public void setDefaultDelay(int defaultDelay) {

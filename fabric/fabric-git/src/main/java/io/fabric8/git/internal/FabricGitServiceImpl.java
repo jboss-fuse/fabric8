@@ -114,7 +114,12 @@ public final class FabricGitServiceImpl extends AbstractComponent implements Git
     @Override
     public void notifyRemoteChanged(String remoteUrl) {
         this.remoteUrl = remoteUrl;
-        for (GitListener listener : listeners) {
+        List<GitListener> localListeners = new LinkedList<>(listeners);
+        if (localListeners.size() == 0) {
+            LOG.info("No GitListeners registered yet");
+        }
+        for (GitListener listener : localListeners) {
+            LOG.debug("Calling " + listener.getClass().getName() + ".onRemoteUrlChanged(" + remoteUrl + ")");
             listener.onRemoteUrlChanged(remoteUrl);
         }
     }

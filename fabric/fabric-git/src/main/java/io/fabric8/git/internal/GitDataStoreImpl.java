@@ -1557,7 +1557,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         @Override
         public void onRemoteUrlChanged(final String updatedUrl) {
             final String actualUrl = gitRemoteUrl != null ? gitRemoteUrl : updatedUrl;
-            LOGGER.info("GitDataStoreListener detected remote url change to \"" + actualUrl + "\". Submitting task" +
+            LOGGER.debug("GitDataStoreListener detected remote url change to \"" + actualUrl + "\". Submitting task" +
                     " that'll pull from new remote. Using thread pool " + threadPool);
             threadPool.submit(new Runnable() {
                 @Override
@@ -1608,7 +1608,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
                                 initialVersionsAvailable.countDown();
                             }
                         } else {
-                            LOGGER.info("GG: Remote url " + currentUrl + " didn't change");
+                            LOGGER.debug("Remote url " + currentUrl + " didn't change");
                         }
                         return null;
                     }

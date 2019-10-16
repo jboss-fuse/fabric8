@@ -26,7 +26,9 @@ import org.slf4j.LoggerFactory;
  */
 public class CompositeOperation implements Operation {
 
-    public static Logger LOG = LoggerFactory.getLogger(CompositeOperation.class);
+    public static Logger LOG = LoggerFactory.getLogger("io.fabric8.cluster");
+
+    private final ZooKeeperGroup cache;
 
     private Operation[] operations;
 
@@ -34,6 +36,7 @@ public class CompositeOperation implements Operation {
     private final String gid;
 
     public CompositeOperation(ZooKeeperGroup cache, Operation ... operations) {
+        this.cache = cache;
         this.operations = operations;
         this.id = cache.nextId();
         this.gid = cache.source;
@@ -44,6 +47,7 @@ public class CompositeOperation implements Operation {
         for (Operation op : operations) {
             String tn = Thread.currentThread().getName();
             try {
+                LOG.debug(cache + ": invoking " + op);
                 String tn2 = tn.substring(0, tn.length() - 1);
                 Thread.currentThread().setName(tn2 + "/" + op.id() + "]");
                 op.invoke();
@@ -65,8 +69,21 @@ public class CompositeOperation implements Operation {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        CompositeOperation that = (CompositeOperation) o;
+        return Arrays.equals(operations, that.operations);
+    }
+
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(operations);
+    }
+
+    @Override
     public String id() {
-        return id;
+        return gid + ":" + id;
     }
 
     @Override

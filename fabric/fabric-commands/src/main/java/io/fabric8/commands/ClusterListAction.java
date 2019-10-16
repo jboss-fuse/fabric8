@@ -184,11 +184,13 @@ public class ClusterListAction extends AbstractAction {
         Map<String, Map<String, ClusterNode>> clusters = new TreeMap<String, Map<String, ClusterNode>>();
 
         for (String child : children) {
-            byte[] data = getCurator().getData().forPath(child);
+            stat = new Stat();
+            byte[] data = getCurator().getData().storingStatIn(stat).forPath(child);
             if (data != null && data.length > 0) {
                 String text = new String(data).trim();
                 if (!text.isEmpty()) {
                     String clusterName = getClusterName(dir, child);
+                    String lastPathSegment = child.substring(child.lastIndexOf('/') + 1);
                     Map<String, ClusterNode> cluster = clusters.get(clusterName);
                     if (cluster == null) {
                         cluster = new TreeMap<String, ClusterNode>();
@@ -235,21 +237,24 @@ public class ClusterListAction extends AbstractAction {
                             cluster.put(id.toString(), node);
                         }
 
+                        Object oready = value(map, "ready");
+                        String ready = oready == null ? null : Boolean.valueOf(oready.toString()).toString();
+
                         if (services != null) {
                             if (!services.isEmpty()) {
                                 boolean first = true;
                                 for (Object service : services) {
-                                    node.combined.add(new String[] { agent, null, getSubstitutedData(getCurator(), service.toString()) });
+                                    node.combined.add(new String[] { agent, null, getSubstitutedData(getCurator(), service.toString()), lastPathSegment, ready });
                                 }
                             } else {
-                                node.combined.add(new String[] { null, agent, null });
+                                node.combined.add(new String[] { null, agent, null, lastPathSegment, ready });
                             }
                         } else {
                             Object started = value(map, "started");
                             if (started == Boolean.TRUE) {
-                                node.combined.add(new String[] { agent, null, null });
+                                node.combined.add(new String[] { agent, null, null, lastPathSegment, ready });
                             } else {
-                                node.combined.add(new String[] { null, agent, null });
+                                node.combined.add(new String[] { null, agent, null, lastPathSegment, ready });
                             }
                         }
                     }
@@ -259,11 +264,11 @@ public class ClusterListAction extends AbstractAction {
 
 
         TablePrinter table = new TablePrinter();
-        table.columns("cluster", "masters", "slaves", "services");
+        table.columns("cluster", "masters", "slaves", "services", "zk path", "ready");
 
         for (String clusterName : clusters.keySet()) {
             Map<String, ClusterNode> nodes = clusters.get(clusterName);
-            table.row(clusterName, "", "", "");
+            table.row(clusterName, "", "", "", "", "");
             for (String nodeName : nodes.keySet()) {
                 ClusterNode node = nodes.get(nodeName);
                 // sort the combined information
@@ -275,6 +280,11 @@ public class ClusterListAction extends AbstractAction {
                     String master = row[0] == null ? "-" : row[0];
                     String slave = row[1] == null ? "-" : row[1];
                     String service = row[2] == null ? "-" : row[2];
+                    String path = row[3] == null ? "-" : row[3];
+                    String ready = row[4] == null ? "" : row[4];
+                    if (row[4] == null) {
+                        path = "";
+                    }
 
                     if (!"-".equals(master) && master.equals(previousMaster)) {
                         master = "";
@@ -289,10 +299,10 @@ public class ClusterListAction extends AbstractAction {
                         previousSlave = slave;
                     }
                     if (first) {
-                        table.row("   " + nodeName, master, slave, service);
+                        table.row("   " + nodeName, master, slave, service, path, ready);
                         first = false;
                     } else {
-                        table.row("", master, slave, service);
+                        table.row("", master, slave, service, path, ready);
                     }
                 }
             }
@@ -366,9 +376,14 @@ public class ClusterListAction extends AbstractAction {
 
     protected static class ClusterNode {
         public List<String> masters = new ArrayList<>();
+        // if master-slave is managed by ZooKeeper group let's store the path
+        public List<String> paths = new ArrayList<>();
+        // flags indicating if the ZK data is "stable"
+        public List<Boolean> ready = new ArrayList<>();
         public List<String> services = new ArrayList<>();
         public List<String> slaves = new ArrayList<>();
 
+        // master|slave|service|path|ready
         public List<String[]> combined = new ArrayList<>();
 
         @Override

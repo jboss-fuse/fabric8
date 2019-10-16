@@ -30,6 +30,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -56,6 +57,14 @@ public class FabricDiscoveryServlet extends HttpServlet {
     static class ActiveMQNode extends NodeState {
         @JsonProperty
         String[] services;
+
+        @Override
+        public String toString() {
+            return "ActiveMQNode{" +
+                    "id='" + id + '\'' +
+                    ", services='" + (services == null ? "" : Arrays.asList(services).toString()) + '\'' +
+                    '}';
+        }
     }
 
     public FabricDiscoveryServlet() {

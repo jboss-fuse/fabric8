@@ -17,6 +17,7 @@ package io.fabric8.mq.fabric.discovery;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -92,6 +93,14 @@ public class FabricDiscoveryAgent implements DiscoveryAgent, Callable {
 
         @JsonProperty
         String[] services;
+
+        @Override
+        public String toString() {
+            return "ActiveMQNode{" +
+                    "id='" + id + '\'' +
+                    ", services='" + (services == null ? "" : Arrays.asList(services).toString()) + '\'' +
+                    '}';
+        }
     }
     
     ActiveMQNode createState() {

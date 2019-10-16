@@ -43,7 +43,7 @@ class UpdateOperation<T extends NodeState> implements Operation {
 
     @Override
     public String id() {
-        return id;
+        return gid + ":" + id;
     }
 
     @Override

@@ -30,4 +30,11 @@ public class CxfNodeState extends NodeState {
     @JsonProperty
     String[] services;
 
+    @Override
+    public String toString() {
+        return "CxfNode{" +
+                "id='" + id + '\'' +
+                '}';
+    }
+
 }

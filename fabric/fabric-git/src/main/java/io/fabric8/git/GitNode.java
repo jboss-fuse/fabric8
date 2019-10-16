@@ -35,7 +35,7 @@ public class GitNode extends NodeState {
     }
 
     public void setUrl(String url) {
-        this.services = new String[] {url};
+        this.services = new String[] { url };
     }
 
     public String[] getServices() {
@@ -47,10 +47,9 @@ public class GitNode extends NodeState {
     }
 
     @Override
-	public String toString() {
-		return "GitNode{" +
-				"id='" + id + '\'' +
-				", url='" + getUrl() + '\'' +
-				'}';
-	}
+    public String toString() {
+        // trying to do create JSON without ObjectMapper used in ZooKeeperGroup
+        return "GitNode{\"id\":\"" + id + "\",\"container\":\"" + container + "\",\"url\":\"" + getUrl() + "\"}";
+    }
+
 }

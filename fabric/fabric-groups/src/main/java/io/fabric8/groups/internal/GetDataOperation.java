@@ -26,22 +26,25 @@ class GetDataOperation implements Operation {
 
     private final String id;
     private final String gid;
+    // whether to immediately offer Event(CHANGED) operation if data has changed
+    private final boolean sendEvent;
 
-    GetDataOperation(ZooKeeperGroup cache, String fullPath) {
+    GetDataOperation(ZooKeeperGroup cache, String fullPath, boolean sendEvent) {
         this.cache = cache;
         this.fullPath = fullPath;
         this.id = cache.nextId();
         this.gid = cache.source;
+        this.sendEvent = sendEvent;
     }
 
     @Override
     public void invoke() throws Exception {
-        cache.getDataAndStat(fullPath);
+        cache.getDataAndStat(fullPath, sendEvent);
     }
 
     @Override
     public String id() {
-        return id;
+        return gid + ":" + id;
     }
 
     @Override

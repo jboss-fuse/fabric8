@@ -42,7 +42,7 @@ class RefreshOperation implements Operation {
 
     @Override
     public String id() {
-        return id;
+        return gid + ":" + id;
     }
 
     @Override
