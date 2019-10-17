@@ -41,6 +41,7 @@
         </fuse.osgi.export>
         <fuse.osgi.import>
             !io.fabric8.zookeeper.commands,
+            javax.annotation;version="[1.2,2)",
             *
         </fuse.osgi.import>
         <fuse.osgi.private.pkg>
