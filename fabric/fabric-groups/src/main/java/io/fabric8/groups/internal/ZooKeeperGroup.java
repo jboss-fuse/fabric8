@@ -326,14 +326,6 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
         T oldState = this.state;
         this.state = state;
 
-        if (id != null) {
-            // if we have id we don't want to handle create + set-ready state separately, so the state
-            // is just ready
-            // but if the underlying (server-side) path is gone (see fabric:git-master command)
-            // we'll have to unset this "ready" flag
-            state.setReady();
-        }
-
         if (started.get()) {
             boolean update = state == null && oldState != null
                         ||   state != null && oldState == null
@@ -394,6 +386,11 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
             } else {
                 // update the membership data
                 try {
+                    // if we have id we don't want to handle create + set-ready state separately, so the state
+                    // is just ready
+                    // but if the underlying (server-side) path is gone (see fabric:git-master command)
+                    // we'll have to unset this "ready" flag
+                    state.setReady();
                     updateEphemeralNode(state);
                 } catch (KeeperException.NoNodeException e) {
                     // but update didn't found the id to update, so let's create instead
@@ -640,7 +637,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
                     @Override
                     public Void apply(GroupListener<T> listener) {
                         try {
-                            LOG.debug(ZooKeeperGroup.this + ": " + listener.getClass().getSimpleName() + ".groupEvent(" + event + ")");
+                            LOG.debug(ZooKeeperGroup.this + ": " + listener.getClass().getName() + ".groupEvent(" + event + ")");
                             listener.groupEvent(ZooKeeperGroup.this, event);
                         } catch (Exception e) {
                             handleException(e);

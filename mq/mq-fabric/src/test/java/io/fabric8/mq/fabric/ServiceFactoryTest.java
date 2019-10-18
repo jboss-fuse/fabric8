@@ -61,19 +61,23 @@ import org.apache.zookeeper.server.ZooKeeperServer;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 import org.osgi.framework.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
-import static org.apache.zookeeper.server.ServerCnxnFactory.createFactory;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class ServiceFactoryTest {
     private static final Logger LOG = LoggerFactory.getLogger(ServiceFactoryTest.class);
+
+    static AtomicInteger failOnVal = new AtomicInteger(0);
+    static AtomicInteger destroyCount = new AtomicInteger();
+    static AtomicInteger directoryCounter = new AtomicInteger(0);
 
     ServerCnxnFactory standaloneServerFactory;
     CuratorFramework curator;
@@ -82,16 +86,21 @@ public class ServiceFactoryTest {
     ZooKeeperServer server;
     int zkPort;
 
+    @Rule
+    public TestName testName = new TestName();
+
     @Before
     public void infraUp() throws Exception {
+        LOG.info("========== Starting " + testName.getMethodName() + " ==========");
         failOnVal.set(0);
         destroyCount.set(0);
+
         int tickTime = 500;
         int numConnections = 5000;
-        File dir = new File("target", "zookeeper" + random.nextInt()).getAbsoluteFile();
+        File dir = new File("target", String.format("zookeeper-%02d", directoryCounter.incrementAndGet())).getAbsoluteFile();
 
         server = new ZooKeeperServer(dir, dir, tickTime);
-        standaloneServerFactory = createFactory(0, numConnections);
+        standaloneServerFactory = ServerCnxnFactory.createFactory(0, numConnections);
         zkPort = standaloneServerFactory.getLocalPort();
 
         System.setProperty("zookeeper.url","localhost:"+zkPort);
@@ -99,6 +108,7 @@ public class ServiceFactoryTest {
 
         CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder()
                 .connectString("localhost:" + zkPort)
+                .connectionTimeoutMs(4990)
                 .sessionTimeoutMs(5000)
                 .retryPolicy(new RetryNTimes(5000, 1000));
 
@@ -109,9 +119,11 @@ public class ServiceFactoryTest {
 
     @After
     public void infraDown() throws Exception {
+        LOG.info("===== Finishing " + testName.getMethodName() + " =====");
         System.clearProperty("zookeeper.url");
         curator.close();
         standaloneServerFactory.shutdown();
+        LOG.info("========== Finished " + testName.getMethodName() + " ==========");
     }
 
     @Test
@@ -271,7 +283,6 @@ public class ServiceFactoryTest {
         underTest.destroy();
     }
 
-    static AtomicInteger destroyCount = new AtomicInteger();
     public static class CheckDestroyCall {
         public CheckDestroyCall() {}
 
@@ -281,7 +292,6 @@ public class ServiceFactoryTest {
         }
     }
 
-    static AtomicInteger failOnVal = new AtomicInteger(0);
     public static class IOLockTester extends AbstractLocker {
         public IOLockTester() {}
 
@@ -362,6 +372,9 @@ public class ServiceFactoryTest {
             }
         }));
         assertTrue("Destroy method called", destroyCount.get() > 0);
+
+        underTest.destroy();
+        brokerService.stop();
     }
 
     @Test
@@ -610,7 +623,7 @@ public class ServiceFactoryTest {
             public void groupEvent(Group<NodeState> group, GroupEvent event) {
 
             }
-        };
+        }
 
         ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
         for (int i=0;i<nThreads;i++) {
@@ -746,7 +759,7 @@ public class ServiceFactoryTest {
                     gotDisconnectEvent.countDown();
                 }
             }
-        };
+        }
 
         ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
         for (int i=0;i<nThreads;i++) {

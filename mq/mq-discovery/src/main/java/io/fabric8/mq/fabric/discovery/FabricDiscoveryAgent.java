@@ -322,7 +322,7 @@ public class FabricDiscoveryAgent implements DiscoveryAgent, Callable {
     }
 
     private synchronized void initGroup() throws Exception {
-        group = (MultiGroup)factory.createMultiGroup("Fabric MQ Discovery Agent", "/fabric/registry/clusters/amq/" + groupName, ActiveMQNode.class, new NamedThreadFactory("zkgroup-fabric-mq-discovery"));
+        group = (MultiGroup)factory.createMultiGroup("fmq-da", "/fabric/registry/clusters/amq/" + groupName, ActiveMQNode.class, new NamedThreadFactory("zkgroup-fabric-mq-discovery"));
         group.add(new GroupListener<ActiveMQNode>() {
             @Override
             public void groupEvent(Group<ActiveMQNode> group, GroupEvent event) {
