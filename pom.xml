@@ -1514,8 +1514,6 @@
                                             <exclude>org.apache.camel:camel-jclouds</exclude>
                                             <exclude>org.apache.camel:camel-jclouds-starter</exclude>
                                             <exclude>org.apache.camel:camel-jetty8</exclude>
-                                            <exclude>org.apache.camel:camel-jira</exclude>
-                                            <exclude>org.apache.camel:camel-jira-starter</exclude>
                                             <exclude>org.apache.camel:camel-jxpath</exclude>
                                             <exclude>org.apache.camel:camel-jxpath-starter</exclude>
                                             <exclude>org.apache.camel:camel-kura</exclude>
