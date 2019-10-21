@@ -60,10 +60,14 @@ public class FabricGitServlet extends GitServlet {
     }
 
     protected void handleException(Exception ex) throws ServletException {
-        if(ex instanceof IllegalStateException && "Client is not started".equals(ex.getMessage())){
+        if (ex instanceof IllegalStateException && "Client is not started".equals(ex.getMessage())) {
             LOGGER.debug("", ex);
             throw new ServletException("Error starting SharedCount. ZK Client is not Started");
-        }else{
+        } else {
+            if (Thread.currentThread().isInterrupted()) {
+                LOGGER.warn("Can't start SharedCount. The thread was interrupted. Possible fabric-agent restart.");
+                return;
+            }
             LOGGER.error("Error starting SharedCount", ex);
             throw new ServletException("Error starting SharedCount", ex);
         }
