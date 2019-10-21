@@ -148,7 +148,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     private static final String GIT_GC_ON_LOAD = "gitGcOnLoad";
     private static final int GIT_COMMIT_SHORT_LENGTH = 7;
     private static final int MAX_COMMITS_WITHOUT_GC = 40;
-    private static final long AQUIRE_LOCK_TIMEOUT = 25 * 1000L;
+    private static final long DEFAULT_AQUIRE_LOCK_TIMEOUT = 25 * 1000L;
 
     @Reference(referenceInterface = CuratorFramework.class)
     private final ValidatingReference<CuratorFramework> curator = new ValidatingReference<>();
@@ -196,6 +196,8 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     private boolean gitAllowRemoteUpdate = true;
     @Property(name = "gitRandomFetchDelay", label = "Fetch delay", description = "If greater than 0, container will wait up to given number of seconds before fetching from remote repository.", intValue = 0)
     private int gitRandomFetchDelay = 0;
+    @Property(name = "gitLockTimeout", label = "Lock timeout (ms)", description = "Timeout for lock protecting access to local git repository", longValue = DEFAULT_AQUIRE_LOCK_TIMEOUT)
+    private long gitLockTimeout = DEFAULT_AQUIRE_LOCK_TIMEOUT;
 
     private final LoadingCache<String, Version> versionCache = CacheBuilder.newBuilder().build(new VersionCacheLoader());
     private final Set<String> versions = new HashSet<String>();
@@ -458,7 +460,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         final WriteLock writeLock = readWriteLock.writeLock();
         boolean success;
         try {
-            success = writeLock.tryLock() || writeLock.tryLock(AQUIRE_LOCK_TIMEOUT, TimeUnit.MILLISECONDS);
+            success = writeLock.tryLock() || writeLock.tryLock(gitLockTimeout, TimeUnit.MILLISECONDS);
         } catch (InterruptedException ex) {
             success = false;
         }
@@ -483,7 +485,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         final ReadLock readLock = readWriteLock.readLock();
         boolean success;
         try {
-            success = readLock.tryLock() || readLock.tryLock(AQUIRE_LOCK_TIMEOUT, TimeUnit.MILLISECONDS);
+            success = readLock.tryLock() || readLock.tryLock(gitLockTimeout, TimeUnit.MILLISECONDS);
         } catch (InterruptedException ex) {
             success = false;
         }
