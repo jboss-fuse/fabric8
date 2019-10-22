@@ -238,7 +238,10 @@ public final class ZooKeeperUtils {
 
     public static void setData(CuratorFramework curator, String path, byte[] value, CreateMode createMode) throws Exception {
         if (curator.checkExists().forPath(path) == null) {
-            curator.create().creatingParentsIfNeeded().withMode(createMode).forPath(path, value != null ? value : null);
+            try {
+                curator.create().creatingParentsIfNeeded().withMode(createMode).forPath(path, value != null ? value : null);
+            } catch (KeeperException.NodeExistsException ignored) {
+            }
         }
         curator.setData().forPath(path, value != null ? value : null);
     }
@@ -334,6 +337,13 @@ public final class ZooKeeperUtils {
 
     public static void delete(CuratorFramework curator, String path) throws Exception {
         curator.delete().forPath(path);
+    }
+
+    public static void deleteIfExists(CuratorFramework curator, String path) throws Exception {
+        try {
+            curator.delete().forPath(path);
+        } catch (KeeperException.NoNodeException ignore) {
+        }
     }
 
     public static Stat exists(CuratorFramework curator, String path) throws Exception {

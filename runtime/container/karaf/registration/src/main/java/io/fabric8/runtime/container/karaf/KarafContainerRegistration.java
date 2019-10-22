@@ -79,7 +79,7 @@ import static io.fabric8.zookeeper.ZkPath.CONTAINER_RESOLVER;
 import static io.fabric8.zookeeper.ZkPath.CONTAINER_SSH;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.create;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.createDefault;
-import static io.fabric8.zookeeper.utils.ZooKeeperUtils.delete;
+import static io.fabric8.zookeeper.utils.ZooKeeperUtils.deleteIfExists;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.deleteSafe;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.exists;
 import static io.fabric8.zookeeper.utils.ZooKeeperUtils.getStringData;
@@ -249,7 +249,8 @@ public final class KarafContainerRegistration extends AbstractComponent implemen
         Stat stat = exists(curator.get(), nodeAlive);
         if (stat != null) {
             if (stat.getEphemeralOwner() != curator.get().getZookeeperClient().getZooKeeper().getSessionId()) {
-                delete(curator.get(), nodeAlive);
+                // should not prevent creation if delete fails!
+                deleteIfExists(curator.get(), nodeAlive);
                 create(curator.get(), nodeAlive, CreateMode.EPHEMERAL);
             }
         } else {
