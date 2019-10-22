@@ -195,7 +195,10 @@ public final class KarafContainerRegistration extends AbstractComponent implemen
             }
 
             Configuration config = configAdmin.get().getConfiguration(AGENT_PID, null);
-            String disabled = (String) config.getProperties().get(AGENT_DISABLED);
+            String disabled = "false";
+            if (config != null && config.getProperties() != null) {
+                disabled = (String) config.getProperties().get(AGENT_DISABLED);
+            }
             boolean managed = !"true".equalsIgnoreCase(disabled);
             setData(curator.get(), CONTAINER_MANAGED.getPath(runtimeIdentity), Boolean.toString(managed));
 
