@@ -34,7 +34,7 @@ public class ScrState extends AbstractBundleChecker {
                 Collection<ComponentConfigurationDTO> dtos = svc.getComponentConfigurationDTOs(component);
                 for (ComponentConfigurationDTO dto : dtos) {
                     int state = dto.state;
-                    if (state != ComponentConfigurationDTO.ACTIVE) {
+                    if (state != ComponentConfigurationDTO.ACTIVE && state != ComponentConfigurationDTO.SATISFIED) {
                         return new Check("scr-state", "SCR bundle " + bundle.getBundleId() + " is in state " + getState(state));
                     }
                 }
@@ -52,6 +52,12 @@ public class ScrState extends AbstractBundleChecker {
             case (ComponentConfigurationDTO.FAILED_ACTIVATION):
                 return "activation failed";
             case (ComponentConfigurationDTO.SATISFIED):
+                // 112.5.4: Delayed Component
+                // [...] the activation of a delayed component configuration does not occur until there is an actual re-
+                // quest for a service object.
+                // A component is a delayed component when it specifies a service but it is
+                // not a factory component and does not have the immediate attribute of the
+                // component element set to true.
                 return "satisfied";
             case (ComponentConfigurationDTO.UNSATISFIED_CONFIGURATION):
                 return "unsatisfied configuration";
