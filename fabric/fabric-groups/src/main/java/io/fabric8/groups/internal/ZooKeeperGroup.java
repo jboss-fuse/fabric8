@@ -326,6 +326,12 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
         T oldState = this.state;
         this.state = state;
 
+        if (id != null) {
+            // if we have id we don't need to create+update separately. Also we have to set "ready" flag
+            // so when comparing we don't have unnecessary update (and watcher notification)
+            state.setReady();
+        }
+
         if (started.get()) {
             boolean update = state == null && oldState != null
                         ||   state != null && oldState == null
