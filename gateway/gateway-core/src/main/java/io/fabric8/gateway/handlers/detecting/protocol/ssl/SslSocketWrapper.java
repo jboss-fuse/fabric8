@@ -463,6 +463,9 @@ public class SslSocketWrapper extends SocketWrapper implements ReadStream<SslSoc
             @Override
             public void handle(Void x) {
                 encryptedReadEOF = true;
+                if (plainEndHandler != null) {
+                    plainEndHandler.handle(null);
+                }
             }
         });
         this.next.readStream().exceptionHandler(new Handler<Throwable>() {
