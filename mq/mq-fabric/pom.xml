@@ -173,6 +173,13 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                    <runOrder>alphabetical</runOrder>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 

@@ -33,4 +33,12 @@ public class CamelNodeState extends NodeState {
         super(id);
     }
 
+    @Override
+    public String toString() {
+        return "CamelNode{" +
+                "id='" + id + '\'' +
+                ", consumer='" + consumer + '\'' +
+                '}';
+    }
+
 }

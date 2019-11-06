@@ -45,6 +45,26 @@ public class OsgiManagedGroupFactory implements ManagedGroupFactory {
     }
 
     @Override
+    public <T extends NodeState> Group<T> createGroup(String source, String path, Class<T> clazz) {
+        return delegate.createGroup(source, path, clazz);
+    }
+
+    @Override
+    public <T extends NodeState> Group<T> createGroup(String source, String path, Class<T> clazz, ThreadFactory threadFactory) {
+        return delegate.createGroup(source, path, clazz, threadFactory);
+    }
+
+    @Override
+    public <T extends NodeState> Group<T> createMultiGroup(String source, String path, Class<T> clazz) {
+        throw new IllegalStateException("not supported");
+    }
+
+    @Override
+    public <T extends NodeState> Group<T> createMultiGroup(String source, String path, Class<T> clazz, ThreadFactory threadFactory) {
+        throw new IllegalStateException("not supported");
+    }
+
+    @Override
     public <T extends NodeState> Group<T> createGroup(String path, Class<T> clazz) {
         return delegate.createGroup(path, clazz);
     }
@@ -121,6 +141,26 @@ public class OsgiManagedGroupFactory implements ManagedGroupFactory {
         @Override
         public CuratorFramework getCurator() {
             return curator;
+        }
+
+        @Override
+        public <T extends NodeState> Group<T> createGroup(String source, String path, Class<T> clazz) {
+            return createGroup(path, clazz);
+        }
+
+        @Override
+        public <T extends NodeState> Group<T> createGroup(String source, String path, Class<T> clazz, ThreadFactory threadFactory) {
+            return createGroup(path, clazz, threadFactory);
+        }
+
+        @Override
+        public <T extends NodeState> Group<T> createMultiGroup(String source, String path, Class<T> clazz) {
+            return createMultiGroup(path, clazz);
+        }
+
+        @Override
+        public <T extends NodeState> Group<T> createMultiGroup(String source, String path, Class<T> clazz, ThreadFactory threadFactory) {
+            return createMultiGroup(path, clazz, threadFactory);
         }
 
         @Override

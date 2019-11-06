@@ -122,7 +122,7 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
         dataPath = sysprops.getDataPath();
         activateComponent();
 
-        group = new ZooKeeperGroup<GitNode>(curator.get(), ZkPath.GIT.getPath(), GitNode.class, new NamedThreadFactory("zkgroup-git-httpreg"));
+        group = new ZooKeeperGroup<GitNode>("ghr", curator.get(), ZkPath.GIT.getPath(), GitNode.class, new NamedThreadFactory("zkgroup-git-httpreg"));
         //if anything went wrong in a previous deactivation we still have to clean up the registry
         zkCleanUp(group);
 
@@ -152,12 +152,13 @@ public final class GitHttpServerRegistrationHandler extends AbstractComponent im
     public void groupEvent(Group<GitNode> group, GroupEvent event) {
         if (isValid()) {
             switch (event) {
-            case CONNECTED:
-            case CHANGED:
-                updateMasterUrl(group);
-                break;
-            default:
-                // do nothing
+                case CONNECTED:
+                case CHANGED:
+                    updateMasterUrl(group);
+                    break;
+                case DISCONNECTED:
+                default:
+                    // do nothing because we can't change ZK anyway
             }
         }
     }

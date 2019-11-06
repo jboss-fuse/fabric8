@@ -58,7 +58,7 @@
   <build>
     <plugins>
       <plugin>
-        <groupId>${jetty-plugin-groupId}</groupId>
+        <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-maven-plugin</artifactId>
         <version>${jetty-version}</version>
         <configuration>

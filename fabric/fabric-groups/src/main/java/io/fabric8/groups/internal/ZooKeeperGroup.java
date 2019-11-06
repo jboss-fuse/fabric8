@@ -15,6 +15,30 @@
  */
 package io.fabric8.groups.internal;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InterruptedIOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.UUID;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
@@ -23,9 +47,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-
+import io.fabric8.groups.Group;
+import io.fabric8.groups.GroupListener;
+import io.fabric8.groups.NodeState;
 import io.fabric8.utils.NamedThreadFactory;
-
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.listen.ListenerContainer;
 import org.apache.curator.framework.state.ConnectionState;
@@ -37,32 +62,18 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
-
-import io.fabric8.groups.Group;
-import io.fabric8.groups.GroupListener;
-import io.fabric8.groups.NodeState;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InterruptedIOException;
-import java.util.*;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * <p>A utility that attempts to keep all data from all children of a ZK path locally cached. This class
  * will watch the ZK path, respond to update/create/delete events, pull down the data, etc. You can
  * register a listener that will get notified when changes occur.</p>
- * <p/>
+ * <p>There are two <em>modes</em> of operation when using {@link ZooKeeperGroup}:<ul>
+ *     <li>"cluster member registration" when {@link #update(NodeState)} is called</li>
+ *     <li>"cluster listener" without using {@link #update(NodeState)} to listen to cluster events and detect changed
+ *     master node.</li>
+ * </ul></p>
  * <p><b>IMPORTANT</b> - it's not possible to stay transactionally in sync. Users of this class must
  * be prepared for false-positives and false-negatives. Additionally, always use the version number
  * when updating data to avoid overwriting another process' change.</p>
@@ -71,7 +82,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
 
     public ObjectMapper MAPPER = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
-    static private final Logger LOG = LoggerFactory.getLogger(ZooKeeperGroup.class);
+    static private final Logger LOG = LoggerFactory.getLogger("io.fabric8.cluster");
 
     private final Class<T> clazz;
     private final CuratorFramework client;
@@ -80,12 +91,17 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     private final EnsurePath ensurePath;
     private final BlockingQueue<Operation> operations = new LinkedBlockingQueue<Operation>();
     private final ListenerContainer<GroupListener<T>> listeners = new ListenerContainer<GroupListener<T>>();
+
+    // mapping from path id into ChildData - all cluster member registrations are kept here - even those not ready
     protected final ConcurrentMap<String, ChildData<T>> currentData = Maps.newConcurrentMap();
+
     private final AtomicBoolean started = new AtomicBoolean();
     private final AtomicBoolean connected = new AtomicBoolean();
     protected final SequenceComparator sequenceComparator = new SequenceComparator();
     private final String uuid = UUID.randomUUID().toString();
 
+    // "id" is actual sequential, ephemeral node created for this group - only if given group
+    // is used in "register cluster member" mode, not in "listen to master changes" mode
     private volatile String id;
     // to help detecting whether ZK Group update failed
     private final AtomicBoolean creating = new AtomicBoolean();
@@ -94,11 +110,24 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     private final AtomicBoolean unstable = new AtomicBoolean();
     private volatile T state;
 
+    String source = "?";
+
+    // counter to number ZooKeeperGroups related operations being offered/invoked
+    AtomicInteger counter = new AtomicInteger(0);
+
     private final Watcher childrenWatcher = new Watcher() {
         @Override
         public void process(WatchedEvent event) {
-            if (event.getType() != Event.EventType.None) {
+            // NodeCreated and NodeDeleted are for the cluster node itself (e.g., /fabric/registry/clusters/git),
+            // so we're only interested in NodeChildrenChanged event
+            if (event.getType() == Event.EventType.NodeChildrenChanged) {
                 // only interested in real change events, eg no refresh on Keeper.Disconnect
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug(ZooKeeperGroup.this + ", childrenWatcher: offering refresh after detecting event=" + event);
+                }
+                // STANDARD will get data when detecting new node among children nodes, it won't
+                // cause data reading for existing, but updated nodes, but for such case, dataWatched is
+                // the place to fetch updated data
                 offerOperation(new RefreshOperation(ZooKeeperGroup.this, RefreshMode.STANDARD));
             }
         }
@@ -108,10 +137,27 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
         @Override
         public void process(WatchedEvent event) {
             try {
-                if (event.getType() == Event.EventType.NodeDeleted) {
-                    remove(event.getPath());
-                } else if (event.getType() == Event.EventType.NodeDataChanged) {
-                    offerOperation(new GetDataOperation(ZooKeeperGroup.this, event.getPath()));
+                // node removal (org.apache.zookeeper.server.upgrade.DataTreeV1.deleteNode()) contains:
+                // - dataWatches.triggerWatch(path, EventType.NodeDeleted);
+                // - childWatches.triggerWatch(path, EventType.NodeDeleted, processed);
+                // - childWatches.triggerWatch(parentName.equals("")?"/":parentName, EventType.NodeChildrenChanged);
+                // so there's no need to handle NodeDeleted here - this will be handled by children watcher
+//                if (event.getType() == Event.EventType.NodeDeleted) {
+//                    if (LOG.isDebugEnabled()) {
+//                        LOG.debug(ZooKeeperGroup.this + ", dataWatcher: remove(" + event.getPath() + ") after event=" + event);
+//                    }
+//                    if (remove(event.getPath())) {
+//                        offerOperation(new EventOperation(ZooKeeperGroup.this, GroupListener.GroupEvent.CHANGED));
+//                    }
+//                }
+                // node update (org.apache.zookeeper.server.upgrade.DataTreeV1.setData()) contains:
+                // - dataWatches.triggerWatch(path, EventType.NodeDataChanged);
+                // so it's a good place to handle NodeDataChanged here
+                if (event.getType() == Event.EventType.NodeDataChanged) {
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug(ZooKeeperGroup.this + ", dataWatcher: offering getData(" + event.getPath() + ") after detecting event=" + event);
+                    }
+                    offerOperation(new GetDataOperation(ZooKeeperGroup.this, event.getPath(), true));
                 }
             } catch (Exception e) {
                 handleException(e);
@@ -150,10 +196,41 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
      * @param executorService ExecutorService to use for the ZooKeeperGroup's background thread
      */
     public ZooKeeperGroup(CuratorFramework client, String path, Class<T> clazz, final ExecutorService executorService) {
-        LOG.info("Creating ZK Group for path \"" + path + "\"");
+        this(null, client, path, clazz, executorService);
+    }
+
+    /**
+     * @param source
+     * @param client the client
+     * @param path   path to watch
+     */
+    public ZooKeeperGroup(String source, CuratorFramework client, String path, Class<T> clazz) {
+        this(source, client, path, clazz,
+                Executors.newSingleThreadExecutor(new NamedThreadFactory("ZKGroup")));
+    }
+
+    /**
+     * @param source
+     * @param client        the client
+     * @param path          path to watch
+     * @param threadFactory factory to use when creating internal threads
+     */
+    public ZooKeeperGroup(String source, CuratorFramework client, String path, Class<T> clazz, ThreadFactory threadFactory) {
+        this(source, client, path, clazz, Executors.newSingleThreadExecutor(threadFactory));
+    }
+
+    /**
+     * @param source
+     * @param client          the client
+     * @param path            path to watch
+     * @param executorService ExecutorService to use for the ZooKeeperGroup's background thread
+     */
+    public ZooKeeperGroup(String source, CuratorFramework client, String path, Class<T> clazz, final ExecutorService executorService) {
         this.client = client;
         this.path = path;
         this.clazz = clazz;
+        this.source = source == null ? "?" : source;
+        LOG.info("Creating " + this);
         this.executorService = executorService;
         ensurePath = client.newNamespaceAwareEnsurePath(path);
     }
@@ -162,7 +239,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
      * Start the cache. The cache is not started automatically. You must call this method.
      */
     public void start() {
-        LOG.info("Starting ZK Group for path \"" + path + "\"");
+        LOG.info("Starting " + this);
         if (started.compareAndSet(false, true)) {
             connected.set(client.getZookeeperClient().isConnected());
 
@@ -187,7 +264,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
      */
     @Override
     public void close() throws IOException {
-        LOG.debug(this + ".close, connected:" + connected);
+        LOG.info("Closing " + this);
         if (started.compareAndSet(true, false)) {
             client.getConnectionStateListenable().removeListener(connectionStateListener);
             executorService.shutdownNow();
@@ -220,25 +297,47 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
 
     @Override
     public void add(GroupListener<T> listener) {
+        if (LOG.isDebugEnabled()) {
+            LOG.debug(this + ".add-listener(" + listener.getClass().getName() + ")");
+        }
         listeners.addListener(listener);
     }
 
     @Override
     public void remove(GroupListener<T> listener) {
+        if (LOG.isDebugEnabled()) {
+            LOG.debug(this + ".remove-listener(" + listener.getClass().getName() + ")");
+        }
         listeners.removeListener(listener);
     }
 
+    /**
+     * <p>Calling this method on ZooKeeperGroup changes the <em>mode</em> of the group from
+     * <em>read only</em> to <em>cluster member registration</em>.
+     * With this method we can register a <em>member</em> that may become master at some point.</p>
+     *
+     * <p>When the state is different than previously configured, data is written to ZooKeeper
+     * registry.</p>
+     *
+     * @param state the new state of this group member
+     */
     @Override
     public void update(T state) {
         T oldState = this.state;
         this.state = state;
+
+        if (id != null) {
+            // if we have id we don't need to create+update separately. Also we have to set "ready" flag
+            // so when comparing we don't have unnecessary update (and watcher notification)
+            state.setReady();
+        }
 
         if (started.get()) {
             boolean update = state == null && oldState != null
                         ||   state != null && oldState == null
                         || !Arrays.equals(encode(state), encode(oldState));
             if (update) {
-                offerOperation(new CompositeOperation(
+                offerOperation(new CompositeOperation(this,
                         new RefreshOperation(this, RefreshMode.FORCE_GET_DATA_AND_STAT),
                         new UpdateOperation<T>(this, state)
                 ));
@@ -246,70 +345,129 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
         }
     }
 
+    /**
+     * Actual work done when cluster member needs to be registered (or updated, or deleted)
+     * in ZooKeeper registry.
+     * @param state
+     * @throws Exception
+     */
     protected void doUpdate(T state) throws Exception {
-        if (LOG.isTraceEnabled()) {
-            // state.toString() invokes Jackson ObjectMapper serialization
-            LOG.trace(this + " doUpdate, state:" + state + " id:" + id);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug(this + ": doUpdate, state: " + state);
         }
         if (state == null) {
+            // unregistration of cluster memeber
             if (id != null) {
+                // happy path - we know what to unregister
                 try {
                     if (isConnected()) {
-                        LOG.info("Deleting state for ZK Group for path " + id);
+                        LOG.info(this + ": deleting node " + id);
                         client.delete().guaranteed().forPath(id);
                         unstable.set(false);
                     } else {
-                        LOG.warn("Can't delete state for ZK Group for path " + id + " - client disconnected. Ephemeral, sequence node will be removed on session timeout.");
+                        LOG.warn(this + ": can't delete state - client disconnected. Ephemeral, sequence node will be removed on session timeout.");
                     }
                 } catch (KeeperException.NoNodeException e) {
-                    // Ignore
+                    // Ignore - nothing to unregister
                 } finally {
                     id = null;
                 }
             } else if (creating.get()) {
-                LOG.warn("Ephemeral node could be created in the registry, but ZooKeeper group didn't record its id");
+                // we don't know what to unregister, but we know that registration started
+                // without success (without returning a path)
                 unstable.set(true);
+                LOG.warn(this + ": ephemeral node could have been created in the registry, but ZooKeeper group didn't record its id.");
             }
         } else if (isConnected()) {
+            // (re)registration of cluster member
+
             // We could have created the sequence, but then have crashed and our entry is already registered.
             // However, we ignore old ephemeral nodes, and create new ones. We can have double nodes for a bit,
             // but the old ones should be deleted by the server when session is invalidated.
             // See: https://issues.jboss.org/browse/FABRIC-1238
             if (id == null) {
-                id = createEphemeralNode(state);
+                // just create the membership data for the first time (from our ZooKeeperGroup
+                // point of view)
+                createEphemeralNode(state);
             } else {
+                // update the membership data
                 try {
+                    // if we have id we don't want to handle create + set-ready state separately, so the state
+                    // is just ready
+                    // but if the underlying (server-side) path is gone (see fabric:git-master command)
+                    // we'll have to unset this "ready" flag
+                    state.setReady();
                     updateEphemeralNode(state);
                 } catch (KeeperException.NoNodeException e) {
-                    id = createEphemeralNode(state);
+                    // but update didn't found the id to update, so let's create instead
+                    LOG.info(this + ": node " + id + " wasn't updated, as it's no longer available in ZooKeeper registry. Creating new node instead.");
+                    id = null;
+                    // we'll be creating new path, so the state should be marked unready if it was ready
+                    state.unsetReady();
+                    createEphemeralNode(state);
                 }
             }
         }
     }
 
-    private String createEphemeralNode(T state) throws Exception {
+    /**
+     * <p>Create a node for this cluster member. This is used used only if this ZooKeeperGroup is used not in <em>read-only</em>
+     * mode (notification mode), i.e., it's used only of this ZooKeeperGroup is used to actually add/update child,
+     * sequential, ephemeral nodes under group's ZooKeeper path.</p>
+     *
+     * <p>This method is fragile and non transactional - sequential node may be successfully created in ZooKeeper, but
+     * the resulting, generated at server-side, path name/id (like {@code /fabric/registry/clusters/git/00000000125})
+     * may not return successfully here. I.e., {@link org.apache.curator.framework.api.PathAndBytesable#forPath(String)}
+     * may not manage to return the ID. In such case, such <em>unstable</em> cluster member registration should
+     * not be treated as <em>finished</em> and not considered as meaningful information (should be neither a master
+     * nor a slave).</p>
+     *
+     * @param state
+     * @return
+     * @throws Exception
+     */
+    private void createEphemeralNode(T state) throws Exception {
         state.uuid = uuid;
         creating.set(true);
         byte[] encoded = encode(state);
+        LOG.info(this + ": creating new node for state: " + new String(encoded));
         String pathId = client.create().creatingParentsIfNeeded()
             .withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
             .forPath(path + "/0", encoded);
-        LOG.info("Created new state for ZK Group for path " + pathId + ": " + new String(encoded));
+        id = pathId;
+        LOG.info(this + ": successfully created new node, ZK path: " + id);
+
+        // we have ID, so we have connection between actual ZKNode and ZooKeeperGroup.id
+        // and we can properly update/delete the node later. let's make the cluster membership data "ready" - even
+        // if this update may fail - at least we won't end with "dangling", but ready (from the perspective of
+        // other listeners) cluster membership data
+        try {
+            state.setReady();
+            updateEphemeralNode(state);
+        } catch (Exception e) {
+            LOG.warn(this + ": Problem occurred when marking registered cluster member data as ready: " + e.getMessage(), e);
+        }
+
         creating.set(false);
         unstable.set(false);
-        if (LOG.isTraceEnabled()) {
-            // state.toString() invokes Jackson ObjectMapper serialization
-            LOG.trace(this + ", state:" + state + ", new ephemeralSequential path:" + pathId);
-        }
-        prunePartialState(state, pathId);
-        state.uuid = null;
-        return pathId;
+
+        // so far, we were cleaning old, unstable, unready nodes for this ZooKeeperGroup here.
+        // after ENTESB-11955 we'll be doing it when handling refresh()
+//        state.uuid = uuid;
+//        prunePartialState(state, id);
+//        state.uuid = null;
     }
 
+    /**
+     * Update a ZooKeeper node for this cluster member. This method assumes there's known {@link ZooKeeperGroup#id}.
+     *
+     * @param state
+     * @throws Exception
+     */
     private void updateEphemeralNode(T state) throws Exception {
         state.uuid = uuid;
         byte[] encoded = encode(state);
-        LOG.info("Updating state for ZK Group for path " + id + ": " + new String(encoded));
+        LOG.info(this + ": updating node " + id + " with new state: " + new String(encoded));
         client.setData().forPath(id, encoded);
         state.uuid = null;
     }
@@ -321,7 +479,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
             List<ChildData<T>> children = new ArrayList<ChildData<T>>(currentData.values());
             for (ChildData<T> child : children) {
                 if (ourState.uuid.equals(child.getNode().uuid) && !child.getPath().equals(pathId)) {
-                    LOG.debug("Deleting partially created znode: " + child.getPath());
+                    LOG.info(this + ": deleting partially created znode: " + child.getPath());
                     client.delete().guaranteed().forPath(child.getPath());
                 }
             }
@@ -330,8 +488,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
 
     @Override
     public Map<String, T> members() {
-        List<ChildData<T>> children = getActiveChildren();
-        Collections.sort(children, sequenceComparator);
+        List<ChildData<T>> children = getActiveOrderedChildren();
         Map<String, T> members = new LinkedHashMap<String, T>();
         for (ChildData<T> child : children) {
             members.put(child.getPath(), child.getNode());
@@ -341,15 +498,13 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
 
     @Override
     public boolean isMaster() {
-        List<ChildData<T>> children = getActiveChildren();
-        Collections.sort(children, sequenceComparator);
+        List<ChildData<T>> children = getActiveOrderedChildren();
         return (!children.isEmpty() && children.get(0).getPath().equals(id));
     }
 
     @Override
     public T master() {
-        List<ChildData<T>> children = getActiveChildren();
-        Collections.sort(children, sequenceComparator);
+        List<ChildData<T>> children = getActiveOrderedChildren();
         if (children.isEmpty()) {
             return null;
         }
@@ -358,8 +513,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
 
     @Override
     public List<T> slaves() {
-        List<ChildData<T>> children = getActiveChildren();
-        Collections.sort(children, sequenceComparator);
+        List<ChildData<T>> children = getActiveOrderedChildren();
         List<T> slaves = new ArrayList<T>();
         for (int i = 1; i < children.size(); i++) {
             slaves.add(children.get(i).getNode());
@@ -368,20 +522,27 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     }
 
     /**
-     * Filter stale nodes and return only active children from the current data.
+     * Filter stale nodes and return only active children from the current data sorted from oldest (lowest
+     * sequence path ID) to newest (highest sequence path ID).
      *
      * @return list of active children and data
      */
-    protected List<ChildData<T>> getActiveChildren() {
+    protected List<ChildData<T>> getActiveOrderedChildren() {
         Map<String, ChildData<T>> filtered = new HashMap<>();
         for (ChildData<T> child : currentData.values()) {
             T node = child.getNode();
-            if (!filtered.containsKey(node.getContainer())
-                    || filtered.get(node.getContainer()).getPath().compareTo(child.getPath()) < 0) {
+            if (node != null
+                    && node.isReady()
+                    && (!filtered.containsKey(node.getContainer())
+                    || filtered.get(node.getContainer()).getPath().compareTo(child.getPath()) < 0)) {
+                // use child's cluster data either if there wasn't any data for given container
+                // or if child cluster data is "newer" (in terms of ZK sequence node id)
                 filtered.put(node.getContainer(), child);
             }
         }
-        return new ArrayList<>(filtered.values());
+        ArrayList<ChildData<T>> result = new ArrayList<>(filtered.values());
+        Collections.sort(result, sequenceComparator);
+        return result;
     }
 
     @Override
@@ -476,29 +637,31 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     }
 
     void callListeners(final GroupListener.GroupEvent event) {
-        listeners.forEach
-                (
-                        new Function<GroupListener<T>, Void>() {
-                            @Override
-                            public Void apply(GroupListener<T> listener) {
-                                try {
-                                    listener.groupEvent(ZooKeeperGroup.this, event);
-                                } catch (Exception e) {
-                                    handleException(e);
-                                }
-                                return null;
-                            }
+        LOG.debug(this + ": callListeners(" + event + ")");
+        listeners.forEach(
+                new Function<GroupListener<T>, Void>() {
+                    @Override
+                    public Void apply(GroupListener<T> listener) {
+                        try {
+                            LOG.debug(ZooKeeperGroup.this + ": " + listener.getClass().getName() + ".groupEvent(" + event + ")");
+                            listener.groupEvent(ZooKeeperGroup.this, event);
+                        } catch (Exception e) {
+                            handleException(e);
                         }
-                );
+                        return null;
+                    }
+                }
+        );
     }
 
-    void getDataAndStat(final String fullPath) throws Exception {
+    Change getDataAndStat(final String fullPath, boolean sendEvent) throws Exception {
         try {
             Stat stat = new Stat();
             byte[] data = client.getData().storingStatIn(stat).usingWatcher(dataWatcher).forPath(fullPath);
-            applyNewData(fullPath, KeeperException.Code.OK.intValue(), stat, data);
+            return applyNewData(fullPath, KeeperException.Code.OK.intValue(), stat, data, sendEvent);
         } catch (KeeperException.NoNodeException ignore) {
         }
+        return Change.NONE;
     }
 
     /**
@@ -507,33 +670,24 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
      * @param e the exception
      */
     protected void handleException(Throwable e) {
-        if( e instanceof IllegalStateException && "Client is not started".equals(e.getMessage()))
+        if (e instanceof IllegalStateException && "Client is not started".equals(e.getMessage())) {
             LOG.debug("", e);
-        else
+        } else {
             LOG.error("", e);
+        }
     }
 
     @VisibleForTesting
-    protected void remove(String fullPath) {
+    protected boolean remove(String fullPath) {
         ChildData data = currentData.remove(fullPath);
         if (data != null) {
             if (fullPath.equals(id)) {
                 // this will ensure that we'll register another cluster candidate if ZK path was removed exernally
                 state = null;
             }
-            offerOperation(new EventOperation(this, GroupListener.GroupEvent.CHANGED));
+            return true;
         }
-    }
-
-    private void internalRebuildNode(String fullPath) throws Exception {
-        try {
-            Stat stat = new Stat();
-            byte[] bytes = client.getData().storingStatIn(stat).forPath(fullPath);
-            currentData.put(fullPath, new ChildData<T>(fullPath, stat, bytes, decode(bytes)));
-        } catch (KeeperException.NoNodeException ignore) {
-            // node no longer exists - remove it
-            currentData.remove(fullPath);
-        }
+        return false;
     }
 
     private void handleStateChange(ConnectionState newState) {
@@ -542,6 +696,7 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
             case LOST: {
                 connected.set(false);
                 clear();
+                LOG.info(this + ": connection " + newState + ", calling Event(DISCONNECTED) directly");
                 EventOperation op = new EventOperation(this, GroupListener.GroupEvent.DISCONNECTED);
                 op.invoke();
                 break;
@@ -550,7 +705,8 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
             case CONNECTED:
             case RECONNECTED: {
                 connected.set(true);
-                offerOperation(new CompositeOperation(
+                LOG.info(this + ": connection " + newState + ", offering Refresh(FORCE_GET_DATA_AND_STAT) + Update + Event(CONNECTED)");
+                offerOperation(new CompositeOperation(this,
                         new RefreshOperation(this, RefreshMode.FORCE_GET_DATA_AND_STAT),
                         new UpdateOperation<T>(this, state),
                         new EventOperation(this, GroupListener.GroupEvent.CONNECTED)
@@ -561,52 +717,88 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     }
 
     private void processChildren(List<String> children, RefreshMode mode) throws Exception {
-        List<String> fullPaths = Lists.newArrayList(Lists.transform
-                (
-                        children,
-                        new Function<String, String>() {
-                            @Override
-                            public String apply(String child) {
-                                return ZKPaths.makePath(path, child);
-                            }
-                        }
-                ));
+        LOG.debug(this + ": processChildren(size = " + children.size() + ")");
+        List<String> fullPaths = Lists.newArrayList(Lists.transform(
+                children,
+                new Function<String, String>() {
+                    @Override
+                    public String apply(String child) {
+                        return ZKPaths.makePath(path, child);
+                    }
+                }
+        ));
         Set<String> removedNodes = Sets.newHashSet(currentData.keySet());
         removedNodes.removeAll(fullPaths);
 
+        boolean change = false;
+        int removed = 0;
+        int added = 0;
+        int changed = 0;
         for (String fullPath : removedNodes) {
-            remove(fullPath);
+            LOG.debug(this + ":  - removed " + fullPath);
+            if (remove(fullPath)) {
+                change = true;
+                removed++;
+            }
         }
 
         for (String name : children) {
             String fullPath = ZKPaths.makePath(path, name);
 
             if ((mode == RefreshMode.FORCE_GET_DATA_AND_STAT) || !currentData.containsKey(fullPath)) {
-                getDataAndStat(fullPath);
+                Change c = getDataAndStat(fullPath, false);
+                if (c == Change.ADDED) {
+                    LOG.debug(this + ":  - added " + fullPath);
+                    added++;
+                    change = true;
+                } else if (c == Change.MODIFIED) {
+                    LOG.debug(this + ":  - modified " + fullPath);
+                    changed++;
+                    change = true;
+                }
             }
+        }
+
+        if (change) {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug(this + ": cluster change (members added: " + added + ", modified: " + changed + ", removed: " + removed + ")");
+            }
+            offerOperation(new EventOperation(this, GroupListener.GroupEvent.CHANGED));
         }
     }
 
-    private void applyNewData(String fullPath, int resultCode, Stat stat, byte[] bytes) {
+    private Change applyNewData(String fullPath, int resultCode, Stat stat, byte[] bytes, boolean sendEvent) {
         if (resultCode == KeeperException.Code.OK.intValue()) {
             // otherwise - node must have dropped or something - we should be getting another event
             ChildData<T> data = new ChildData<T>(fullPath, stat, bytes, decode(bytes));
             ChildData<T> previousData = currentData.put(fullPath, data);
             if (previousData == null || previousData.getStat().getVersion() != stat.getVersion()) {
-                offerOperation(new EventOperation(this, GroupListener.GroupEvent.CHANGED));
+                if (sendEvent) {
+                    offerOperation(new EventOperation(this, GroupListener.GroupEvent.CHANGED));
+                } else {
+                    return previousData == null ? Change.ADDED : Change.MODIFIED;
+                }
             }
         }
+        return Change.NONE;
     }
 
     private void mainLoop() {
         while (started.get() && !Thread.currentThread().isInterrupted()) {
+            String tn = Thread.currentThread().getName();
             try {
-                operations.take().invoke();
+                Operation op = operations.take();
+                Thread.currentThread().setName(tn + " [" + op.id() + "]");
+
+                LOG.debug(this + ": invoking " + op);
+                op.invoke();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 break;
             } catch (Exception e) {
                 handleException(e);
+            } finally {
+                Thread.currentThread().setName(tn);
             }
         }
     }
@@ -630,10 +822,23 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
     }
 
     private void offerOperation(Operation operation) {
+        // this check requires proper implementation of equals/hashcode and the goal is to not invoke
+        // same operation many times.
+        //
+        // in case of adding e.g., Event(CHANGED) to a queue where there's e.g., Refresh + Event(CHANGED), the
+        // new even won't be added. so it's important that Refresh itself will add Event(CHANGED) if there's a need
+        // to do so
+        //
+        // both contains() and offer() are blocking here, but the combination of them isn't. But it's not a problem here:
+        //  1) if operation is just being processed (it's no longer in queue), it'll simply be added
+        //  2) if operation is in queue - it won't be added, but the existing operation will be processed later
+        //  3) if operation is not in queue - it'll be added
         if (!operations.contains(operation)) {
+            LOG.debug(this + ": offering " + operation);
             operations.offer(operation);
+        } else {
+            LOG.debug(this + ": " + operation + " not offered, similar operation pending");
         }
-//        operations.remove(operation);   // avoids herding for refresh operations
     }
 
     public static <T> Map<String, T> members(ObjectMapper mapper, CuratorFramework curator, String path, Class<T> clazz) throws Exception {
@@ -662,6 +867,33 @@ public class ZooKeeperGroup<T extends NodeState> implements Group<T> {
      */
     public boolean isUnstable() {
         return unstable.get();
+    }
+
+    /**
+     * To be used by operations to get their ID.
+     * @return
+     */
+    String nextId() {
+        return String.format("%06d", counter.incrementAndGet());
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder("<ZKGroup ").append(source);
+        if (id != null) {
+            sb.append(", ").append(id);
+        } else {
+            sb.append(", ").append(path).append("/?");
+        }
+        sb.append(", ").append(uuid).append(">");
+        return sb.toString();
+    }
+
+    /**
+     * Whether cluster member was added or updated
+     */
+    enum Change {
+        NONE, ADDED, MODIFIED
     }
 
 }

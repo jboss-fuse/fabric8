@@ -34,6 +34,14 @@ public class NodeState {
     @JsonProperty
     public String uuid; // internal use to suppress duplicates
 
+    /**
+     * Internal use to handle problems occuring between creation of ZK sequential/ephemenral node and return
+     * of the path ID. Only members with {@code ready=true} should be considered as <em>stable</em> members. Without
+     * {@code ready} flag set, member is neither a master nor a slave.
+     */
+    @JsonProperty
+    public boolean ready = false;
+
     public NodeState() {
         this(null);
     }
@@ -59,6 +67,22 @@ public class NodeState {
         return container;
     }
 
+    public boolean isReady() {
+        return ready;
+    }
+
+    public void setReady() {
+        this.ready = true;
+    }
+
+    public void unsetReady() {
+        this.ready = false;
+    }
+
+    /**
+     * This method creates {@link ObjectMapper} on each call!
+     * @return
+     */
     @Override
     public String toString() {
         try {
@@ -67,4 +91,5 @@ public class NodeState {
             return super.toString();
         }
     }
+
 }

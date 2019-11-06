@@ -17,48 +17,54 @@ package io.fabric8.groups.internal;
 
 import io.fabric8.groups.NodeState;
 
-class UpdateOperation<T extends NodeState> implements Operation
-{
+/**
+ * "Update" operation performed on {@link ZooKeeperGroup} is meant to update data kept inside
+ * {@link ZooKeeperGroup#currentData} map for single mapping - addition, update and removal.
+ */
+class UpdateOperation<T extends NodeState> implements Operation {
+
     private final ZooKeeperGroup<T> cache;
     private final T node;
 
-    UpdateOperation(ZooKeeperGroup cache, T node)
-    {
+    private final String id;
+    private final String gid;
+
+    UpdateOperation(ZooKeeperGroup<T> cache, T node) {
         this.cache = cache;
         this.node = node;
+        this.id = cache.nextId();
+        this.gid = cache.source;
     }
 
     @Override
-    public void invoke() throws Exception
-    {
+    public void invoke() throws Exception {
         cache.doUpdate(node);
     }
 
     @Override
-    public boolean equals(Object o)
-    {
-        if ( this == o )
-        {
+    public String id() {
+        return gid + ":" + id;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
             return true;
         }
-        if ( o == null || getClass() != o.getClass() )
-        {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
         return true;
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return getClass().hashCode();
     }
 
     @Override
-    public String toString()
-    {
-        return "UpdateOperation{" +
-                "node='" + node + '\'' +
-                '}';
+    public String toString() {
+        return String.format("[%s:%s UpdateOperation] { %s, %s }", gid, id, cache.getId(), node);
     }
+
 }

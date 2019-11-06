@@ -15,40 +15,51 @@
  */
 package io.fabric8.groups.internal;
 
-class GetDataOperation implements Operation
-{
+/**
+ * "Get Data" operation performed on {@link ZooKeeperGroup} is meant to synchronize data kept inside
+ * {@link ZooKeeperGroup#currentData} map - for single path (unlike {@link RefreshOperation}.
+ */
+class GetDataOperation implements Operation {
+
     private final ZooKeeperGroup cache;
     private final String fullPath;
 
-    GetDataOperation(ZooKeeperGroup cache, String fullPath)
-    {
+    private final String id;
+    private final String gid;
+    // whether to immediately offer Event(CHANGED) operation if data has changed
+    private final boolean sendEvent;
+
+    GetDataOperation(ZooKeeperGroup cache, String fullPath, boolean sendEvent) {
         this.cache = cache;
         this.fullPath = fullPath;
+        this.id = cache.nextId();
+        this.gid = cache.source;
+        this.sendEvent = sendEvent;
     }
 
     @Override
-    public void invoke() throws Exception
-    {
-        cache.getDataAndStat(fullPath);
+    public void invoke() throws Exception {
+        cache.getDataAndStat(fullPath, sendEvent);
     }
 
     @Override
-    public boolean equals(Object o)
-    {
-        if ( this == o )
-        {
+    public String id() {
+        return gid + ":" + id;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
             return true;
         }
-        if ( o == null || getClass() != o.getClass() )
-        {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
 
-        GetDataOperation that = (GetDataOperation)o;
+        GetDataOperation that = (GetDataOperation) o;
 
         //noinspection RedundantIfStatement
-        if ( !fullPath.equals(that.fullPath) )
-        {
+        if (!fullPath.equals(that.fullPath)) {
             return false;
         }
 
@@ -56,16 +67,13 @@ class GetDataOperation implements Operation
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return fullPath.hashCode();
     }
 
     @Override
-    public String toString()
-    {
-        return "GetDataOperation{" +
-                "fullPath='" + fullPath + '\'' +
-                '}';
+    public String toString() {
+        return String.format("[%s:%s GetDataOperation] { %s, %s }", gid, id, cache.getId(), fullPath);
     }
+
 }

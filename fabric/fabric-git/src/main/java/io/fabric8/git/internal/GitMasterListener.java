@@ -56,7 +56,7 @@ public final class GitMasterListener extends AbstractComponent implements GroupL
     @Activate
     void activate() throws IOException {
         activateComponent();
-        group = new ZooKeeperGroup<GitNode>(curator.get(), ZkPath.GIT.getPath(), GitNode.class, new NamedThreadFactory("zkgroup-gml"));
+        group = new ZooKeeperGroup<GitNode>("gml", curator.get(), ZkPath.GIT.getPath(), GitNode.class, new NamedThreadFactory("zkgroup-gml"));
         group.add(this);
         group.start();
     }
@@ -98,6 +98,10 @@ public final class GitMasterListener extends AbstractComponent implements GroupL
                     LOGGER.warn("Not changing master Git URL to \"" + substitutedUrl + "\". There may be pending ZK connection shutdown.");
                 } else {
                     gitservice.notifyRemoteChanged(substitutedUrl);
+                }
+            } else {
+                if (master != null) {
+                    LOGGER.warn("Group for container " + master.getContainer() + " is registered as master, but no service URL is configured for this cluster member.");
                 }
             }
         } catch (Exception e) {

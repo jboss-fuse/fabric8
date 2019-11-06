@@ -17,6 +17,7 @@ package io.fabric8.mq.fabric.discovery;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -92,6 +93,14 @@ public class FabricDiscoveryAgent implements DiscoveryAgent, Callable {
 
         @JsonProperty
         String[] services;
+
+        @Override
+        public String toString() {
+            return "ActiveMQNode{" +
+                    "id='" + id + '\'' +
+                    ", services='" + (services == null ? "" : Arrays.asList(services).toString()) + '\'' +
+                    '}';
+        }
     }
     
     ActiveMQNode createState() {
@@ -313,7 +322,7 @@ public class FabricDiscoveryAgent implements DiscoveryAgent, Callable {
     }
 
     private synchronized void initGroup() throws Exception {
-        group = (MultiGroup)factory.createMultiGroup("/fabric/registry/clusters/amq/" + groupName, ActiveMQNode.class, new NamedThreadFactory("zkgroup-fabric-mq-discovery"));
+        group = (MultiGroup)factory.createMultiGroup("fmq-da", "/fabric/registry/clusters/amq/" + groupName, ActiveMQNode.class, new NamedThreadFactory("zkgroup-fabric-mq-discovery"));
         group.add(new GroupListener<ActiveMQNode>() {
             @Override
             public void groupEvent(Group<ActiveMQNode> group, GroupEvent event) {

@@ -59,4 +59,5 @@ public class InfluxDBNode extends NodeState {
                 "services=" + Arrays.toString(services) +
                 '}';
     }
+
 }

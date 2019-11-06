@@ -20,7 +20,8 @@ import io.fabric8.groups.NodeState;
 public class AutoScalerNode extends NodeState {
 
     @Override
-	public String toString() {
-		return "AutoScalerNode()";
-	}
+    public String toString() {
+        return "AutoScalerNode()";
+    }
+
 }

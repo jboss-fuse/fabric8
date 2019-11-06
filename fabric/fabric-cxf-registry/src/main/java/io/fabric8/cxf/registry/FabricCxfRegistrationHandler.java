@@ -224,7 +224,6 @@ public final class FabricCxfRegistrationHandler extends AbstractComponent implem
 
     protected void onMBeanEvent(Container container, ObjectName oName, String type) {
         try {
-
             if (isCxfServiceEndpointQuery.apply(oName)) {
                 if (MBeanServerNotification.UNREGISTRATION_NOTIFICATION.equals(type)) {
                     LOGGER.info("Unregistering endpoint " + oName + " type " + type);

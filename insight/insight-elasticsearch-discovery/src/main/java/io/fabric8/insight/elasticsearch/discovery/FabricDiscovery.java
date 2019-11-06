@@ -471,6 +471,13 @@ public class FabricDiscovery extends AbstractLifecycleComponent<Discovery>
         public boolean isMaster() {
             return master;
         }
+
+        @Override
+        public String toString() {
+            return "ESNode{" +
+                    "id='" + id + '\'' +
+                    '}';
+        }
     }
 
     static class NodeSerializer extends JsonSerializer<ESNode> {
