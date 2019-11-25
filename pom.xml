@@ -26,7 +26,7 @@
 
     <groupId>io.fabric8</groupId>
     <artifactId>fabric8-project</artifactId>
-    <version>3.0.11.redhat-SNAPSHOT</version>
+    <version>3.0.11.fuse-760006</version>
     <packaging>pom</packaging>
 
     <name>Fabric8</name>
@@ -94,14 +94,14 @@
         <!-- upstream vs redhat versions of dependencies goes here -->
         <activemq.version>5.11.0.redhat-630416</activemq.version>
         <arquillian-cube.version>1.9.0</arquillian-cube.version>
-        <camel.version>2.21.0.fuse-750028</camel.version>
-        <cxf.version>3.2.7.fuse-750021</cxf.version>
-        <cxf.plugin.version>3.2.7.fuse-750021</cxf.plugin.version>
-        <cxf.xjc-utils.version>3.2.4.fuse-750011</cxf.xjc-utils.version>
+        <camel.version>2.21.0.fuse-760013</camel.version>
+        <cxf.version>3.2.7.fuse-760011</cxf.version>
+        <cxf.plugin.version>3.2.7.fuse-760011</cxf.plugin.version>
+        <cxf.xjc-utils.version>3.2.4.fuse-760010</cxf.xjc-utils.version>
 
         <commons.collections.version>3.2.2.redhat-2</commons.collections.version>
-        <version.fuse-karaf>7.5.0.fuse-750029</version.fuse-karaf>
-        <karaf.version>4.2.6.fuse-750012</karaf.version>
+        <version.fuse-karaf>7.6.0.fuse-760007</version.fuse-karaf>
+        <karaf.version>4.2.6.fuse-760019</karaf.version>
         <hibernate-validator.version>5.3.5.Final-redhat-2</hibernate-validator.version>
         <hibernate-core.version>5.3.10.Final-redhat-00001</hibernate-core.version>
         <javax.el-api.version>3.0.0</javax.el-api.version>
@@ -113,7 +113,7 @@
         <swagger.jaxrs.version>1.5.18.fuse70-1-redhat-1</swagger.jaxrs.version>
         <vertx.version>3.5.0</vertx.version>
         <weld.version>2.3.5.Final</weld.version>
-        <version.org.fusesource.camel-sap>7.5.0.fuse-750026</version.org.fusesource.camel-sap>
+        <version.org.fusesource.camel-sap>7.6.0.fuse-760011</version.org.fusesource.camel-sap>
         <version.org.fusesource.camel-activemq>${version.org.fusesource.camel-sap}</version.org.fusesource.camel-activemq>
         <version.io.undertow>2.0.23.Final</version.io.undertow>
 
@@ -142,7 +142,7 @@
         <curator.version>2.9.1</curator.version>
         <deltaspike.version>1.7.2</deltaspike.version>
         <dnsjava.version>2.1.8</dnsjava.version>
-        <docker.maven.plugin.version>0.23.0.fuse-750006</docker.maven.plugin.version>
+        <docker.maven.plugin.version>0.23.0.fuse-760008</docker.maven.plugin.version>
         <dropwizard-metrics.version>3.1.2</dropwizard-metrics.version>
         <exec-maven-plugin.version>1.5.0</exec-maven-plugin.version>
         <felix-scr-annotations.version>1.12.0</felix-scr-annotations.version>
@@ -163,7 +163,7 @@
         <jetty-plugin.version>9.4.20.v20190813</jetty-plugin.version>
         <jetty.version>9.4.20.v20190813</jetty.version>
 
-        <narayana-spring-boot.version>1.0.2.fuse-750025</narayana-spring-boot.version>
+        <narayana-spring-boot.version>1.0.2.fuse-760006</narayana-spring-boot.version>
         <narayana.version>5.9.3.Final-redhat-00001</narayana.version>
 
         <!--
@@ -172,7 +172,7 @@
         <jgit.version>4.10.0.201712302008-r</jgit.version>
         <json.version>20180813</json.version>
         <junit.version>4.12</junit.version>
-        <kubernetes-client.version>3.1.12.fuse-750017</kubernetes-client.version>
+        <kubernetes-client.version>3.1.12.fuse-760011</kubernetes-client.version>
         <log4j.version>1.2.17</log4j.version>
         <log4j2.version>2.12.1</log4j2.version>
         <lombok.version>1.16.18</lombok.version>
@@ -201,7 +201,7 @@
         <spring.boot.version>1.5.19.RELEASE</spring.boot.version>
         <spring.security.version>4.2.13.RELEASE</spring.security.version>
         <spring.ws.version>2.4.2.RELEASE</spring.ws.version>
-        <spring-cloud-kubernetes.version>0.1.6.fuse-750018</spring-cloud-kubernetes.version>
+        <spring-cloud-kubernetes.version>0.1.6.fuse-760005</spring-cloud-kubernetes.version>
         <sundrio.plugin.version>0.16.5</sundrio.plugin.version>
         <tomcat-embed.version>8.0.36.redhat-39</tomcat-embed.version>
         <validation-api.version>1.1.0.Final-redhat-1</validation-api.version>
@@ -2054,7 +2054,7 @@
                             </extraDependencies>
 
                             <properties>
-                                <version.org.fusesource.camel-sap>7.5.0.fuse-750026</version.org.fusesource.camel-sap>
+                                <version.org.fusesource.camel-sap>7.6.0.fuse-760011</version.org.fusesource.camel-sap>
                                 <skipStagingRepositoryClose>true</skipStagingRepositoryClose>
                             </properties>
                         </bom>
@@ -2353,7 +2353,7 @@
         <profile>
             <id>camel-snapshot</id>
             <properties>
-                <camel.version>2.21.0.fuse-750028</camel.version>
+                <camel.version>2.21.0.fuse-760013</camel.version>
             </properties>
         </profile>
         <profile>
