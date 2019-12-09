@@ -1464,6 +1464,81 @@
         </plugins>
       </pluginManagement>
       <plugins>
+          <!--
+               This is where the magic happens...
+               So let me explain. io.sundr.maven.GenerateBomMojo#execute() roughly does this:
+                1. iterates over configuration/boms/bom
+                2. as "own modules" it starts with "${reactorProjects}" so using `-N` may affect the process
+                3. "own modules" are filtered by:
+                    - exclude <scope>system</scope> deps
+                    - exclude <type>pom</type> deps
+                    - include deps specified in bom/modules/includes/include
+                    - exclude deps specified in bom/modules/excludes/exclude
+                    - if bom/excludeOptional==true (which is default), exclude deps with <optional>true</optional>
+                    - if bom/ignoreScope==true (which is default), no need to specify scope for includes/excludes
+                4. "dependency management artifacts" are set to org.apache.maven.project.MavenProject.getDependencyManagement()
+                   of current pom, if bom/inheritDependencyManagement==true (default is false)
+                5. "plugin management artifacts" are set to org.apache.maven.project.MavenProject.getPluginManagement()
+                   of current pom, if bom/inheritPluginManagement==true (default is false)
+                6. "all dependencies" are initially set to "dependency management artifacts"
+                    - org.apache.maven.execution.MavenSession.getProjectDependencyGraph().getSortedProjects() are checked
+                      (which again has size=1 if `-N` option is used) and for each project in multi-module project, all
+                      dependencies are added. In this case of io.fabric8:fabric8-project there are 136 dependencies before
+                      filtering
+                    - org.apache.maven.artifact.resolver.ArtifactResolver#resolve() is called for test and non-test scoped
+                      dependencies. In this case: test: 27 deps, non-test: 109 deps
+                      after resolution, in this case, test: 245 deps, non-test: 340 deps
+                    - after resolution, test dependencies are added first with scope=test and all other deps are added as-is.
+                      In this case, there are 466 deps.
+                7. "dependencies" are filled with already filtered "own modules"
+                8. "all dependencies" are now filtered by:
+                    - exclude <scope>system</scope> deps
+                    - exclude <scope>import</scope> and <type>pom</type> deps
+                    - include deps specified in bom/dependencies/includes/include
+                    - exclude deps specified in bom/dependencies/excludes/exclude
+                    - if bom/excludeOptional==true (which is default), exclude deps with <optional>true</optional>
+                    - if bom/ignoreScope==true (which is default), no need to specify scope for includes/excludes
+                   In this case, from 466 deps we keep 10 only (io.fabric8:kubernetes-* and io.fabric8:openshift-*)
+                9. filtered "all dependencies" are added to "dependencies". In this case, we have 48 dependencies.
+               10. now all bom/imports/import artifacts (poms) are processed one by one.
+               11. for each "imported" pom, org.eclipse.aether.resolution.ArtifactDescriptorResult.getManagedDependencies() is called
+                    - exclude <scope>system</scope> deps
+                    - exclude <scope>import</scope> and <type>pom</type> deps
+                    - include deps specified in bom/imports/import/dependencyManagement/includes/include
+                    - exclude deps specified in bom/imports/import/dependencyManagement/excludes/exclude
+                    - those managed dependencies from <dependencyManagement> are added IN ORDER and PRIORITY OF APPEARANCE
+                      so if 2nd imported pom has the same dependency, it's NOT added. TL;DR: first wins
+               12. all these "imported managed dependencies" are added to "dependencies"
+               13. "plugins" are populated with those "own modules" that have <type>maven-plugin</type> (in this case
+                   it's single io.fabric8:hawt-app-maven-plugin:maven-plugin:VERSION:compile)
+               14. "plugins" are populated with "plugin management artifacts" filtered by:
+                    - include only <type>maven-plugin</type> - no doubt here
+                    - include plugins specified in bom/plugins/includes/include
+                    - exclude plugins specified in bom/plugins/excludes/exclude
+               15. "dependencies" are processed using bom/overrides now.
+               16. bom/overrides/override/dependencies/includes/include and bom/overrides/override/dependencies/excludes/exclude
+                   provide a composite filter
+               17. each dep from "dependencies" is filtered by the above filter and if there's match, bom/overrides/override/version
+                   is used for this dependency instead of original version
+                   THAT's WHY IT'd BE STRANGE to provide an override for "*:*" or similar - usually there's single includes/include there
+                   to match set of artifacts with single version to override
+               18. new MavenProject is created with:
+                    - groupId = from current project
+                    - artifactId = bom/artifactId
+                    - version = from current project
+                    - packaging = pom
+                    - name = bom/name
+                    - description = bom/description
+                    - dependencyManagement = from "dependencies" + additionally (at the end) from bom/extraDependencies/dependency
+                    - build/pluginManagement = from "plugins"
+                    - properties = from "properties" (these are NOT written, because velocity template doesn't handle them)
+               18. io.sundr.maven.GenerateBomMojo#verifyBomDependencies() is called to verify new MavenProject that has all the above
+                   managed plugins and dependencies (if bom/checkMismatches==true, which is default)
+               19. bom is written using Velocity
+               20. project for this bom is built using bom/goals/includes/include|exclude, while tasks are taken from
+                   current invocation
+           -->
+
           <plugin>
               <groupId>io.sundr</groupId>
               <artifactId>sundr-maven-plugin</artifactId>
@@ -1598,6 +1673,9 @@
                                           <exclude>org.yaml:snakeyaml</exclude>
                                           <exclude>wsdl4j:wsdl4j</exclude>
                                           <exclude>ch.qos.logback:*</exclude>
+                                          <exclude>org.infinispan:infinispan-jcache</exclude>
+                                          <exclude>org.infinispan:infinispan-spring4-common</exclude>
+                                          <exclude>org.infinispan:infinispan-spring4-embedded</exclude>
                                       </excludes>
                                   </dependencyManagement>
                               </import>
