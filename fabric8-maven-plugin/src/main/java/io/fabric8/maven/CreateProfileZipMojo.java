@@ -294,6 +294,7 @@ public class CreateProfileZipMojo extends AbstractProfileMojo {
             request.setInteractive(false);
 
             Properties props = new Properties();
+            props.putAll(session.getUserProperties());
             props.setProperty("file", "target/profile.zip");
             props.setProperty("groupId", rootProjectGroupId);
             props.setProperty("artifactId", rootProjectArtifactId);
@@ -333,6 +334,7 @@ public class CreateProfileZipMojo extends AbstractProfileMojo {
                     + session.getRequest().getUserSettingsFile());
             
             Properties props = new Properties();            
+            props.putAll(session.getUserProperties());
             props.setProperty("file", "target/profile.zip");
             props.setProperty("groupId", rootProjectGroupId);
             props.setProperty("artifactId", rootProjectArtifactId);
