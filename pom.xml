@@ -207,7 +207,7 @@
         <tomcat-embed.version>8.0.36.redhat-39</tomcat-embed.version>
         <validation-api.version>1.1.0.Final-redhat-1</validation-api.version>
         <zookeeper.version>3.4.14</zookeeper.version>
-        <commons-codec.version>1.12</commons-codec.version>
+        <commons-codec.version>1.13</commons-codec.version>
         <commons-lang3.version>3.9</commons-lang3.version>
         <commons-pool2.version>2.6.2</commons-pool2.version>
         <commons-dbcp2.version>2.1.1</commons-dbcp2.version>
@@ -1785,6 +1785,11 @@
                                     <groupId>org.apache.commons</groupId>
                                     <artifactId>commons-pool2</artifactId>
                                     <version>${commons-pool2.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>commons-codec</groupId>
+                                    <artifactId>commons-codec</artifactId>
+                                    <version>${commons-codec.version}</version>
                                 </dependency>
                             </extraDependencies>
 
