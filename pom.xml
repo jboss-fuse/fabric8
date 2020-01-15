@@ -103,7 +103,7 @@
         <version.fuse-karaf>7.5.0.fuse-750029</version.fuse-karaf>
         <karaf.version>4.2.6.fuse-750012</karaf.version>
         <hibernate-validator.version>5.3.5.Final-redhat-2</hibernate-validator.version>
-        <hibernate-core.version>5.3.10.Final-redhat-00001</hibernate-core.version>
+        <hibernate-core.version>5.3.13.Final-redhat-00001</hibernate-core.version>
         <javax.el-api.version>3.0.0</javax.el-api.version>
         <jansi.version>1.18</jansi.version>
         <jolokia.version>1.6.2.redhat-00002</jolokia.version>
