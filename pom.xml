@@ -165,6 +165,7 @@
 
         <narayana-spring-boot.version>1.0.2.fuse-750025</narayana-spring-boot.version>
         <narayana.version>5.9.3.Final-redhat-00001</narayana.version>
+        <narayana.version>5.9.6.Final-redhat-00001</narayana.version>
 
         <!--
                 We've released a new version of gitective (0.9.50) with the latest jgit support (4.10.0.201712302008-r)
