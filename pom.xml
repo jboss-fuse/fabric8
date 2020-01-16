@@ -178,7 +178,7 @@
         <tomcat-embed.version>9.0.7.redhat-19</tomcat-embed.version>
         <validation-api.version>1.1.0.Final-redhat-1</validation-api.version>
         <zookeeper.version>3.4.14</zookeeper.version>
-        <commons-codec.version>1.12</commons-codec.version>
+        <commons-codec.version>1.13</commons-codec.version>
         <commons-lang3.version>3.9</commons-lang3.version>
 
         <!-- OSGi bundles properties -->
