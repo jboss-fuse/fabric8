@@ -25,34 +25,34 @@ public class MavenRepositoryURLTest {
 
     @Test
     public void testSimpleSpec() throws MalformedURLException {
-        String spec = "http://repo1.maven.org/maven2";
+        String spec = "https://repo1.maven.org/maven2";
         MavenRepositoryURL repo = new MavenRepositoryURL(spec);
         Assert.assertTrue(repo.isReleasesEnabled());
         Assert.assertFalse(repo.isSnapshotsEnabled());
-        Assert.assertEquals("repo_" + String.valueOf("http://repo1.maven.org/maven2/".hashCode()), repo.getId() );
+        Assert.assertEquals("repo_" + String.valueOf("https://repo1.maven.org/maven2/".hashCode()), repo.getId() );
     }
 
     @Test
     public void testSimpleSpecWithSnapshots() throws MalformedURLException {
-        String spec = "http://repo1.maven.org/maven2@snapshots";
+        String spec = "https://repo1.maven.org/maven2@snapshots";
         MavenRepositoryURL repo = new MavenRepositoryURL(spec);
         Assert.assertTrue(repo.isReleasesEnabled());
         Assert.assertTrue(repo.isSnapshotsEnabled());
-        Assert.assertEquals("repo_" + String.valueOf("http://repo1.maven.org/maven2/".hashCode()), repo.getId() );
+        Assert.assertEquals("repo_" + String.valueOf("https://repo1.maven.org/maven2/".hashCode()), repo.getId() );
     }
 
     @Test
     public void testSimpleSpecWithNoReleases() throws MalformedURLException {
-        String spec = "http://repo1.maven.org/maven2@noreleases";
+        String spec = "https://repo1.maven.org/maven2@noreleases";
         MavenRepositoryURL repo = new MavenRepositoryURL(spec);
         Assert.assertFalse(repo.isReleasesEnabled());
         Assert.assertFalse(repo.isSnapshotsEnabled());
-        Assert.assertEquals("repo_" + String.valueOf("http://repo1.maven.org/maven2/".hashCode()), repo.getId() );
+        Assert.assertEquals("repo_" + String.valueOf("https://repo1.maven.org/maven2/".hashCode()), repo.getId() );
     }
 
     @Test
     public void testSimpleSpecWithId() throws MalformedURLException {
-        String spec = "http://repo1.maven.org/maven2@id=central";
+        String spec = "https://repo1.maven.org/maven2@id=central";
         MavenRepositoryURL repo = new MavenRepositoryURL(spec);
         Assert.assertTrue(repo.isReleasesEnabled());
         Assert.assertFalse(repo.isSnapshotsEnabled());
@@ -62,13 +62,13 @@ public class MavenRepositoryURLTest {
 
     @Test
     public void testSpecWithSnapshotsAndId() throws MalformedURLException {
-        String spec = "http://repo1.maven.org/maven2@snapshots@id=central";
+        String spec = "https://repo1.maven.org/maven2@snapshots@id=central";
         MavenRepositoryURL repo = new MavenRepositoryURL(spec);
         Assert.assertTrue(repo.isReleasesEnabled());
         Assert.assertTrue(repo.isSnapshotsEnabled());
         Assert.assertEquals("central", repo.getId() );
 
-        spec = "http://repo1.maven.org/maven2@id=central@snapshots";
+        spec = "https://repo1.maven.org/maven2@id=central@snapshots";
         repo = new MavenRepositoryURL(spec);
         Assert.assertTrue(repo.isReleasesEnabled());
         Assert.assertTrue(repo.isSnapshotsEnabled());
