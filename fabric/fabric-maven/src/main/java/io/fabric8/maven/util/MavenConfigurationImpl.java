@@ -628,7 +628,7 @@ public class MavenConfigurationImpl extends PropertyStore implements MavenConfig
             Profile fallbackProfile = new Profile();
             Repository central = new Repository();
             central.setId("central");
-            central.setUrl("http://repo1.maven.org/maven2");
+            central.setUrl("https://repo1.maven.org/maven2");
             fallbackProfile.setId("fallback");
             fallbackProfile.setRepositories(Arrays.asList(central));
             settings.addProfile(fallbackProfile);
