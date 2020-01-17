@@ -169,7 +169,7 @@ public class FabricTestSupport extends FabricKarafTestSupport {
     }
 
     private void addStagingRepoToDefaultProfile() {
-        executeCommand("fabric:profile-edit -p io.fabric8.agent/org.ops4j.pax.url.mvn.repositories=" + "http://repo1.maven.org/maven2,"
+        executeCommand("fabric:profile-edit -p io.fabric8.agent/org.ops4j.pax.url.mvn.repositories=" + "https://repo1.maven.org/maven2,"
                 + "https://repository.jboss.org/nexus/content/repositories/fs-releases/,"
                 + "https://repository.jboss.org/nexus/content/repositories/fs-snapshots//@snapshots@noreleases,"
                 + "http://repository.apache.org/content/groups/snapshots-group@snapshots@noreleases," + "http://svn.apache.org/repos/asf/servicemix/m2-repo,"

@@ -90,7 +90,7 @@ public class DeploymentAgentTest {
         CommandSupport.executeCommand("fabric:profile-edit --feature fabric-dosgi test-profile 1.1");
         //We remove all repositories from agent config but the maven central to rely on the fabric-maven-proxy.
         //Also remove local repository
-        CommandSupport.executeCommand("fabric:profile-edit --pid io.fabric8.agent/org.ops4j.pax.url.mvn.repositories=http://repo1.maven.org/maven2@id=m2central default 1.1");
+        CommandSupport.executeCommand("fabric:profile-edit --pid io.fabric8.agent/org.ops4j.pax.url.mvn.repositories=https://repo1.maven.org/maven2@id=m2central default 1.1");
         CommandSupport.executeCommand("fabric:profile-edit --pid test-profile 1.1");
 
         BundleContext moduleContext = ServiceLocator.getSystemContext();
