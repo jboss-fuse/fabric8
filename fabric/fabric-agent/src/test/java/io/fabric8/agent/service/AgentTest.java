@@ -52,7 +52,7 @@ public class AgentTest {
         Dictionary<String, String> resolverProps = new Hashtable<>();
         resolverProps.put(ServiceConstants.PROPERTY_REPOSITORIES, "http://repository.jboss.org/nexus/content/repositories/fs-public/@id=jboss.fs.public," +
                 "https://repository.jboss.org/nexus/content/groups/ea/@id=jboss.ea.repo," +
-                "http://repo1.maven.org/maven2@id=maven.central.repo," +
+                "https://repo1.maven.org/maven2@id=maven.central.repo," +
                 "http://download.eng.bos.redhat.com/brewroot/repos/jb-fuse-6.2-build/latest/maven@id=brew");
         MavenResolver mavenResolver = MavenResolvers.createMavenResolver(resolverProps, null);
         DownloadManager manager = DownloadManagers.createDownloadManager(mavenResolver, Executors.newScheduledThreadPool(8));

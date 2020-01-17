@@ -158,7 +158,7 @@ In the following example, I will modify the *io.fabric8.agent* pid and change th
 
         Agent Properties :
         	  org.ops4j.pax.url.mvn.repositories= \
-                http://repo1.maven.org/maven2@id=central, \
+                https://repo1.maven.org/maven2@id=central, \
                 https://repo.fusesource.com/nexus/content/groups/public@id=fusepublic, \
                 https://repository.jboss.org/nexus/content/repositories/public@id=jbosspublic, \
                 https://repo.fusesource.com/nexus/content/repositories/releases@id=jbossreleases, \
