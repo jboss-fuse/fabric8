@@ -338,7 +338,7 @@
         <!-- aligned to Maven 3.3.3 -->
         <sisu-guice-version>3.2.5</sisu-guice-version>
         <sisu-inject-plexus-version>0.3.0</sisu-inject-plexus-version>
-        <shrinkwrap-resolver-version>2.2.0-beta-2</shrinkwrap-resolver-version>
+        <shrinkwrap-resolver-version>3.1.4</shrinkwrap-resolver-version>
         <shrinkwrap-version>1.2.3</shrinkwrap-version>
         <slf4j-api-version>1.7.7</slf4j-api-version>
         <slf4j-version>1.7.7</slf4j-version>
@@ -2221,6 +2221,11 @@
                 <artifactId>shrinkwrap-resolver-depchain</artifactId>
                 <version>${shrinkwrap-resolver-version}</version>
                 <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>org.jboss.shrinkwrap.resolver</groupId>
+                <artifactId>shrinkwrap-resolver-impl-maven</artifactId>
+                <version>${shrinkwrap-resolver-version}</version>
             </dependency>
 
             <dependency>
