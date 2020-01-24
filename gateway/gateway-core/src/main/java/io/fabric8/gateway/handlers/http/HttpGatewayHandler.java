@@ -94,8 +94,12 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
             request.response().setStatusCode(404);
             StringWriter buffer = new StringWriter();
             e.printStackTrace(new PrintWriter(buffer));
-            request.response().setStatusMessage("Error: " + e + "\nStack Trace: " + buffer);
-            request.response().close();
+            try {
+                request.response().setStatusMessage("Error: " + e.getMessage());
+            } finally {
+                request.response().end();
+                request.response().close();
+            }
         }
     }
 
@@ -128,7 +132,7 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
         return mapper.writeValueAsString(data);
     }
 
-    protected void doRouteRequest(Map<String, MappedServices> mappingRules, final HttpServerRequest request) {
+    protected void doRouteRequest(Map<String, MappedServices> mappingRules, final HttpServerRequest request) throws URISyntaxException {
         String uri = request.uri();
         String uri2 = uri;
         uri2 = normalizeUri(uri);
@@ -168,11 +172,16 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
                         clientURL = new URL(proxyServiceUrl);
                         client = createClient(clientURL);
                         prefix = clientURL.getPath();
-                        reverseServiceUrl = request.absoluteURI().resolve(pathPrefix).toString();
-                        if (reverseServiceUrl.endsWith("/")) {
-                            reverseServiceUrl = reverseServiceUrl.substring(0, reverseServiceUrl.length() - 1);
+                        if (request.absoluteURI() == null) {
+                            //prevent NPE and send Error back in Http Header
+                            new URI(request.uri());
+                        } else {
+                            reverseServiceUrl = request.absoluteURI().resolve(pathPrefix).toString();
+                            if (reverseServiceUrl.endsWith("/")) {
+                                reverseServiceUrl = reverseServiceUrl.substring(0, reverseServiceUrl.length() - 1);
+                            }
+                            break;
                         }
-                        break;
                     } catch (MalformedURLException e) {
                         LOG.warn("Failed to parse URL: " + proxyServiceUrl + ". " + e, e);
                     }
