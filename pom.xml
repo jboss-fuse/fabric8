@@ -157,7 +157,7 @@
         <codehaus-plexus-interpolation-version>1.19</codehaus-plexus-interpolation-version>
         <codehaus-plexus-version>1.5.5</codehaus-plexus-version>
         <codahale-metrics-version>3.0.2</codahale-metrics-version>
-        <commons-beanutils-version>1.9.2.redhat-1</commons-beanutils-version>
+        <commons-beanutils-version>1.9.4.redhat-00001</commons-beanutils-version>
         <commons-codec-version>1.10.0.redhat-5</commons-codec-version>
         <commons-collections-version>3.2.2.redhat-2</commons-collections-version>
         <commons-compress-version>1.8</commons-compress-version>
