@@ -299,8 +299,7 @@ public final class FabricCxfRegistrationHandler extends AbstractComponent implem
             String wsdlPath = "?wsdl";
             String wadlPath = "?_wadl";
 
-            Version version = container.getVersion();
-            String versionId = version != null ? version.getId() : null;
+            String versionId = container.getVersionId();
 
             String json = "{\"id\":" + JsonHelper.jsonEncodeString(id)
                     + ", \"container\":" + JsonHelper.jsonEncodeString(id)
