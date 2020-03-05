@@ -198,10 +198,7 @@ public final class FabricHTTPGateway extends AbstractComponent implements HttpGa
         assertValid();
         Container currentContainer = fabricService.get().getCurrentContainer();
         if (currentContainer != null) {
-            Version version = currentContainer.getVersion();
-            if (version != null) {
-                return version.getId();
-            }
+            return currentContainer.getVersionId();
         }
         return null;
     }

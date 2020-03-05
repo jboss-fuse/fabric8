@@ -167,8 +167,7 @@ public final class FabricWebRegistrationHandler extends AbstractComponent implem
 
     private void registerServlet(Container container, ServletEvent servletEvent) {
         String id = container.getId();
-        Version version = container.getVersion();
-        String versionId = version != null ? version.getId() : null;
+        String versionId = container.getVersionId();
         String url = "${zk:" + id + "/http}" + servletEvent.getAlias();
         String bundleName = servletEvent.getBundle().getSymbolicName();
         String bundleVersion = servletEvent.getBundle().getVersion().toString();
@@ -229,8 +228,7 @@ public final class FabricWebRegistrationHandler extends AbstractComponent implem
         String bundleVersion = webEvent.getBundle().getVersion().toString();
         setJolokiaUrl(container, url, bundleName);
 
-        Version version = container.getVersion();
-        String versionId = version != null ? version.getId() : null;
+        String versionId = container.getVersionId();
 
         String json = "{\"id\":" + jsonEncodeString(id) +
                 ",\"services\":[" + jsonEncodeString(url) + "]" +

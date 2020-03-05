@@ -215,7 +215,7 @@ public class DownloadManagerTest {
      * @throws IOException
      */
     private DownloadManager createDownloadManager(String settingsFile, Properties props) throws IOException {
-        return createDownloadManager("http://repo1.maven.org/maven2@id=central", settingsFile, props);
+        return createDownloadManager("https://repo1.maven.org/maven2@id=central", settingsFile, props);
     }
 
     /**
