@@ -109,7 +109,7 @@
         <jolokia.version>1.6.2.redhat-00002</jolokia.version>
         <jgroups.version>3.6.10.Final-redhat-1</jgroups.version>
         <jsonschema2pojo.version>1.0.0</jsonschema2pojo.version>
-        <snakeyaml.version>1.23</snakeyaml.version>
+        <snakeyaml.version>1.26</snakeyaml.version>
         <swagger.jaxrs.version>1.5.18.fuse70-1-redhat-1</swagger.jaxrs.version>
         <vertx.version>3.5.0</vertx.version>
         <weld.version>2.3.5.Final</weld.version>
