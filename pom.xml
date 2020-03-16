@@ -184,7 +184,7 @@
         <maven.javadoc.plugin.version>2.10.3</maven.javadoc.plugin.version>
         <mockwebserver.version>0.0.17</mockwebserver.version>
         <mvel.version>2.4.0.Final</mvel.version>
-        <netty.version>4.1.43.Final</netty.version>
+        <netty.version>4.1.44.Final</netty.version>
         <osgi.version>4.3.1</osgi.version>
         <osgi-compendium.version>4.3.1</osgi-compendium.version>
         <pax.url.version>2.6.2</pax.url.version>
