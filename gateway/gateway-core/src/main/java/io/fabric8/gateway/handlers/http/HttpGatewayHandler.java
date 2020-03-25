@@ -142,6 +142,7 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
         String remaining = null;
         String prefix = null;
         String proxyServiceUrl = null;
+        String backendHostHeader = null;
         String reverseServiceUrl = null;
 
         MappedServices mappedServices = null;
@@ -171,6 +172,10 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
                     try {
                         clientURL = new URL(proxyServiceUrl);
                         client = createClient(clientURL);
+                        backendHostHeader = clientURL.getHost();
+                        if (clientURL.getPort() > 0) {
+                            backendHostHeader += ":" + clientURL.getPort();
+                        }
                         prefix = clientURL.getPath();
                         if (request.absoluteURI() == null) {
                             //prevent NPE and send Error back in Http Header
@@ -264,6 +269,18 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
                     clientRequest.headers().add("X-Forwarded-Path", URI.create(reverseServiceUrl).getPath());
                 }
             }
+            // ENTESB-13233, https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Forwarded
+            String host = request.headers().get("Host");
+            if (host != null) {
+                clientRequest.headers().add("X-Forwarded-Host", host);
+            }
+            if (backendHostHeader != null) {
+                clientRequest.headers().add("Host", backendHostHeader);
+            }
+            if (request.remoteAddress() != null && request.remoteAddress().getHostString() != null) {
+                clientRequest.headers().add("X-Forwarded-For", request.remoteAddress().getHostString());
+            }
+
             clientRequest.setChunked(true);
             clientRequest.exceptionHandler(new Handler<Throwable>() {
                 @Override
