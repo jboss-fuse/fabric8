@@ -270,14 +270,32 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
                 }
             }
             // ENTESB-13233, https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Forwarded
-            String host = request.headers().get("Host");
-            if (host != null) {
-                clientRequest.headers().add("X-Forwarded-Host", host);
+            // X-Forwarded-Host
+            String forwardedHost = request.headers().get("X-Forwarded-Host");
+            if (forwardedHost != null) {
+                // this means that even gateway is invoked via some reverse proxy. let's pass the same forwarded host
+                clientRequest.headers().add("X-Forwarded-Host", forwardedHost);
+            } else {
+                // direct invocation of gateway
+                String host = request.headers().get("Host");
+                if (host != null) {
+                    clientRequest.headers().add("X-Forwarded-Host", host);
+                }
             }
+            // new Host
             if (backendHostHeader != null) {
+                // this is "final" leap - gateway-to-backend, so Host: header should point to actual backend
+                // whether we're invoked via another reverse proxy or not
                 clientRequest.headers().add("Host", backendHostHeader);
             }
-            if (request.remoteAddress() != null && request.remoteAddress().getHostString() != null) {
+            // X-Forwarded-For
+            String forwardedFor = request.headers().get("X-Forwarded-For");
+            if (forwardedFor != null) {
+                // this means that even gateway is invoked via some reverse proxy. let's pass the same forwarded for
+                // (which is original IP address, which may need to be logged/used by backend)
+                clientRequest.headers().add("X-Forwarded-For", forwardedFor);
+            } else if (request.remoteAddress() != null && request.remoteAddress().getHostString() != null) {
+                // direct invocation of gateway
                 clientRequest.headers().add("X-Forwarded-For", request.remoteAddress().getHostString());
             }
 
