@@ -96,7 +96,7 @@
         <jsonschema2pojo.version>1.0.0</jsonschema2pojo.version>
         <snakeyaml.version>1.26</snakeyaml.version>
         <swagger.jaxrs.version>1.5.18.fuse70-1-redhat-1</swagger.jaxrs.version>
-        <vertx.version>3.5.0</vertx.version>
+        <vertx.version>3.5.4</vertx.version>
         <weld.version>2.3.5.Final</weld.version>
         <version.org.fusesource.camel-sap>7.5.0.fuse-sb2-750018</version.org.fusesource.camel-sap>
         <version.org.fusesource.camel-activemq>${version.org.fusesource.camel-sap}</version.org.fusesource.camel-activemq>
