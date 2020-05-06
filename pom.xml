@@ -142,8 +142,8 @@
         <javax.servlet-api.version>4.0.1</javax.servlet-api.version>
         <javax.ws.rs-api.version>2.1.1</javax.ws.rs-api.version>
         <jetty-plugin-groupId>org.eclipse.jetty</jetty-plugin-groupId>
-        <jetty-plugin.version>9.4.25.v20191220</jetty-plugin.version>
-        <jetty.version>9.4.25.v20191220</jetty.version>
+        <jetty-plugin.version>9.4.28.v20200408</jetty-plugin.version>
+        <jetty.version>9.4.28.v20200408</jetty.version>
 
         <rhoar.version>2.1.6.SP3-redhat-00001</rhoar.version>
         <narayana-spring-boot.version>2.1.1.fuse-sb2-750016</narayana-spring-boot.version>
