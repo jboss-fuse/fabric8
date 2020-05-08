@@ -948,6 +948,11 @@
                 <artifactId>jackson-dataformat-joda</artifactId>
                 <version>${jackson2.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.module</groupId>
+                <artifactId>jackson-module-scala_2.10</artifactId>
+                <version>${jackson2.version}</version>
+            </dependency>
 
 
             <dependency>
@@ -2138,6 +2143,17 @@
                                         </includes>
                                     </dependencies>
                                     <version>${jackson2.databind.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>com.fasterxml.jackson.module:*</include>
+                                        </includes>
+                                        <excludes>
+                                            <exclude>com.fasterxml.jackson.module:jackson-module-kotlin</exclude>
+                                        </excludes>
+                                    </dependencies>
+                                    <version>${jackson2.version}</version>
                                 </override>
                                 <override>
                                     <dependencies>
