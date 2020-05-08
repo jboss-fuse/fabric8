@@ -92,7 +92,7 @@
     <properties>
 
         <!-- upstream vs redhat versions of dependencies goes here -->
-        <activemq.version>5.11.0.redhat-630434</activemq.version>
+        <activemq.version>5.11.0.redhat-630446</activemq.version>
         <arquillian-cube.version>1.9.0</arquillian-cube.version>
         <camel.version>2.21.0.fuse-750028</camel.version>
         <cxf.version>3.2.7.fuse-750021</cxf.version>
@@ -103,7 +103,7 @@
         <version.fuse-karaf>7.5.0.fuse-750029</version.fuse-karaf>
         <karaf.version>4.2.6.fuse-750012</karaf.version>
         <hibernate-validator.version>5.3.5.Final-redhat-2</hibernate-validator.version>
-        <hibernate-core.version>5.3.13.Final-redhat-00001</hibernate-core.version>
+        <hibernate-core.version>5.3.15.Final-redhat-00001</hibernate-core.version>
         <javax.el-api.version>3.0.0</javax.el-api.version>
         <jansi.version>1.18</jansi.version>
         <jolokia.version>1.6.2.redhat-00002</jolokia.version>
@@ -134,7 +134,7 @@
         <arquillian.version>1.1.12.Final</arquillian.version>
         <asm.version>7.2</asm.version>
         <assertj.core.version>2.4.1</assertj.core.version>
-        <artemis.version>2.11.0.redhat-00004</artemis.version>
+        <artemis.version>2.11.0.redhat-00005</artemis.version>
         <buildnumber.plugin.version>1.3</buildnumber.plugin.version>
 
         <aries-bluepint-core.version>1.10.2</aries-bluepint-core.version>
@@ -151,8 +151,9 @@
         <httpasyncclient.version>4.1.3.redhat-2</httpasyncclient.version>
         <httpcore.version>4.4.9</httpcore.version>
         <httpclient.version>4.5.5</httpclient.version>
+        <!-- ENTESB-12869: versions from com.fasterxml.jackson/jackson-bom/2.8.11.20200310-redhat-00001 -->
         <jackson2.version>2.8.11</jackson2.version>
-        <jackson2.databind.version>2.8.11.4</jackson2.databind.version>
+        <jackson2.databind.version>2.8.11.6-redhat-00001</jackson2.databind.version>
         <jackson2.kotlin.version>2.8.11.1</jackson2.kotlin.version>
         <jar.plugin.version>2.6</jar.plugin.version>
         <javax.cdi-api.version>1.2</javax.cdi-api.version>
@@ -160,12 +161,11 @@
         <javax.servlet-api.version>4.0.1</javax.servlet-api.version>
         <javax.ws.rs-api.version>2.1.1</javax.ws.rs-api.version>
         <jetty-plugin-groupId>org.eclipse.jetty</jetty-plugin-groupId>
-        <jetty-plugin.version>9.4.25.v20191220</jetty-plugin.version>
-        <jetty.version>9.4.25.v20191220</jetty.version>
+        <jetty-plugin.version>9.4.28.v20200408</jetty-plugin.version>
+        <jetty.version>9.4.28.v20200408</jetty.version>
 
         <narayana-spring-boot.version>1.0.2.fuse-750025</narayana-spring-boot.version>
-        <narayana.version>5.9.3.Final-redhat-00001</narayana.version>
-        <narayana.version>5.9.6.Final-redhat-00001</narayana.version>
+        <narayana.version>5.9.8.Final-redhat-00002</narayana.version>
 
         <!--
                 We've released a new version of gitective (0.9.50) with the latest jgit support (4.10.0.201712302008-r)
@@ -175,7 +175,7 @@
         <junit.version>4.12</junit.version>
         <kubernetes-client.version>3.1.12.fuse-750017</kubernetes-client.version>
         <log4j.version>1.2.17</log4j.version>
-        <log4j2.version>2.12.1</log4j2.version>
+        <log4j2.version>2.13.2</log4j2.version>
         <lombok.version>1.16.18</lombok.version>
         <maven.enforcer.version>3.2.3</maven.enforcer.version>
         <maven.enforcer.plugin.version>1.4.1</maven.enforcer.plugin.version>
@@ -184,14 +184,14 @@
         <maven.javadoc.plugin.version>2.10.3</maven.javadoc.plugin.version>
         <mockwebserver.version>0.0.17</mockwebserver.version>
         <mvel.version>2.4.0.Final</mvel.version>
-        <netty.version>4.1.44.Final</netty.version>
+        <netty.version>4.1.48.Final-redhat-00001</netty.version>
         <osgi.version>4.3.1</osgi.version>
         <osgi-compendium.version>4.3.1</osgi-compendium.version>
         <pax.url.version>2.6.2</pax.url.version>
         <plexus-utils.version>3.0.22</plexus-utils.version>
         <phantomjsdriver.version>1.2.0</phantomjsdriver.version>
-        <qpid-proton-j.version>0.33.2.redhat-00001</qpid-proton-j.version>
-        <qpid-jms-client.version>0.45.0.redhat-00002</qpid-jms-client.version>
+        <qpid-proton-j.version>0.33.4.redhat-00001</qpid-proton-j.version>
+        <qpid-jms-client.version>0.51.0.redhat-00002</qpid-jms-client.version>
         <reflections.version>0.9.11</reflections.version>
         <selenium.version>2.53.1</selenium.version>
         <selenium.firefox.driver.version>2.28.0</selenium.firefox.driver.version>
@@ -210,8 +210,8 @@
         <zookeeper.version>3.4.14</zookeeper.version>
         <commons-codec.version>1.13</commons-codec.version>
         <commons-lang3.version>3.9</commons-lang3.version>
-        <commons-pool2.version>2.6.2</commons-pool2.version>
-        <commons-dbcp2.version>2.1.1</commons-dbcp2.version>
+        <commons-pool2.version>2.8.0</commons-pool2.version>
+        <commons-dbcp2.version>2.7.0</commons-dbcp2.version>
 
         <!-- OSGi bundles properties -->
         <fuse.osgi.bundle.name>${project.name}</fuse.osgi.bundle.name>
@@ -946,6 +946,11 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.datatype</groupId>
                 <artifactId>jackson-dataformat-joda</artifactId>
+                <version>${jackson2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.module</groupId>
+                <artifactId>jackson-module-scala_2.10</artifactId>
                 <version>${jackson2.version}</version>
             </dependency>
 
@@ -2138,6 +2143,17 @@
                                         </includes>
                                     </dependencies>
                                     <version>${jackson2.databind.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>com.fasterxml.jackson.module:*</include>
+                                        </includes>
+                                        <excludes>
+                                            <exclude>com.fasterxml.jackson.module:jackson-module-kotlin</exclude>
+                                        </excludes>
+                                    </dependencies>
+                                    <version>${jackson2.version}</version>
                                 </override>
                                 <override>
                                     <dependencies>
