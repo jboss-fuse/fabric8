@@ -56,6 +56,7 @@
   <properties>
     <maven.compiler.target>1.7</maven.compiler.target>
     <maven.compiler.source>1.7</maven.compiler.source>
+    <maven-deploy-plugin-version>2.8.1</maven-deploy-plugin-version>
     <maven.surefire.plugin.version>2.19.1</maven.surefire.plugin.version>
   </properties>
 
@@ -190,6 +191,11 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>${maven.surefire.plugin.version}</version>
+        </plugin>
+        <plugin>
+           <groupId>org.apache.maven.plugins</groupId>
+           <artifactId>maven-deploy-plugin</artifactId>
+           <version>${maven-deploy-plugin-version}</version>
         </plugin>
       </plugins>
     </pluginManagement>
