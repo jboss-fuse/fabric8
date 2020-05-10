@@ -20,7 +20,7 @@
   <parent>
     <artifactId>components</artifactId>
     <groupId>io.fabric8</groupId>
-    <version>3.0.11.sb2.redhat-SNAPSHOT</version>
+    <version>3.0.11.fuse-sb2-770004</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
