@@ -42,6 +42,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringTokenizer;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
 
@@ -55,14 +56,15 @@ import static org.vertx.java.core.http.HttpHeaders.CONTENT_TYPE;
 public class HttpGatewayHandler implements Handler<HttpServerRequest> {
     private static final transient Logger LOG = LoggerFactory.getLogger(HttpGatewayHandler.class);
     private static final long DEFAULT_REQUEST_TIMEOUT = -1L;
-
     private final Vertx vertx;
     private final HttpGateway httpGateway;
     private final ObjectMapper mapper = new ObjectMapper();
 
     private boolean addMissingTrailingSlashes = true;
+    private String fileExtensionName = "jsp,html,wsdl,xsd";
     private int connectionTimeout = 60000;
     private long requestTimeout = DEFAULT_REQUEST_TIMEOUT;
+    
 
     public HttpGatewayHandler(Vertx vertx, HttpGateway httpGateway) {
         this.vertx = vertx;
@@ -201,7 +203,7 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
                 servicePath += "/";
             }
             if (remaining != null) {
-                if (remaining.endsWith("/")) {
+                if (endWithKnowFileExtension(remaining) && remaining.endsWith("/")) {
                     //ensure the requst URI not end with "/", for example not wrongly index.jsp/
                     //or index.jsp/?query string
                     remaining = remaining.substring(0, remaining.length() - 1);
@@ -337,6 +339,32 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
             request.response().end();
         }
     }
+    
+    private boolean endWithKnowFileExtension(String remaining) {
+        if (remaining.endsWith("/")) {
+           remaining = remaining.substring(0, remaining.length() - 1);
+        }
+        if (remaining.lastIndexOf("/") >= 0) {
+            remaining = remaining.substring(remaining.lastIndexOf("/") + 1);
+        }
+        StringTokenizer lastPiece = new StringTokenizer(remaining, ".");
+        if (lastPiece.countTokens() == 2) {
+            lastPiece.nextToken();
+            String ext = lastPiece.nextToken();
+            if (ext != null && ext.length() > 0) {
+                StringTokenizer fileExtensions = new StringTokenizer(this.fileExtensionName, ",");
+                while (fileExtensions.hasMoreElements()) {
+                    if (ext.equals(fileExtensions.nextToken())) {
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        
+        return false;
+        
+    }
 
     protected boolean isMappingIndexRequest(HttpServerRequest request) {
         if (httpGateway == null || !httpGateway.isEnableIndex()) {
@@ -377,6 +405,10 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
     
     public void setAddMissingTrailingSlashes(boolean addMissingTrailingSlashes) {
         this.addMissingTrailingSlashes = addMissingTrailingSlashes;
+    }
+    
+    public void setFileExtensionName(String fileExtensionName) {
+        this.fileExtensionName = fileExtensionName;
     }
 
     /**
