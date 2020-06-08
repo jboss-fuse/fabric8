@@ -80,7 +80,7 @@
 
         <!-- upstream vs redhat versions of dependencies goes here -->
         <activemq.version>5.11.0.redhat-630446</activemq.version>
-        <arquillian-cube.version>1.9.0</arquillian-cube.version>
+        <arquillian-cube.version>1.18.2</arquillian-cube.version>
         <camel.version>2.23.2.fuse-750019</camel.version>
         <cxf.version>3.2.7.fuse-sb2-750015</cxf.version>
         <cxf.plugin.version>3.2.7.fuse-sb2-750015</cxf.plugin.version>
