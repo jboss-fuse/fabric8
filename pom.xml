@@ -209,6 +209,7 @@
         <validation-api.version>1.1.0.Final-redhat-1</validation-api.version>
         <zookeeper.version>3.4.14</zookeeper.version>
         <commons-codec.version>1.13</commons-codec.version>
+        <commons-beanutils.version>1.9.4.redhat-00002</commons-beanutils.version>
         <commons-lang3.version>3.9</commons-lang3.version>
         <commons-pool2.version>2.8.0</commons-pool2.version>
         <commons-dbcp2.version>2.7.0</commons-dbcp2.version>
@@ -788,6 +789,11 @@
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
                 <version>${commons-codec.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-beanutils</groupId>
+                <artifactId>commons-beanutils</artifactId>
+                <version>${commons-beanutils.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -1796,6 +1802,11 @@
                                     <groupId>commons-codec</groupId>
                                     <artifactId>commons-codec</artifactId>
                                     <version>${commons-codec.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>commons-beanutils</groupId>
+                                    <artifactId>commons-beanutils</artifactId>
+                                    <version>${commons-beanutils.version}</version>
                                 </dependency>
 
                                 <dependency>
