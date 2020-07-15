@@ -340,7 +340,7 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
         }
     }
     
-    private boolean endWithKnowFileExtension(String remaining) {
+    boolean endWithKnowFileExtension(String remaining) {
         if (remaining.endsWith("/")) {
            remaining = remaining.substring(0, remaining.length() - 1);
         }
@@ -348,9 +348,13 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
             remaining = remaining.substring(remaining.lastIndexOf("/") + 1);
         }
         StringTokenizer lastPiece = new StringTokenizer(remaining, ".");
-        if (lastPiece.countTokens() == 2) {
-            lastPiece.nextToken();
+        if (remaining.contains(".") 
+            && lastPiece.countTokens() >= 1) {
+           
             String ext = lastPiece.nextToken();
+            while (lastPiece.hasMoreElements()) {
+                ext = lastPiece.nextToken();
+            }
             if (ext != null && ext.length() > 0) {
                 StringTokenizer fileExtensions = new StringTokenizer(this.fileExtensionName, ",");
                 while (fileExtensions.hasMoreElements()) {
