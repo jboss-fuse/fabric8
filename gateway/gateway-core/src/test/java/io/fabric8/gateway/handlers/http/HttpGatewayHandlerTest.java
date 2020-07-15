@@ -25,8 +25,6 @@ public class HttpGatewayHandlerTest {
         assertTrue(handler.endWithKnowFileExtension("/cxf/CxfRsRouterTest/soap/test.wsdl/"));
         assertTrue(handler.endWithKnowFileExtension("/cxf/CxfRsRouterTest/rest/test.jsp/"));
         assertFalse(handler.endWithKnowFileExtension("/cxf/test/EUR/"));
-        assertFalse(handler.endWithKnowFileExtension("/cxf/CxfRsRouterTest/rest/.pdf/"));
-        handler.setFileExtensionName("pdf");
         assertTrue(handler.endWithKnowFileExtension("/cxf/CxfRsRouterTest/rest/.pdf/"));
     }
 }

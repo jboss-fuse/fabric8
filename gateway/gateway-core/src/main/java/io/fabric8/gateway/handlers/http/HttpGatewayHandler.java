@@ -61,7 +61,7 @@ public class HttpGatewayHandler implements Handler<HttpServerRequest> {
     private final ObjectMapper mapper = new ObjectMapper();
 
     private boolean addMissingTrailingSlashes = true;
-    private String fileExtensionName = "jsp,html,wsdl,xsd";
+    private String fileExtensionName = "jsp,html,wsdl,xsd,pdf";
     private int connectionTimeout = 60000;
     private long requestTimeout = DEFAULT_REQUEST_TIMEOUT;
     
