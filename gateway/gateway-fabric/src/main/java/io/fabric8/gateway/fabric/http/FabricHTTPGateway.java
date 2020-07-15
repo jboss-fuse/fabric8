@@ -85,7 +85,7 @@ public final class FabricHTTPGateway extends AbstractComponent implements HttpGa
     private String websocketGatewayPrefix = "";
     
     @Property(name = "fileExtensionName", label = "Known file extensions which shouldn't have a slash at the end of url", description = "Known file extensions which shouldn't have a slash at the end of url")
-    private String fileExtensionName = "jsp,html,wsdl,xsd";
+    private String fileExtensionName = "jsp,html,wsdl,xsd,pdf";
 
     @Property(name = "addMissingTrailingSlashes", label = "Adds slashes at the end of proxied urls", description = "Adds slashes at the end of proxied urls in case they don't already end with a slash character")
     private boolean addMissingTrailingSlashes = true;
