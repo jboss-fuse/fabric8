@@ -47,6 +47,7 @@ import org.apache.cxf.testutil.common.AbstractBusClientServerTestBase;
 import org.apache.cxf.transport.local.LocalTransportFactory;
 
 import org.junit.After;
+import static org.junit.Assert.fail;
 import org.junit.Before;
 import org.junit.Test;
 
