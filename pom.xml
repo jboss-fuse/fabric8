@@ -81,12 +81,12 @@
         <!-- upstream vs redhat versions of dependencies goes here -->
         <activemq.version>5.11.0.redhat-630446</activemq.version>
         <arquillian-cube.version>1.18.2</arquillian-cube.version>
-        <camel.version>2.23.2.fuse-750019</camel.version>
-        <cxf.version>3.2.7.fuse-sb2-750015</cxf.version>
-        <cxf.plugin.version>3.2.7.fuse-sb2-750015</cxf.plugin.version>
+        <camel.version>2.23.2.fuse-780001</camel.version>
+        <cxf.version>3.3.6.fuse-780001</cxf.version>
+        <cxf.plugin.version>3.3.6.fuse-780001</cxf.plugin.version>
 
-        <commons.collections.version>3.2.2.redhat-2</commons.collections.version>
-        <karaf.version>4.2.6.fuse-750012</karaf.version>
+	<commons.collections.version>3.2.2.redhat-2</commons.collections.version>
+	<karaf.version>4.2.9.fuse-780001</karaf.version>
         <hibernate-validator.version>5.3.5.Final-redhat-2</hibernate-validator.version>
         <hibernate-core.version>5.3.15.Final-redhat-00001</hibernate-core.version>
         <javax.el-api.version>3.0.0</javax.el-api.version>
@@ -98,7 +98,7 @@
         <swagger.jaxrs.version>1.5.18.fuse70-1-redhat-1</swagger.jaxrs.version>
         <vertx.version>3.5.4</vertx.version>
         <weld.version>2.3.5.Final</weld.version>
-        <version.org.fusesource.camel-sap>7.5.0.fuse-sb2-750018</version.org.fusesource.camel-sap>
+        <version.org.fusesource.camel-sap>7.8.0.fuse-sb2-780001</version.org.fusesource.camel-sap>
         <version.org.fusesource.camel-activemq>${version.org.fusesource.camel-sap}</version.org.fusesource.camel-activemq>
         <version.io.undertow>2.0.30.SP1-redhat-00001</version.io.undertow>
 
@@ -147,7 +147,7 @@
         <jetty.version>9.4.28.v20200408</jetty.version>
 
         <rhoar.version>2.1.6.SP3-redhat-00001</rhoar.version>
-        <narayana-spring-boot.version>2.1.1.fuse-sb2-750016</narayana-spring-boot.version>
+        <narayana-spring-boot.version>2.1.1.fuse-sb2-780001</narayana-spring-boot.version>
         <narayana.version>5.9.8.Final-redhat-00002</narayana.version>
 
 <!--
