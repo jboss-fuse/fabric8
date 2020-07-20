@@ -135,6 +135,8 @@
         <felix-scr-annotations.version>1.12.0</felix-scr-annotations.version>
         <felix-scr-plugin.version>1.21.0</felix-scr-plugin.version>
         <guava.version>27.1-jre</guava.version>
+        <httpasyncclient.version>4.1.3.redhat-2</httpasyncclient.version>
+        <httpcore.version>4.4.9</httpcore.version>
         <httpclient.version>4.5.5</httpclient.version>
         <!-- ENTESB-12869: versions from com.fasterxml.jackson/jackson-bom/2.8.11.20200310-redhat-00001 -->
         <jackson2.version>2.8.11</jackson2.version>
