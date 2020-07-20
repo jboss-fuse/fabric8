@@ -89,8 +89,8 @@
         <commons.collections.version>3.2.2.redhat-2</commons.collections.version>
         <version.fuse-karaf>7.8.0.fuse-780003</version.fuse-karaf>
         <karaf.version>4.2.9.fuse-780001</karaf.version>
-        <hibernate-validator.version>5.3.5.Final-redhat-2</hibernate-validator.version>
-        <hibernate-core.version>5.3.15.Final-redhat-00001</hibernate-core.version>
+        <hibernate-validator.version>6.0.20.Final-redhat-00001</hibernate-validator.version>
+        <hibernate-core.version>5.3.17.Final-redhat-00001</hibernate-core.version>
         <javax.el-api.version>3.0.0</javax.el-api.version>
         <jansi.version>1.18</jansi.version>
         <jolokia.version>1.6.2.redhat-00002</jolokia.version>
@@ -179,7 +179,7 @@
         <shrinkwrap-resolver.version>2.2.2</shrinkwrap-resolver.version>
         <slf4j.version>1.7.22.redhat-2</slf4j.version>
         <tomcat-embed.version>9.0.7.redhat-19</tomcat-embed.version>
-        <validation-api.version>1.1.0.Final-redhat-1</validation-api.version>
+        <validation-api.version>2.0.1.Final-redhat-1</validation-api.version>
         <zookeeper.version>3.4.14</zookeeper.version>
         <commons-codec.version>1.13</commons-codec.version>
         <commons-lang3.version>3.9</commons-lang3.version>
