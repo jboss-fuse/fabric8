@@ -183,6 +183,11 @@
         <reflections.version>0.9.11</reflections.version>
         <shrinkwrap-resolver.version>2.2.2</shrinkwrap-resolver.version>
         <slf4j.version>1.7.22.redhat-2</slf4j.version>
+        <spring.version>5.1.14.RELEASE</spring.version>
+        <spring.batch.version>3.0.10.RELEASE</spring.batch.version>
+        <spring.boot.version>2.1.13.RELEASE</spring.boot.version>
+        <spring.security.version>5.1.10.RELEASE</spring.security.version>
+        <spring.ws.version>3.0.8.RELEASE</spring.ws.version>
         <tomcat-embed.version>9.0.7.redhat-19</tomcat-embed.version>
         <validation-api.version>2.0.1.Final-redhat-1</validation-api.version>
         <zookeeper.version>3.4.14</zookeeper.version>
