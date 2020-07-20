@@ -194,8 +194,13 @@
         <tomcat-embed.version>9.0.7.redhat-19</tomcat-embed.version>
         <validation-api.version>2.0.1.Final-redhat-1</validation-api.version>
         <zookeeper.version>3.4.14</zookeeper.version>
-        <commons-codec.version>1.13</commons-codec.version>
-        <commons-lang3.version>3.9</commons-lang3.version>
+        <commons-beanutils.version>1.9.4.redhat-00002</commons-beanutils.version>
+        <commons-codec.version>1.14</commons-codec.version>
+        <commons-compress.version>1.19</commons-compress.version>
+        <commons-lang.version>2.6.0.redhat-7</commons-lang.version>
+        <commons-lang3.version>3.10</commons-lang3.version>
+        <commons-pool2.version>2.8.0</commons-pool2.version>
+        <commons-dbcp2.version>2.7.0</commons-dbcp2.version>
 
         <!-- OSGi bundles properties -->
         <fuse.osgi.bundle.name>${project.name}</fuse.osgi.bundle.name>
