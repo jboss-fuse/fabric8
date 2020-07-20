@@ -68,6 +68,9 @@
     <module>fabric8-profiles</module>
     <module>fabric8-project-utils</module>
 
+    <!-- karaf support -->
+    <module>fabric8-karaf</module>
+
     <!-- swagger -->
     <module>swagger-annotator</module>
     <module>swagger-model</module>
