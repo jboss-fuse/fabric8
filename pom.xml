@@ -148,6 +148,7 @@
         <javax.el-version>3.0.0</javax.el-version>
         <javax.servlet-api.version>4.0.1</javax.servlet-api.version>
         <javax.ws.rs-api.version>2.1.1</javax.ws.rs-api.version>
+        <jboss-logging.version>3.4.0.Final-redhat-00001</jboss-logging.version>
         <jetty-plugin-groupId>org.eclipse.jetty</jetty-plugin-groupId>
         <jetty-plugin.version>9.4.30.v20200611</jetty-plugin.version>
         <jetty.version>9.4.30.v20200611</jetty.version>
