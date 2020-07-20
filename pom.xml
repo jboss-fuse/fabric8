@@ -19,9 +19,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-      <groupId>org.sonatype.oss</groupId>
-      <artifactId>oss-parent</artifactId>
-      <version>9</version>
+        <groupId>org.sonatype.oss</groupId>
+        <artifactId>oss-parent</artifactId>
+        <version>9</version>
     </parent>
 
     <groupId>io.fabric8</groupId>
@@ -47,18 +47,18 @@
             <distribution>repo</distribution>
         </license>
         <license>
-          <name>Creative Commons Attribution 2.5</name>
-          <url>http://creativecommons.org/licenses/by/2.5/legalcode</url>
-          <distribution>repo</distribution>
+            <name>Creative Commons Attribution 2.5</name>
+            <url>http://creativecommons.org/licenses/by/2.5/legalcode</url>
+            <distribution>repo</distribution>
         </license>
         <license>
-          <name>MIT License</name>
-          <url>http://www.opensource.org/licenses/MIT</url>
-          <distribution>repo</distribution>
+            <name>MIT License</name>
+            <url>http://www.opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
         </license>
     </licenses>
 
-      <!-- including A developer as it's required by the maven poms going into central -->
+    <!-- including A developer as it's required by the maven poms going into central -->
     <developers>
         <developer>
             <id>geeks</id>
@@ -225,16 +225,16 @@
     </properties>
 
     <distributionManagement>
-      <repository>
-        <id>oss-sonatype-staging</id>
-        <name>Sonatype Staging Repository</name>
-        <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
-      </repository>
-      <snapshotRepository>
-        <id>oss-sonatype-snapshots</id>
-        <name>OSS Sonatype Nexus Snapshots</name>
-        <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-      </snapshotRepository>
+        <repository>
+            <id>oss-sonatype-staging</id>
+            <name>Sonatype Staging Repository</name>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+        </repository>
+        <snapshotRepository>
+            <id>oss-sonatype-snapshots</id>
+            <name>OSS Sonatype Nexus Snapshots</name>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
     </distributionManagement>
 
     <!-- lets try not to add any 3rd party repositories, we want fabric8 to be nimble and only use whats in Maven Central -->
@@ -307,9 +307,9 @@
             </dependency>
 
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>fabric8-apt</artifactId>
-              <version>${project.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>fabric8-apt</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.fabric8</groupId>
@@ -317,34 +317,34 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>fabric8-build-workflow</artifactId>
-              <version>${project.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>fabric8-build-workflow</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>fabric8-camel</artifactId>
-              <version>${project.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>fabric8-camel</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>fabric8-cdi</artifactId>
-              <version>${project.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>fabric8-cdi</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>fabric8-devops</artifactId>
-              <version>${project.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>fabric8-devops</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>fabric8-devops-connector</artifactId>
-              <version>${project.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>fabric8-devops-connector</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>fabric8-jgroups</artifactId>
-              <version>${project.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>fabric8-jgroups</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.fabric8</groupId>
@@ -357,35 +357,35 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-              <groupId>com.github.detro</groupId>
-              <artifactId>phantomjsdriver</artifactId>
-              <version>${phantomjsdriver.version}</version>
+                <groupId>com.github.detro</groupId>
+                <artifactId>phantomjsdriver</artifactId>
+                <version>${phantomjsdriver.version}</version>
             </dependency>
 
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>gateway-api</artifactId>
-              <version>${project.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>gateway-api</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>gateway-apiman</artifactId>
-              <version>${project.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>gateway-apiman</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>gateway-core</artifactId>
-              <version>${project.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>gateway-core</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>gateway-model</artifactId>
-              <version>${project.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>gateway-model</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>gateway-servlet</artifactId>
-              <version>${project.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>gateway-servlet</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.fabric8</groupId>
@@ -459,8 +459,8 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>jaxrs-utils</artifactId>
+                <groupId>io.fabric8</groupId>
+                <artifactId>jaxrs-utils</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -474,9 +474,9 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-              <groupId>io.fabric8</groupId>
-              <artifactId>rest-utils</artifactId>
-              <version>${project.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>rest-utils</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.fabric8</groupId>
@@ -548,64 +548,64 @@
                 <version>${version.io.undertow}</version>
             </dependency>
 
-          <!-- Weld -->
+            <!-- Weld -->
             <dependency>
-              <groupId>org.jboss.weld.se</groupId>
-              <artifactId>weld-se</artifactId>
-              <version>${weld.version}</version>
+                <groupId>org.jboss.weld.se</groupId>
+                <artifactId>weld-se</artifactId>
+                <version>${weld.version}</version>
             </dependency>
             <dependency>
-              <groupId>org.jboss.weld.se</groupId>
-              <artifactId>weld-se-core</artifactId>
-              <version>${weld.version}</version>
+                <groupId>org.jboss.weld.se</groupId>
+                <artifactId>weld-se-core</artifactId>
+                <version>${weld.version}</version>
             </dependency>
             <dependency>
-              <groupId>org.jboss.weld.servlet</groupId>
-              <artifactId>weld-servlet</artifactId>
-              <version>${weld.version}</version>
+                <groupId>org.jboss.weld.servlet</groupId>
+                <artifactId>weld-servlet</artifactId>
+                <version>${weld.version}</version>
             </dependency>
             <dependency>
-              <groupId>org.jboss.weld.servlet</groupId>
-              <artifactId>weld-servlet-core</artifactId>
-              <version>${weld.version}</version>
+                <groupId>org.jboss.weld.servlet</groupId>
+                <artifactId>weld-servlet-core</artifactId>
+                <version>${weld.version}</version>
             </dependency>
             <dependency>
-              <groupId>org.jboss.weld</groupId>
-              <artifactId>weld-core</artifactId>
-              <version>${weld.version}</version>
+                <groupId>org.jboss.weld</groupId>
+                <artifactId>weld-core</artifactId>
+                <version>${weld.version}</version>
             </dependency>
 
             <!-- DeltaSpike -->
             <dependency>
-              <groupId>org.apache.deltaspike.core</groupId>
-              <artifactId>deltaspike-core-api</artifactId>
-              <version>${deltaspike.version}</version>
+                <groupId>org.apache.deltaspike.core</groupId>
+                <artifactId>deltaspike-core-api</artifactId>
+                <version>${deltaspike.version}</version>
             </dependency>
             <dependency>
-              <groupId>org.apache.deltaspike.core</groupId>
-              <artifactId>deltaspike-core-impl</artifactId>
-              <version>${deltaspike.version}</version>
+                <groupId>org.apache.deltaspike.core</groupId>
+                <artifactId>deltaspike-core-impl</artifactId>
+                <version>${deltaspike.version}</version>
             </dependency>
             <dependency>
-              <groupId>org.apache.deltaspike.modules</groupId>
-              <artifactId>deltaspike-test-control-module-api</artifactId>
-              <version>${deltaspike.version}</version>
+                <groupId>org.apache.deltaspike.modules</groupId>
+                <artifactId>deltaspike-test-control-module-api</artifactId>
+                <version>${deltaspike.version}</version>
             </dependency>
             <dependency>
-              <groupId>org.apache.deltaspike.modules</groupId>
-              <artifactId>deltaspike-test-control-module-impl</artifactId>
-              <version>${deltaspike.version}</version>
+                <groupId>org.apache.deltaspike.modules</groupId>
+                <artifactId>deltaspike-test-control-module-impl</artifactId>
+                <version>${deltaspike.version}</version>
             </dependency>
             <dependency>
-              <groupId>org.apache.deltaspike.cdictrl</groupId>
-              <artifactId>deltaspike-cdictrl-weld</artifactId>
-              <version>${deltaspike.version}</version>
+                <groupId>org.apache.deltaspike.cdictrl</groupId>
+                <artifactId>deltaspike-cdictrl-weld</artifactId>
+                <version>${deltaspike.version}</version>
             </dependency>
 
             <dependency>
-              <groupId>com.google.guava</groupId>
-              <artifactId>guava</artifactId>
-              <version>${guava.version}</version>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
             </dependency>
 
             <!-- vertx -->
@@ -850,14 +850,14 @@
                 <version>${jackson2.version}</version>
             </dependency>
             <dependency>
-              <groupId>com.fasterxml.jackson.dataformat</groupId>
-              <artifactId>jackson-dataformat-yaml</artifactId>
-              <version>${jackson2.version}</version>
+                <groupId>com.fasterxml.jackson.dataformat</groupId>
+                <artifactId>jackson-dataformat-yaml</artifactId>
+                <version>${jackson2.version}</version>
             </dependency>
             <dependency>
-              <groupId>com.fasterxml.jackson.dataformat</groupId>
-              <artifactId>jackson-dataformat-xml</artifactId>
-              <version>${jackson2.version}</version>
+                <groupId>com.fasterxml.jackson.dataformat</groupId>
+                <artifactId>jackson-dataformat-xml</artifactId>
+                <version>${jackson2.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.datatype</groupId>
@@ -892,13 +892,13 @@
             </dependency>
 
             <!-- CXF -->
-             <dependency>
-                 <groupId>org.apache.cxf</groupId>
-                 <artifactId>cxf-parent</artifactId>
-                 <version>${cxf.version}</version>
-                 <type>pom</type>
-                 <scope>import</scope>
-             </dependency>
+            <dependency>
+                <groupId>org.apache.cxf</groupId>
+                <artifactId>cxf-parent</artifactId>
+                <version>${cxf.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
 
             <dependency>
                  <groupId>io.swagger</groupId>
@@ -956,9 +956,9 @@
                 <version>${junit.version}</version>
             </dependency>
             <dependency>
-              <groupId>org.assertj</groupId>
-              <artifactId>assertj-core</artifactId>
-              <version>${assertj.core.version}</version>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-core</artifactId>
+                <version>${assertj.core.version}</version>
             </dependency>
 
             <!-- JGroups -->
@@ -979,42 +979,48 @@
                 <version>${jolokia.version}</version>
             </dependency>
             <dependency>
-              <groupId>org.jolokia</groupId>
-              <artifactId>jolokia-jvm</artifactId>
-              <version>${jolokia.version}</version>
-              <classifier>agent</classifier>
+                <groupId>org.jolokia</groupId>
+                <artifactId>jolokia-jvm</artifactId>
+                <version>${jolokia.version}</version>
+                <classifier>agent</classifier>
             </dependency>
             <dependency>
-              <groupId>org.jolokia</groupId>
-              <artifactId>jolokia-jvm</artifactId>
-              <version>${jolokia.version}</version>
-            </dependency>
-
-            <dependency>
-              <groupId>net.oauth.core</groupId>
-              <artifactId>oauth</artifactId>
-              <version>20100527</version>
-            </dependency>
-            <dependency>
-              <groupId>dnsjava</groupId>
-              <artifactId>dnsjava</artifactId>
-              <version>${dnsjava.version}</version>
-            </dependency>
-            <dependency>
-              <groupId>io.dropwizard.metrics</groupId>
-              <artifactId>metrics-core</artifactId>
-              <version>${dropwizard-metrics.version}</version>
-            </dependency>
-            <dependency>
-              <groupId>io.dropwizard.metrics</groupId>
-              <artifactId>metrics-json</artifactId>
-              <version>${dropwizard-metrics.version}</version>
+                <groupId>org.jolokia</groupId>
+                <artifactId>jolokia-jvm</artifactId>
+                <version>${jolokia.version}</version>
             </dependency>
 
             <dependency>
-              <groupId>org.hibernate</groupId>
-              <artifactId>hibernate-validator</artifactId>
-              <version>${hibernate-validator.version}</version>
+                <groupId>net.oauth.core</groupId>
+                <artifactId>oauth</artifactId>
+                <version>20100527</version>
+            </dependency>
+            <dependency>
+                <groupId>dnsjava</groupId>
+                <artifactId>dnsjava</artifactId>
+                <version>${dnsjava.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.dropwizard.metrics</groupId>
+                <artifactId>metrics-core</artifactId>
+                <version>${dropwizard-metrics.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.dropwizard.metrics</groupId>
+                <artifactId>metrics-json</artifactId>
+                <version>${dropwizard-metrics.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.javassist</groupId>
+                <artifactId>javassist</artifactId>
+                <version>${javassist.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.hibernate</groupId>
+                <artifactId>hibernate-validator</artifactId>
+                <version>${hibernate-validator.version}</version>
             </dependency>
             <dependency>
                 <groupId>javax.enterprise</groupId>
@@ -1022,14 +1028,14 @@
                 <version>${javax.cdi-api.version}</version>
             </dependency>
             <dependency>
-              <groupId>javax.el</groupId>
-              <artifactId>javax.el-api</artifactId>
-              <version>${javax.el-version}</version>
+                <groupId>javax.el</groupId>
+                <artifactId>javax.el-api</artifactId>
+                <version>${javax.el-version}</version>
             </dependency>
             <dependency>
-              <groupId>org.glassfish.web</groupId>
-              <artifactId>javax.el</artifactId>
-              <version>${javax.el-version}</version>
+                <groupId>org.glassfish.web</groupId>
+                <artifactId>javax.el</artifactId>
+                <version>${javax.el-version}</version>
             </dependency>
             <dependency>
                 <groupId>com.sun</groupId>
@@ -1428,13 +1434,13 @@
             </properties>
         </profile>
         <profile>
-          <id>doclint-java8-disable</id>
-          <activation>
-            <jdk>[1.8,)</jdk>
-          </activation>
-          <properties>
-              <javadoc.opts>-Xdoclint:none</javadoc.opts>
-          </properties>
+            <id>doclint-java8-disable</id>
+            <activation>
+                <jdk>[1.8,)</jdk>
+            </activation>
+            <properties>
+                <javadoc.opts>-Xdoclint:none</javadoc.opts>
+            </properties>
         </profile>
     </profiles>
 
