@@ -190,6 +190,7 @@
         <spring.boot.version>2.1.13.RELEASE</spring.boot.version>
         <spring.security.version>5.1.10.RELEASE</spring.security.version>
         <spring.ws.version>3.0.8.RELEASE</spring.ws.version>
+        <sundrio.plugin.version>0.16.5</sundrio.plugin.version>
         <tomcat-embed.version>9.0.7.redhat-19</tomcat-embed.version>
         <validation-api.version>2.0.1.Final-redhat-1</validation-api.version>
         <zookeeper.version>3.4.14</zookeeper.version>
