@@ -251,6 +251,11 @@
                 <artifactId>javax.servlet-api</artifactId>
                 <version>${javax.servlet-api.version}</version>
             </dependency>
+            <dependency>
+                <groupId>javax.ws.rs</groupId>
+                <artifactId>javax.ws.rs-api</artifactId>
+                <version>${javax.ws.rs-api.version}</version>
+            </dependency>
 
             <!-- Eclipse -->
             <dependency>
@@ -530,8 +535,23 @@
                 <type>xml</type>
                 <classifier>features</classifier>
             </dependency>
+            <dependency>
+                <groupId>org.fusesource</groupId>
+                <artifactId>camel-activemq</artifactId>
+                <version>${version.org.fusesource.camel-sap}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.fusesource</groupId>
+                <artifactId>camel-sap</artifactId>
+                <version>${version.org.fusesource.camel-sap}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.fusesource</groupId>
+                <artifactId>camel-sap-starter</artifactId>
+                <version>${version.org.fusesource.camel-sap}</version>
+            </dependency>
 
-          <!-- Undertow -->
+            <!-- Undertow -->
             <dependency>
                 <groupId>io.undertow</groupId>
                 <artifactId>undertow-core</artifactId>
@@ -716,6 +736,21 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>${commons-compress.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-lang</groupId>
+                <artifactId>commons-lang</artifactId>
+                <version>${commons-lang.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-beanutils</groupId>
+                <artifactId>commons-beanutils</artifactId>
+                <version>${commons-beanutils.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>${commons-lang3.version}</version>
             </dependency>
@@ -725,6 +760,15 @@
                 <groupId>org.ops4j.pax.url</groupId>
                 <artifactId>pax-url-aether</artifactId>
                 <version>${pax.url.version}</version>
+            </dependency>
+
+            <!-- Spring -->
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-framework-bom</artifactId>
+                <version>${spring.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
 
             <!-- EasyMock -->
@@ -864,6 +908,11 @@
                 <artifactId>jackson-dataformat-joda</artifactId>
                 <version>${jackson2.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.module</groupId>
+                <artifactId>jackson-module-scala_2.10</artifactId>
+                <version>${jackson2.version}</version>
+            </dependency>
 
 
             <dependency>
@@ -900,11 +949,19 @@
                 <scope>import</scope>
             </dependency>
 
+            <!-- JBoss Fuse kar -->
             <dependency>
-                 <groupId>io.swagger</groupId>
-                 <artifactId>swagger-jaxrs</artifactId>
-                 <version>${swagger.jaxrs.version}</version>
-             </dependency>
+                <groupId>org.jboss.fuse</groupId>
+                <artifactId>fuse-karaf-framework</artifactId>
+                <type>kar</type>
+                <version>${version.fuse-karaf}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.swagger</groupId>
+                <artifactId>swagger-jaxrs</artifactId>
+                <version>${swagger.jaxrs.version}</version>
+            </dependency>
 
             <!-- Shrinkwrap NEEDS to be defined before arquillian
                 It seems that maven uses the first bom wins rule
@@ -924,6 +981,12 @@
                 <version>${arquillian.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jboss.logging</groupId>
+                <artifactId>jboss-logging</artifactId>
+                <version>${jboss-logging.version}</version>
             </dependency>
 
             <dependency>
@@ -1051,185 +1114,820 @@
         <module>parent</module>
         <module>components</module>
         <module>fabric8-apt</module>
-<!--
-        <module>hawt-app-maven-plugin</module>
-        <module>tooling</module>
--->
+        <!--
+                <module>hawt-app-maven-plugin</module>
+                <module>tooling</module>
+        -->
     </modules>
 
     <build>
-      <pluginManagement>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>${maven.failsafe.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>${maven.javadoc.plugin.version}</version>
+                    <configuration>
+                        <additionalparam>${javadoc.opts}</additionalparam>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>io.fabric8</groupId>
+                    <artifactId>docker-maven-plugin</artifactId>
+                    <version>${docker.maven.plugin.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-failsafe-plugin</artifactId>
-            <version>${maven.failsafe.plugin.version}</version>
-          </plugin>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-javadoc-plugin</artifactId>
-            <version>${maven.javadoc.plugin.version}</version>
-            <configuration>
-              <additionalparam>${javadoc.opts}</additionalparam>
-            </configuration>
-          </plugin>
-	      <plugin>
-		    <groupId>io.fabric8</groupId>
-		    <artifactId>docker-maven-plugin</artifactId>
-		    <version>${docker.maven.plugin.version}</version>
-	      </plugin>
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.8</version>
+                <executions>
+                    <execution>
+                        <id>set number of slashes in URL</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <exportAntProperties>true</exportAntProperties>
+                            <target>
+                                <condition property="urlSlashesOsModifier" value="//">
+                                    <and>
+                                        <not>
+                                            <os family="windows" />
+                                        </not>
+                                    </and>
+                                </condition>
+                                <condition property="urlSlashesOsModifier" value="///">
+                                    <and>
+                                        <os family="windows" />
+                                    </and>
+                                </condition>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!--
+                This is where the magic happens...
+                So let me explain. io.sundr.maven.GenerateBomMojo#execute() roughly does this:
+                 1. iterates over configuration/boms/bom
+                 2. as "own modules" it starts with "${reactorProjects}" so using `-N` may affect the process
+                 3. "own modules" are filtered by:
+                     - exclude <scope>system</scope> deps
+                     - exclude <type>pom</type> deps
+                     - include deps specified in bom/modules/includes/include
+                     - exclude deps specified in bom/modules/excludes/exclude
+                     - if bom/excludeOptional==true (which is default), exclude deps with <optional>true</optional>
+                     - if bom/ignoreScope==true (which is default), no need to specify scope for includes/excludes
+                 4. "dependency management artifacts" are set to org.apache.maven.project.MavenProject.getDependencyManagement()
+                    of current pom, if bom/inheritDependencyManagement==true (default is false)
+                 5. "plugin management artifacts" are set to org.apache.maven.project.MavenProject.getPluginManagement()
+                    of current pom, if bom/inheritPluginManagement==true (default is false)
+                 6. "all dependencies" are initially set to "dependency management artifacts"
+                     - org.apache.maven.execution.MavenSession.getProjectDependencyGraph().getSortedProjects() are checked
+                       (which again has size=1 if `-N` option is used) and for each project in multi-module project, all
+                       dependencies are added. In this case of io.fabric8:fabric8-project there are 136 dependencies before
+                       filtering
+                     - org.apache.maven.artifact.resolver.ArtifactResolver#resolve() is called for test and non-test scoped
+                       dependencies. In this case: test: 27 deps, non-test: 109 deps
+                       after resolution, in this case, test: 245 deps, non-test: 340 deps
+                     - after resolution, test dependencies are added first with scope=test and all other deps are added as-is.
+                       In this case, there are 466 deps.
+                 7. "dependencies" are filled with already filtered "own modules"
+                 8. "all dependencies" are now filtered by:
+                     - exclude <scope>system</scope> deps
+                     - exclude <scope>import</scope> and <type>pom</type> deps
+                     - include deps specified in bom/dependencies/includes/include
+                     - exclude deps specified in bom/dependencies/excludes/exclude
+                     - if bom/excludeOptional==true (which is default), exclude deps with <optional>true</optional>
+                     - if bom/ignoreScope==true (which is default), no need to specify scope for includes/excludes
+                    In this case, from 466 deps we keep 10 only (io.fabric8:kubernetes-* and io.fabric8:openshift-*)
+                 9. filtered "all dependencies" are added to "dependencies". In this case, we have 48 dependencies.
+                10. now all bom/imports/import artifacts (poms) are processed one by one.
+                11. for each "imported" pom, org.eclipse.aether.resolution.ArtifactDescriptorResult.getManagedDependencies() is called
+                     - exclude <scope>system</scope> deps
+                     - exclude <scope>import</scope> and <type>pom</type> deps
+                     - include deps specified in bom/imports/import/dependencyManagement/includes/include
+                     - exclude deps specified in bom/imports/import/dependencyManagement/excludes/exclude
+                     - those managed dependencies from <dependencyManagement> are added IN ORDER and PRIORITY OF APPEARANCE
+                       so if 2nd imported pom has the same dependency, it's NOT added. TL;DR: first wins
+                12. all these "imported managed dependencies" are added to "dependencies"
+                13. "plugins" are populated with those "own modules" that have <type>maven-plugin</type> (in this case
+                    it's single io.fabric8:hawt-app-maven-plugin:maven-plugin:VERSION:compile)
+                14. "plugins" are populated with "plugin management artifacts" filtered by:
+                     - include only <type>maven-plugin</type> - no doubt here
+                     - include plugins specified in bom/plugins/includes/include
+                     - exclude plugins specified in bom/plugins/excludes/exclude
+                15. "dependencies" are processed using bom/overrides now.
+                16. bom/overrides/override/dependencies/includes/include and bom/overrides/override/dependencies/excludes/exclude
+                    provide a composite filter
+                17. each dep from "dependencies" is filtered by the above filter and if there's match, bom/overrides/override/version
+                    is used for this dependency instead of original version
+                    THAT's WHY IT'd BE STRANGE to provide an override for "*:*" or similar - usually there's single includes/include there
+                    to match set of artifacts with single version to override
+                18. new MavenProject is created with:
+                     - groupId = from current project
+                     - artifactId = bom/artifactId
+                     - version = from current project
+                     - packaging = pom
+                     - name = bom/name
+                     - description = bom/description
+                     - dependencyManagement = from "dependencies" + additionally (at the end) from bom/extraDependencies/dependency
+                     - build/pluginManagement = from "plugins"
+                     - properties = from "properties" (these are NOT written, because velocity template doesn't handle them)
+                18. io.sundr.maven.GenerateBomMojo#verifyBomDependencies() is called to verify new MavenProject that has all the above
+                    managed plugins and dependencies (if bom/checkMismatches==true, which is default)
+                19. bom is written using Velocity
+                20. project for this bom is built using bom/goals/includes/include|exclude, while tasks are taken from
+                    current invocation
+            -->
+            <plugin>
+                <groupId>io.sundr</groupId>
+                <artifactId>sundr-maven-plugin</artifactId>
+                <version>${sundrio.plugin.version}</version>
+                <configuration>
+                    <bomTemplateUrl>file:${urlSlashesOsModifier}${project.basedir}/custom-bom.xml.vm</bomTemplateUrl>
+                    <boms>
+                        <!-- This is THE bom for Fuse7 on Karaf -->
+                        <bom>
+                            <artifactId>fabric8-project-bom-fuse-karaf</artifactId>
+                            <name>Fabric8 :: Project :: Bom for Fuse Applications on Karaf</name>
+
+                            <inheritDependencyManagement>true</inheritDependencyManagement>
+                            <inheritPluginManagement>true</inheritPluginManagement>
+
+                            <dependencies>
+                                <includes>
+                                    <!-- The kubernetes Client and Model -->
+                                    <include>io.fabric8:openshift-*</include>
+                                    <include>io.fabric8.kubernetes:*</include>
+                                    <include>io.fabric8:fabric8-karaf*</include>
+                                    <include>io.fabric8:kubernetes-*</include>
+
+                                    <include>javax*:*</include>
+
+                                    <include>org.jboss.arquillian*:*</include>
+                                    <include>org.jboss.shrinkwrap*:*</include>
+
+                                    <include>org.fusesource:camel-activemq</include>
+                                    <include>org.fusesource:camel-sap</include>
+
+                                    <include>org.easymock:easymockclassextension</include>
+
+                                    <include>org.apache.cxf:*</include>
+
+                                    <include>xml-apis:xml-apis</include>
+
+                                    <!-- JBoss Fuse kar -->
+                                    <include>org.jboss.fuse:fuse-karaf-framework:${version.fuse-karaf}:kar</include>
+                                </includes>
+                                <excludes>
+                                    <exclude>javax.servlet:javax.servlet-api</exclude>
+                                    <exclude>javax.activation:activation:1.1</exclude>
+                                </excludes>
+                            </dependencies>
+
+                            <plugins>
+                                <includes>
+                                    <include>io.fabric8:*</include>
+                                </includes>
+                            </plugins>
+
+                            <imports>
+                                <import>
+                                    <groupId>org.jboss.fuse</groupId>
+                                    <artifactId>jboss-fuse-parent</artifactId>
+                                    <version>${version.fuse-karaf}</version>
+                                    <repository>https://maven.repository.redhat.com/ga</repository>
+                                    <dependencyManagement>
+                                        <includes>
+                                            <include>*:*</include>
+                                        </includes>
+                                        <excludes>
+                                            <exclude>javax.ws.rs:javax.ws.rs-api</exclude>
+                                            <exclude>org.fusesource:camel-activemq</exclude>
+                                            <exclude>javax.annotation:jsr250-api</exclude>
+                                            <exclude>xml-apis:xml-apis:1.4.01</exclude>
+
+                                            <exclude>org.easymock:easymockclassextension</exclude>
+                                            <exclude>org.apache.cxf:cxf-rt-ws-security-oauth2</exclude>
+                                            <exclude>org.apache.camel:camel-manual</exclude>
+                                            <exclude>org.apache.activemq:activemq-camel</exclude>
+                                            <exclude>org.jboss.fuse.features:base</exclude>
+                                            <exclude>org.fusesource:camel-sap</exclude>
+                                        </excludes>
+                                    </dependencyManagement>
+                                </import>
+                            </imports>
+
+                            <overrides>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.springframework:*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${spring.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.springframework.security:*</include>
+                                        </includes>
+                                        <excludes>
+                                            <exclude>org.springframework.security:spring-security-jwt</exclude>
+                                        </excludes>
+                                    </dependencies>
+                                    <version>${spring.security.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.springframework.batch:*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${spring.batch.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.springframework.ws:*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${spring.ws.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.springframework.cloud:spring-cloud-stream-binder-kafka-test-support</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>1.1.2</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.slf4j:*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${slf4j.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.apache.logging.log4j:*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${log4j2.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.apache.activemq:activemq-*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${activemq.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.apache.tomcat*:*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${tomcat-embed.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.apache.activemq:artemis-*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${artemis.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>com.fasterxml.jackson*:*</include>
+                                        </includes>
+                                        <excludes>
+                                            <exclude>com.fasterxml.jackson.core:jackson-databind</exclude>
+                                        </excludes>
+                                    </dependencies>
+                                    <version>${jackson2.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>com.fasterxml.jackson.core:jackson-databind</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${jackson2.databind.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>com.fasterxml.jackson.module:*</include>
+                                        </includes>
+                                        <excludes>
+                                            <exclude>com.fasterxml.jackson.module:jackson-module-kotlin</exclude>
+                                        </excludes>
+                                    </dependencies>
+                                    <version>${jackson2.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>com.fasterxml.jackson.module:jackson-module-kotlin</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${jackson2.kotlin.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.apache.cxf.xjc-utils:*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${cxf.xjc-utils.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.eclipse.jetty*:*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${jetty.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.apache.httpcomponents:httpasyncclient</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${httpasyncclient.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.apache.httpcomponents:fluent-hc</include>
+                                            <include>org.apache.httpcomponents:httpclient*</include>
+                                            <include>org.apache.httpcomponents:httpmime</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${httpclient.version}</version>
+                                </override>
+                                <override>
+                                    <dependencies>
+                                        <includes>
+                                            <include>org.apache.httpcomponents:httpcore*</include>
+                                        </includes>
+                                    </dependencies>
+                                    <version>${httpcore.version}</version>
+                                </override>
+                            </overrides>
+
+                            <!-- additional dependencies simply added to generated bom -->
+                            <extraDependencies>
+                                <dependency>
+                                    <groupId>org.apache.qpid</groupId>
+                                    <artifactId>qpid-jms-client</artifactId>
+                                    <version>${qpid-jms-client.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>org.apache.qpid</groupId>
+                                    <artifactId>proton-j</artifactId>
+                                    <version>${qpid-proton-j.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>javax.el</groupId>
+                                    <artifactId>javax.el-api</artifactId>
+                                    <version>${javax.el-api.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>org.hibernate</groupId>
+                                    <artifactId>hibernate-core</artifactId>
+                                    <version>${hibernate-core.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>org.apache.commons</groupId>
+                                    <artifactId>commons-dbcp2</artifactId>
+                                    <version>${commons-dbcp2.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>org.apache.commons</groupId>
+                                    <artifactId>commons-pool2</artifactId>
+                                    <version>${commons-pool2.version}</version>
+                                </dependency>
+
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-all</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-buffer</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-codec-dns</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-codec-haproxy</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-codec-http2</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-codec-http</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-codec-memcache</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-codec-mqtt</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-codec-redis</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-codec-smtp</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-codec-socks</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-codec-stomp</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-codec-xml</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-codec</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-common</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-dev-tools</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-example</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-handler-proxy</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-handler</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-resolver-dns</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-resolver</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-transport-native-epoll</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-transport-native-kqueue</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-transport-native-unix-common</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-transport-rxtx</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-transport-sctp</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-transport-udt</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-transport</artifactId>
+                                    <version>${netty.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-transport-native-unix-common</artifactId>
+                                    <version>${netty.version}</version>
+                                    <classifier>linux-x86_64</classifier>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-transport-native-unix-common</artifactId>
+                                    <version>${netty.version}</version>
+                                    <classifier>osx-x86_64</classifier>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-transport-native-epoll</artifactId>
+                                    <version>${netty.version}</version>
+                                    <classifier>linux-x86_64</classifier>
+                                </dependency>
+                                <dependency>
+                                    <groupId>io.netty</groupId>
+                                    <artifactId>netty-transport-native-kqueue</artifactId>
+                                    <version>${netty.version}</version>
+                                    <classifier>osx-x86_64</classifier>
+                                </dependency>
+
+                                <dependency>
+                                    <groupId>com.google.guava</groupId>
+                                    <artifactId>guava</artifactId>
+                                    <version>${guava.version}</version>
+                                </dependency>
+                            </extraDependencies>
+
+                            <properties>
+                                <version.org.fusesource.camel-sap>7.7.0.fuse-770013</version.org.fusesource.camel-sap>
+                                <skipStagingRepositoryClose>true</skipStagingRepositoryClose>
+                            </properties>
+                        </bom>
+
+                        <!--
+                            There's no bom for Fuse7 on EAP generated here. It's in org.jboss.redhat-fuse:fuse-eap-bom
+                            which bom-imports only org.wildfly.camel:wildfly-camel-bom
+                        -->
+
+                        <!-- I'm not sure what this BOM is -->
+                        <bom>
+                            <artifactId>fabric8-project-bom</artifactId>
+                            <name>Fabric8 :: Project :: Bom</name>
+                            <modules>
+                                <!-- This set is assumed as default if not specified -->
+                                <includes>
+                                    <include>*:*</include>
+                                </includes>
+                            </modules>
+                            <dependencies>
+                                <includes>
+                                    <include>io.fabric8:kubernetes-*</include>
+                                    <include>io.fabric8:openshift-*</include>
+                                </includes>
+                            </dependencies>
+                            <plugins>
+                                <includes>
+                                    <include>io.fabric8:*</include>
+                                </includes>
+                            </plugins>
+                            <properties>
+                                <skipStagingRepositoryClose>true</skipStagingRepositoryClose>
+                            </properties>
+                            <inheritPluginManagement>true</inheritPluginManagement>
+                        </bom>
+
+                        <!-- I'm not sure what this BOM is -->
+                        <bom>
+                            <artifactId>fabric8-project-bom-with-platform-deps</artifactId>
+                            <name>Fabric8 :: Project :: Bom with Platform Dependencies</name>
+                            <dependencies>
+                                <includes>
+                                    <!-- The kubernetes Client and Model -->
+                                    <include>io.fabric8:kubernetes-*</include>
+                                    <include>io.fabric8:openshift-*</include>
+
+                                    <include>javax*:*</include>
+                                    <!-- Core platform -->
+                                    <include>org.jboss.weld*:*</include>
+                                    <include>org.jboss.arquillian*:*</include>
+                                    <include>org.jboss.shrinkwrap*:*</include>
+                                    <include>org.apache.deltaspike*:*</include>
+                                    <!-- minor things that are easy to get wrong -->
+                                    <include>org.ops4j.pax.url:pax-url-aether</include>
+                                    <include>org.codehaus.plexus:plexus-utils</include>
+                                    <include>xml-apis:xml-apis</include>
+                                </includes>
+                            </dependencies>
+                            <plugins>
+                                <includes>
+                                    <include>io.fabric8:*</include>
+                                </includes>
+                            </plugins>
+                            <properties>
+                                <skipStagingRepositoryClose>true</skipStagingRepositoryClose>
+                            </properties>
+                            <inheritDependencyManagement>true</inheritDependencyManagement>
+                            <inheritPluginManagement>true</inheritPluginManagement>
+                        </bom>
+                    </boms>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generate-bom</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.8</version>
+                <executions>
+                    <execution>
+                        <id>set number of slashes in URL</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <exportAntProperties>true</exportAntProperties>
+                            <target>
+                                <condition property="urlSlashesOsModifier" value="//">
+                                    <and>
+                                        <not>
+                                            <os family="windows" />
+                                        </not>
+                                    </and>
+                                </condition>
+                                <condition property="urlSlashesOsModifier" value="///">
+                                    <and>
+                                        <os family="windows" />
+                                    </and>
+                                </condition>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${compiler.plugin.version}</version>
+                <configuration>
+                    <showDeprecation>true</showDeprecation>
+                    <showWarnings>true</showWarnings>
+                    <compilerArguments>
+                        <source>${maven.compiler.argument.source}</source>
+                        <target>${maven.compiler.argument.target}</target>
+                    </compilerArguments>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>${jar.plugin.version}</version>
+                <configuration>
+                    <archive>
+                        <index>true</index>
+                        <manifest>
+                            <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                        </manifest>
+                        <manifestEntries>
+                            <Implementation-URL>${project.url}</Implementation-URL>
+                            <Java-Version>${java.version}</Java-Version>
+                            <Java-Vendor>${java.vendor}</Java-Vendor>
+                            <Os-Name>${os.name}</Os-Name>
+                            <Os-Arch>${os.arch}</Os-Arch>
+                            <Os-Version>${os.version}</Os-Version>
+                            <Scm-Url>${project.scm.url}</Scm-Url>
+                            <Scm-Connection>${project.scm.connection}</Scm-Connection>
+                            <Scm-Revision>${buildNumber}</Scm-Revision>
+                            <Build-Timestamp>${build.datetime}</Build-Timestamp>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+            <!-- Set properties containing the scm revision and build timestamp -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>buildnumber-maven-plugin</artifactId>
+                <version>${buildnumber.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>get-build-timestamp</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>create-timestamp</goal>
+                        </goals>
+                        <configuration>
+                            <!-- Example date: Wed, 4 Jul 2001 12:08:56 -0700 -->
+                            <timestampFormat>EEE, d MMM yyyy HH:mm:ss Z</timestampFormat>
+                            <timestampPropertyName>build.datetime</timestampPropertyName>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>get-scm-revision</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>create</goal>
+                        </goals>
+                        <configuration>
+                            <doCheck>false</doCheck>
+                            <doUpdate>false</doUpdate>
+                            <revisionOnScmFailure>UNKNOWN</revisionOnScmFailure>
+                            <getRevisionOnlyOnce>true</getRevisionOnlyOnce>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>2.6</version>
+                <configuration>
+                    <nonFilteredFileExtensions>
+                        <nonFilteredFileExtension>zip</nonFilteredFileExtension>
+                        <nonFilteredFileExtension>gz</nonFilteredFileExtension>
+                        <nonFilteredFileExtension>jar</nonFilteredFileExtension>
+                    </nonFilteredFileExtensions>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>${maven.enforcer.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>enforce-versions</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireMavenVersion>
+                                    <version>${maven.enforcer.version}</version>
+                                </requireMavenVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>2.5</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>1.5</version>
+                <configuration>
+                    <passphrase>${gpg.passphrase}</passphrase>
+                    <useAgent>true</useAgent>
+                </configuration>
+            </plugin>
         </plugins>
-      </pluginManagement>
-      <plugins>
-          <plugin>
-              <artifactId>maven-antrun-plugin</artifactId>
-              <version>1.8</version>
-              <executions>
-                  <execution>
-                      <id>set number of slashes in URL</id>
-                      <phase>validate</phase>
-                      <goals>
-                          <goal>run</goal>
-                      </goals>
-                      <configuration>
-                          <exportAntProperties>true</exportAntProperties>
-                          <target>
-                              <condition property="urlSlashesOsModifier" value="//">
-                                  <and>
-                                      <not>
-                                          <os family="windows" />
-                                      </not>
-                                  </and>
-                              </condition>
-                              <condition property="urlSlashesOsModifier" value="///">
-                                  <and>
-                                      <os family="windows" />
-                                  </and>
-                              </condition>
-                          </target>
-                      </configuration>
-                  </execution>
-              </executions>
-          </plugin>
-          <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-compiler-plugin</artifactId>
-              <version>${compiler.plugin.version}</version>
-              <configuration>
-                  <showDeprecation>true</showDeprecation>
-                  <showWarnings>true</showWarnings>
-                  <compilerArguments>
-                      <source>${maven.compiler.argument.source}</source>
-                      <target>${maven.compiler.argument.target}</target>
-                  </compilerArguments>
-              </configuration>
-          </plugin>
-          <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-jar-plugin</artifactId>
-              <version>${jar.plugin.version}</version>
-              <configuration>
-                  <archive>
-                      <index>true</index>
-                      <manifest>
-                          <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
-                          <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-                      </manifest>
-                      <manifestEntries>
-                          <Implementation-URL>${project.url}</Implementation-URL>
-                          <Java-Version>${java.version}</Java-Version>
-                          <Java-Vendor>${java.vendor}</Java-Vendor>
-                          <Os-Name>${os.name}</Os-Name>
-                          <Os-Arch>${os.arch}</Os-Arch>
-                          <Os-Version>${os.version}</Os-Version>
-                          <Scm-Url>${project.scm.url}</Scm-Url>
-                          <Scm-Connection>${project.scm.connection}</Scm-Connection>
-                          <Scm-Revision>${buildNumber}</Scm-Revision>
-                          <Build-Timestamp>${build.datetime}</Build-Timestamp>
-                      </manifestEntries>
-                  </archive>
-              </configuration>
-          </plugin>
-          <!-- Set properties containing the scm revision and build timestamp -->
-          <plugin>
-              <groupId>org.codehaus.mojo</groupId>
-              <artifactId>buildnumber-maven-plugin</artifactId>
-              <version>${buildnumber.plugin.version}</version>
-              <executions>
-                  <execution>
-                      <id>get-build-timestamp</id>
-                      <phase>initialize</phase>
-                      <goals>
-                          <goal>create-timestamp</goal>
-                      </goals>
-                      <configuration>
-                          <!-- Example date: Wed, 4 Jul 2001 12:08:56 -0700 -->
-                          <timestampFormat>EEE, d MMM yyyy HH:mm:ss Z</timestampFormat>
-                          <timestampPropertyName>build.datetime</timestampPropertyName>
-                      </configuration>
-                  </execution>
-                  <execution>
-                      <id>get-scm-revision</id>
-                      <phase>initialize</phase>
-                      <goals>
-                          <goal>create</goal>
-                      </goals>
-                      <configuration>
-                          <doCheck>false</doCheck>
-                          <doUpdate>false</doUpdate>
-                          <revisionOnScmFailure>UNKNOWN</revisionOnScmFailure>
-                          <getRevisionOnlyOnce>true</getRevisionOnlyOnce>
-                      </configuration>
-                  </execution>
-              </executions>
-          </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-resources-plugin</artifactId>
-          <version>2.6</version>
-          <configuration>
-            <nonFilteredFileExtensions>
-              <nonFilteredFileExtension>zip</nonFilteredFileExtension>
-              <nonFilteredFileExtension>gz</nonFilteredFileExtension>
-              <nonFilteredFileExtension>jar</nonFilteredFileExtension>
-            </nonFilteredFileExtensions>
-          </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-enforcer-plugin</artifactId>
-          <version>${maven.enforcer.plugin.version}</version>
-          <executions>
-            <execution>
-              <id>enforce-versions</id>
-              <goals>
-                <goal>enforce</goal>
-              </goals>
-              <configuration>
-                <rules>
-                  <requireMavenVersion>
-                    <version>${maven.enforcer.version}</version>
-                  </requireMavenVersion>
-                </rules>
-              </configuration>
-            </execution>
-          </executions>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-release-plugin</artifactId>
-          <version>2.5</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-gpg-plugin</artifactId>
-          <version>1.5</version>
-          <configuration>
-            <passphrase>${gpg.passphrase}</passphrase>
-            <useAgent>true</useAgent>
-          </configuration>
-        </plugin>
-      </plugins>
     </build>
 
     <profiles>
