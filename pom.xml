@@ -1434,44 +1434,6 @@
                                 <override>
                                     <dependencies>
                                         <includes>
-                                            <include>com.fasterxml.jackson*:*</include>
-                                        </includes>
-                                        <excludes>
-                                            <exclude>com.fasterxml.jackson.core:jackson-databind</exclude>
-                                        </excludes>
-                                    </dependencies>
-                                    <version>${jackson2.version}</version>
-                                </override>
-                                <override>
-                                    <dependencies>
-                                        <includes>
-                                            <include>com.fasterxml.jackson.core:jackson-databind</include>
-                                        </includes>
-                                    </dependencies>
-                                    <version>${jackson2.databind.version}</version>
-                                </override>
-                                <override>
-                                    <dependencies>
-                                        <includes>
-                                            <include>com.fasterxml.jackson.module:*</include>
-                                        </includes>
-                                        <excludes>
-                                            <exclude>com.fasterxml.jackson.module:jackson-module-kotlin</exclude>
-                                        </excludes>
-                                    </dependencies>
-                                    <version>${jackson2.version}</version>
-                                </override>
-                                <override>
-                                    <dependencies>
-                                        <includes>
-                                            <include>com.fasterxml.jackson.module:jackson-module-kotlin</include>
-                                        </includes>
-                                    </dependencies>
-                                    <version>${jackson2.kotlin.version}</version>
-                                </override>
-                                <override>
-                                    <dependencies>
-                                        <includes>
                                             <include>org.apache.cxf.xjc-utils:*</include>
                                         </includes>
                                     </dependencies>
@@ -1715,6 +1677,82 @@
                                     <groupId>com.google.guava</groupId>
                                     <artifactId>guava</artifactId>
                                     <version>${guava.version}</version>
+                                </dependency>
+
+                                <dependency>
+                                    <groupId>com.fasterxml.jackson.core</groupId>
+                                    <artifactId>jackson-annotations</artifactId>
+                                    <version>${jackson2.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>com.fasterxml.jackson.core</groupId>
+                                    <artifactId>jackson-core</artifactId>
+                                    <version>${jackson2.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>com.fasterxml.jackson.core</groupId>
+                                    <artifactId>jackson-databind</artifactId>
+                                    <version>${jackson2.databind.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>com.fasterxml.jackson.dataformat</groupId>
+                                    <artifactId>jackson-dataformat-cbor</artifactId>
+                                    <version>${jackson2.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>com.fasterxml.jackson.dataformat</groupId>
+                                    <artifactId>jackson-dataformat-smile</artifactId>
+                                    <version>${jackson2.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>com.fasterxml.jackson.dataformat</groupId>
+                                    <artifactId>jackson-dataformat-xml</artifactId>
+                                    <version>${jackson2.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>com.fasterxml.jackson.dataformat</groupId>
+                                    <artifactId>jackson-dataformat-yaml</artifactId>
+                                    <version>${jackson2.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>com.fasterxml.jackson.datatype</groupId>
+                                    <artifactId>jackson-datatype-joda</artifactId>
+                                    <version>${jackson2.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>com.fasterxml.jackson.jaxrs</groupId>
+                                    <artifactId>jackson-jaxrs-base</artifactId>
+                                    <version>${jackson2.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>com.fasterxml.jackson.jaxrs</groupId>
+                                    <artifactId>jackson-jaxrs-json-provider</artifactId>
+                                    <version>${jackson2.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>com.fasterxml.jackson.jr</groupId>
+                                    <artifactId>jackson-jr-objects</artifactId>
+                                    <version>${jackson2.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>com.fasterxml.jackson.module</groupId>
+                                    <artifactId>jackson-module-jaxb-annotations</artifactId>
+                                    <version>${jackson2.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>com.fasterxml.jackson.module</groupId>
+                                    <artifactId>jackson-module-jsonSchema</artifactId>
+                                    <version>${jackson2.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>com.fasterxml.jackson.module</groupId>
+                                    <artifactId>jackson-module-scala_2.10</artifactId>
+                                    <version>${jackson2.version}</version>
+                                </dependency>
+                                <dependency>
+                                    <groupId>com.fasterxml.jackson.module</groupId>
+                                    <artifactId>jackson-module-kotlin</artifactId>
+                                    <version>${jackson2.kotlin.version}</version>
                                 </dependency>
                             </extraDependencies>
 
