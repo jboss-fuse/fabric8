@@ -153,7 +153,7 @@
         <jetty-plugin.version>9.4.30.v20200611</jetty-plugin.version>
         <jetty.version>9.4.30.v20200611</jetty.version>
 
-        <rhoar.version>2.1.6.SP3-redhat-00001</rhoar.version>
+        <rhoar.version>2.1.13.Final-redhat-00001</rhoar.version>
         <narayana-spring-boot.version>2.1.1.fuse-sb2-780001</narayana-spring-boot.version>
         <narayana.version>5.9.8.Final-redhat-00002</narayana.version>
 
