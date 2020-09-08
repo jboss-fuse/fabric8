@@ -18,18 +18,13 @@ package io.fabric8.service.ssh;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
 import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.ChannelExec;
@@ -37,7 +32,6 @@ import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpProgressMonitor;
-
 import io.fabric8.api.Container;
 import io.fabric8.api.ContainerAutoScaler;
 import io.fabric8.api.ContainerAutoScalerFactory;
@@ -49,8 +43,9 @@ import io.fabric8.api.FabricException;
 import io.fabric8.api.FabricRequirements;
 import io.fabric8.api.ProfileRequirements;
 import io.fabric8.api.SshHostConfiguration;
-
+import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Properties;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
@@ -75,11 +70,66 @@ public class SshContainerProvider implements ContainerProvider<CreateSshContaine
     static final String SCHEME = "ssh";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SshContainerProvider.class);
+    private static final Logger JSCH_LOGGER = LoggerFactory.getLogger(JSch.class);
+
     private boolean verbose = false;
 
     @Override
     public CreateSshContainerOptions.Builder newBuilder() {
         return CreateSshContainerOptions.builder();
+    }
+
+    @Activate
+    public void activate() {
+        JSch.setLogger(new com.jcraft.jsch.Logger() {
+            @Override
+            public boolean isEnabled(int level) {
+                switch (level) {
+                    case com.jcraft.jsch.Logger.DEBUG:
+                    case com.jcraft.jsch.Logger.INFO:
+                        // that's on purpose, as Jsch uses INFO for almost everything
+                        return JSCH_LOGGER.isDebugEnabled();
+                    case com.jcraft.jsch.Logger.WARN:
+                        return JSCH_LOGGER.isWarnEnabled();
+                    case com.jcraft.jsch.Logger.ERROR:
+                        return JSCH_LOGGER.isErrorEnabled();
+                    case com.jcraft.jsch.Logger.FATAL:
+                        return true;
+                    default:
+                        return false;
+                }
+            }
+
+            @Override
+            public void log(int level, String message) {
+                switch (level) {
+                    case com.jcraft.jsch.Logger.DEBUG:
+                    case com.jcraft.jsch.Logger.INFO:
+                        // that's on purpose, as Jsch uses INFO for almost everything
+                        JSCH_LOGGER.debug(message);
+                        break;
+                    case com.jcraft.jsch.Logger.WARN:
+                        JSCH_LOGGER.warn(message);
+                        break;
+                    case com.jcraft.jsch.Logger.ERROR:
+                    case com.jcraft.jsch.Logger.FATAL:
+                        JSCH_LOGGER.error(message);
+                        break;
+                }
+            }
+        });
+    }
+
+    @Deactivate
+    public void deactivate() {
+        JSch.setLogger(new com.jcraft.jsch.Logger() {
+            public boolean isEnabled(int level) {
+                return false;
+            }
+
+            public void log(int level, String message) {
+            }
+        });
     }
 
     /**

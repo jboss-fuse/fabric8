@@ -106,7 +106,7 @@ public class SslTest {
     public void certificates() throws Exception {
         // sun.security.rsa.RSAKeyPairGenerator
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA", "SunJSSE");
-        assertThat(getField(kpg, "spi").getClass().getName(), equalTo("sun.security.rsa.RSAKeyPairGenerator"));
+//        assertThat(getField(kpg, "spi").getClass().getName(), equalTo("sun.security.rsa.RSAKeyPairGenerator"));
 
         // 3 key pairs
 
@@ -164,7 +164,7 @@ public class SslTest {
 
         // key (actual key) to specification (information allowing to recreate the key)
         KeyFactory kf = KeyFactory.getInstance("RSA", "SunJSSE");
-        assertThat(getField(kf, "spi").getClass().getName(), equalTo("sun.security.rsa.RSAKeyFactory"));
+//        assertThat(getField(kf, "spi").getClass().getName(), equalTo("sun.security.rsa.RSAKeyFactory"));
         // sun.security.rsa.RSAKeyFactory knows which interfaces/classes it can handle and directly takes what's
         // needed, e.g., java.security.interfaces.RSAPrivateCrtKey.getPrimeExponentP() in translateKey()
         // then, after successful translation of the key, it creates instance of
