@@ -19,11 +19,13 @@ import java.io.ByteArrayInputStream;
 import java.io.ObjectInputStream;
 
 import org.apache.commons.codec.binary.Base64;
+import org.junit.Ignore;
 import org.junit.Test;
 
-public class MyTest {
+public class DeserializationTest {
 
     @Test
+    @Ignore("Unignore to test metadata from ZK")
     public void deserializeMetadata() throws Exception {
         String s = "<base64 data here>";
         byte[] bytes = Base64.decodeBase64(s);
