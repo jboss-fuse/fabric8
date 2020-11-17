@@ -354,7 +354,7 @@ public final class ChildContainerProvider extends AbstractComponent implements C
         return metadata;
     }
 
-    private static StringBuilder buildJvmOpts(CreateChildContainerOptions options, FabricService fabricService) {
+    public static StringBuilder buildJvmOpts(CreateChildContainerOptions options, FabricService fabricService) {
         StringBuilder jvmOptsBuilder = new StringBuilder();
         
         String jvmVersion = System.getProperty("java.version");

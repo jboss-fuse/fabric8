@@ -295,6 +295,12 @@ public interface FabricManagerMBean {
      */
     String gitGc(Boolean aggressive);
 
+    /**
+     * Returns information about {@code karaf.home}, {@code karaf.base} and {@code karaf.instances}
+     * @return
+     */
+    String karafLocations();
+
     void copyProfile(String versionId, String sourceId, String targetId, boolean force);
 
     void renameProfile(String versionId, String profileId, String newId, boolean force);
