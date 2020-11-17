@@ -397,7 +397,7 @@ final class InstancesAction extends JMXCommandActionSupport {
             }
         }
 
-        System.out.println("Resulting instance.properties.file:");
+        System.out.println("Resulting instance.properties file:");
         System.out.println(sw.toString());
 
         return null;
