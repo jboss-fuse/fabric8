@@ -41,6 +41,7 @@ import io.fabric8.api.Version;
 import io.fabric8.api.VersionSequence;
 import io.fabric8.api.commands.GitGcResult;
 import io.fabric8.api.commands.GitVersions;
+import io.fabric8.api.commands.LocationInformation;
 import io.fabric8.api.jmx.FabricManagerMBean;
 import io.fabric8.api.jmx.FabricStatusDTO;
 import io.fabric8.api.jmx.ServiceStatusDTO;
@@ -1352,6 +1353,19 @@ public final class FabricManager implements FabricManagerMBean {
         GitGcResult gitVersions = profileRegistry.gitGc(aggressive);
         try {
             return getObjectMapper().writeValueAsString(gitVersions);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    @Override
+    public String karafLocations() {
+        LocationInformation info = new LocationInformation();
+        info.setHome(System.getProperty("karaf.home"));
+        info.setBase(System.getProperty("karaf.base"));
+        info.setInstances(System.getProperty("karaf.instances"));
+        try {
+            return getObjectMapper().writeValueAsString(info);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e.getMessage());
         }
