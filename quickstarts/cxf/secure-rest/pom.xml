@@ -208,11 +208,11 @@
     </dependency>
 
     <!--
-      Add the slf4j-log4j12 dependency jar for testing
+      Add the slf4j-simple dependency jar for testing
     -->
     <dependency>
       <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-log4j12</artifactId>
+      <artifactId>slf4j-simple</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

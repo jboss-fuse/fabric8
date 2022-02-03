@@ -15,7 +15,8 @@
  */
 package org.jboss.fuse.rhaccess;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -26,7 +27,7 @@ import java.net.URL;
  */
 public class Config {
 
-    private final static Logger log = Logger.getLogger(Config.class);
+    private final static Logger log = LoggerFactory.getLogger(Config.class);
 
     //private final SystemSettings settings;
 

@@ -135,11 +135,6 @@
       </dependency>
       <dependency>
           <groupId>org.apache.jclouds.driver</groupId>
-          <artifactId>jclouds-log4j</artifactId>
-          <version>${jclouds-version}</version>
-      </dependency>
-      <dependency>
-          <groupId>org.apache.jclouds.driver</groupId>
           <artifactId>jclouds-sshj</artifactId>
           <version>${jclouds-version}</version>
       </dependency>
@@ -162,6 +157,12 @@
           <groupId>org.apache.jclouds.karaf</groupId>
           <artifactId>services</artifactId>
           <version>${jclouds-version}</version>
+          <exclusions>
+              <exclusion>
+                  <groupId>log4j</groupId>
+                  <artifactId>log4j</artifactId>
+              </exclusion>
+          </exclusions>
       </dependency>
       <dependency>
           <groupId>org.apache.jclouds</groupId>

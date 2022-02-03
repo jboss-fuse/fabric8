@@ -55,7 +55,6 @@ import org.apache.felix.gogo.commands.Command;
 import org.apache.felix.gogo.commands.Option;
 import org.apache.felix.utils.properties.Properties;
 import org.apache.karaf.shell.console.AbstractAction;
-import org.apache.log4j.spi.LoggerRepository;
 import org.apache.zookeeper.KeeperException;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;

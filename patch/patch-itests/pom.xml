@@ -76,6 +76,12 @@
             <groupId>org.jboss.arquillian.container</groupId>
             <artifactId>arquillian-container-karaf-managed</artifactId>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.jboss.arquillian.container</groupId>
@@ -99,7 +105,7 @@
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
+            <artifactId>slf4j-simple</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

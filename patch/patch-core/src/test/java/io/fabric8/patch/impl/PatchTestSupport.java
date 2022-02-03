@@ -35,7 +35,7 @@ import org.apache.commons.io.IOUtils;
 public abstract class PatchTestSupport {
 
     protected static File getTestResourcesDirectory() {
-        return getDirectoryForResource("log4j.properties");
+        return getDirectoryForResource("test1.patch");
     }
 
     /*
