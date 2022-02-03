@@ -101,7 +101,7 @@ public class ServiceImplTest {
 
     @Before
     public void setUp() throws Exception {
-        baseDir = getDirectoryForResource("log4j.properties");
+        baseDir = getDirectoryForResource("test1.patch");
 
         URL.setURLStreamHandlerFactory(new CustomBundleURLStreamHandlerFactory());
         generateData();

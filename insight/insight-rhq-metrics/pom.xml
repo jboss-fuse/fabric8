@@ -113,6 +113,16 @@
       <groupId>org.rhq.metrics</groupId>
       <artifactId>rhq-metrics-core</artifactId>
       <version>${rhq-metrics-version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-log4j12</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>log4j</groupId>
+          <artifactId>log4j</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>joda-time</groupId>
